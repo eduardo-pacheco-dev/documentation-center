@@ -19,6 +19,8 @@
 /public/hot
 /public/storage
 /storage/*.key
+/storage/api-docs/api-docs.json
+/storage/api-docs/api-docs.yaml
 /storage/pail
 /vendor
 _ide_helper.php

@@ -1,7 +1,13 @@
 <?php
 
-test('the application returns a successful response', function () {
-    $response = $this->get('/');
+use Illuminate\Foundation\Testing\RefreshDatabase;
 
-    $response->assertStatus(200);
+uses(RefreshDatabase::class);
+
+test('guests are redirected from the root to the admin panel', function () {
+    $this->get('/')->assertRedirect('/admin');
+});
+
+test('guests are redirected from the admin panel to the login page', function () {
+    $this->get('/admin')->assertRedirect('/login');
 });
