@@ -3,6 +3,7 @@ set -euo pipefail
 
 APP_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPOSITORY_URL="https://github.com/eduardo-pacheco-dev/documentation-center.git"
+WEB_USER="${WEB_USER:-www-data}"
 
 log() { printf '\n==> %s\n' "$*"; }
 fail() { printf 'ERROR: %s\n' "$*" >&2; exit 1; }
@@ -27,8 +28,27 @@ if [ -z "${DEPLOY_REEXEC:-}" ]; then
     exec bash "$APP_DIR/deploy.sh"
 fi
 
+if grep -qE '^APP_DEBUG=true\r?$' .env; then
+    log "Warning: APP_DEBUG is true in .env - set it to false in production"
+fi
+
 log "Installing PHP dependencies"
 composer install --no-dev --prefer-dist --no-interaction --optimize-autoloader
+
+log "Ensuring storage directories and permissions"
+mkdir -p storage/framework/cache/data storage/framework/views storage/framework/sessions storage/logs bootstrap/cache
+if [ "$(id -u)" -eq 0 ]; then
+    id -u "$WEB_USER" >/dev/null 2>&1 || fail "Web user '$WEB_USER' does not exist (set the WEB_USER secret)"
+    chown -R "$WEB_USER:$WEB_USER" storage bootstrap/cache
+else
+    log "Warning: running as non-root user; skipping ownership change to $WEB_USER"
+fi
+chmod -R 775 storage bootstrap/cache
+
+if grep -qE '^APP_KEY=\r?$' .env; then
+    log "Generating application key"
+    php artisan key:generate --force
+fi
 
 trap 'php artisan up >/dev/null 2>&1 || true' EXIT
 
@@ -53,8 +73,5 @@ if [ ! -f database/database.sqlite ]; then
     log "Created database/database.sqlite"
 fi
 php artisan migrate --force
-
-log "Setting permissions"
-chmod -R ug+rwx storage bootstrap/cache
 
 log "Deploy completed"

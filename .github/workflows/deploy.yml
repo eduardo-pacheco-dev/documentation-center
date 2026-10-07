@@ -18,11 +18,14 @@ jobs:
     steps:
       - name: Run deploy script on server
         uses: appleboy/ssh-action@v1
+        env:
+          WEB_USER: ${{ secrets.WEB_USER }}
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USERNAME }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: ${{ secrets.SSH_PORT || '22' }}
+          envs: WEB_USER
           script_stop: true
           script: |
             cd "${{ secrets.SERVER_PATH }}"
