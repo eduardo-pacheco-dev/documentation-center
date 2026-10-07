@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\Document;
 use App\Models\ShortLink;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -49,6 +50,28 @@ test('links can be searched by title and code', function () {
         ->assertOk()
         ->assertSee($match->code)
         ->assertDontSee($other->code);
+});
+
+test('links can be filtered by a specific file', function () {
+    $user = User::factory()->create();
+    $withFile = ShortLink::factory()->for($user)->download()->withDocuments(1)->create();
+    $withoutFile = ShortLink::factory()->for($user)->download()->create();
+    $document = $withFile->documents()->firstOrFail();
+
+    $this->actingAs($user)
+        ->get('/admin/links?document='.$document->getKey())
+        ->assertOk()
+        ->assertSee($withFile->code)
+        ->assertDontSee($withoutFile->code)
+        ->assertSee($document->original_name);
+});
+
+test('filtering links by a file owned by someone else returns 404', function () {
+    $document = Document::factory()->create();
+
+    $this->actingAs(User::factory()->create())
+        ->get('/admin/links?document='.$document->getKey())
+        ->assertNotFound();
 });
 
 test('links are sorted by the requested column', function () {

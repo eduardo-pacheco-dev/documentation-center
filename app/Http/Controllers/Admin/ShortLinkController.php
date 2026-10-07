@@ -40,6 +40,14 @@ class ShortLinkController extends Controller
             ->whereBelongsTo($request->user())
             ->withCount(['documents', 'receivedDocuments']);
 
+        $document = null;
+
+        if ($request->filled('document')) {
+            $document = $request->user()->documents()->whereKey($request->integer('document'))->firstOrFail();
+
+            $query->whereHas('documents', fn (Builder $builder): Builder => $builder->whereKey($document->getKey()));
+        }
+
         if ($search !== '') {
             $query->where(function (Builder $builder) use ($search): void {
                 $builder
@@ -60,6 +68,7 @@ class ShortLinkController extends Controller
         return view('admin.links.index', [
             'shortLinks' => $query->paginate(10)->withQueryString(),
             'search' => $search,
+            'document' => $document,
         ]);
     }
 

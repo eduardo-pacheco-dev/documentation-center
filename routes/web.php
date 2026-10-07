@@ -40,6 +40,7 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
     Route::get('files', [DocumentController::class, 'index'])->name('files.index');
     Route::post('files', [DocumentController::class, 'store'])->name('files.store');
     Route::post('files/generate-link', [DocumentController::class, 'generateLink'])->name('files.generate-link');
+    Route::put('files/{document}', [DocumentController::class, 'update'])->name('files.update');
     Route::delete('files/{document}', [DocumentController::class, 'destroy'])->name('files.destroy');
 
     Route::middleware('admin')->group(function () {

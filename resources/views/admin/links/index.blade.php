@@ -29,6 +29,9 @@
         @if (request('direction'))
             <input type="hidden" name="direction" value="{{ request('direction') }}">
         @endif
+        @if (request('document'))
+            <input type="hidden" name="document" value="{{ request('document') }}">
+        @endif
 
         <div class="relative w-full max-w-sm">
             <x-icon name="magnifying-glass" class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
@@ -50,9 +53,26 @@
         </button>
 
         @if ($search !== '')
-            <a href="{{ route('admin.links.index') }}" class="text-sm text-gray-500 hover:text-gray-900">
+            <a
+                href="{{ route('admin.links.index', array_filter(['document' => request('document')])) }}"
+                class="text-sm text-gray-500 hover:text-gray-900"
+            >
                 Limpar
             </a>
+        @endif
+
+        @if ($document)
+            <span class="inline-flex items-center gap-1.5 rounded-full bg-indigo-100 px-3 py-1.5 text-xs font-medium text-indigo-700">
+                <x-icon name="document-text" class="h-3.5 w-3.5" />
+                <span class="max-w-[14rem] truncate">{{ $document->original_name }}</span>
+                <a
+                    href="{{ route('admin.links.index') }}"
+                    class="rounded-full p-0.5 hover:bg-indigo-200"
+                    aria-label="Remover filtro por arquivo"
+                >
+                    <x-icon name="x-mark" class="h-3.5 w-3.5" />
+                </a>
+            </span>
         @endif
     </form>
 

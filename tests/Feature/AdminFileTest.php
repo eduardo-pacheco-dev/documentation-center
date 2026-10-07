@@ -168,6 +168,63 @@ test('generating a link ignores files owned by someone else', function () {
         ->assertSessionHasErrors('document_ids.0');
 });
 
+test('users can rename their own files', function () {
+    $user = User::factory()->create();
+    $document = Document::factory()->for($user)->create(['original_name' => 'antigo-nome.pdf']);
+
+    $this->actingAs($user)
+        ->from('/admin/files')
+        ->put('/admin/files/'.$document->getKey(), ['original_name' => 'novo-nome.pdf'])
+        ->assertRedirect('/admin/files')
+        ->assertSessionHas('status');
+
+    $this->assertDatabaseHas('documents', [
+        'id' => $document->getKey(),
+        'original_name' => 'novo-nome.pdf',
+    ]);
+});
+
+test('renaming a file requires a name', function () {
+    $user = User::factory()->create();
+    $document = Document::factory()->for($user)->create(['original_name' => 'original.pdf']);
+
+    $this->actingAs($user)
+        ->from('/admin/files')
+        ->put('/admin/files/'.$document->getKey(), ['original_name' => ''])
+        ->assertRedirect('/admin/files')
+        ->assertSessionHasErrors('original_name');
+
+    $this->assertDatabaseHas('documents', [
+        'id' => $document->getKey(),
+        'original_name' => 'original.pdf',
+    ]);
+});
+
+test('users can not rename files owned by someone else', function () {
+    $document = Document::factory()->create(['original_name' => 'original.pdf']);
+
+    $this->actingAs(User::factory()->create())
+        ->put('/admin/files/'.$document->getKey(), ['original_name' => 'roubado.pdf'])
+        ->assertForbidden();
+
+    $this->assertDatabaseHas('documents', [
+        'id' => $document->getKey(),
+        'original_name' => 'original.pdf',
+    ]);
+});
+
+test('each file offers renaming and managing its links', function () {
+    $user = User::factory()->create();
+    $document = Document::factory()->for($user)->create(['original_name' => 'contrato.pdf']);
+
+    $this->actingAs($user)
+        ->get('/admin/files')
+        ->assertOk()
+        ->assertSee('Renomear')
+        ->assertSee('Gerenciar links')
+        ->assertSee('/admin/links?document='.$document->getKey(), false);
+});
+
 test('users can delete their own files', function () {
     Storage::fake('local');
 

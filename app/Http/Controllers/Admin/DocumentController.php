@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Enums\ShortLinkType;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\GenerateDownloadLinkRequest;
+use App\Http\Requests\RenameDocumentRequest;
 use App\Http\Requests\StoreDocumentsRequest;
 use App\Models\Document;
 use App\Models\ShortLink;
@@ -89,6 +90,16 @@ class DocumentController extends Controller
         return redirect()
             ->route('admin.links.edit', $shortLink)
             ->with('status', 'Link de download criado com '.count($request->validated('document_ids')).' arquivo(s).');
+    }
+
+    /**
+     * Rename a file owned by the authenticated user.
+     */
+    public function update(RenameDocumentRequest $request, Document $document): RedirectResponse
+    {
+        $document->update($request->validated());
+
+        return back()->with('status', 'Nome do arquivo atualizado com sucesso.');
     }
 
     /**
