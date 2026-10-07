@@ -28,7 +28,18 @@ class AuthenticatedSessionController extends Controller
 
         if (! Auth::attempt($credentials, $request->boolean('remember'))) {
             return back()->withErrors([
-                'email' => 'As credenciais informadas não correspondem a um usuário.',
+                'email' => 'As credenciais informadas nǜo correspondem a um usuǭrio.',
+            ])->onlyInput('email');
+        }
+
+        if (! Auth::user()->is_active) {
+            Auth::guard('web')->logout();
+
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+
+            return back()->withErrors([
+                'email' => 'Sua conta está desativada.',
             ])->onlyInput('email');
         }
 
