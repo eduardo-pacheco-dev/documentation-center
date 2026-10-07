@@ -1,7 +1,10 @@
 <x-layouts.admin title="Usuários">
     <div class="flex items-center justify-between">
         <div>
-            <h1 class="text-xl font-semibold">Usuários</h1>
+            <h1 class="flex items-center gap-2 text-xl font-semibold">
+                <x-icon name="users" class="h-5 w-5 text-gray-400 dark:text-gray-500" />
+                Usuários
+            </h1>
             <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Gerencie as contas da plataforma.</p>
         </div>
 
@@ -15,7 +18,49 @@
         </button>
     </div>
 
-    <div class="mt-6 overflow-hidden rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 shadow-sm">
+    <form
+        method="GET"
+        action="{{ route('admin.users.index') }}"
+        class="mt-6 flex flex-wrap items-center gap-2"
+        data-search-form
+    >
+        @if (request('sort'))
+            <input type="hidden" name="sort" value="{{ request('sort') }}">
+        @endif
+        @if (request('direction'))
+            <input type="hidden" name="direction" value="{{ request('direction') }}">
+        @endif
+
+        <div class="relative w-full max-w-sm">
+            <x-icon name="magnifying-glass" class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400 dark:text-gray-500" />
+            <input
+                type="search"
+                name="search"
+                value="{{ $search }}"
+                placeholder="Buscar por nome ou e-mail..."
+                class="block w-full rounded-md border border-gray-300 dark:border-gray-700 dark:bg-gray-900 py-2 pl-9 pr-3 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500"
+                data-search-input
+            >
+        </div>
+
+        <button
+            type="submit"
+            class="rounded-md border border-gray-300 dark:border-gray-700 dark:bg-gray-900 px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800"
+        >
+            Buscar
+        </button>
+
+        @if ($search !== '')
+            <a
+                href="{{ route('admin.users.index') }}"
+                class="text-sm text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100"
+            >
+                Limpar
+            </a>
+        @endif
+    </form>
+
+    <div class="mt-4 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 shadow-sm">
         @error('user')
             <p class="border-b border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-950 px-5 py-3 text-sm text-red-700 dark:text-red-300">{{ $message }}</p>
         @enderror
@@ -23,10 +68,10 @@
         <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-800 text-sm">
             <thead class="bg-gray-50 dark:bg-gray-800 text-left text-xs uppercase text-gray-500 dark:text-gray-400">
                 <tr>
-                    <th class="px-5 py-3 font-medium">Nome</th>
-                    <th class="px-5 py-3 font-medium">E-mail</th>
-                    <th class="px-5 py-3 font-medium">Perfil</th>
-                    <th class="px-5 py-3 font-medium">Criado em</th>
+                    <x-sort-header column="name" label="Nome" class="px-5 py-3" />
+                    <x-sort-header column="email" label="E-mail" class="px-5 py-3" />
+                    <x-sort-header column="is_admin" label="Perfil" class="px-5 py-3" />
+                    <x-sort-header column="created_at" label="Criado em" icon="clock" class="px-5 py-3" />
                     <th class="px-5 py-3 font-medium text-right">Ações</th>
                 </tr>
             </thead>
@@ -120,7 +165,16 @@
                     </tr>
                 @empty
                     <tr>
-                        <td class="px-5 py-6 text-gray-500 dark:text-gray-400" colspan="5">Nenhum usuário encontrado.</td>
+                        <td class="px-5 py-6 text-gray-500 dark:text-gray-400" colspan="5">
+                            @if ($search !== '')
+                                Nenhum usuário encontrado para "{{ $search }}".
+                            @else
+                                <span class="inline-flex items-center gap-2">
+                                    <x-icon name="users" class="h-4 w-4 text-gray-400 dark:text-gray-500" />
+                                    Nenhum usuário cadastrado até o momento.
+                                </span>
+                            @endif
+                        </td>
                     </tr>
                 @endforelse
             </tbody>
@@ -452,6 +506,29 @@
         if (editModal?.hasAttribute('data-open') && editForm.elements.namedItem('user_id').value) {
             editForm.action = editModal.dataset.actionTemplate.replace('__ID__', editForm.elements.namedItem('user_id').value);
             openModal(editModal);
+        }
+
+        const searchForm = document.querySelector('[data-search-form]');
+        const searchInput = document.querySelector('[data-search-input]');
+
+        if (searchForm && searchInput) {
+            let searchTimer;
+
+            searchInput.addEventListener('input', () => {
+                clearTimeout(searchTimer);
+                searchTimer = setTimeout(() => searchForm.submit(), 400);
+            });
+
+            searchInput.addEventListener('keydown', (event) => {
+                if (event.key === 'Enter') {
+                    clearTimeout(searchTimer);
+                }
+            });
+
+            if (searchInput.value) {
+                searchInput.focus();
+                searchInput.setSelectionRange(searchInput.value.length, searchInput.value.length);
+            }
         }
     </script>
 </x-layouts.admin>

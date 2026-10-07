@@ -120,5 +120,9 @@
 
             {{ $slot }}
         </main>
+
+        <footer class="mx-auto w-full max-w-6xl border-t border-gray-200 px-4 py-6 text-sm text-gray-500 dark:border-gray-800 dark:text-gray-400">
+            <p>&copy; {{ date('Y') }} {{ config('app.name') }}. Todos os direitos reservados.</p>
+        </footer>
     </body>
 </html>

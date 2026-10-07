@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\StoreUserRequest;
 use App\Http\Requests\Admin\UpdateUserRequest;
 use App\Models\User;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -15,10 +16,37 @@ class UserController extends Controller
     /**
      * List every registered user.
      */
-    public function index(): View
+    public function index(Request $request): View
     {
+        $search = $request->string('search')->trim()->toString();
+
+        $sortableColumns = ['name', 'email', 'is_admin', 'created_at'];
+
+        if (in_array($request->query('sort'), $sortableColumns, true)) {
+            $sort = $request->query('sort');
+            $direction = in_array($request->query('direction'), ['asc', 'desc'], true)
+                ? $request->query('direction')
+                : ($sort === 'created_at' ? 'desc' : 'asc');
+        } else {
+            $sort = 'created_at';
+            $direction = 'desc';
+        }
+
+        $query = User::query();
+
+        if ($search !== '') {
+            $query->where(function (Builder $builder) use ($search): void {
+                $builder
+                    ->where('name', 'like', "%{$search}%")
+                    ->orWhere('email', 'like', "%{$search}%");
+            });
+        }
+
+        $query->orderBy($sort, $direction)->orderBy('id', $direction);
+
         return view('admin.users.index', [
-            'users' => User::latest('created_at')->paginate(10),
+            'users' => $query->paginate(10)->withQueryString(),
+            'search' => $search,
         ]);
     }
 

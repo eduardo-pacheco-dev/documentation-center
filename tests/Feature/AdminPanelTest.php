@@ -32,6 +32,27 @@ test('administrators can list users', function () {
         ->assertSee('Usuários');
 });
 
+test('administrators can search for users', function () {
+    $admin = User::factory()->admin()->create();
+    User::factory()->create(['name' => 'Maria da Silva', 'email' => 'maria@example.com']);
+    User::factory()->create(['name' => 'João Souza', 'email' => 'joao@example.com']);
+
+    $this->actingAs($admin)
+        ->get('/admin/users?search=maria')
+        ->assertSee('Maria da Silva')
+        ->assertDontSee('João Souza');
+});
+
+test('administrators can sort users by name', function () {
+    $admin = User::factory()->admin()->create(['name' => 'Alice Admin', 'email' => 'alice@example.com']);
+    User::factory()->create(['name' => 'Bob Bravo', 'email' => 'bob@example.com']);
+    User::factory()->create(['name' => 'Carol Costa', 'email' => 'carol@example.com']);
+
+    $this->actingAs($admin)
+        ->get('/admin/users?sort=name&direction=asc')
+        ->assertSeeInOrder(['Alice Admin', 'Bob Bravo', 'Carol Costa']);
+});
+
 test('administrators can create users', function () {
     $admin = User::factory()->admin()->create();
 

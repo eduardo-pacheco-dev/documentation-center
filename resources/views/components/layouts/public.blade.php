@@ -28,5 +28,9 @@
 
             {{ $slot }}
         </main>
+
+        <footer class="pb-12 text-center text-sm text-gray-500 dark:text-gray-400">
+            <p>&copy; {{ date('Y') }} {{ config('app.name') }}. Todos os direitos reservados.</p>
+        </footer>
     </body>
 </html>
