@@ -7,13 +7,13 @@
     <div class="flex items-center justify-between">
         <div>
             <h1 class="text-xl font-semibold">Arquivos</h1>
-            <p class="mt-1 text-sm text-gray-500">Envie arquivos e gere links de download a partir deles.</p>
+            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Envie arquivos e gere links de download a partir deles.</p>
         </div>
 
         <button
             type="button"
             data-modal-open="upload-modal"
-            class="inline-flex items-center gap-1.5 rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-700"
+            class="inline-flex items-center gap-1.5 rounded-md bg-gray-900 dark:bg-white px-4 py-2 text-sm font-medium text-white dark:text-gray-900 hover:bg-gray-700 dark:hover:bg-gray-200"
         >
             <x-icon name="arrow-up-tray" class="h-4 w-4" />
             Enviar arquivos
@@ -34,35 +34,35 @@
         @endif
 
         <div class="relative w-full max-w-sm">
-            <x-icon name="magnifying-glass" class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+            <x-icon name="magnifying-glass" class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400 dark:text-gray-500" />
             <input
                 type="search"
                 name="search"
                 value="{{ $search }}"
                 placeholder="Buscar por nome do arquivo..."
-                class="block w-full rounded-md border border-gray-300 py-2 pl-9 pr-3 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500"
+                class="block w-full rounded-md border border-gray-300 dark:border-gray-700 dark:bg-gray-900 py-2 pl-9 pr-3 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500"
                 data-search-input
             >
         </div>
 
         <button
             type="submit"
-            class="rounded-md border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100"
+            class="rounded-md border border-gray-300 dark:border-gray-700 dark:bg-gray-900 px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800"
         >
             Buscar
         </button>
 
         @if ($search !== '')
-            <a href="{{ route('admin.files.index') }}" class="text-sm text-gray-500 hover:text-gray-900">
+            <a href="{{ route('admin.files.index') }}" class="text-sm text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100">
                 Limpar
             </a>
         @endif
     </form>
 
     @if ($documents->isNotEmpty())
-        <div class="mt-4 rounded-xl border border-gray-200 bg-white shadow-sm">
-            <table class="min-w-full divide-y divide-gray-200 text-sm">
-                <thead class="bg-gray-50 text-left text-xs uppercase text-gray-500">
+        <div class="mt-4 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 shadow-sm">
+            <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-800 text-sm">
+                <thead class="bg-gray-50 dark:bg-gray-800 text-left text-xs uppercase text-gray-500 dark:text-gray-400">
                     <tr>
                         <x-sort-header column="original_name" label="Arquivo" icon="document-text" class="px-4 py-3" />
                         <x-sort-header column="size" label="Tamanho" icon="document" class="px-4 py-3" />
@@ -71,23 +71,23 @@
                         <th class="px-4 py-3 font-medium text-right">Ações</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-gray-100">
+                <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
                     @foreach ($documents as $document)
                         <tr>
                             <td class="px-4 py-3">
-                                <p class="max-w-[18rem] truncate text-gray-900">{{ $document->original_name }}</p>
+                                <p class="max-w-[18rem] truncate text-gray-900 dark:text-gray-100">{{ $document->original_name }}</p>
                                 @if ($document->uploaded_via_short_link_id !== null)
-                                    <p class="text-xs text-gray-400">Recebido via link de upload</p>
+                                    <p class="text-xs text-gray-400 dark:text-gray-500">Recebido via link de upload</p>
                                 @endif
                             </td>
-                            <td class="px-4 py-3 text-gray-500">{{ Number::fileSize($document->size) }}</td>
-                            <td class="px-4 py-3 text-gray-500">{{ $document->short_links_count }}</td>
-                            <td class="px-4 py-3 text-gray-500">{{ $document->created_at?->format('d/m/Y H:i') ?? '—' }}</td>
+                            <td class="px-4 py-3 text-gray-500 dark:text-gray-400">{{ Number::fileSize($document->size) }}</td>
+                            <td class="px-4 py-3 text-gray-500 dark:text-gray-400">{{ $document->short_links_count }}</td>
+                            <td class="px-4 py-3 text-gray-500 dark:text-gray-400">{{ $document->created_at?->format('d/m/Y H:i') ?? '—' }}</td>
                             <td class="px-4 py-3 text-right">
                                 <div class="relative inline-block text-left">
                                     <button
                                         type="button"
-                                        class="rounded-full p-1.5 text-gray-500 hover:bg-gray-100 hover:text-gray-900"
+                                        class="rounded-full p-1.5 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-100"
                                         aria-haspopup="true"
                                         aria-expanded="false"
                                         data-dropdown-toggle
@@ -97,46 +97,46 @@
                                     </button>
 
                                     <div
-                                        class="absolute right-0 z-10 mt-1 hidden w-44 origin-top-right rounded-md bg-white py-1 text-left shadow-lg ring-1 ring-gray-900/5"
+                                        class="absolute right-0 z-10 mt-1 hidden w-44 origin-top-right rounded-md bg-white dark:bg-gray-900 py-1 text-left shadow-lg ring-1 ring-gray-900/5 dark:ring-white/10"
                                             role="menu"
                                             data-dropdown-menu
                                         >
                                             <button
                                                 type="button"
-                                                class="flex w-full items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                                                class="flex w-full items-center gap-2 px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800"
                                                 role="menuitem"
                                                 data-rename-open
                                                 data-document-id="{{ $document->getKey() }}"
                                                 data-document-name="{{ $document->original_name }}"
                                             >
-                                                <x-icon name="pencil-square" class="h-4 w-4 text-gray-400" />
+                                                <x-icon name="pencil-square" class="h-4 w-4 text-gray-400 dark:text-gray-500" />
                                                 Renomear
                                             </button>
 
                                             <button
                                                 type="button"
-                                                class="flex w-full items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                                                class="flex w-full items-center gap-2 px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800"
                                                 role="menuitem"
                                                 data-modal-open="links-modal-{{ $document->getKey() }}"
                                             >
-                                                <x-icon name="link" class="h-4 w-4 text-gray-400" />
+                                                <x-icon name="link" class="h-4 w-4 text-gray-400 dark:text-gray-500" />
                                                 Gerenciar links
                                             </button>
 
                                             <button
                                                 type="submit"
                                                 form="generate-link-{{ $document->getKey() }}"
-                                                class="flex w-full items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                                                class="flex w-full items-center gap-2 px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800"
                                                 role="menuitem"
                                             >
-                                                <x-icon name="plus" class="h-4 w-4 text-gray-400" />
+                                                <x-icon name="plus" class="h-4 w-4 text-gray-400 dark:text-gray-500" />
                                                 Criar link
                                             </button>
 
                                         <button
                                             type="submit"
                                             form="delete-document-{{ $document->getKey() }}"
-                                            class="flex w-full items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-red-50"
+                                            class="flex w-full items-center gap-2 px-3 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/15"
                                             role="menuitem"
                                             onclick="return confirm('Excluir {{ $document->original_name }}?')"
                                         >
@@ -182,18 +182,18 @@
             >
                 <div class="absolute inset-0 bg-gray-900/50" data-modal-close></div>
 
-                <div class="absolute left-1/2 top-1/2 w-full max-w-lg -translate-x-1/2 -translate-y-1/2 rounded-xl bg-white p-5 shadow-xl">
+                <div class="absolute left-1/2 top-1/2 w-full max-w-lg -translate-x-1/2 -translate-y-1/2 rounded-xl bg-white dark:bg-gray-900 p-5 shadow-xl">
                     <div class="flex items-start justify-between gap-4">
                         <div class="min-w-0">
-                            <h2 id="links-modal-title-{{ $document->getKey() }}" class="text-base font-semibold text-gray-900">
+                            <h2 id="links-modal-title-{{ $document->getKey() }}" class="text-base font-semibold text-gray-900 dark:text-gray-100">
                                 Gerenciar links
                             </h2>
-                            <p class="mt-1 truncate text-sm text-gray-500">{{ $document->original_name }}</p>
+                            <p class="mt-1 truncate text-sm text-gray-500 dark:text-gray-400">{{ $document->original_name }}</p>
                         </div>
 
                         <button
                             type="button"
-                            class="rounded-full p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-700"
+                            class="rounded-full p-1 text-gray-400 dark:text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-700"
                             data-modal-close
                         >
                             <span class="sr-only">Fechar</span>
@@ -203,37 +203,37 @@
 
                     <ul class="mt-4 max-h-72 space-y-2 overflow-y-auto">
                         @forelse ($document->shortLinks as $shortLink)
-                            <li class="flex items-start justify-between gap-3 rounded-lg border border-gray-200 px-3 py-2">
+                            <li class="flex items-start justify-between gap-3 rounded-lg border border-gray-200 dark:border-gray-800 px-3 py-2">
                                 <div class="min-w-0">
-                                    <p class="flex items-center gap-1.5 text-sm font-medium text-gray-900">
+                                    <p class="flex items-center gap-1.5 text-sm font-medium text-gray-900 dark:text-gray-100">
                                         <span class="truncate">{{ $shortLink->title }}</span>
                                         @if ($shortLink->type->value === 'upload')
-                                            <span class="inline-flex shrink-0 items-center gap-1 rounded-full bg-indigo-100 px-2 py-0.5 text-xs font-medium text-indigo-700">
+                                            <span class="inline-flex shrink-0 items-center gap-1 rounded-full bg-indigo-100 dark:bg-indigo-500/15 px-2 py-0.5 text-xs font-medium text-indigo-700 dark:text-indigo-300">
                                                 Upload
                                             </span>
                                         @else
-                                            <span class="inline-flex shrink-0 items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-700">
+                                            <span class="inline-flex shrink-0 items-center gap-1 rounded-full bg-emerald-100 dark:bg-emerald-500/15 px-2 py-0.5 text-xs font-medium text-emerald-700 dark:text-emerald-300">
                                                 Download
                                             </span>
                                         @endif
                                     </p>
 
-                                    <p class="mt-0.5 truncate font-mono text-xs text-gray-500">{{ $shortLink->url }}</p>
+                                    <p class="mt-0.5 truncate font-mono text-xs text-gray-500 dark:text-gray-400">{{ $shortLink->url }}</p>
 
                                     @if ($shortLink->is_active === false)
-                                        <span class="mt-1 inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600">
+                                        <span class="mt-1 inline-flex items-center rounded-full bg-gray-100 dark:bg-gray-800 px-2 py-0.5 text-xs font-medium text-gray-600 dark:text-gray-300">
                                             Desativado
                                         </span>
                                     @elseif ($shortLink->isExpired())
-                                        <span class="mt-1 inline-flex items-center rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-700">
+                                        <span class="mt-1 inline-flex items-center rounded-full bg-red-100 dark:bg-red-500/15 px-2 py-0.5 text-xs font-medium text-red-700 dark:text-red-300">
                                             Expirado
                                         </span>
                                     @elseif ($shortLink->hasReachedAccessLimit())
-                                        <span class="mt-1 inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700">
+                                        <span class="mt-1 inline-flex items-center rounded-full bg-amber-100 dark:bg-amber-500/15 px-2 py-0.5 text-xs font-medium text-amber-700 dark:text-amber-300">
                                             Limite atingido
                                         </span>
                                     @else
-                                        <span class="mt-1 inline-flex items-center rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700">
+                                        <span class="mt-1 inline-flex items-center rounded-full bg-green-100 dark:bg-green-500/15 px-2 py-0.5 text-xs font-medium text-green-700 dark:text-green-300">
                                             Ativo
                                         </span>
                                     @endif
@@ -242,7 +242,7 @@
                                 <div class="flex shrink-0 items-center gap-1">
                                     <a
                                         href="{{ route('admin.links.edit', $shortLink) }}"
-                                        class="rounded-md px-2 py-1 text-xs font-medium text-gray-700 hover:bg-gray-100"
+                                        class="rounded-md px-2 py-1 text-xs font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800"
                                     >
                                         Abrir
                                     </a>
@@ -253,7 +253,7 @@
                                             @method('DELETE')
                                             <button
                                                 type="submit"
-                                                class="rounded-md px-2 py-1 text-xs font-medium text-red-600 hover:bg-red-50"
+                                                class="rounded-md px-2 py-1 text-xs font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/15"
                                                 onclick="return confirm('Remover este arquivo do link?')"
                                             >
                                                 Remover
@@ -263,13 +263,13 @@
                                 </div>
                             </li>
                         @empty
-                            <li class="rounded-lg border border-dashed border-gray-300 px-3 py-6 text-center text-sm text-gray-500">
+                            <li class="rounded-lg border border-dashed border-gray-300 dark:border-gray-700 dark:bg-gray-900 px-3 py-6 text-center text-sm text-gray-500 dark:text-gray-400">
                                 Este arquivo ainda não está em nenhum link.
                                 <div class="mt-3">
                                     <button
                                         type="submit"
                                         form="generate-link-{{ $document->getKey() }}"
-                                        class="rounded-md bg-gray-900 px-3 py-1.5 text-xs font-medium text-white hover:bg-gray-700"
+                                        class="rounded-md bg-gray-900 dark:bg-white px-3 py-1.5 text-xs font-medium text-white dark:text-gray-900 hover:bg-gray-700 dark:hover:bg-gray-200"
                                     >
                                         Criar link com este arquivo
                                     </button>
@@ -281,7 +281,7 @@
                     <div class="mt-4 flex justify-end">
                         <button
                             type="button"
-                            class="rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100"
+                            class="rounded-md border border-gray-300 dark:border-gray-700 dark:bg-gray-900 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800"
                             data-modal-close
                         >
                             Fechar
@@ -295,10 +295,10 @@
             {{ $documents->links() }}
         </div>
     @else
-        <p class="mt-6 text-sm text-gray-500">
+        <p class="mt-6 text-sm text-gray-500 dark:text-gray-400">
             @if ($search !== '')
                 Nenhum arquivo encontrado para "{{ $search }}".
-                <a href="{{ route('admin.files.index') }}" class="font-medium text-gray-900 hover:underline">Limpar busca</a>
+                <a href="{{ route('admin.files.index') }}" class="font-medium text-gray-900 dark:text-gray-100 hover:underline">Limpar busca</a>
             @else
                 Nenhum arquivo enviado ainda. Use o botão "Enviar arquivos" para começar.
             @endif
@@ -315,16 +315,16 @@
     >
         <div class="absolute inset-0 bg-gray-900/50" data-modal-close></div>
 
-        <div class="absolute left-1/2 top-1/2 w-full max-w-lg -translate-x-1/2 -translate-y-1/2 rounded-xl bg-white p-5 shadow-xl">
+        <div class="absolute left-1/2 top-1/2 w-full max-w-lg -translate-x-1/2 -translate-y-1/2 rounded-xl bg-white dark:bg-gray-900 p-5 shadow-xl">
             <div class="flex items-start justify-between gap-4">
                 <div>
-                    <h2 id="upload-modal-title" class="text-base font-semibold text-gray-900">Enviar arquivos</h2>
-                    <p class="mt-1 text-sm text-gray-500">Selecione até 10 arquivos de até 20 MB cada.</p>
+                    <h2 id="upload-modal-title" class="text-base font-semibold text-gray-900 dark:text-gray-100">Enviar arquivos</h2>
+                    <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Selecione até 10 arquivos de até 20 MB cada.</p>
                 </div>
 
                 <button
                     type="button"
-                    class="rounded-full p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-700"
+                    class="rounded-full p-1 text-gray-400 dark:text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-700"
                     data-modal-close
                 >
                     <span class="sr-only">Fechar</span>
@@ -346,13 +346,13 @@
                     name="documents[]"
                     multiple
                     required
-                    class="block w-full text-sm text-gray-600 file:mr-3 file:rounded-md file:border-0 file:bg-gray-100 file:px-3 file:py-2 file:text-sm file:font-medium file:text-gray-700 hover:file:bg-gray-200"
+                    class="block w-full text-sm text-gray-600 dark:text-gray-300 dark:border dark:border-gray-700 dark:bg-gray-900 file:mr-3 file:rounded-md file:border-0 file:bg-gray-100 dark:file:bg-gray-800 file:px-3 file:py-2 file:text-sm file:font-medium file:text-gray-700 dark:file:text-gray-200 hover:file:bg-gray-200 dark:hover:file:bg-gray-700"
                 >
 
                 @foreach ($errors->getMessages() as $key => $messages)
                     @if (str_starts_with($key, 'documents'))
                         @foreach ($messages as $message)
-                            <p class="text-sm text-red-600" data-modal-error>{{ $message }}</p>
+                            <p class="text-sm text-red-600 dark:text-red-400" data-modal-error>{{ $message }}</p>
                         @endforeach
                     @endif
                 @endforeach
@@ -360,14 +360,14 @@
                 <div class="flex justify-end gap-2 pt-1">
                     <button
                         type="button"
-                        class="rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100"
+                        class="rounded-md border border-gray-300 dark:border-gray-700 dark:bg-gray-900 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800"
                         data-modal-close
                     >
                         Cancelar
                     </button>
                     <button
                         type="submit"
-                        class="rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-700"
+                        class="rounded-md bg-gray-900 dark:bg-white px-4 py-2 text-sm font-medium text-white dark:text-gray-900 hover:bg-gray-700 dark:hover:bg-gray-200"
                     >
                         Enviar arquivos
                     </button>
@@ -387,16 +387,16 @@
     >
         <div class="absolute inset-0 bg-gray-900/50" data-modal-close></div>
 
-        <div class="absolute left-1/2 top-1/2 w-full max-w-md -translate-x-1/2 -translate-y-1/2 rounded-xl bg-white p-5 shadow-xl">
+        <div class="absolute left-1/2 top-1/2 w-full max-w-md -translate-x-1/2 -translate-y-1/2 rounded-xl bg-white dark:bg-gray-900 p-5 shadow-xl">
             <div class="flex items-start justify-between gap-4">
                 <div>
-                    <h2 id="rename-modal-title" class="text-base font-semibold text-gray-900">Renomear arquivo</h2>
-                    <p class="mt-1 text-sm text-gray-500">Defina um novo nome para o arquivo.</p>
+                    <h2 id="rename-modal-title" class="text-base font-semibold text-gray-900 dark:text-gray-100">Renomear arquivo</h2>
+                    <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Defina um novo nome para o arquivo.</p>
                 </div>
 
                 <button
                     type="button"
-                    class="rounded-full p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-700"
+                    class="rounded-full p-1 text-gray-400 dark:text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-700"
                     data-modal-close
                 >
                     <span class="sr-only">Fechar</span>
@@ -415,24 +415,24 @@
                     name="original_name"
                     value="{{ old('original_name') }}"
                     required
-                    class="block w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500"
+                    class="block w-full rounded-md border border-gray-300 dark:border-gray-700 dark:bg-gray-900 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500"
                 >
 
                 @error('original_name')
-                    <p class="text-sm text-red-600" data-modal-error>{{ $message }}</p>
+                    <p class="text-sm text-red-600 dark:text-red-400" data-modal-error>{{ $message }}</p>
                 @enderror
 
                 <div class="flex justify-end gap-2 pt-1">
                     <button
                         type="button"
-                        class="rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100"
+                        class="rounded-md border border-gray-300 dark:border-gray-700 dark:bg-gray-900 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800"
                         data-modal-close
                     >
                         Cancelar
                     </button>
                     <button
                         type="submit"
-                        class="rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-700"
+                        class="rounded-md bg-gray-900 dark:bg-white px-4 py-2 text-sm font-medium text-white dark:text-gray-900 hover:bg-gray-700 dark:hover:bg-gray-200"
                     >
                         Salvar
                     </button>

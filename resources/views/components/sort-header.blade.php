@@ -18,7 +18,7 @@
 <th {{ $attributes->merge(['class' => 'font-medium']) }}>
     <a
         href="{{ $url }}"
-        class="inline-flex items-center gap-1.5 {{ $isActive ? 'text-gray-900' : 'hover:text-gray-900' }}"
+        class="inline-flex items-center gap-1.5 {{ $isActive ? 'text-gray-900 dark:text-gray-100' : 'hover:text-gray-900 dark:hover:text-gray-100' }}"
     >
         @if ($icon)
             <x-icon :name="$icon" class="h-4 w-4" />
@@ -26,7 +26,7 @@
         {{ $label }}
         <x-icon
             :name="$isActive ? ($activeDirection === 'asc' ? 'chevron-up' : 'chevron-down') : 'chevron-up-down'"
-            class="h-3.5 w-3.5 {{ $isActive ? 'text-gray-900' : 'text-gray-400' }}"
+            class="h-3.5 w-3.5 {{ $isActive ? 'text-gray-900 dark:text-gray-100' : 'text-gray-400 dark:text-gray-500' }}"
         />
     </a>
 </th>

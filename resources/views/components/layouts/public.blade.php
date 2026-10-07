@@ -6,12 +6,22 @@
 
         <title>{{ $title ?? config('app.name') }}</title>
 
+        <script>
+            (function () {
+                const theme = @json(auth()->user()?->theme ?? 'system');
+                const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+
+                if (theme === 'dark' || (theme === 'system' && prefersDark)) {
+                    document.documentElement.classList.add('dark');
+                }
+            })();
+        </script>
         @vite(['resources/css/app.css', 'resources/js/app.js'])
     </head>
-    <body class="min-h-screen bg-gray-50 text-gray-900 antialiased">
+    <body class="min-h-screen bg-gray-50 text-gray-900 antialiased dark:bg-gray-950 dark:text-gray-100">
         <main class="mx-auto flex min-h-screen w-full max-w-2xl flex-col justify-center px-4 py-12">
             @if (session('status'))
-                <div class="mb-6 rounded-md border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">
+                <div class="mb-6 rounded-md border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800 dark:border-green-900 dark:bg-green-950 dark:text-green-300">
                     {{ session('status') }}
                 </div>
             @endif

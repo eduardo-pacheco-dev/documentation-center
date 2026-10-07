@@ -2,15 +2,15 @@
     <div class="flex items-center justify-between">
         <div>
             <h1 class="flex items-center gap-2 text-xl font-semibold">
-                <x-icon name="link" class="h-5 w-5 text-gray-400" />
+                <x-icon name="link" class="h-5 w-5 text-gray-400 dark:text-gray-500" />
                 Links
             </h1>
-            <p class="mt-1 text-sm text-gray-500">Gerencie seus links de envio e download de documentos.</p>
+            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Gerencie seus links de envio e download de documentos.</p>
         </div>
 
         <a
             href="{{ route('admin.links.create') }}"
-            class="inline-flex items-center gap-1.5 rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-700"
+            class="inline-flex items-center gap-1.5 rounded-md bg-gray-900 dark:bg-white px-4 py-2 text-sm font-medium text-white dark:text-gray-900 hover:bg-gray-700 dark:hover:bg-gray-200"
         >
             <x-icon name="plus" class="h-4 w-4" />
             Novo link
@@ -34,20 +34,20 @@
         @endif
 
         <div class="relative w-full max-w-sm">
-            <x-icon name="magnifying-glass" class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+            <x-icon name="magnifying-glass" class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400 dark:text-gray-500" />
             <input
                 type="search"
                 name="search"
                 value="{{ $search }}"
                 placeholder="Buscar por título, código ou descrição..."
-                class="block w-full rounded-md border border-gray-300 py-2 pl-9 pr-3 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500"
+                class="block w-full rounded-md border border-gray-300 dark:border-gray-700 dark:bg-gray-900 py-2 pl-9 pr-3 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500"
                 data-search-input
             >
         </div>
 
         <button
             type="submit"
-            class="rounded-md border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100"
+            class="rounded-md border border-gray-300 dark:border-gray-700 dark:bg-gray-900 px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800"
         >
             Buscar
         </button>
@@ -55,19 +55,19 @@
         @if ($search !== '')
             <a
                 href="{{ route('admin.links.index', array_filter(['document' => request('document')])) }}"
-                class="text-sm text-gray-500 hover:text-gray-900"
+                class="text-sm text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100"
             >
                 Limpar
             </a>
         @endif
 
         @if ($document)
-            <span class="inline-flex items-center gap-1.5 rounded-full bg-indigo-100 px-3 py-1.5 text-xs font-medium text-indigo-700">
+            <span class="inline-flex items-center gap-1.5 rounded-full bg-indigo-100 dark:bg-indigo-500/15 px-3 py-1.5 text-xs font-medium text-indigo-700 dark:text-indigo-300">
                 <x-icon name="document-text" class="h-3.5 w-3.5" />
                 <span class="max-w-[14rem] truncate">{{ $document->original_name }}</span>
                 <a
                     href="{{ route('admin.links.index') }}"
-                    class="rounded-full p-0.5 hover:bg-indigo-200"
+                    class="rounded-full p-0.5 hover:bg-indigo-200 dark:hover:bg-indigo-500/25"
                     aria-label="Remover filtro por arquivo"
                 >
                     <x-icon name="x-mark" class="h-3.5 w-3.5" />
@@ -76,9 +76,9 @@
         @endif
     </form>
 
-    <div class="mt-4 rounded-xl border border-gray-200 bg-white shadow-sm">
-        <table class="min-w-full divide-y divide-gray-200 text-sm">
-            <thead class="rounded-t-xl bg-gray-50 text-left text-xs uppercase text-gray-500">
+    <div class="mt-4 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 shadow-sm">
+        <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-800 text-sm">
+            <thead class="rounded-t-xl bg-gray-50 dark:bg-gray-800 text-left text-xs uppercase text-gray-500 dark:text-gray-400">
                 <tr>
                     <x-sort-header column="code" label="Link" icon="link" class="px-5 py-3" />
                     <x-sort-header column="title" label="Título" icon="document-text" class="px-5 py-3" />
@@ -94,25 +94,25 @@
                     <th class="px-5 py-3 text-right font-medium">Ações</th>
                 </tr>
             </thead>
-            <tbody class="divide-y divide-gray-100">
+            <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
                 @forelse ($shortLinks as $shortLink)
                     <tr>
                         <td class="px-5 py-3">
-                            <p class="flex items-center gap-1.5 font-mono text-gray-900">
-                                <x-icon name="link" class="h-4 w-4 text-gray-400" />
+                            <p class="flex items-center gap-1.5 font-mono text-gray-900 dark:text-gray-100">
+                                <x-icon name="link" class="h-4 w-4 text-gray-400 dark:text-gray-500" />
                                 {{ $shortLink->code }}
                             </p>
-                            <p class="mt-0.5 max-w-[16rem] truncate text-xs text-gray-500">{{ $shortLink->url }}</p>
+                            <p class="mt-0.5 max-w-[16rem] truncate text-xs text-gray-500 dark:text-gray-400">{{ $shortLink->url }}</p>
                         </td>
                         <td class="px-5 py-3">{{ $shortLink->title }}</td>
                         <td class="px-5 py-3">
                             @if ($shortLink->type->value === 'upload')
-                                <span class="inline-flex items-center gap-1 rounded-full bg-indigo-100 px-2 py-0.5 text-xs font-medium text-indigo-700">
+                                <span class="inline-flex items-center gap-1 rounded-full bg-indigo-100 dark:bg-indigo-500/15 px-2 py-0.5 text-xs font-medium text-indigo-700 dark:text-indigo-300">
                                     <x-icon name="arrow-up-tray" class="h-3.5 w-3.5" />
                                     Upload
                                 </span>
                             @else
-                                <span class="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-700">
+                                <span class="inline-flex items-center gap-1 rounded-full bg-emerald-100 dark:bg-emerald-500/15 px-2 py-0.5 text-xs font-medium text-emerald-700 dark:text-emerald-300">
                                     <x-icon name="arrow-down-tray" class="h-3.5 w-3.5" />
                                     Download
                                 </span>
@@ -120,36 +120,36 @@
                         </td>
                         <td class="px-5 py-3">
                             @if ($shortLink->is_active === false)
-                                <span class="inline-flex items-center gap-1 rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600">
+                                <span class="inline-flex items-center gap-1 rounded-full bg-gray-100 dark:bg-gray-800 px-2 py-0.5 text-xs font-medium text-gray-600 dark:text-gray-300">
                                     <x-icon name="x-circle" class="h-3.5 w-3.5" />
                                     Desativado
                                 </span>
                             @elseif ($shortLink->isExpired())
-                                <span class="inline-flex items-center gap-1 rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-700">
+                                <span class="inline-flex items-center gap-1 rounded-full bg-red-100 dark:bg-red-500/15 px-2 py-0.5 text-xs font-medium text-red-700 dark:text-red-300">
                                     <x-icon name="clock" class="h-3.5 w-3.5" />
                                     Expirado
                                 </span>
                             @elseif ($shortLink->hasReachedAccessLimit())
-                                <span class="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700">
+                                <span class="inline-flex items-center gap-1 rounded-full bg-amber-100 dark:bg-amber-500/15 px-2 py-0.5 text-xs font-medium text-amber-700 dark:text-amber-300">
                                     <x-icon name="exclamation-triangle" class="h-3.5 w-3.5" />
                                     Limite atingido
                                 </span>
                             @else
-                                <span class="inline-flex items-center gap-1 rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700">
+                                <span class="inline-flex items-center gap-1 rounded-full bg-green-100 dark:bg-green-500/15 px-2 py-0.5 text-xs font-medium text-green-700 dark:text-green-300">
                                     <x-icon name="check-circle" class="h-3.5 w-3.5" />
                                     Ativo
                                 </span>
                             @endif
                         </td>
-                        <td class="px-5 py-3 text-gray-500">
+                        <td class="px-5 py-3 text-gray-500 dark:text-gray-400">
                             {{ $shortLink->used_count }} / {{ $shortLink->max_uses ?? '∞' }}
                         </td>
-                        <td class="px-5 py-3 text-gray-500">{{ $shortLink->documents_count + $shortLink->received_documents_count }}</td>
+                        <td class="px-5 py-3 text-gray-500 dark:text-gray-400">{{ $shortLink->documents_count + $shortLink->received_documents_count }}</td>
                         <td class="px-5 py-3 text-right">
                             <div class="relative inline-block text-left">
                                 <button
                                     type="button"
-                                    class="rounded-full p-1.5 text-gray-500 hover:bg-gray-100 hover:text-gray-900"
+                                    class="rounded-full p-1.5 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-100"
                                     aria-haspopup="true"
                                     aria-expanded="false"
                                     data-dropdown-toggle
@@ -159,16 +159,16 @@
                                 </button>
 
                                 <div
-                                    class="absolute right-0 z-10 mt-1 hidden w-36 origin-top-right rounded-md bg-white py-1 text-left shadow-lg ring-1 ring-gray-900/5"
+                                    class="absolute right-0 z-10 mt-1 hidden w-36 origin-top-right rounded-md bg-white dark:bg-gray-900 py-1 text-left shadow-lg ring-1 ring-gray-900/5 dark:ring-white/10"
                                     role="menu"
                                     data-dropdown-menu
                                 >
                                     <a
                                         href="{{ route('admin.links.edit', $shortLink) }}"
-                                        class="flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                                        class="flex items-center gap-2 px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800"
                                         role="menuitem"
                                     >
-                                        <x-icon name="pencil-square" class="h-4 w-4 text-gray-400" />
+                                        <x-icon name="pencil-square" class="h-4 w-4 text-gray-400 dark:text-gray-500" />
                                         Editar
                                     </a>
 
@@ -177,7 +177,7 @@
                                         @method('DELETE')
                                         <button
                                             type="submit"
-                                            class="flex w-full items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-red-50"
+                                            class="flex w-full items-center gap-2 px-3 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/15"
                                             role="menuitem"
                                             onclick="return confirm('Excluir o link {{ $shortLink->code }}?')"
                                         >
@@ -191,9 +191,9 @@
                     </tr>
                 @empty
                     <tr>
-                        <td class="px-5 py-6 text-gray-500" colspan="7">
+                        <td class="px-5 py-6 text-gray-500 dark:text-gray-400" colspan="7">
                             <span class="inline-flex items-center gap-2">
-                                <x-icon name="link" class="h-4 w-4 text-gray-400" />
+                                <x-icon name="link" class="h-4 w-4 text-gray-400 dark:text-gray-500" />
                                 Nenhum link criado até o momento.
                             </span>
                         </td>

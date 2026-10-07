@@ -6,7 +6,9 @@ use App\Http\Controllers\Admin\ShortLinkController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\RegisteredUserController;
+use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\Public\LinkController;
+use App\Http\Controllers\SettingsController;
 use Illuminate\Support\Facades\Route;
 
 Route::redirect('/', '/admin');
@@ -29,8 +31,13 @@ Route::middleware('guest')->group(function () {
 Route::post('logout', [AuthenticatedSessionController::class, 'destroy'])->middleware('auth')->name('logout');
 
 Route::middleware('auth')->group(function () {
-    Route::get('profile', [\App\Http\Controllers\ProfileController::class, 'show'])->name('profile');
-    Route::get('settings', [\App\Http\Controllers\SettingsController::class, 'show'])->name('settings');
+    Route::get('profile', [ProfileController::class, 'show'])->name('profile');
+    Route::put('profile', [ProfileController::class, 'update'])->name('profile.update');
+
+    Route::get('settings', [SettingsController::class, 'show'])->name('settings');
+    Route::put('settings/theme', [SettingsController::class, 'updateTheme'])->name('settings.theme.update');
+    Route::put('settings/password', [SettingsController::class, 'updatePassword'])->name('settings.password.update');
+    Route::delete('settings/account', [SettingsController::class, 'destroy'])->name('settings.account.destroy');
 });
 
 Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
