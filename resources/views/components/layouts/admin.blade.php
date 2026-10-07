@@ -19,7 +19,7 @@
         @vite(['resources/css/app.css', 'resources/js/app.js'])
         <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.9/dist/cdn.min.js"></script>
     </head>
-    <body class="min-h-screen bg-gray-50 text-gray-900 antialiased dark:bg-gray-950 dark:text-gray-100">
+    <body class="flex min-h-screen flex-col bg-gray-50 text-gray-900 antialiased dark:bg-gray-950 dark:text-gray-100">
         <header class="border-b border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900">
             <div class="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3">
                 <div class="flex items-center gap-6">
@@ -111,7 +111,7 @@
             </div>
         </header>
 
-        <main class="mx-auto max-w-6xl px-4 py-8">
+        <main class="mx-auto w-full max-w-6xl flex-1 px-4 py-8">
             @if (session('status'))
                 <div class="mb-6 rounded-md border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800 dark:border-green-900 dark:bg-green-950 dark:text-green-300">
                     {{ session('status') }}
@@ -121,7 +121,7 @@
             {{ $slot }}
         </main>
 
-        <footer class="mx-auto w-full max-w-6xl border-t border-gray-200 px-4 py-6 text-sm text-gray-500 dark:border-gray-800 dark:text-gray-400">
+        <footer class="border-t border-gray-200 bg-white px-4 py-6 text-center text-sm text-gray-500 dark:border-gray-800 dark:bg-gray-950 dark:text-gray-400">
             <p>&copy; {{ date('Y') }} {{ config('app.name') }}. Todos os direitos reservados.</p>
         </footer>
     </body>

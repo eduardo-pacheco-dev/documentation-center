@@ -18,14 +18,14 @@
         </script>
         @vite(['resources/css/app.css', 'resources/js/app.js'])
     </head>
-    <body class="min-h-screen bg-gray-50 text-gray-900 antialiased dark:bg-gray-950 dark:text-gray-100">
-        <main class="flex min-h-screen items-center justify-center px-4 py-12">
+    <body class="flex min-h-screen flex-col bg-gray-50 text-gray-900 antialiased dark:bg-gray-950 dark:text-gray-100">
+        <main class="flex flex-1 items-center justify-center px-4 py-12">
             <div class="w-full max-w-md">
                 {{ $slot }}
             </div>
         </main>
 
-        <footer class="px-4 pb-12 text-center text-sm text-gray-500 dark:text-gray-400">
+        <footer class="border-t border-gray-200 px-4 py-6 text-center text-sm text-gray-500 dark:border-gray-800 dark:text-gray-400">
             <p>&copy; {{ date('Y') }} {{ config('app.name') }}. Todos os direitos reservados.</p>
         </footer>
     </body>
