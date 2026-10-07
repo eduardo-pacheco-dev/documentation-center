@@ -50,9 +50,14 @@ class DocumentController extends Controller
 
         $query->orderBy($sort, $direction)->orderBy('id', $direction);
 
+        $view = in_array($request->query('view'), ['table', 'cards', 'compact'], true)
+            ? $request->query('view')
+            : 'table';
+
         return view('admin.files.index', [
             'documents' => $query->paginate(10)->withQueryString(),
             'search' => $search,
+            'view' => $view,
         ]);
     }
 

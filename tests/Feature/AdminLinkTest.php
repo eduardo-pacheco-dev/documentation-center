@@ -106,6 +106,25 @@ test('links can be sorted by the number of documents', function () {
         ->assertSeeInOrder(['Com um', 'Com dois']);
 });
 
+test('the link list view mode can be switched', function () {
+    $user = User::factory()->create();
+    ShortLink::factory()->for($user)->create(['title' => 'Entrega final']);
+
+    $this->actingAs($user)
+        ->get('/admin/links?view=table')
+        ->assertSee('sort=code');
+
+    $this->actingAs($user)
+        ->get('/admin/links?view=cards')
+        ->assertDontSee('sort=code')
+        ->assertSee('grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3');
+
+    $this->actingAs($user)
+        ->get('/admin/links?view=compact')
+        ->assertDontSee('sort=code')
+        ->assertSee('divide-y divide-gray-100 rounded-xl');
+});
+
 test('links fall back to newest first when the sort is invalid', function () {
     $user = User::factory()->create();
     $old = ShortLink::factory()->for($user)->create(['title' => 'Antigo']);

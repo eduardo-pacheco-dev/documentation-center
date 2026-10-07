@@ -1,12 +1,20 @@
 <x-layouts.admin title="Arquivos">
     @php
+        $viewQuery = request()->query();
+        unset($viewQuery['page']);
+    @endphp
+
+    @php
         $uploadFailed = collect($errors->getMessages())->keys()
             ->contains(fn (string $key): bool => str_starts_with($key, 'documents'));
     @endphp
 
     <div class="flex items-center justify-between">
         <div>
-            <h1 class="text-xl font-semibold">Arquivos</h1>
+            <h1 class="flex items-center gap-2 text-xl font-semibold">
+                <x-icon name="document-text" class="h-5 w-5 text-gray-400 dark:text-gray-500" />
+                Arquivos
+            </h1>
             <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Envie arquivos e gere links de download a partir deles.</p>
         </div>
 
@@ -20,47 +28,66 @@
         </button>
     </div>
 
-    <form
-        method="GET"
-        action="{{ route('admin.files.index') }}"
-        class="mt-6 flex flex-wrap items-center gap-2"
-        data-search-form
-    >
-        @if (request('sort'))
-            <input type="hidden" name="sort" value="{{ request('sort') }}">
-        @endif
-        @if (request('direction'))
-            <input type="hidden" name="direction" value="{{ request('direction') }}">
-        @endif
-
-        <div class="relative w-full max-w-sm">
-            <x-icon name="magnifying-glass" class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400 dark:text-gray-500" />
-            <input
-                type="search"
-                name="search"
-                value="{{ $search }}"
-                placeholder="Buscar por nome do arquivo..."
-                class="block w-full rounded-md border border-gray-300 dark:border-gray-700 dark:bg-gray-900 py-2 pl-9 pr-3 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500"
-                data-search-input
-            >
-        </div>
-
-        <button
-            type="submit"
-            class="rounded-md border border-gray-300 dark:border-gray-700 dark:bg-gray-900 px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800"
+    <div class="mt-6 flex flex-wrap items-center justify-between gap-4">
+        <form
+            method="GET"
+            action="{{ route('admin.files.index') }}"
+            class="flex flex-wrap items-center gap-2"
+            data-search-form
         >
-            Buscar
-        </button>
+            @if (request('view'))
+                <input type="hidden" name="view" value="{{ request('view') }}">
+            @endif
+            @if (request('sort'))
+                <input type="hidden" name="sort" value="{{ request('sort') }}">
+            @endif
+            @if (request('direction'))
+                <input type="hidden" name="direction" value="{{ request('direction') }}">
+            @endif
 
-        @if ($search !== '')
-            <a href="{{ route('admin.files.index') }}" class="text-sm text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100">
-                Limpar
-            </a>
-        @endif
-    </form>
+            <div class="relative w-full max-w-sm sm:w-80 sm:max-w-none">
+                <x-icon name="magnifying-glass" class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400 dark:text-gray-500" />
+                <input
+                    type="search"
+                    name="search"
+                    value="{{ $search }}"
+                    placeholder="Buscar por nome do arquivo..."
+                    class="block w-full rounded-md border border-gray-300 dark:border-gray-700 dark:bg-gray-900 py-2 pl-9 pr-3 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500"
+                    data-search-input
+                >
+            </div>
+
+            <button
+                type="submit"
+                class="rounded-md border border-gray-300 dark:border-gray-700 dark:bg-gray-900 px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800"
+            >
+                Buscar
+            </button>
+
+            @if ($search !== '')
+                <a href="{{ route('admin.files.index') }}" class="text-sm text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100">
+                    Limpar
+                </a>
+            @endif
+        </form>
+
+        <div class="inline-flex rounded-lg border border-gray-300 dark:border-gray-700 p-0.5" role="group" aria-label="Modo de visualização">
+            @foreach (['table' => 'Tabela', 'cards' => 'Cards', 'compact' => 'Lista'] as $mode => $label)
+                <a
+                    href="{{ route('admin.files.index', array_merge($viewQuery, ['view' => $mode])) }}"
+                    data-view-toggle="{{ $mode }}"
+                    class="inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm {{ $view === $mode ? 'bg-gray-900 text-white dark:bg-white dark:text-gray-900' : 'text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800' }}"
+                >
+                    <x-icon :name="$mode === 'table' ? 'table-cells' : ($mode === 'cards' ? 'squares-2x2' : 'bars-3')" class="h-4 w-4" />
+                    {{ $label }}
+                </a>
+            @endforeach
+        </div>
+    </div>
 
     @if ($documents->isNotEmpty())
-        <div class="mt-4 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 shadow-sm">
+        @if ($view === 'table')
+            <div class="mt-4 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 shadow-sm">
             <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-800 text-sm">
                 <thead class="bg-gray-50 dark:bg-gray-800 text-left text-xs uppercase text-gray-500 dark:text-gray-400">
                     <tr>
@@ -84,73 +111,78 @@
                             <td class="px-4 py-3 text-gray-500 dark:text-gray-400">{{ $document->short_links_count }}</td>
                             <td class="px-4 py-3 text-gray-500 dark:text-gray-400">{{ $document->created_at?->format('d/m/Y H:i') ?? '—' }}</td>
                             <td class="px-4 py-3 text-right">
-                                <div class="relative inline-block text-left">
-                                    <button
-                                        type="button"
-                                        class="rounded-full p-1.5 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-100"
-                                        aria-haspopup="true"
-                                        aria-expanded="false"
-                                        data-dropdown-toggle
-                                    >
-                                        <span class="sr-only">Abrir menu de ações</span>
-                                        <x-icon name="ellipsis-horizontal" class="h-5 w-5" />
-                                    </button>
-
-                                    <div
-                                        class="absolute right-0 z-10 mt-1 hidden w-44 origin-top-right rounded-md bg-white dark:bg-gray-900 py-1 text-left shadow-lg ring-1 ring-gray-900/5 dark:ring-white/10"
-                                            role="menu"
-                                            data-dropdown-menu
-                                        >
-                                            <button
-                                                type="button"
-                                                class="flex w-full items-center gap-2 px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800"
-                                                role="menuitem"
-                                                data-rename-open
-                                                data-document-id="{{ $document->getKey() }}"
-                                                data-document-name="{{ $document->original_name }}"
-                                            >
-                                                <x-icon name="pencil-square" class="h-4 w-4 text-gray-400 dark:text-gray-500" />
-                                                Renomear
-                                            </button>
-
-                                            <button
-                                                type="button"
-                                                class="flex w-full items-center gap-2 px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800"
-                                                role="menuitem"
-                                                data-modal-open="links-modal-{{ $document->getKey() }}"
-                                            >
-                                                <x-icon name="link" class="h-4 w-4 text-gray-400 dark:text-gray-500" />
-                                                Gerenciar links
-                                            </button>
-
-                                            <button
-                                                type="submit"
-                                                form="generate-link-{{ $document->getKey() }}"
-                                                class="flex w-full items-center gap-2 px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800"
-                                                role="menuitem"
-                                            >
-                                                <x-icon name="plus" class="h-4 w-4 text-gray-400 dark:text-gray-500" />
-                                                Criar link
-                                            </button>
-
-                                        <button
-                                            type="submit"
-                                            form="delete-document-{{ $document->getKey() }}"
-                                            class="flex w-full items-center gap-2 px-3 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/15"
-                                            role="menuitem"
-                                            onclick="return confirm('Excluir {{ $document->original_name }}?')"
-                                        >
-                                            <x-icon name="trash" class="h-4 w-4" />
-                                            Excluir
-                                        </button>
-                                    </div>
-                                </div>
+                                <x-document-actions-dropdown :document="$document" />
                             </td>
                         </tr>
                     @endforeach
                 </tbody>
             </table>
         </div>
+    @elseif ($view === 'cards')
+        <div class="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            @foreach ($documents as $document)
+                <div class="rounded-xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-800 dark:bg-gray-900">
+                    <div class="flex items-start justify-between gap-3">
+                        <div class="flex min-w-0 items-center gap-3">
+                            <span class="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400">
+                                <x-icon name="document-text" class="h-5 w-5" />
+                            </span>
+                            <div class="min-w-0">
+                                <p class="truncate text-sm font-medium text-gray-900 dark:text-gray-100">{{ $document->original_name }}</p>
+                                @if ($document->uploaded_via_short_link_id !== null)
+                                    <p class="text-xs text-gray-400 dark:text-gray-500">Recebido via link de upload</p>
+                                @endif
+                            </div>
+                        </div>
+
+                        <x-document-actions-dropdown :document="$document" />
+                    </div>
+
+                    <div class="mt-4 flex flex-wrap items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
+                        <span class="inline-flex items-center gap-1">
+                            <x-icon name="document" class="h-3.5 w-3.5" />
+                            {{ Number::fileSize($document->size) }}
+                        </span>
+                        <span class="inline-flex items-center gap-1">
+                            <x-icon name="link" class="h-3.5 w-3.5" />
+                            {{ $document->short_links_count }}
+                        </span>
+                    </div>
+
+                    <p class="mt-3 flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
+                        <x-icon name="clock" class="h-3.5 w-3.5" />
+                        Enviado em {{ $document->created_at?->format('d/m/Y H:i') ?? '—' }}
+                    </p>
+                </div>
+            @endforeach
+        </div>
+    @else
+        <div class="mt-4 divide-y divide-gray-100 rounded-xl border border-gray-200 bg-white shadow-sm dark:divide-gray-800 dark:border-gray-800 dark:bg-gray-900">
+            @foreach ($documents as $document)
+                <div class="flex items-center gap-4 px-5 py-3">
+                    <span class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400">
+                        <x-icon name="document-text" class="h-4 w-4" />
+                    </span>
+
+                    <div class="min-w-0 flex-1">
+                        <p class="truncate text-sm font-medium text-gray-900 dark:text-gray-100">{{ $document->original_name }}</p>
+                        @if ($document->uploaded_via_short_link_id !== null)
+                            <p class="text-xs text-gray-400 dark:text-gray-500">Recebido via link de upload</p>
+                        @endif
+                    </div>
+
+                    <div class="hidden items-center gap-2 text-xs text-gray-500 sm:flex dark:text-gray-400">
+                        <span>{{ Number::fileSize($document->size) }}</span>
+                        <span>{{ $document->short_links_count }}</span>
+                    </div>
+
+                    <span class="hidden text-xs text-gray-500 md:inline dark:text-gray-400">{{ $document->created_at?->format('d/m/Y H:i') ?? '—' }}</span>
+
+                    <x-document-actions-dropdown :document="$document" />
+                </div>
+            @endforeach
+        </div>
+    @endif
 
         @foreach ($documents as $document)
             <form
@@ -442,6 +474,29 @@
     </div>
 
     <script>
+        (function () {
+            const params = new URLSearchParams(window.location.search);
+
+            if (params.has('view')) {
+                return;
+            }
+
+            const savedView = localStorage.getItem('files-view');
+
+            if (!['table', 'cards', 'compact'].includes(savedView)) {
+                return;
+            }
+
+            params.set('view', savedView);
+            window.location.replace(window.location.pathname + '?' + params.toString());
+        })();
+
+        document.querySelectorAll('[data-view-toggle]').forEach((link) => {
+            link.addEventListener('click', () => {
+                localStorage.setItem('files-view', link.dataset.viewToggle);
+            });
+        });
+
         const closeDropdowns = (except) => {
             document.querySelectorAll('[data-dropdown-menu]:not(.hidden)').forEach((menu) => {
                 if (menu !== except) {

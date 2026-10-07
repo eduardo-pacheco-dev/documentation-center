@@ -65,10 +65,15 @@ class ShortLinkController extends Controller
 
         $query->orderBy('id', $direction);
 
+        $view = in_array($request->query('view'), ['table', 'cards', 'compact'], true)
+            ? $request->query('view')
+            : 'table';
+
         return view('admin.links.index', [
             'shortLinks' => $query->paginate(10)->withQueryString(),
             'search' => $search,
             'document' => $document,
+            'view' => $view,
         ]);
     }
 

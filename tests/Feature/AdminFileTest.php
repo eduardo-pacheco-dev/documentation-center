@@ -86,6 +86,25 @@ test('files are sorted by the requested column', function () {
         ->assertSeeInOrder(['zebra.pdf', 'abacaxi.pdf']);
 });
 
+test('the file list view mode can be switched', function () {
+    $user = User::factory()->create();
+    Document::factory()->for($user)->create(['original_name' => 'arquivo.pdf']);
+
+    $this->actingAs($user)
+        ->get('/admin/files?view=table')
+        ->assertSee('sort=original_name');
+
+    $this->actingAs($user)
+        ->get('/admin/files?view=cards')
+        ->assertDontSee('sort=original_name')
+        ->assertSee('grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3');
+
+    $this->actingAs($user)
+        ->get('/admin/files?view=compact')
+        ->assertDontSee('sort=original_name')
+        ->assertSee('divide-y divide-gray-100 rounded-xl');
+});
+
 test('files fall back to newest first when the sort is invalid', function () {
     $user = User::factory()->create();
     Document::factory()->for($user)->create(['original_name' => 'antigo.pdf']);
