@@ -24,6 +24,13 @@
                             Dashboard
                         </a>
 
+                        <a
+                            href="{{ route('admin.links.index') }}"
+                            class="{{ request()->routeIs('admin.links.*') ? 'text-gray-900 font-medium' : 'text-gray-500 hover:text-gray-900' }}"
+                        >
+                            Links
+                        </a>
+
                         @if (auth()->user()->is_admin)
                             <a
                                 href="{{ route('admin.users.index') }}"

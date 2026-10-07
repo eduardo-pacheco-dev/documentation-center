@@ -19,6 +19,26 @@
         </div>
     </div>
 
+    <section class="mt-8">
+        <h2 class="text-sm font-semibold text-gray-700">Meus links</h2>
+        <div class="mt-3 grid gap-4 sm:grid-cols-3">
+            <div class="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+                <p class="text-sm text-gray-500">Total de links</p>
+                <p class="mt-2 text-2xl font-semibold">{{ $totalLinks }}</p>
+            </div>
+
+            <div class="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+                <p class="text-sm text-gray-500">Links ativos</p>
+                <p class="mt-2 text-2xl font-semibold">{{ $activeLinks }}</p>
+            </div>
+
+            <div class="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+                <p class="text-sm text-gray-500">Documentos recebidos</p>
+                <p class="mt-2 text-2xl font-semibold">{{ $receivedDocuments }}</p>
+            </div>
+        </div>
+    </section>
+
     <section class="mt-8 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
         <div class="border-b border-gray-200 px-5 py-4">
             <h2 class="text-sm font-semibold">Cadastros recentes</h2>
