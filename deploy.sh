@@ -27,13 +27,13 @@ if [ -z "${DEPLOY_REEXEC:-}" ]; then
     exec bash "$APP_DIR/deploy.sh"
 fi
 
+log "Installing PHP dependencies"
+composer install --no-dev --prefer-dist --no-interaction --optimize-autoloader
+
 trap 'php artisan up >/dev/null 2>&1 || true' EXIT
 
 log "Entering maintenance mode"
 php artisan down --retry=30
-
-log "Installing PHP dependencies"
-composer install --no-dev --prefer-dist --no-interaction --optimize-autoloader
 
 log "Building frontend assets"
 npm ci
