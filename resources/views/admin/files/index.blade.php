@@ -2,6 +2,8 @@
     @php
         $uploadFailed = collect($errors->getMessages())->keys()
             ->contains(fn (string $key): bool => str_starts_with($key, 'documents'));
+        $linkFailed = collect($errors->getMessages())->keys()
+            ->contains(fn (string $key): bool => str_starts_with($key, 'document_ids') || $key === 'title');
     @endphp
 
     <div class="flex items-center justify-between">
@@ -10,14 +12,69 @@
             <p class="mt-1 text-sm text-gray-500">Envie arquivos e gere links de download a partir deles.</p>
         </div>
 
-        <button
-            type="button"
-            data-modal-open="upload-modal"
-            class="inline-flex items-center gap-1.5 rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-700"
-        >
-            <x-icon name="arrow-up-tray" class="h-4 w-4" />
-            Enviar arquivos
-        </button>
+        <div class="flex items-center gap-2">
+            <button
+                type="button"
+                data-modal-open="upload-modal"
+                class="inline-flex items-center gap-1.5 rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-700"
+            >
+                <x-icon name="arrow-up-tray" class="h-4 w-4" />
+                Enviar arquivos
+            </button>
+
+            @if ($documents->isNotEmpty())
+                <div class="relative inline-block text-left">
+                    <button
+                        type="button"
+                        class="inline-flex items-center gap-1.5 rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100"
+                        aria-haspopup="true"
+                        aria-expanded="false"
+                        data-dropdown-toggle
+                    >
+                        Criar link
+                        <x-icon name="chevron-down" class="h-4 w-4" />
+                    </button>
+
+                    <div
+                        class="absolute right-0 z-10 mt-1 hidden w-72 origin-top-right rounded-md bg-white py-1 text-left shadow-lg ring-1 ring-gray-900/5"
+                        role="menu"
+                        data-dropdown-menu
+                        @if ($linkFailed) data-open @endif
+                    >
+                        <div class="p-3">
+                            <label for="link-title" class="block text-sm font-medium text-gray-700">
+                                Título do link (opcional)
+                            </label>
+                            <input
+                                id="link-title"
+                                type="text"
+                                name="title"
+                                form="generate-link-form"
+                                value="{{ old('title') }}"
+                                placeholder="Ex.: Entrega de contratos"
+                                class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500"
+                            >
+
+                            @foreach ($errors->getMessages() as $key => $messages)
+                                @if (str_starts_with($key, 'document_ids') || $key === 'title')
+                                    @foreach ($messages as $message)
+                                        <p class="mt-2 text-sm text-red-600">{{ $message }}</p>
+                                    @endforeach
+                                @endif
+                            @endforeach
+
+                            <button
+                                type="submit"
+                                form="generate-link-form"
+                                class="mt-3 w-full rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-700"
+                            >
+                                Gerar link de download
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            @endif
+        </div>
     </div>
 
     <form
@@ -60,10 +117,10 @@
     </form>
 
     @if ($documents->isNotEmpty())
-        <form method="POST" action="{{ route('admin.files.generate-link') }}" class="mt-4">
+        <form id="generate-link-form" method="POST" action="{{ route('admin.files.generate-link') }}" class="mt-4">
             @csrf
 
-            <div class="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+            <div class="rounded-xl border border-gray-200 bg-white shadow-sm">
                 <table class="min-w-full divide-y divide-gray-200 text-sm">
                     <thead class="bg-gray-50 text-left text-xs uppercase text-gray-500">
                         <tr>
@@ -102,38 +159,64 @@
                                 <td class="px-4 py-3 text-gray-500">{{ $document->short_links_count }}</td>
                                 <td class="px-4 py-3 text-gray-500">{{ $document->created_at?->format('d/m/Y H:i') ?? '—' }}</td>
                                 <td class="px-4 py-3 text-right">
-                                    <button
-                                        type="button"
-                                        form="delete-document-{{ $document->getKey() }}"
-                                        class="text-sm font-medium text-red-600 hover:underline"
-                                        onclick="if (! confirm('Excluir {{ $document->original_name }}?')) event.preventDefault()"
-                                    >
-                                        Excluir
-                                    </button>
+                                    <div class="relative inline-block text-left">
+                                        <button
+                                            type="button"
+                                            class="rounded-full p-1.5 text-gray-500 hover:bg-gray-100 hover:text-gray-900"
+                                            aria-haspopup="true"
+                                            aria-expanded="false"
+                                            data-dropdown-toggle
+                                        >
+                                            <span class="sr-only">Abrir menu de ações</span>
+                                            <x-icon name="ellipsis-horizontal" class="h-5 w-5" />
+                                        </button>
+
+                                        <div
+                                            class="absolute right-0 z-10 mt-1 hidden w-44 origin-top-right rounded-md bg-white py-1 text-left shadow-lg ring-1 ring-gray-900/5"
+                                            role="menu"
+                                            data-dropdown-menu
+                                        >
+                                            <button
+                                                type="submit"
+                                                form="generate-link-{{ $document->getKey() }}"
+                                                class="flex w-full items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                                                role="menuitem"
+                                            >
+                                                <x-icon name="link" class="h-4 w-4 text-gray-400" />
+                                                Criar link
+                                            </button>
+
+                                            <button
+                                                type="submit"
+                                                form="delete-document-{{ $document->getKey() }}"
+                                                class="flex w-full items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-red-50"
+                                                role="menuitem"
+                                                onclick="return confirm('Excluir {{ $document->original_name }}?')"
+                                            >
+                                                <x-icon name="trash" class="h-4 w-4" />
+                                                Excluir
+                                            </button>
+                                        </div>
+                                    </div>
                                 </td>
                             </tr>
                         @endforeach
                     </tbody>
                 </table>
-
-                <div class="flex flex-wrap items-center gap-3 border-t border-gray-200 px-4 py-4">
-                    <input
-                        type="text"
-                        name="title"
-                        placeholder="Título do link (opcional)"
-                        class="min-w-0 flex-1 rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500"
-                    >
-                    <button
-                        type="submit"
-                        class="rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-700"
-                    >
-                        Gerar link de download
-                    </button>
-                </div>
             </div>
         </form>
 
         @foreach ($documents as $document)
+            <form
+                id="generate-link-{{ $document->getKey() }}"
+                method="POST"
+                action="{{ route('admin.files.generate-link') }}"
+                class="hidden"
+            >
+                @csrf
+                <input type="hidden" name="document_ids[]" value="{{ $document->getKey() }}">
+            </form>
+
             <form
                 id="delete-document-{{ $document->getKey() }}"
                 method="POST"
@@ -231,6 +314,43 @@
     </div>
 
     <script>
+        const closeDropdowns = (except) => {
+            document.querySelectorAll('[data-dropdown-menu]:not(.hidden)').forEach((menu) => {
+                if (menu !== except) {
+                    menu.classList.add('hidden');
+                    menu.previousElementSibling.setAttribute('aria-expanded', 'false');
+                }
+            });
+        };
+
+        document.addEventListener('click', (event) => {
+            const toggle = event.target.closest('[data-dropdown-toggle]');
+
+            if (toggle) {
+                const menu = toggle.nextElementSibling;
+                const willOpen = menu.classList.contains('hidden');
+                closeDropdowns(willOpen ? menu : null);
+                menu.classList.toggle('hidden', !willOpen);
+                toggle.setAttribute('aria-expanded', String(willOpen));
+                return;
+            }
+
+            if (!event.target.closest('[data-dropdown-menu]')) {
+                closeDropdowns();
+            }
+        });
+
+        document.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape') {
+                closeDropdowns();
+            }
+        });
+
+        document.querySelectorAll('[data-dropdown-menu][data-open]').forEach((menu) => {
+            menu.classList.remove('hidden');
+            menu.previousElementSibling.setAttribute('aria-expanded', 'true');
+        });
+
         const openModal = (modal) => {
             modal.classList.remove('hidden');
             document.body.classList.add('overflow-hidden');
