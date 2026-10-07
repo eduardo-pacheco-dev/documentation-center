@@ -76,48 +76,77 @@
                 <h2 class="text-sm font-semibold">Aparência</h2>
                 <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Escolha como o painel será exibido para você.</p>
 
-                <div class="mt-4 grid gap-3 sm:grid-cols-3">
-                    <label class="flex cursor-pointer items-start gap-3 rounded-lg border border-gray-200 p-3 has-[:checked]:border-indigo-500 has-[:checked]:bg-indigo-50 dark:border-gray-800 dark:has-[:checked]:border-indigo-500 dark:has-[:checked]:bg-indigo-500/10">
-                        <input
-                            type="radio"
-                            name="theme"
-                            value="system"
-                            @checked(old('theme', $user->theme) === 'system')
-                            class="mt-0.5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 dark:border-gray-700 dark:bg-gray-900"
-                        >
-                        <span>
-                            <span class="block text-sm font-medium text-gray-900 dark:text-gray-100">Sistema</span>
-                            <span class="mt-0.5 block text-xs text-gray-500 dark:text-gray-400">Segue as preferências do seu dispositivo</span>
-                        </span>
-                    </label>
+                <div class="mt-4">
+                    <label for="theme-select" class="block text-sm font-medium text-gray-700 dark:text-gray-200">Tema</label>
 
-                    <label class="flex cursor-pointer items-start gap-3 rounded-lg border border-gray-200 p-3 has-[:checked]:border-indigo-500 has-[:checked]:bg-indigo-50 dark:border-gray-800 dark:has-[:checked]:border-indigo-500 dark:has-[:checked]:bg-indigo-500/10">
-                        <input
-                            type="radio"
-                            name="theme"
-                            value="light"
-                            @checked(old('theme', $user->theme) === 'light')
-                            class="mt-0.5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 dark:border-gray-700 dark:bg-gray-900"
-                        >
-                        <span>
-                            <span class="block text-sm font-medium text-gray-900 dark:text-gray-100">Claro</span>
-                            <span class="mt-0.5 block text-xs text-gray-500 dark:text-gray-400">Sempre com fundo claro</span>
-                        </span>
-                    </label>
+                    <div
+                        class="relative mt-1 w-full max-w-xs"
+                        x-data="{
+                            open: false,
+                            value: @json(old('theme', $user->theme)),
+                            options: {
+                                system: { label: 'Sistema', description: 'Segue as preferências do seu dispositivo' },
+                                light: { label: 'Claro', description: 'Sempre com fundo claro' },
+                                dark: { label: 'Escuro', description: 'Sempre com fundo escuro' },
+                            },
+                            init() {
+                                if (!this.options[this.value]) {
+                                    this.value = 'system';
+                                }
+                            },
+                            select(key) {
+                                this.value = key;
+                                this.open = false;
+                            },
+                        }"
+                        @keydown.escape.window="open = false"
+                    >
+                        <input type="hidden" name="theme" :value="value">
 
-                    <label class="flex cursor-pointer items-start gap-3 rounded-lg border border-gray-200 p-3 has-[:checked]:border-indigo-500 has-[:checked]:bg-indigo-50 dark:border-gray-800 dark:has-[:checked]:border-indigo-500 dark:has-[:checked]:bg-indigo-500/10">
-                        <input
-                            type="radio"
-                            name="theme"
-                            value="dark"
-                            @checked(old('theme', $user->theme) === 'dark')
-                            class="mt-0.5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 dark:border-gray-700 dark:bg-gray-900"
+                        <button
+                            id="theme-select"
+                            type="button"
+                            @click="open = !open"
+                            aria-haspopup="listbox"
+                            :aria-expanded="open"
+                            class="flex w-full items-center justify-between gap-2 rounded-md border border-gray-300 bg-white px-3 py-2 text-left text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
                         >
-                        <span>
-                            <span class="block text-sm font-medium text-gray-900 dark:text-gray-100">Escuro</span>
-                            <span class="mt-0.5 block text-xs text-gray-500 dark:text-gray-400">Sempre com fundo escuro</span>
-                        </span>
-                    </label>
+                            <span x-text="options[value].label"></span>
+                            <x-icon name="chevron-up-down" class="h-4 w-4 shrink-0 text-gray-400 dark:text-gray-500" />
+                        </button>
+
+                        <ul
+                            x-show="open"
+                            x-transition
+                            @click.outside="open = false"
+                            role="listbox"
+                            aria-label="Tema"
+                            style="display: none;"
+                            class="absolute z-10 mt-1 w-full rounded-md border border-gray-200 bg-white py-1 shadow-lg dark:border-gray-800 dark:bg-gray-900"
+                        >
+                            <template x-for="([key, option]) in Object.entries(options)" :key="key">
+                                <li role="option" :aria-selected="value === key">
+                                    <button
+                                        type="button"
+                                        @click="select(key)"
+                                        :class="value === key
+                                            ? 'bg-gray-100 text-gray-900 dark:bg-gray-800 dark:text-white'
+                                            : 'text-gray-700 hover:bg-gray-50 dark:text-gray-200 dark:hover:bg-gray-800'"
+                                        class="flex w-full items-start justify-between gap-3 px-3 py-2 text-left text-sm"
+                                    >
+                                        <span>
+                                            <span class="block font-medium" x-text="option.label"></span>
+                                            <span class="mt-0.5 block text-xs text-gray-500 dark:text-gray-400" x-text="option.description"></span>
+                                        </span>
+
+                                        <span x-show="value === key" class="shrink-0">
+                                            <x-icon name="check" class="mt-0.5 text-indigo-600 dark:text-indigo-400" />
+                                        </span>
+                                    </button>
+                                </li>
+                            </template>
+                        </ul>
+                    </div>
                 </div>
 
                 @error('theme')
