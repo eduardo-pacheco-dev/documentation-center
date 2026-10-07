@@ -60,17 +60,17 @@
         <table class="min-w-full divide-y divide-gray-200 text-sm">
             <thead class="rounded-t-xl bg-gray-50 text-left text-xs uppercase text-gray-500">
                 <tr>
-                    <x-sort-header column="code" label="Link" icon="link" />
-                    <x-sort-header column="title" label="Título" icon="document-text" />
-                    <x-sort-header column="type" label="Tipo" icon="arrow-up-tray" />
+                    <x-sort-header column="code" label="Link" icon="link" class="px-5 py-3" />
+                    <x-sort-header column="title" label="Título" icon="document-text" class="px-5 py-3" />
+                    <x-sort-header column="type" label="Tipo" icon="arrow-up-tray" class="px-5 py-3" />
                     <th class="px-5 py-3 font-medium">
                         <span class="inline-flex items-center gap-1.5">
                             <x-icon name="check-circle" class="h-4 w-4" />
                             Status
                         </span>
                     </th>
-                    <x-sort-header column="used_count" label="Acessos" icon="eye" />
-                    <x-sort-header column="documents" label="Documentos" icon="document" />
+                    <x-sort-header column="used_count" label="Acessos" icon="eye" class="px-5 py-3" />
+                    <x-sort-header column="documents" label="Documentos" icon="document" class="px-5 py-3" />
                     <th class="px-5 py-3 text-right font-medium">Ações</th>
                 </tr>
             </thead>

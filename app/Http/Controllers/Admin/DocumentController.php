@@ -19,12 +19,33 @@ class DocumentController extends Controller
      */
     public function index(Request $request): View
     {
+        $search = $request->string('search')->trim()->toString();
+
+        $sortableColumns = ['original_name', 'size', 'short_links_count', 'created_at'];
+
+        if (in_array($request->query('sort'), $sortableColumns, true)) {
+            $sort = $request->query('sort');
+            $direction = in_array($request->query('direction'), ['asc', 'desc'], true)
+                ? $request->query('direction')
+                : ($sort === 'created_at' ? 'desc' : 'asc');
+        } else {
+            $sort = 'created_at';
+            $direction = 'desc';
+        }
+
+        $query = Document::query()
+            ->whereBelongsTo($request->user())
+            ->withCount('shortLinks');
+
+        if ($search !== '') {
+            $query->where('original_name', 'like', "%{$search}%");
+        }
+
+        $query->orderBy($sort, $direction)->orderBy('id', $direction);
+
         return view('admin.files.index', [
-            'documents' => Document::query()
-                ->whereBelongsTo($request->user())
-                ->withCount('shortLinks')
-                ->latest('created_at')
-                ->paginate(10),
+            'documents' => $query->paginate(10)->withQueryString(),
+            'search' => $search,
         ]);
     }
 

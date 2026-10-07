@@ -15,7 +15,7 @@
     $url = url()->current().'?'.http_build_query($query);
 @endphp
 
-<th {{ $attributes->merge(['class' => 'px-5 py-3 font-medium']) }}>
+<th {{ $attributes->merge(['class' => 'font-medium']) }}>
     <a
         href="{{ $url }}"
         class="inline-flex items-center gap-1.5 {{ $isActive ? 'text-gray-900' : 'hover:text-gray-900' }}"

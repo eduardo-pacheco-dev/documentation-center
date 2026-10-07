@@ -58,6 +58,64 @@ test('users only see their own files', function () {
         ->assertDontSee('arquivo-do-outro.pdf');
 });
 
+test('files can be searched by name', function () {
+    $user = User::factory()->create();
+    Document::factory()->for($user)->create(['original_name' => 'contrato-prestacao.pdf']);
+    $other = Document::factory()->for($user)->create(['original_name' => 'relatorio-anual.pdf']);
+
+    $this->actingAs($user)
+        ->get('/admin/files?search=contrato')
+        ->assertOk()
+        ->assertSee('contrato-prestacao.pdf')
+        ->assertDontSee($other->original_name);
+});
+
+test('files are sorted by the requested column', function () {
+    $user = User::factory()->create();
+    Document::factory()->for($user)->create(['original_name' => 'zebra.pdf']);
+    Document::factory()->for($user)->create(['original_name' => 'abacaxi.pdf']);
+
+    $this->actingAs($user)
+        ->get('/admin/files?sort=original_name&direction=asc')
+        ->assertOk()
+        ->assertSeeInOrder(['abacaxi.pdf', 'zebra.pdf']);
+
+    $this->actingAs($user)
+        ->get('/admin/files?sort=original_name&direction=desc')
+        ->assertOk()
+        ->assertSeeInOrder(['zebra.pdf', 'abacaxi.pdf']);
+});
+
+test('files fall back to newest first when the sort is invalid', function () {
+    $user = User::factory()->create();
+    Document::factory()->for($user)->create(['original_name' => 'antigo.pdf']);
+    Document::factory()->for($user)->create(['original_name' => 'recente.pdf']);
+
+    $this->actingAs($user)
+        ->get('/admin/files?sort=inexistente&direction=asc')
+        ->assertOk()
+        ->assertSeeInOrder(['recente.pdf', 'antigo.pdf']);
+});
+
+test('files are paginated ten per page keeping the current filters', function () {
+    $user = User::factory()->create();
+
+    $documents = collect(range(1, 11))->map(fn (int $number) => Document::factory()->for($user)->create([
+        'original_name' => 'fatura-mensal-'.str_pad((string) $number, 2, '0', STR_PAD_LEFT).'.pdf',
+    ]));
+
+    $this->actingAs($user)
+        ->get('/admin/files?search=fatura&page=2')
+        ->assertOk()
+        ->assertSee($documents->first()->original_name)
+        ->assertDontSee($documents->last()->original_name);
+
+    $this->actingAs($user)
+        ->get('/admin/files?search=fatura')
+        ->assertOk()
+        ->assertSee('search=fatura', false);
+});
+
 test('users can generate a download link from their selected files', function () {
     $user = User::factory()->create();
     $documents = Document::factory()->count(2)->for($user)->create();
