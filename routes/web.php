@@ -28,6 +28,11 @@ Route::middleware('guest')->group(function () {
 
 Route::post('logout', [AuthenticatedSessionController::class, 'destroy'])->middleware('auth')->name('logout');
 
+Route::middleware('auth')->group(function () {
+    Route::get('profile', [\App\Http\Controllers\ProfileController::class, 'show'])->name('profile');
+    Route::get('settings', [\App\Http\Controllers\SettingsController::class, 'show'])->name('settings');
+});
+
 Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
     Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
 
