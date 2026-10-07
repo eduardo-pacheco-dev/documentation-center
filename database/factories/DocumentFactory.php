@@ -3,7 +3,7 @@
 namespace Database\Factories;
 
 use App\Models\Document;
-use App\Models\ShortLink;
+use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
@@ -21,7 +21,8 @@ class DocumentFactory extends Factory
         $extension = fake()->randomElement(['pdf', 'docx', 'xlsx', 'txt']);
 
         return [
-            'short_link_id' => ShortLink::factory(),
+            'user_id' => User::factory(),
+            'uploaded_via_short_link_id' => null,
             'original_name' => fake()->slug(2).'.'.$extension,
             'path' => 'documents/'.fake()->uuid().'.'.$extension,
             'disk' => 'local',

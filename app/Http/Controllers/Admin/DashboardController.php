@@ -23,8 +23,9 @@ class DashboardController extends Controller
             'signupsThisWeek' => User::where('created_at', '>=', now()->subWeek())->count(),
             'totalLinks' => ShortLink::whereBelongsTo($request->user())->count(),
             'activeLinks' => ShortLink::whereBelongsTo($request->user())->where('is_active', true)->count(),
+            'totalFiles' => Document::whereBelongsTo($request->user())->count(),
             'receivedDocuments' => Document::whereHas(
-                'shortLink',
+                'uploadedVia',
                 fn ($query) => $query->whereBelongsTo($request->user()),
             )->count(),
         ]);

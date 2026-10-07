@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Str;
 
@@ -50,11 +51,19 @@ class ShortLink extends Model
     }
 
     /**
-     * The documents attached to the link.
+     * The documents shared through a download link.
      */
-    public function documents(): HasMany
+    public function documents(): BelongsToMany
     {
-        return $this->hasMany(Document::class);
+        return $this->belongsToMany(Document::class, 'link_document')->withTimestamps();
+    }
+
+    /**
+     * The documents received through an upload link.
+     */
+    public function receivedDocuments(): HasMany
+    {
+        return $this->hasMany(Document::class, 'uploaded_via_short_link_id');
     }
 
     /**
@@ -113,16 +122,6 @@ class ShortLink extends Model
     public function recordAccess(): void
     {
         static::query()->whereKey($this->getKey())->increment('used_count');
-    }
-
-    /**
-     * Remove attached files before the link is deleted.
-     */
-    protected static function booted(): void
-    {
-        static::deleting(function (ShortLink $shortLink): void {
-            $shortLink->documents->each->delete();
-        });
     }
 
     /**

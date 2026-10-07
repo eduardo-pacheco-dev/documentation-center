@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Enums\ShortLinkType;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreDocumentsRequest;
 use App\Http\Requests\StoreShortLinkRequest;
@@ -150,7 +151,7 @@ class ShortLinkController extends Controller
     )]
     public function store(StoreShortLinkRequest $request): JsonResponse
     {
-        $attributes = $request->safe()->except('password');
+        $attributes = $request->safe()->except(['password', 'document_ids']);
 
         $attributes['user_id'] = $request->user()->getKey();
         $attributes['code'] = ShortLink::createCode();
@@ -161,7 +162,11 @@ class ShortLinkController extends Controller
 
         $shortLink = ShortLink::create($attributes);
 
-        return (new ShortLinkResource($shortLink))
+        if ($shortLink->type === ShortLinkType::Download && $request->filled('document_ids')) {
+            $shortLink->documents()->attach($request->input('document_ids'));
+        }
+
+        return (new ShortLinkResource($shortLink->load('documents')))
             ->response()
             ->setStatusCode(201);
     }
@@ -303,13 +308,16 @@ class ShortLinkController extends Controller
         $this->authorize('update', $shortLink);
 
         foreach ($request->file('documents') as $file) {
-            $shortLink->documents()->create([
+            $document = $request->user()->documents()->create([
                 'original_name' => $file->getClientOriginalName(),
                 'path' => $file->store('documents'),
                 'disk' => 'local',
                 'mime_type' => $file->getMimeType(),
                 'size' => $file->getSize(),
+                'uploaded_via_short_link_id' => $shortLink->type === ShortLinkType::Upload ? $shortLink->getKey() : null,
             ]);
+
+            $shortLink->documents()->attach($document);
         }
 
         return (new ShortLinkResource($shortLink->load('documents')))

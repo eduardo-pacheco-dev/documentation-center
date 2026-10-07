@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\Document;
 use App\Models\ShortLink;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
@@ -103,7 +104,7 @@ test('documents can be uploaded through an upload link', function () {
         ->assertSessionHas('status');
 
     $this->assertDatabaseHas('documents', [
-        'short_link_id' => $shortLink->getKey(),
+        'uploaded_via_short_link_id' => $shortLink->getKey(),
         'original_name' => 'anexo.pdf',
     ]);
 });
@@ -138,13 +139,8 @@ test('documents can be downloaded from an accessible download link', function ()
     Storage::fake('local');
 
     $shortLink = ShortLink::factory()->download()->create();
-    $document = $shortLink->documents()->create([
-        'original_name' => 'relatorio.pdf',
-        'path' => 'documents/relatorio.pdf',
-        'disk' => 'local',
-        'mime_type' => 'application/pdf',
-        'size' => 100,
-    ]);
+    $document = Document::factory()->for($shortLink->user)->create(['original_name' => 'relatorio.pdf']);
+    $shortLink->documents()->attach($document);
     Storage::disk('local')->put($document->path, 'conteudo do pdf');
 
     $this->get(route('public.short-links.documents.download', $document))
@@ -156,13 +152,8 @@ test('documents can not be downloaded from an inactive link', function () {
     Storage::fake('local');
 
     $shortLink = ShortLink::factory()->download()->inactive()->create();
-    $document = $shortLink->documents()->create([
-        'original_name' => 'relatorio.pdf',
-        'path' => 'documents/relatorio.pdf',
-        'disk' => 'local',
-        'mime_type' => 'application/pdf',
-        'size' => 100,
-    ]);
+    $document = Document::factory()->for($shortLink->user)->create(['original_name' => 'relatorio.pdf']);
+    $shortLink->documents()->attach($document);
     Storage::disk('local')->put($document->path, 'conteudo do pdf');
 
     $this->get(route('public.short-links.documents.download', $document))->assertNotFound();
@@ -172,13 +163,8 @@ test('documents from a password protected link require the unlocked session', fu
     Storage::fake('local');
 
     $shortLink = ShortLink::factory()->download()->passwordProtected('segredo123')->create();
-    $document = $shortLink->documents()->create([
-        'original_name' => 'relatorio.pdf',
-        'path' => 'documents/relatorio.pdf',
-        'disk' => 'local',
-        'mime_type' => 'application/pdf',
-        'size' => 100,
-    ]);
+    $document = Document::factory()->for($shortLink->user)->create(['original_name' => 'relatorio.pdf']);
+    $shortLink->documents()->attach($document);
     Storage::disk('local')->put($document->path, 'conteudo do pdf');
 
     $this->get(route('public.short-links.documents.download', $document))->assertNotFound();

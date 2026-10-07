@@ -20,6 +20,7 @@ class DocumentResource extends JsonResource
             'mime_type' => $this->mime_type,
             'size' => $this->size,
             'url' => route('public.short-links.documents.download', $this->id),
+            'links_count' => $this->whenCounted('shortLinks'),
             'created_at' => $this->created_at?->toIso8601String(),
         ];
     }

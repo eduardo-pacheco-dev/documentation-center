@@ -48,7 +48,7 @@
                         <td class="px-5 py-3 text-gray-500">
                             {{ $shortLink->used_count }} / {{ $shortLink->max_uses ?? '∞' }}
                         </td>
-                        <td class="px-5 py-3 text-gray-500">{{ $shortLink->documents_count }}</td>
+                        <td class="px-5 py-3 text-gray-500">{{ $shortLink->documents_count + $shortLink->received_documents_count }}</td>
                         <td class="px-5 py-3 text-right">
                             <a href="{{ route('admin.links.edit', $shortLink) }}" class="text-sm font-medium text-indigo-600 hover:underline">
                                 Editar

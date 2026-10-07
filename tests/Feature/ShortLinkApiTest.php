@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\Document;
 use App\Models\ShortLink;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -81,13 +82,8 @@ test('users can view their own link with its documents', function () {
 
     $user = User::factory()->create();
     $shortLink = ShortLink::factory()->for($user)->download()->create();
-    $shortLink->documents()->create([
-        'original_name' => 'relatorio.pdf',
-        'path' => 'documents/relatorio.pdf',
-        'disk' => 'local',
-        'mime_type' => 'application/pdf',
-        'size' => 100,
-    ]);
+    $document = Document::factory()->for($user)->create(['original_name' => 'relatorio.pdf']);
+    $shortLink->documents()->attach($document);
 
     $token = $user->createToken('mobile')->plainTextToken;
 

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Enums\ShortLinkType;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreDocumentsRequest;
 use App\Http\Requests\StoreShortLinkRequest;
@@ -22,7 +23,7 @@ class ShortLinkController extends Controller
         return view('admin.links.index', [
             'shortLinks' => ShortLink::query()
                 ->whereBelongsTo(auth()->user())
-                ->withCount('documents')
+                ->withCount(['documents', 'receivedDocuments'])
                 ->latest('created_at')
                 ->paginate(10),
         ]);
@@ -41,7 +42,7 @@ class ShortLinkController extends Controller
      */
     public function store(StoreShortLinkRequest $request): RedirectResponse
     {
-        $attributes = $request->safe()->except('password');
+        $attributes = $request->safe()->except(['password', 'document_ids']);
 
         $attributes['user_id'] = $request->user()->getKey();
         $attributes['code'] = ShortLink::createCode();
@@ -52,6 +53,10 @@ class ShortLinkController extends Controller
         }
 
         $shortLink = ShortLink::create($attributes);
+
+        if ($shortLink->type === ShortLinkType::Download && $request->filled('document_ids')) {
+            $shortLink->documents()->attach($request->input('document_ids'));
+        }
 
         return redirect()
             ->route('admin.links.edit', $shortLink)
@@ -65,9 +70,13 @@ class ShortLinkController extends Controller
     {
         $this->authorize('update', $shortLink);
 
+        $documents = $shortLink->type === ShortLinkType::Upload
+            ? $shortLink->receivedDocuments()->latest()->get()
+            : $shortLink->documents()->latest()->get();
+
         return view('admin.links.edit', [
             'shortLink' => $shortLink,
-            'documents' => $shortLink->documents()->latest()->get(),
+            'documents' => $documents,
         ]);
     }
 
@@ -115,13 +124,16 @@ class ShortLinkController extends Controller
         $count = 0;
 
         foreach ($request->file('documents') as $file) {
-            $shortLink->documents()->create([
+            $document = $request->user()->documents()->create([
                 'original_name' => $file->getClientOriginalName(),
                 'path' => $file->store('documents'),
                 'disk' => 'local',
                 'mime_type' => $file->getMimeType(),
                 'size' => $file->getSize(),
+                'uploaded_via_short_link_id' => $shortLink->type === ShortLinkType::Upload ? $shortLink->getKey() : null,
             ]);
+
+            $shortLink->documents()->attach($document);
 
             $count++;
         }
@@ -136,9 +148,17 @@ class ShortLinkController extends Controller
     {
         $this->authorize('update', $shortLink);
 
-        abort_unless($document->short_link_id === $shortLink->getKey(), 404);
+        if ($shortLink->type === ShortLinkType::Upload) {
+            abort_unless($document->uploaded_via_short_link_id === $shortLink->getKey(), 404);
 
-        $document->delete();
+            $document->delete();
+
+            return back()->with('status', 'Documento recebido excluído.');
+        }
+
+        abort_unless($shortLink->documents()->whereKey($document->getKey())->exists(), 404);
+
+        $shortLink->documents()->detach($document);
 
         return back()->with('status', 'Documento removido do link.');
     }

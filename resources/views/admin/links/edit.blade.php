@@ -144,8 +144,14 @@
     </form>
 
     <section class="mt-6 max-w-2xl rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
-        <h2 class="text-sm font-semibold">Documentos</h2>
-        <p class="mt-1 text-sm text-gray-500">Faça upload dos arquivos que devem ficar disponíveis no link.</p>
+        <h2 class="text-sm font-semibold">
+            {{ $shortLink->type->value === 'download' ? 'Documentos no link' : 'Documentos recebidos' }}
+        </h2>
+        <p class="mt-1 text-sm text-gray-500">
+            {{ $shortLink->type->value === 'download'
+                ? 'Faça upload dos arquivos que devem ficar disponíveis para download neste link.'
+                : 'Faça upload de documentos e eles serão exibidos nesta página pública.' }}
+        </p>
 
         <form method="POST" action="{{ route('admin.links.documents.store', $shortLink) }}" enctype="multipart/form-data" class="mt-4 space-y-3">
             @csrf
@@ -162,7 +168,7 @@
                 type="submit"
                 class="rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-700"
             >
-                Enviar documentos
+                {{ $shortLink->type->value === 'download' ? 'Adicionar arquivos ao link' : 'Adicionar documento' }}
             </button>
         </form>
 
@@ -188,8 +194,12 @@
                                 <form method="POST" action="{{ route('admin.links.documents.destroy', [$shortLink, $document]) }}" class="inline">
                                     @csrf
                                     @method('DELETE')
-                                    <button type="submit" class="text-sm font-medium text-red-600 hover:underline" onclick="return confirm('Remover {{ $document->original_name }}?')">
-                                        Remover
+                                    <button
+                                        type="submit"
+                                        class="text-sm font-medium text-red-600 hover:underline"
+                                        onclick="return confirm('{{ $shortLink->type->value === 'download' ? 'Remover' : 'Excluir' }} {{ $document->original_name }}{{ $shortLink->type->value === 'download' ? ' deste link?' : '?' }}')"
+                                    >
+                                        {{ $shortLink->type->value === 'download' ? 'Remover do link' : 'Excluir' }}
                                     </button>
                                 </form>
                             </td>
@@ -198,7 +208,11 @@
                 </tbody>
             </table>
         @else
-            <p class="mt-4 text-sm text-gray-500">Nenhum documento anexado ainda.</p>
+            <p class="mt-4 text-sm text-gray-500">
+                {{ $shortLink->type->value === 'download'
+                    ? 'Nenhum documento anexado a este link ainda. Selecione arquivos no painel Arquivos e gere um link, ou envie arquivos acima.'
+                    : 'Nenhum documento recebido por este link ainda.' }}
+            </p>
         @endif
     </section>
 </x-layouts.admin>

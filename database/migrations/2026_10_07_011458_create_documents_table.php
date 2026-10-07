@@ -13,7 +13,8 @@ return new class extends Migration
     {
         Schema::create('documents', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('short_link_id')->constrained()->cascadeOnDelete();
+            $table->foreignId('user_id')->constrained()->cascadeOnDelete();
+            $table->foreignId('uploaded_via_short_link_id')->nullable()->constrained('short_links')->nullOnDelete();
             $table->string('original_name');
             $table->string('path');
             $table->string('disk')->default('local');

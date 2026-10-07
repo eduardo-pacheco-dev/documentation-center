@@ -10,6 +10,7 @@ use App\Models\Document;
 use App\Models\ShortLink;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Response;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
@@ -36,7 +37,7 @@ class LinkController extends Controller
 
         $shortLink->recordAccess();
 
-        $documents = $shortLink->documents()->latest()->get(['id', 'original_name', 'size', 'created_at']);
+        $documents = $this->documentsFor($shortLink);
 
         return $shortLink->type === ShortLinkType::Upload
             ? view('public.links.upload', ['shortLink' => $shortLink, 'documents' => $documents])
@@ -77,12 +78,13 @@ class LinkController extends Controller
         );
 
         foreach ($request->file('documents') as $file) {
-            $shortLink->documents()->create([
+            $shortLink->user->documents()->create([
                 'original_name' => $file->getClientOriginalName(),
                 'path' => $file->store('documents'),
                 'disk' => 'local',
                 'mime_type' => $file->getMimeType(),
                 'size' => $file->getSize(),
+                'uploaded_via_short_link_id' => $shortLink->getKey(),
             ]);
         }
 
@@ -90,18 +92,11 @@ class LinkController extends Controller
     }
 
     /**
-     * Download a document attached to an accessible link.
+     * Download a document shared through an accessible link.
      */
     public function download(Document $document): StreamedResponse
     {
-        $shortLink = $document->shortLink()->first();
-
-        abort_unless(
-            $shortLink !== null
-                && $shortLink->isUsable()
-                && (! $shortLink->needsPassword() || $this->isUnlocked($shortLink)),
-            404,
-        );
+        abort_unless($this->isDocumentShareable($document), 404);
 
         $disk = Storage::disk($document->disk);
 
@@ -126,6 +121,39 @@ class LinkController extends Controller
         }
 
         return 'Este link atingiu o limite de acessos permitidos.';
+    }
+
+    /**
+     * The documents shown on the public page for the given link.
+     */
+    private function documentsFor(ShortLink $shortLink): Collection
+    {
+        $documents = $shortLink->type === ShortLinkType::Upload
+            ? $shortLink->receivedDocuments()
+            : $shortLink->documents();
+
+        return $documents->latest('documents.created_at')->get(['documents.id', 'documents.original_name', 'documents.size', 'documents.created_at']);
+    }
+
+    /**
+     * Whether the document can currently be downloaded through an accessible link.
+     */
+    private function isDocumentShareable(Document $document): bool
+    {
+        $shareable = $document->shortLinks->contains(function (ShortLink $link) {
+            return $link->type === ShortLinkType::Download
+                && $link->isUsable()
+                && (! $link->needsPassword() || $this->isUnlocked($link));
+        });
+
+        $receivedVia = $document->uploadedVia;
+
+        return $shareable || (
+            $receivedVia !== null
+            && $receivedVia->type === ShortLinkType::Upload
+            && $receivedVia->isUsable()
+            && (! $receivedVia->needsPassword() || $this->isUnlocked($receivedVia))
+        );
     }
 
     /**

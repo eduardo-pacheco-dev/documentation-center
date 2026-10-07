@@ -167,39 +167,56 @@ test('document uploads are validated', function () {
         ->assertSessionHasErrors('documents.0');
 });
 
-test('deleting a link removes its documents and files', function () {
+test('deleting a link detaches documents but keeps the files', function () {
     Storage::fake('local');
 
     $user = User::factory()->create();
-    $shortLink = ShortLink::factory()->for($user)->create();
-
-    $this->actingAs($user)->post('/admin/links/'.$shortLink->getKey().'/documents', [
-        'documents' => [UploadedFile::fake()->create('relatorio.pdf', 100, 'application/pdf')],
-    ])->assertRedirect();
+    $shortLink = ShortLink::factory()->for($user)->download()->withDocuments(1)->create();
 
     $document = $shortLink->documents()->first();
+    Storage::disk('local')->put($document->path, 'conteudo');
     Storage::disk('local')->assertExists($document->path);
 
     $this->actingAs($user)
         ->delete('/admin/links/'.$shortLink->getKey())
         ->assertRedirect('/admin/links');
 
-    $this->assertDatabaseMissing('documents', ['id' => $document->getKey()]);
-    Storage::disk('local')->assertMissing($document->path);
+    $this->assertDatabaseMissing('short_links', ['id' => $shortLink->getKey()]);
+    $this->assertDatabaseMissing('link_document', ['short_link_id' => $shortLink->getKey()]);
+    $this->assertDatabaseHas('documents', ['id' => $document->getKey()]);
+    Storage::disk('local')->assertExists($document->path);
 });
 
-test('users can remove a single document from a link', function () {
+test('users can detach a document from a download link without deleting it', function () {
     Storage::fake('local');
 
     $user = User::factory()->create();
-    $shortLink = ShortLink::factory()->for($user)->create();
-    $document = $shortLink->documents()->create([
-        'original_name' => 'contrato.pdf',
-        'path' => 'documents/pdf-1.pdf',
-        'disk' => 'local',
-        'mime_type' => 'application/pdf',
-        'size' => 100,
+    $shortLink = ShortLink::factory()->for($user)->download()->withDocuments(1)->create();
+
+    $document = $shortLink->documents()->first();
+    Storage::disk('local')->put($document->path, 'conteudo');
+
+    $this->actingAs($user)
+        ->from('/admin/links/'.$shortLink->getKey().'/edit')
+        ->delete('/admin/links/'.$shortLink->getKey().'/documents/'.$document->getKey())
+        ->assertRedirect()
+        ->assertSessionHas('status');
+
+    $this->assertDatabaseHas('documents', ['id' => $document->getKey()]);
+    $this->assertDatabaseMissing('link_document', [
+        'short_link_id' => $shortLink->getKey(),
+        'document_id' => $document->getKey(),
     ]);
+    Storage::disk('local')->assertExists($document->path);
+});
+
+test('users can delete a received document from an upload link', function () {
+    Storage::fake('local');
+
+    $user = User::factory()->create();
+    $shortLink = ShortLink::factory()->for($user)->withReceivedDocuments(1)->create();
+
+    $document = $shortLink->receivedDocuments()->first();
     Storage::disk('local')->put($document->path, 'conteudo');
 
     $this->actingAs($user)

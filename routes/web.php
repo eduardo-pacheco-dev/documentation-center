@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Admin\DashboardController;
+use App\Http\Controllers\Admin\DocumentController;
 use App\Http\Controllers\Admin\ShortLinkController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
@@ -35,6 +36,11 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
         ->except(['show']);
     Route::post('links/{shortLink}/documents', [ShortLinkController::class, 'storeDocuments'])->name('links.documents.store');
     Route::delete('links/{shortLink}/documents/{document}', [ShortLinkController::class, 'destroyDocument'])->name('links.documents.destroy');
+
+    Route::get('files', [DocumentController::class, 'index'])->name('files.index');
+    Route::post('files', [DocumentController::class, 'store'])->name('files.store');
+    Route::post('files/generate-link', [DocumentController::class, 'generateLink'])->name('files.generate-link');
+    Route::delete('files/{document}', [DocumentController::class, 'destroy'])->name('files.destroy');
 
     Route::middleware('admin')->group(function () {
         Route::get('users', [UserController::class, 'index'])->name('users.index');

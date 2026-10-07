@@ -31,6 +31,13 @@
                             Links
                         </a>
 
+                        <a
+                            href="{{ route('admin.files.index') }}"
+                            class="{{ request()->routeIs('admin.files.*') ? 'text-gray-900 font-medium' : 'text-gray-500 hover:text-gray-900' }}"
+                        >
+                            Arquivos
+                        </a>
+
                         @if (auth()->user()->is_admin)
                             <a
                                 href="{{ route('admin.users.index') }}"

@@ -36,6 +36,11 @@
                 <p class="text-sm text-gray-500">Documentos recebidos</p>
                 <p class="mt-2 text-2xl font-semibold">{{ $receivedDocuments }}</p>
             </div>
+
+            <div class="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+                <p class="text-sm text-gray-500">Meus arquivos</p>
+                <p class="mt-2 text-2xl font-semibold">{{ $totalFiles }}</p>
+            </div>
         </div>
     </section>
 
