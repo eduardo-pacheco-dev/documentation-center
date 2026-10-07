@@ -9,7 +9,9 @@ use App\Http\Requests\StoreShortLinkRequest;
 use App\Http\Requests\UpdateShortLinkRequest;
 use App\Models\Document;
 use App\Models\ShortLink;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\View\View;
 
@@ -18,14 +20,46 @@ class ShortLinkController extends Controller
     /**
      * List every link owned by the authenticated user.
      */
-    public function index(): View
+    public function index(Request $request): View
     {
+        $search = $request->string('search')->trim()->toString();
+
+        $sortableColumns = ['code', 'title', 'type', 'used_count', 'documents', 'created_at'];
+
+        if (in_array($request->query('sort'), $sortableColumns, true)) {
+            $sort = $request->query('sort');
+            $direction = in_array($request->query('direction'), ['asc', 'desc'], true)
+                ? $request->query('direction')
+                : ($sort === 'created_at' ? 'desc' : 'asc');
+        } else {
+            $sort = 'created_at';
+            $direction = 'desc';
+        }
+
+        $query = ShortLink::query()
+            ->whereBelongsTo($request->user())
+            ->withCount(['documents', 'receivedDocuments']);
+
+        if ($search !== '') {
+            $query->where(function (Builder $builder) use ($search): void {
+                $builder
+                    ->where('title', 'like', "%{$search}%")
+                    ->orWhere('code', 'like', "%{$search}%")
+                    ->orWhere('description', 'like', "%{$search}%");
+            });
+        }
+
+        if ($sort === 'documents') {
+            $query->orderByRaw("(documents_count + received_documents_count) {$direction}");
+        } else {
+            $query->orderBy($sort, $direction);
+        }
+
+        $query->orderBy('id', $direction);
+
         return view('admin.links.index', [
-            'shortLinks' => ShortLink::query()
-                ->whereBelongsTo(auth()->user())
-                ->withCount(['documents', 'receivedDocuments'])
-                ->latest('created_at')
-                ->paginate(10),
+            'shortLinks' => $query->paginate(10)->withQueryString(),
+            'search' => $search,
         ]);
     }
 

@@ -33,6 +33,85 @@ test('a link belongs to its owner and is visible only to it', function () {
         ->assertDontSee($shortLink->code);
 });
 
+test('links can be searched by title and code', function () {
+    $user = User::factory()->create();
+    $match = ShortLink::factory()->for($user)->create(['title' => 'Contrato de prestacao']);
+    $other = ShortLink::factory()->for($user)->create(['title' => 'Relatorio anual']);
+
+    $this->actingAs($user)
+        ->get('/admin/links?search=Contrato')
+        ->assertOk()
+        ->assertSee('Contrato de prestacao')
+        ->assertDontSee($other->title);
+
+    $this->actingAs($user)
+        ->get('/admin/links?search='.$match->code)
+        ->assertOk()
+        ->assertSee($match->code)
+        ->assertDontSee($other->code);
+});
+
+test('links are sorted by the requested column', function () {
+    $user = User::factory()->create();
+    ShortLink::factory()->for($user)->create(['title' => 'Zebra']);
+    ShortLink::factory()->for($user)->create(['title' => 'Abacaxi']);
+
+    $this->actingAs($user)
+        ->get('/admin/links?sort=title&direction=asc')
+        ->assertOk()
+        ->assertSeeInOrder(['Abacaxi', 'Zebra']);
+
+    $this->actingAs($user)
+        ->get('/admin/links?sort=title&direction=desc')
+        ->assertOk()
+        ->assertSeeInOrder(['Zebra', 'Abacaxi']);
+});
+
+test('links can be sorted by the number of documents', function () {
+    $user = User::factory()->create();
+    ShortLink::factory()->for($user)->download()->withDocuments(2)->create(['title' => 'Com dois']);
+    ShortLink::factory()->for($user)->download()->withDocuments(1)->create(['title' => 'Com um']);
+
+    $this->actingAs($user)
+        ->get('/admin/links?sort=documents&direction=desc')
+        ->assertOk()
+        ->assertSeeInOrder(['Com dois', 'Com um']);
+
+    $this->actingAs($user)
+        ->get('/admin/links?sort=documents&direction=asc')
+        ->assertOk()
+        ->assertSeeInOrder(['Com um', 'Com dois']);
+});
+
+test('links fall back to newest first when the sort is invalid', function () {
+    $user = User::factory()->create();
+    $old = ShortLink::factory()->for($user)->create(['title' => 'Antigo']);
+    ShortLink::factory()->for($user)->create(['title' => 'Recente']);
+
+    ShortLink::query()->whereKey($old->getKey())->update(['created_at' => now()->subDay()]);
+
+    $this->actingAs($user)
+        ->get('/admin/links?sort=inexistente&direction=asc')
+        ->assertOk()
+        ->assertSeeInOrder(['Recente', 'Antigo']);
+});
+
+test('links are paginated ten per page keeping the current filters', function () {
+    $user = User::factory()->create();
+    $links = ShortLink::factory()->count(11)->for($user)->create(['title' => 'Fatura mensal']);
+
+    $this->actingAs($user)
+        ->get('/admin/links?search=Fatura&page=2')
+        ->assertOk()
+        ->assertSee($links->first()->code)
+        ->assertDontSee($links->last()->code);
+
+    $this->actingAs($user)
+        ->get('/admin/links?search=Fatura')
+        ->assertOk()
+        ->assertSee('search=Fatura', false);
+});
+
 test('creating a link requires a title and a valid type', function () {
     $this->actingAs(User::factory()->create())
         ->from('/admin/links/create')
