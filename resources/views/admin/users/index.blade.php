@@ -1,4 +1,9 @@
 <x-layouts.admin title="Usuários">
+    @php
+        $viewQuery = request()->query();
+        unset($viewQuery['page']);
+    @endphp
+
     <div class="flex items-center justify-between">
         <div>
             <h1 class="flex items-center gap-2 text-xl font-semibold">
@@ -18,12 +23,16 @@
         </button>
     </div>
 
+    <div class="mt-6 flex flex-wrap items-center justify-between gap-4">
     <form
         method="GET"
         action="{{ route('admin.users.index') }}"
-        class="mt-6 flex flex-wrap items-center gap-2"
+        class="flex flex-wrap items-center gap-2"
         data-search-form
     >
+        @if (request('view'))
+            <input type="hidden" name="view" value="{{ request('view') }}">
+        @endif
         @if (request('sort'))
             <input type="hidden" name="sort" value="{{ request('sort') }}">
         @endif
@@ -60,129 +69,162 @@
         @endif
     </form>
 
-    <div class="mt-4 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 shadow-sm">
-        @error('user')
-            <p class="border-b border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-950 px-5 py-3 text-sm text-red-700 dark:text-red-300">{{ $message }}</p>
-        @enderror
+    <div class="inline-flex rounded-lg border border-gray-300 dark:border-gray-700 p-0.5" role="group" aria-label="Modo de visualização">
+        @foreach (['table' => 'Tabela', 'cards' => 'Cards', 'compact' => 'Lista'] as $mode => $label)
+            <a
+                href="{{ route('admin.users.index', array_merge($viewQuery, ['view' => $mode])) }}"
+                data-view-toggle="{{ $mode }}"
+                class="inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm {{ $view === $mode ? 'bg-gray-900 text-white dark:bg-white dark:text-gray-900' : 'text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800' }}"
+            >
+                <x-icon :name="$mode === 'table' ? 'table-cells' : ($mode === 'cards' ? 'squares-2x2' : 'bars-3')" class="h-4 w-4" />
+                {{ $label }}
+            </a>
+        @endforeach
+    </div>
+</div>
 
-        <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-800 text-sm">
-            <thead class="bg-gray-50 dark:bg-gray-800 text-left text-xs uppercase text-gray-500 dark:text-gray-400">
-                <tr>
-                    <x-sort-header column="name" label="Nome" class="px-5 py-3" />
-                    <x-sort-header column="email" label="E-mail" class="px-5 py-3" />
-                    <x-sort-header column="is_admin" label="Perfil" class="px-5 py-3" />
-                    <x-sort-header column="created_at" label="Criado em" icon="clock" class="px-5 py-3" />
-                    <th class="px-5 py-3 font-medium text-right">Ações</th>
-                </tr>
-            </thead>
-            <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
-                @forelse ($users as $user)
+    @if ($view === 'table')
+        <div class="mt-4 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 shadow-sm">
+            @error('user')
+                <p class="border-b border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-950 px-5 py-3 text-sm text-red-700 dark:text-red-300">{{ $message }}</p>
+            @enderror
+
+            <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-800 text-sm">
+                <thead class="bg-gray-50 dark:bg-gray-800 text-left text-xs uppercase text-gray-500 dark:text-gray-400">
                     <tr>
-                        <td class="px-5 py-3">{{ $user->name }}</td>
-                        <td class="px-5 py-3 text-gray-500 dark:text-gray-400">{{ $user->email }}</td>
-                        <td class="px-5 py-3">
-                            <span class="inline-flex rounded-full px-2 py-0.5 text-xs font-medium {{ $user->is_admin ? 'bg-indigo-100 dark:bg-indigo-500/15 text-indigo-700 dark:text-indigo-300' : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300' }}">
-                                {{ $user->is_admin ? 'Admin' : 'Usuário' }}
-                            </span>
-
-                            @unless ($user->is_active)
-                                <span class="ml-1 inline-flex rounded-full bg-gray-100 dark:bg-gray-800 px-2 py-0.5 text-xs font-medium text-gray-600 dark:text-gray-300">
-                                    Inativo
-                                </span>
-                            @endunless
-                        </td>
-                        <td class="px-5 py-3 text-gray-500 dark:text-gray-400">{{ $user->created_at?->format('d/m/Y H:i') ?? '—' }}</td>
-                        <td class="px-5 py-3 text-right">
-                            <div class="relative inline-block text-left">
-                                <button
-                                    type="button"
-                                    class="rounded-full p-1.5 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-100"
-                                    aria-haspopup="true"
-                                    aria-expanded="false"
-                                    data-dropdown-toggle
-                                >
-                                    <span class="sr-only">Abrir menu de ações</span>
-                                    <x-icon name="ellipsis-horizontal" class="h-5 w-5" />
-                                </button>
-
-                                <div
-                                    class="absolute right-0 z-10 mt-1 hidden w-40 origin-top-right rounded-md bg-white dark:bg-gray-900 py-1 text-left shadow-lg ring-1 ring-gray-900/5 dark:ring-white/10"
-                                    role="menu"
-                                    data-dropdown-menu
-                                >
-                                    <button
-                                        type="button"
-                                        class="flex w-full items-center gap-2 px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800"
-                                        role="menuitem"
-                                        data-modal-open="edit-user-modal"
-                                        data-user-edit
-                                        data-user-id="{{ $user->getKey() }}"
-                                        data-user-name="{{ $user->name }}"
-                                        data-user-email="{{ $user->email }}"
-                                        data-user-admin="{{ $user->is_admin ? '1' : '0' }}"
-                                    >
-                                        <x-icon name="pencil-square" class="h-4 w-4 text-gray-400 dark:text-gray-500" />
-                                        Editar
-                                    </button>
-
-                                    <form method="POST" action="{{ route('admin.users.toggle', $user) }}">
-                                        @csrf
-                                        @method('PATCH')
-                                        <button
-                                            type="submit"
-                                            class="flex w-full items-center gap-2 px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800"
-                                            role="menuitem"
-                                            @if ($user->is_active)
-                                                onclick="return confirm('Desativar o usuário {{ $user->name }}?')"
-                                            @endif
-                                        >
-                                            @if ($user->is_active)
-                                                <x-icon name="x-circle" class="h-4 w-4 text-gray-400 dark:text-gray-500" />
-                                                Desativar
-                                            @else
-                                                <x-icon name="check-circle" class="h-4 w-4 text-gray-400 dark:text-gray-500" />
-                                                Ativar
-                                            @endif
-                                        </button>
-                                    </form>
-
-                                    <form method="POST" action="{{ route('admin.users.destroy', $user) }}">
-                                        @csrf
-                                        @method('DELETE')
-                                        <button
-                                            type="submit"
-                                            class="flex w-full items-center gap-2 px-3 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/15"
-                                            role="menuitem"
-                                            onclick="return confirm('Excluir o usuário {{ $user->name }}?')"
-                                        >
-                                            <x-icon name="trash" class="h-4 w-4" />
-                                            Excluir
-                                        </button>
-                                    </form>
-                                </div>
-                            </div>
-                        </td>
+                        <x-sort-header column="name" label="Nome" class="px-5 py-3" />
+                        <x-sort-header column="email" label="E-mail" class="px-5 py-3" />
+                        <x-sort-header column="is_admin" label="Perfil" class="px-5 py-3" />
+                        <x-sort-header column="created_at" label="Criado em" icon="clock" class="px-5 py-3" />
+                        <th class="px-5 py-3 font-medium text-right">Ações</th>
                     </tr>
-                @empty
-                    <tr>
-                        <td class="px-5 py-6 text-gray-500 dark:text-gray-400" colspan="5">
-                            @if ($search !== '')
-                                Nenhum usuário encontrado para "{{ $search }}".
-                            @else
-                                <span class="inline-flex items-center gap-2">
-                                    <x-icon name="users" class="h-4 w-4 text-gray-400 dark:text-gray-500" />
-                                    Nenhum usuário cadastrado até o momento.
+                </thead>
+                <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
+                    @forelse ($users as $user)
+                        <tr>
+                            <td class="px-5 py-3">{{ $user->name }}</td>
+                            <td class="px-5 py-3 text-gray-500 dark:text-gray-400">{{ $user->email }}</td>
+                            <td class="px-5 py-3">
+                                <span class="inline-flex rounded-full px-2 py-0.5 text-xs font-medium {{ $user->is_admin ? 'bg-indigo-100 dark:bg-indigo-500/15 text-indigo-700 dark:text-indigo-300' : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300' }}">
+                                    {{ $user->is_admin ? 'Admin' : 'Usuário' }}
                                 </span>
-                            @endif
-                        </td>
-                    </tr>
-                @endforelse
-            </tbody>
-        </table>
 
-        <div class="px-5 py-4">
-            {{ $users->links() }}
+                                @unless ($user->is_active)
+                                    <span class="ml-1 inline-flex rounded-full bg-gray-100 dark:bg-gray-800 px-2 py-0.5 text-xs font-medium text-gray-600 dark:text-gray-300">
+                                        Inativo
+                                    </span>
+                                @endunless
+                            </td>
+                            <td class="px-5 py-3 text-gray-500 dark:text-gray-400">{{ $user->created_at?->format('d/m/Y H:i') ?? '—' }}</td>
+                            <td class="px-5 py-3 text-right">
+                                <x-user-actions-dropdown :user="$user" />
+                            </td>
+                        </tr>
+                    @empty
+                        <tr>
+                            <td class="px-5 py-6 text-gray-500 dark:text-gray-400" colspan="5">
+                                @if ($search !== '')
+                                    Nenhum usuário encontrado para "{{ $search }}".
+                                @else
+                                    <span class="inline-flex items-center gap-2">
+                                        <x-icon name="users" class="h-4 w-4 text-gray-400 dark:text-gray-500" />
+                                        Nenhum usuário cadastrado até o momento.
+                                    </span>
+                                @endif
+                            </td>
+                        </tr>
+                    @endforelse
+                </tbody>
+            </table>
         </div>
+    @elseif ($view === 'cards')
+        <div class="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            @forelse ($users as $user)
+                <div class="rounded-xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-800 dark:bg-gray-900">
+                    <div class="flex items-start justify-between gap-3">
+                        <div class="flex min-w-0 items-center gap-3">
+                            <span class="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gray-100 text-sm font-semibold text-gray-700 dark:bg-gray-800 dark:text-gray-200">
+                                {{ strtoupper(substr($user->name, 0, 1)) }}
+                            </span>
+                            <div class="min-w-0">
+                                <p class="truncate text-sm font-medium text-gray-900 dark:text-gray-100">{{ $user->name }}</p>
+                                <p class="truncate text-xs text-gray-500 dark:text-gray-400">{{ $user->email }}</p>
+                            </div>
+                        </div>
+
+                        <x-user-actions-dropdown :user="$user" />
+                    </div>
+
+                    <div class="mt-4 flex flex-wrap items-center gap-2">
+                        <span class="inline-flex rounded-full px-2 py-0.5 text-xs font-medium {{ $user->is_admin ? 'bg-indigo-100 dark:bg-indigo-500/15 text-indigo-700 dark:text-indigo-300' : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300' }}">
+                            {{ $user->is_admin ? 'Admin' : 'Usuário' }}
+                        </span>
+
+                        @unless ($user->is_active)
+                            <span class="inline-flex rounded-full bg-gray-100 dark:bg-gray-800 px-2 py-0.5 text-xs font-medium text-gray-600 dark:text-gray-300">
+                                Inativo
+                            </span>
+                        @endunless
+                    </div>
+
+                    <p class="mt-3 flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
+                        <x-icon name="clock" class="h-3.5 w-3.5" />
+                        Criado em {{ $user->created_at?->format('d/m/Y H:i') ?? '—' }}
+                    </p>
+                </div>
+            @empty
+                <div class="col-span-full rounded-lg border border-dashed border-gray-300 px-5 py-6 text-center text-sm text-gray-500 dark:border-gray-700 dark:text-gray-400">
+                    @if ($search !== '')
+                        Nenhum usuário encontrado para "{{ $search }}".
+                    @else
+                        Nenhum usuário cadastrado até o momento.
+                    @endif
+                </div>
+            @endforelse
+        </div>
+    @else
+        <div class="mt-4 divide-y divide-gray-100 rounded-xl border border-gray-200 bg-white shadow-sm dark:divide-gray-800 dark:border-gray-800 dark:bg-gray-900">
+            @forelse ($users as $user)
+                <div class="flex items-center gap-4 px-5 py-3">
+                    <span class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gray-100 text-sm font-semibold text-gray-700 dark:bg-gray-800 dark:text-gray-200">
+                        {{ strtoupper(substr($user->name, 0, 1)) }}
+                    </span>
+
+                    <div class="min-w-0 flex-1">
+                        <p class="truncate text-sm font-medium text-gray-900 dark:text-gray-100">{{ $user->name }}</p>
+                        <p class="truncate text-xs text-gray-500 dark:text-gray-400">{{ $user->email }}</p>
+                    </div>
+
+                    <div class="hidden items-center gap-2 sm:flex">
+                        <span class="inline-flex rounded-full px-2 py-0.5 text-xs font-medium {{ $user->is_admin ? 'bg-indigo-100 dark:bg-indigo-500/15 text-indigo-700 dark:text-indigo-300' : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300' }}">
+                            {{ $user->is_admin ? 'Admin' : 'Usuário' }}
+                        </span>
+
+                        @unless ($user->is_active)
+                            <span class="inline-flex rounded-full bg-gray-100 dark:bg-gray-800 px-2 py-0.5 text-xs font-medium text-gray-600 dark:text-gray-300">
+                                Inativo
+                            </span>
+                        @endunless
+                    </div>
+
+                    <span class="hidden text-xs text-gray-500 md:inline dark:text-gray-400">{{ $user->created_at?->format('d/m/Y H:i') ?? '—' }}</span>
+
+                    <x-user-actions-dropdown :user="$user" />
+                </div>
+            @empty
+                <p class="px-5 py-6 text-center text-sm text-gray-500 dark:text-gray-400">
+                    @if ($search !== '')
+                        Nenhum usuário encontrado para "{{ $search }}".
+                    @else
+                        Nenhum usuário cadastrado até o momento.
+                    @endif
+                </p>
+            @endforelse
+        </div>
+    @endif
+
+    <div class="mt-4">
+        {{ $users->links() }}
     </div>
 
     <div
@@ -416,6 +458,29 @@
     </div>
 
     <script>
+        (function () {
+            const params = new URLSearchParams(window.location.search);
+
+            if (params.has('view')) {
+                return;
+            }
+
+            const savedView = localStorage.getItem('users-view');
+
+            if (!['table', 'cards', 'compact'].includes(savedView)) {
+                return;
+            }
+
+            params.set('view', savedView);
+            window.location.replace(window.location.pathname + '?' + params.toString());
+        })();
+
+        document.querySelectorAll('[data-view-toggle]').forEach((link) => {
+            link.addEventListener('click', () => {
+                localStorage.setItem('users-view', link.dataset.viewToggle);
+            });
+        });
+
         const closeDropdowns = (except) => {
             document.querySelectorAll('[data-dropdown-menu]:not(.hidden)').forEach((menu) => {
                 if (menu !== except) {

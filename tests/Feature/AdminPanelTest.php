@@ -53,6 +53,24 @@ test('administrators can sort users by name', function () {
         ->assertSeeInOrder(['Alice Admin', 'Bob Bravo', 'Carol Costa']);
 });
 
+test('administrators can switch the user list view mode', function () {
+    $admin = User::factory()->admin()->create();
+
+    $this->actingAs($admin)
+        ->get('/admin/users?view=table')
+        ->assertSee('sort=is_admin');
+
+    $this->actingAs($admin)
+        ->get('/admin/users?view=cards')
+        ->assertDontSee('sort=is_admin')
+        ->assertSee('grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3');
+
+    $this->actingAs($admin)
+        ->get('/admin/users?view=compact')
+        ->assertDontSee('sort=is_admin')
+        ->assertSee('divide-y divide-gray-100 rounded-xl');
+});
+
 test('administrators can create users', function () {
     $admin = User::factory()->admin()->create();
 
