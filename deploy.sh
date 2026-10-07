@@ -36,14 +36,18 @@ log "Installing PHP dependencies"
 composer install --no-dev --prefer-dist --no-interaction --optimize-autoloader
 
 log "Ensuring storage directories and permissions"
-mkdir -p storage/framework/cache/data storage/framework/views storage/framework/sessions storage/logs bootstrap/cache
+mkdir -p storage/framework/cache/data storage/framework/views storage/framework/sessions storage/logs database bootstrap/cache
+if [ ! -f database/database.sqlite ]; then
+    touch database/database.sqlite
+    log "Created database/database.sqlite"
+fi
 if [ "$(id -u)" -eq 0 ]; then
     id -u "$WEB_USER" >/dev/null 2>&1 || fail "Web user '$WEB_USER' does not exist (set the WEB_USER secret)"
-    chown -R "$WEB_USER:$WEB_USER" storage bootstrap/cache
+    chown -R "$WEB_USER:$WEB_USER" storage database bootstrap/cache
 else
     log "Warning: running as non-root user; skipping ownership change to $WEB_USER"
 fi
-chmod -R 775 storage bootstrap/cache
+chmod -R 775 storage database bootstrap/cache
 
 if grep -qE '^APP_KEY=\r?$' .env; then
     log "Generating application key"
@@ -68,10 +72,6 @@ log "Linking storage"
 php artisan storage:link
 
 log "Running database migrations"
-if [ ! -f database/database.sqlite ]; then
-    touch database/database.sqlite
-    log "Created database/database.sqlite"
-fi
 php artisan migrate --force
 
 log "Deploy completed"
