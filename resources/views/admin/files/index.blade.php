@@ -113,14 +113,15 @@
                                                 Renomear
                                             </button>
 
-                                            <a
-                                                href="{{ route('admin.links.index', ['document' => $document->getKey()]) }}"
+                                            <button
+                                                type="button"
                                                 class="flex w-full items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
                                                 role="menuitem"
+                                                data-modal-open="links-modal-{{ $document->getKey() }}"
                                             >
                                                 <x-icon name="link" class="h-4 w-4 text-gray-400" />
                                                 Gerenciar links
-                                            </a>
+                                            </button>
 
                                             <button
                                                 type="submit"
@@ -171,6 +172,123 @@
                 @csrf
                 @method('DELETE')
             </form>
+
+            <div
+                id="links-modal-{{ $document->getKey() }}"
+                class="fixed inset-0 z-50 hidden"
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="links-modal-title-{{ $document->getKey() }}"
+            >
+                <div class="absolute inset-0 bg-gray-900/50" data-modal-close></div>
+
+                <div class="absolute left-1/2 top-1/2 w-full max-w-lg -translate-x-1/2 -translate-y-1/2 rounded-xl bg-white p-5 shadow-xl">
+                    <div class="flex items-start justify-between gap-4">
+                        <div class="min-w-0">
+                            <h2 id="links-modal-title-{{ $document->getKey() }}" class="text-base font-semibold text-gray-900">
+                                Gerenciar links
+                            </h2>
+                            <p class="mt-1 truncate text-sm text-gray-500">{{ $document->original_name }}</p>
+                        </div>
+
+                        <button
+                            type="button"
+                            class="rounded-full p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-700"
+                            data-modal-close
+                        >
+                            <span class="sr-only">Fechar</span>
+                            <x-icon name="x-mark" class="h-5 w-5" />
+                        </button>
+                    </div>
+
+                    <ul class="mt-4 max-h-72 space-y-2 overflow-y-auto">
+                        @forelse ($document->shortLinks as $shortLink)
+                            <li class="flex items-start justify-between gap-3 rounded-lg border border-gray-200 px-3 py-2">
+                                <div class="min-w-0">
+                                    <p class="flex items-center gap-1.5 text-sm font-medium text-gray-900">
+                                        <span class="truncate">{{ $shortLink->title }}</span>
+                                        @if ($shortLink->type->value === 'upload')
+                                            <span class="inline-flex shrink-0 items-center gap-1 rounded-full bg-indigo-100 px-2 py-0.5 text-xs font-medium text-indigo-700">
+                                                Upload
+                                            </span>
+                                        @else
+                                            <span class="inline-flex shrink-0 items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-700">
+                                                Download
+                                            </span>
+                                        @endif
+                                    </p>
+
+                                    <p class="mt-0.5 truncate font-mono text-xs text-gray-500">{{ $shortLink->url }}</p>
+
+                                    @if ($shortLink->is_active === false)
+                                        <span class="mt-1 inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600">
+                                            Desativado
+                                        </span>
+                                    @elseif ($shortLink->isExpired())
+                                        <span class="mt-1 inline-flex items-center rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-700">
+                                            Expirado
+                                        </span>
+                                    @elseif ($shortLink->hasReachedAccessLimit())
+                                        <span class="mt-1 inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700">
+                                            Limite atingido
+                                        </span>
+                                    @else
+                                        <span class="mt-1 inline-flex items-center rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700">
+                                            Ativo
+                                        </span>
+                                    @endif
+                                </div>
+
+                                <div class="flex shrink-0 items-center gap-1">
+                                    <a
+                                        href="{{ route('admin.links.edit', $shortLink) }}"
+                                        class="rounded-md px-2 py-1 text-xs font-medium text-gray-700 hover:bg-gray-100"
+                                    >
+                                        Abrir
+                                    </a>
+
+                                    @if ($shortLink->type->value !== 'upload')
+                                        <form method="POST" action="{{ route('admin.links.documents.destroy', [$shortLink, $document]) }}">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button
+                                                type="submit"
+                                                class="rounded-md px-2 py-1 text-xs font-medium text-red-600 hover:bg-red-50"
+                                                onclick="return confirm('Remover este arquivo do link?')"
+                                            >
+                                                Remover
+                                            </button>
+                                        </form>
+                                    @endif
+                                </div>
+                            </li>
+                        @empty
+                            <li class="rounded-lg border border-dashed border-gray-300 px-3 py-6 text-center text-sm text-gray-500">
+                                Este arquivo ainda não está em nenhum link.
+                                <div class="mt-3">
+                                    <button
+                                        type="submit"
+                                        form="generate-link-{{ $document->getKey() }}"
+                                        class="rounded-md bg-gray-900 px-3 py-1.5 text-xs font-medium text-white hover:bg-gray-700"
+                                    >
+                                        Criar link com este arquivo
+                                    </button>
+                                </div>
+                            </li>
+                        @endforelse
+                    </ul>
+
+                    <div class="mt-4 flex justify-end">
+                        <button
+                            type="button"
+                            class="rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100"
+                            data-modal-close
+                        >
+                            Fechar
+                        </button>
+                    </div>
+                </div>
+            </div>
         @endforeach
 
         <div class="pt-4">
@@ -373,6 +491,7 @@
 
         document.querySelectorAll('[data-modal-open]').forEach((trigger) => {
             trigger.addEventListener('click', () => {
+                closeDropdowns();
                 openModal(document.getElementById(trigger.dataset.modalOpen));
             });
         });

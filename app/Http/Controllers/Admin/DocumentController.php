@@ -9,6 +9,7 @@ use App\Http\Requests\RenameDocumentRequest;
 use App\Http\Requests\StoreDocumentsRequest;
 use App\Models\Document;
 use App\Models\ShortLink;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -36,7 +37,12 @@ class DocumentController extends Controller
 
         $query = Document::query()
             ->whereBelongsTo($request->user())
-            ->withCount('shortLinks');
+            ->withCount('shortLinks')
+            ->with([
+                'shortLinks' => fn (BelongsToMany $relation): BelongsToMany => $relation
+                    ->whereBelongsTo($request->user())
+                    ->latest(),
+            ]);
 
         if ($search !== '') {
             $query->where('original_name', 'like', "%{$search}%");

@@ -222,7 +222,31 @@ test('each file offers renaming and managing its links', function () {
         ->assertOk()
         ->assertSee('Renomear')
         ->assertSee('Gerenciar links')
-        ->assertSee('/admin/links?document='.$document->getKey(), false);
+        ->assertSee('links-modal-'.$document->getKey(), false);
+});
+
+test('the links modal lists the links that contain the file', function () {
+    $user = User::factory()->create();
+    $document = Document::factory()->for($user)->create();
+    $shortLink = ShortLink::factory()->for($user)->download()->create(['title' => 'Entrega ao cliente']);
+    $shortLink->documents()->attach($document);
+
+    $this->actingAs($user)
+        ->get('/admin/files')
+        ->assertOk()
+        ->assertSee('Entrega ao cliente')
+        ->assertSee($shortLink->code)
+        ->assertSee('Remover');
+});
+
+test('the links modal reports when a file is in no link', function () {
+    $user = User::factory()->create();
+    Document::factory()->for($user)->create();
+
+    $this->actingAs($user)
+        ->get('/admin/files')
+        ->assertOk()
+        ->assertSee('Este arquivo ainda não está em nenhum link.');
 });
 
 test('users can delete their own files', function () {
