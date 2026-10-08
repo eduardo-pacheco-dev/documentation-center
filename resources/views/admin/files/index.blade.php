@@ -41,6 +41,14 @@
         unset($navQuery['page'], $navQuery['search'], $navQuery['folder']);
 
         $rootUrl = route('admin.files.index', $navQuery);
+
+        $activeTreePath = collect($breadcrumbs)
+            ->map(fn ($crumb) => $crumb->getKey())
+            ->all();
+
+        if ($folder !== null) {
+            $activeTreePath[] = $folder->getKey();
+        }
     @endphp
 
     <form id="upload-form" method="POST" action="{{ route('admin.files.store') }}" enctype="multipart/form-data" class="hidden">
@@ -190,7 +198,33 @@
         </div>
     </div>
 
-    <nav aria-label="Você está em" class="mt-4 flex flex-wrap items-center gap-1.5 text-sm text-gray-500 dark:text-gray-400">
+    <div class="mt-4 flex flex-col gap-6 lg:flex-row lg:items-start">
+        <aside class="w-full shrink-0 lg:w-64">
+            <nav
+                aria-label="Árvore de pastas"
+                class="max-h-72 overflow-y-auto rounded-xl border border-gray-200 bg-white p-2 shadow-sm dark:border-gray-800 dark:bg-gray-900 lg:sticky lg:top-24 lg:max-h-none"
+            >
+                <ul class="space-y-0.5">
+                    <li>
+                        <a
+                            href="{{ $rootUrl }}"
+                            @if ($folder === null) aria-current="page" @endif
+                            class="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm {{ $folder === null ? 'bg-indigo-50 font-medium text-indigo-700 dark:bg-indigo-500/10 dark:text-indigo-300' : 'text-gray-700 hover:bg-gray-50 dark:text-gray-200 dark:hover:bg-gray-800' }}"
+                        >
+                            <x-icon name="folder" class="h-4 w-4 shrink-0 {{ $folder === null ? 'text-indigo-500 dark:text-indigo-400' : 'text-gray-400 dark:text-gray-500' }}" />
+                            <span class="truncate">Meus arquivos</span>
+                        </a>
+                    </li>
+
+                    @foreach ($folderTree as $treeNode)
+                        <x-folder-tree-node :node="$treeNode" :active-tree-path="$activeTreePath" :active-id="$folder?->getKey()" :nav-query="$navQuery" />
+                    @endforeach
+                </ul>
+            </nav>
+        </aside>
+
+        <div class="min-w-0 flex-1">
+    <nav aria-label="Você está em" class="flex flex-wrap items-center gap-1.5 text-sm text-gray-500 dark:text-gray-400">
         <a
             href="{{ $rootUrl }}"
             class="inline-flex items-center gap-1.5 font-medium text-gray-700 hover:text-gray-900 dark:text-gray-200 dark:hover:text-white"
@@ -284,11 +318,11 @@
 
     @if ($documents->isNotEmpty() || $folders->isNotEmpty())
         @if ($view === 'table')
-            <div class="mt-3 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900">
-                <table class="min-w-full text-sm">
-                    <thead class="border-b border-gray-200 bg-gray-50/80 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:border-gray-800 dark:bg-gray-800/60 dark:text-gray-400">
+            <div class="mt-3 overflow-x-auto rounded-xl border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900 lg:overflow-x-visible">
+                <table class="w-full min-w-[42rem] table-fixed text-sm">
+                    <thead class="border-b border-gray-200 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:border-gray-800 dark:text-gray-400">
                         <tr>
-                            <th scope="col" class="w-12 px-4 py-3">
+                            <th scope="col" class="w-12 rounded-tl-xl bg-gray-50/80 px-4 py-3 dark:bg-gray-800/60">
                                 <input
                                     type="checkbox"
                                     data-select-all
@@ -296,11 +330,11 @@
                                     class="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-900 dark:checked:bg-indigo-500 dark:text-indigo-400"
                                 >
                             </th>
-                            <x-sort-header column="original_name" label="Nome" class="px-4 py-3" />
-                            <x-sort-header column="size" label="Tamanho" class="hidden px-4 py-3 sm:table-cell" />
-                            <x-sort-header column="short_links_count" label="Links" class="hidden px-4 py-3 md:table-cell" />
-                            <x-sort-header column="created_at" label="Modificado" class="px-4 py-3" />
-                            <th scope="col" class="px-4 py-3 text-right font-semibold">Ações</th>
+                            <x-sort-header column="original_name" label="Nome" class="bg-gray-50/80 px-4 py-3 dark:bg-gray-800/60" />
+                            <x-sort-header column="size" label="Tamanho" class="w-28 whitespace-nowrap bg-gray-50/80 px-4 py-3 dark:bg-gray-800/60" />
+                            <x-sort-header column="short_links_count" label="Links" class="w-24 whitespace-nowrap bg-gray-50/80 px-4 py-3 dark:bg-gray-800/60" />
+                            <x-sort-header column="created_at" label="Modificado" class="w-32 whitespace-nowrap bg-gray-50/80 px-4 py-3 dark:bg-gray-800/60" />
+                            <th scope="col" class="w-32 rounded-tr-xl bg-gray-50/80 px-4 py-3 text-right font-semibold dark:bg-gray-800/60">Ações</th>
                         </tr>
                     </thead>
 
@@ -333,10 +367,10 @@
                                     </a>
                                 </td>
 
-                                <td class="hidden px-4 py-3 sm:table-cell"></td>
-                                <td class="hidden px-4 py-3 md:table-cell"></td>
+                                <td class="px-4 py-3"></td>
+                                <td class="px-4 py-3"></td>
 
-                                <td class="px-4 py-3 text-gray-500 dark:text-gray-400">
+                                <td class="whitespace-nowrap px-4 py-3 text-gray-500 dark:text-gray-400">
                                     <x-relative-time :value="$currentFolder->created_at" />
                                 </td>
 
@@ -368,7 +402,7 @@
                                         <x-file-type-icon :name="$document->original_name" />
 
                                         <div class="min-w-0">
-                                            <p class="max-w-[20rem] truncate font-medium text-gray-900 dark:text-gray-100" title="{{ $document->original_name }}">
+                                            <p class="truncate font-medium text-gray-900 dark:text-gray-100" title="{{ $document->original_name }}">
                                                 {{ $document->original_name }}
                                             </p>
 
@@ -383,18 +417,18 @@
                                     </div>
                                 </td>
 
-                                <td class="hidden px-4 py-3 tabular-nums text-gray-500 sm:table-cell dark:text-gray-400">
+                                <td class="whitespace-nowrap px-4 py-3 tabular-nums text-gray-500 dark:text-gray-400">
                                     {{ Number::fileSize($document->size) }}
                                 </td>
 
-                                <td class="hidden px-4 py-3 text-gray-500 md:table-cell dark:text-gray-400">
+                                <td class="whitespace-nowrap px-4 py-3 text-gray-500 dark:text-gray-400">
                                     <span class="inline-flex items-center gap-1.5 tabular-nums">
                                         <x-icon name="link" class="h-3.5 w-3.5 text-gray-400 dark:text-gray-500" />
                                         {{ $document->short_links_count }}
                                     </span>
                                 </td>
 
-                                <td class="px-4 py-3 text-gray-500 dark:text-gray-400">
+                                <td class="whitespace-nowrap px-4 py-3 text-gray-500 dark:text-gray-400">
                                     <x-relative-time :value="$document->created_at" />
                                 </td>
 
@@ -696,6 +730,8 @@
             </div>
         </div>
     @endif
+        </div>
+    </div>
 
     <div
         id="rename-modal"
@@ -1133,6 +1169,21 @@
                 if (closer) {
                     closeModal(closer.closest('[role="dialog"]'));
                 }
+            });
+
+            document.addEventListener('click', (event) => {
+                const toggle = event.target.closest('[data-tree-toggle]');
+
+                if (!toggle) return;
+
+                const children = toggle.closest('[data-tree-node]')?.querySelector(':scope > ul');
+
+                if (!children) return;
+
+                const willHide = !children.classList.contains('hidden');
+                children.classList.toggle('hidden', willHide);
+                toggle.setAttribute('aria-expanded', String(!willHide));
+                toggle.querySelector('svg')?.classList.toggle('-rotate-90', willHide);
             });
 
             document.addEventListener('click', (event) => {

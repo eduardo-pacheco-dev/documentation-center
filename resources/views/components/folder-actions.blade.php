@@ -12,7 +12,7 @@
         aria-expanded="false"
         aria-label="Ações da pasta {{ $folder->name }}"
         title="Mais ações"
-        class="rounded-md p-1.5 text-gray-500 hover:bg-gray-100 hover:text-gray-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-gray-100 sm:opacity-0 sm:group-focus-within:opacity-100 sm:group-hover:opacity-100"
+        class="rounded-md p-1.5 text-gray-500 hover:bg-gray-100 hover:text-gray-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-gray-100"
     >
         <x-icon name="ellipsis-horizontal" class="h-4 w-4" />
     </button>

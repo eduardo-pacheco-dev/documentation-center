@@ -105,6 +105,33 @@ test('the file list view mode can be switched', function () {
         ->assertSee('sort=original_name');
 });
 
+test('the files page shows a folder tree aside', function () {
+    $user = User::factory()->create();
+    $parent = Folder::factory()->for($user)->create(['name' => 'Árvore Pai']);
+    Folder::factory()->for($user)->create(['name' => 'Árvore Filho', 'parent_id' => $parent->getKey()]);
+
+    $this->actingAs($user)
+        ->get('/admin/files')
+        ->assertOk()
+        ->assertSee('Árvore de pastas')
+        ->assertSee('Meus arquivos')
+        ->assertSee('Árvore Pai')
+        ->assertSee('Árvore Filho');
+});
+
+test('the folder tree keeps the branch of the open folder expanded and highlighted', function () {
+    $user = User::factory()->create();
+    $parent = Folder::factory()->for($user)->create(['name' => 'Pasta Ancestral']);
+    $child = Folder::factory()->for($user)->create(['name' => 'Pasta Atual', 'parent_id' => $parent->getKey()]);
+
+    $this->actingAs($user)
+        ->get('/admin/files?folder='.$child->getKey())
+        ->assertOk()
+        ->assertSee('aria-expanded="true"', false)
+        ->assertSee('title="Pasta Atual"', false)
+        ->assertSee('bg-indigo-50 font-medium text-indigo-700', false);
+});
+
 test('files fall back to newest first when the sort is invalid', function () {
     $user = User::factory()->create();
     Document::factory()->for($user)->create(['original_name' => 'antigo.pdf']);

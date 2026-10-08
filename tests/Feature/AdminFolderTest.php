@@ -138,14 +138,14 @@ test('opening a folder shows only the files inside it', function () {
 test('a folder only lists its own subfolders', function () {
     $user = User::factory()->create();
     $folder = Folder::factory()->for($user)->create(['name' => 'Pasta Pai']);
-    Folder::factory()->for($user)->create(['name' => 'Pasta Filha', 'parent_id' => $folder->getKey()]);
-    Folder::factory()->for($user)->create(['name' => 'Pasta Irma']);
+    $child = Folder::factory()->for($user)->create(['name' => 'Pasta Filha', 'parent_id' => $folder->getKey()]);
+    $sibling = Folder::factory()->for($user)->create(['name' => 'Pasta Irma']);
 
     $this->actingAs($user)
         ->get('/admin/files?folder='.$folder->getKey())
         ->assertOk()
-        ->assertSee('title="Pasta Filha"', false)
-        ->assertDontSee('title="Pasta Irma"', false);
+        ->assertSee('data-folder-id="'.$child->getKey().'"', false)
+        ->assertDontSee('data-folder-id="'.$sibling->getKey().'"', false);
 });
 
 test('users can not open a folder owned by someone else', function () {
