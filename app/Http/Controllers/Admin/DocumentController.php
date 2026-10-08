@@ -14,7 +14,9 @@ use App\Models\ShortLink;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class DocumentController extends Controller
 {
@@ -137,6 +139,22 @@ class DocumentController extends Controller
         return redirect()
             ->route('admin.links.edit', $shortLink)
             ->with('status', 'Link de download criado com '.count($request->validated('document_ids')).' arquivo(s).');
+    }
+
+    /**
+     * Stream a file owned by the authenticated user for in-browser preview.
+     */
+    public function preview(Document $document): StreamedResponse
+    {
+        $this->authorize('view', $document);
+
+        $disk = Storage::disk($document->disk);
+
+        abort_unless($disk->exists($document->path), 404);
+
+        return $disk->response($document->path, $document->original_name, [
+            'Content-Type' => $document->mime_type ?? 'application/octet-stream',
+        ], 'inline');
     }
 
     /**

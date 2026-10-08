@@ -20,6 +20,20 @@
         <button
             type="button"
             role="menuitem"
+            data-preview-open
+            data-preview-url="{{ route('admin.files.preview', $document) }}"
+            data-preview-name="{{ $document->original_name }}"
+            data-preview-mime="{{ $document->mime_type ?? '' }}"
+            data-preview-size="{{ Number::fileSize($document->size) }}"
+            class="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 dark:text-gray-200 dark:hover:bg-gray-800"
+        >
+            <x-icon name="eye" class="h-4 w-4 text-gray-400 dark:text-gray-500" />
+            Visualizar
+        </button>
+
+        <button
+            type="button"
+            role="menuitem"
             data-rename-open
             data-document-id="{{ $document->getKey() }}"
             data-document-name="{{ $document->original_name }}"

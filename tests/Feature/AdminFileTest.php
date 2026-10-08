@@ -132,6 +132,55 @@ test('the folder tree keeps the branch of the open folder expanded and highlight
         ->assertSee('bg-indigo-50 font-medium text-indigo-700', false);
 });
 
+test('each file offers a preview action', function () {
+    $user = User::factory()->create();
+    $document = Document::factory()->for($user)->create(['original_name' => 'contrato.pdf']);
+
+    $this->actingAs($user)
+        ->get('/admin/files')
+        ->assertOk()
+        ->assertSee('Visualizar')
+        ->assertSee(route('admin.files.preview', $document), false);
+});
+
+test('users can preview their own files inline', function () {
+    Storage::fake('local');
+
+    $user = User::factory()->create();
+    $document = Document::factory()->for($user)->create([
+        'original_name' => 'relatorio.pdf',
+        'mime_type' => 'application/pdf',
+    ]);
+
+    Storage::disk('local')->put($document->path, 'conteudo do relatorio');
+
+    $response = $this->actingAs($user)->get(route('admin.files.preview', $document));
+
+    $response->assertOk()->assertHeader('Content-Type', 'application/pdf');
+    $this->assertSame('conteudo do relatorio', $response->streamedContent());
+});
+
+test('users can not preview files owned by someone else', function () {
+    Storage::fake('local');
+
+    $owner = User::factory()->create();
+    $document = Document::factory()->for($owner)->create();
+
+    Storage::disk('local')->put($document->path, 'segredo');
+
+    $other = User::factory()->create();
+
+    $this->actingAs($other)
+        ->get(route('admin.files.preview', $document))
+        ->assertForbidden();
+});
+
+test('guests are redirected from the preview route', function () {
+    $document = Document::factory()->create();
+
+    $this->get(route('admin.files.preview', $document))->assertRedirect('/login');
+});
+
 test('files fall back to newest first when the sort is invalid', function () {
     $user = User::factory()->create();
     Document::factory()->for($user)->create(['original_name' => 'antigo.pdf']);
