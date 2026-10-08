@@ -27,18 +27,41 @@ class ProjectController extends Controller
 
         $search = (string) $request->query('search', '');
 
+        $sortableColumns = ['name', 'status', 'start_date', 'finish_date', 'percent_complete', 'tasks_count', 'budget', 'updated_at'];
+
+        if (in_array($request->query('sort'), $sortableColumns, true)) {
+            $sort = $request->query('sort');
+            $direction = in_array($request->query('direction'), ['asc', 'desc'], true)
+                ? $request->query('direction')
+                : ($sort === 'updated_at' ? 'desc' : 'asc');
+        } else {
+            $sort = 'updated_at';
+            $direction = 'desc';
+        }
+
+        $perPage = in_array($request->integer('per_page'), [12, 24, 36], true)
+            ? $request->integer('per_page')
+            : 12;
+
         $projects = Project::query()
             ->accessibleBy($request->user())
             ->withCount('tasks')
             ->with('user:id,name')
             ->when($search !== '', fn ($query) => $query->where('name', 'like', "%{$search}%"))
-            ->orderByDesc('updated_at')
-            ->paginate(12)
+            ->orderBy($sort, $direction)
+            ->orderBy('id', $direction)
+            ->paginate($perPage)
             ->withQueryString();
+
+        $view = in_array($request->query('view'), ['table', 'cards', 'compact'], true)
+            ? $request->query('view')
+            : 'table';
 
         return view('admin.projects.index', [
             'projects' => $projects,
             'search' => $search,
+            'view' => $view,
+            'perPage' => $perPage,
         ]);
     }
 
