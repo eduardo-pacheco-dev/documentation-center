@@ -48,10 +48,6 @@
             @include('admin.projects.partials.gantt')
             @include('admin.projects.partials.tasks')
 
-            @if ($canPlan)
-                @include('admin.projects.partials.task-modal')
-            @endif
-
             @include('admin.projects.partials.dependencies')
             @include('admin.projects.partials.resources')
             @include('admin.projects.partials.assignments')
