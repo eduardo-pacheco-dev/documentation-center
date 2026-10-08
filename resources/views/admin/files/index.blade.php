@@ -35,7 +35,6 @@
         $viewModes = [
             'table' => ['label' => 'Lista', 'icon' => 'table-cells'],
             'cards' => ['label' => 'Grade', 'icon' => 'squares-2x2'],
-            'compact' => ['label' => 'Compacto', 'icon' => 'bars-3'],
         ];
 
         $navQuery = request()->query();
@@ -471,78 +470,6 @@
 
                             <x-document-actions :document="$document" />
                         </div>
-                    </div>
-                @endforeach
-            </div>
-        @else
-            <div class="mt-3 divide-y divide-gray-100 rounded-xl border border-gray-200 bg-white shadow-sm dark:divide-gray-800 dark:border-gray-800 dark:bg-gray-900">
-                @foreach ($folders as $currentFolder)
-                    <div
-                        data-folder-row
-                        data-folder-id="{{ $currentFolder->getKey() }}"
-                        class="group flex items-center gap-4 px-4 py-2.5 transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/60"
-                    >
-                        <span class="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-amber-50 text-amber-600 dark:bg-amber-500/10 dark:text-amber-400">
-                            <x-icon name="folder" class="h-5 w-5" />
-                        </span>
-
-                        <a
-                            href="{{ route('admin.files.index', array_merge($navQuery, ['folder' => $currentFolder->getKey()])) }}"
-                            class="min-w-0 flex-1 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
-                        >
-                            <p class="truncate text-sm font-medium text-gray-900 dark:text-gray-100" title="{{ $currentFolder->name }}">
-                                {{ $currentFolder->name }}
-                            </p>
-                            <p class="truncate text-xs text-gray-500 dark:text-gray-400">
-                                {{ $currentFolder->documents_count }} {{ Str::plural('arquivo', $currentFolder->documents_count) }}
-                            </p>
-                        </a>
-
-                        <span class="hidden shrink-0 text-xs text-gray-500 sm:inline dark:text-gray-400">
-                            <x-relative-time :value="$currentFolder->created_at" />
-                        </span>
-
-                        <x-folder-actions :folder="$currentFolder" />
-                    </div>
-                @endforeach
-
-                @foreach ($documents as $document)
-                    <div
-                        data-row
-                        data-document-id="{{ $document->getKey() }}"
-                        data-document-name="{{ $document->original_name }}"
-                        class="group flex items-center gap-4 px-4 py-2.5 transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/60"
-                    >
-                        <input
-                            type="checkbox"
-                            data-select
-                            value="{{ $document->getKey() }}"
-                            aria-label="Selecionar {{ $document->original_name }}"
-                            class="h-4 w-4 shrink-0 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-900 dark:checked:bg-indigo-500 dark:text-indigo-400"
-                        >
-
-                        <x-file-type-icon :name="$document->original_name" class="h-8 w-8" />
-
-                        <div class="min-w-0 flex-1">
-                            <p class="truncate text-sm font-medium text-gray-900 dark:text-gray-100" title="{{ $document->original_name }}">
-                                {{ $document->original_name }}
-                            </p>
-                            @if ($document->uploaded_via_short_link_id !== null)
-                                <p class="truncate text-xs text-gray-500 dark:text-gray-400">Recebido via link de upload</p>
-                            @endif
-                        </div>
-
-                        <span class="hidden w-24 shrink-0 text-right text-xs tabular-nums text-gray-500 sm:inline dark:text-gray-400">
-                            {{ Number::fileSize($document->size) }}
-                        </span>
-                        <span class="hidden w-16 shrink-0 text-right text-xs tabular-nums text-gray-500 md:inline dark:text-gray-400">
-                            {{ $document->short_links_count }}
-                        </span>
-                        <span class="hidden w-24 shrink-0 text-right text-xs text-gray-500 lg:inline dark:text-gray-400">
-                            <x-relative-time :value="$document->created_at" />
-                        </span>
-
-                        <x-document-actions :document="$document" />
                     </div>
                 @endforeach
             </div>
@@ -1141,7 +1068,7 @@
 
                 const savedView = localStorage.getItem('files-view');
 
-                if (!['table', 'cards', 'compact'].includes(savedView)) {
+                if (!['table', 'cards'].includes(savedView)) {
                     return;
                 }
 

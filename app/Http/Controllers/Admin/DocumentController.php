@@ -67,7 +67,7 @@ class DocumentController extends Controller
 
         $query->orderBy($sort, $direction)->orderBy('id', $direction);
 
-        $view = in_array($request->query('view'), ['table', 'cards', 'compact'], true)
+        $view = in_array($request->query('view'), ['table', 'cards'], true)
             ? $request->query('view')
             : 'table';
 

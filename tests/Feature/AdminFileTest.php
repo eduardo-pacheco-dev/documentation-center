@@ -102,8 +102,7 @@ test('the file list view mode can be switched', function () {
 
     $this->actingAs($user)
         ->get('/admin/files?view=compact')
-        ->assertDontSee('sort=original_name')
-        ->assertSee('divide-y divide-gray-100 rounded-xl');
+        ->assertSee('sort=original_name');
 });
 
 test('files fall back to newest first when the sort is invalid', function () {
