@@ -346,6 +346,6 @@ test('users can delete a received document from an upload link', function () {
         ->assertRedirect()
         ->assertSessionHas('status');
 
-    $this->assertDatabaseMissing('documents', ['id' => $document->getKey()]);
-    Storage::disk('local')->assertMissing($document->path);
+    $this->assertSoftDeleted('documents', ['id' => $document->getKey()]);
+    Storage::disk('local')->assertExists($document->path);
 });

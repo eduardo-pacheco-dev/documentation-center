@@ -37,6 +37,14 @@ class User extends Authenticatable
     }
 
     /**
+     * The folders owned by the user.
+     */
+    public function folders(): HasMany
+    {
+        return $this->hasMany(Folder::class);
+    }
+
+    /**
      * Get the attributes that should be cast.
      *
      * @return array<string, string>

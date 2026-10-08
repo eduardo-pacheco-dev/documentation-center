@@ -201,7 +201,7 @@ class ShortLinkController extends Controller
 
             $document->delete();
 
-            return back()->with('status', 'Documento recebido excluído.');
+            return back()->with('status', 'Documento recebido movido para a lixeira.');
         }
 
         abort_unless($shortLink->documents()->whereKey($document->getKey())->exists(), 404);

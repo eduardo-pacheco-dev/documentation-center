@@ -8,13 +8,14 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\Storage;
 
-#[Fillable(['user_id', 'uploaded_via_short_link_id', 'original_name', 'path', 'disk', 'mime_type', 'size'])]
+#[Fillable(['user_id', 'uploaded_via_short_link_id', 'folder_id', 'original_name', 'path', 'disk', 'mime_type', 'size'])]
 class Document extends Model
 {
     /** @use HasFactory<DocumentFactory> */
-    use HasFactory;
+    use HasFactory, SoftDeletes;
 
     /**
      * The user that owns the file.
@@ -33,6 +34,14 @@ class Document extends Model
     }
 
     /**
+     * The folder holding this file, if any.
+     */
+    public function folder(): BelongsTo
+    {
+        return $this->belongsTo(Folder::class);
+    }
+
+    /**
      * The download links sharing this file.
      */
     public function shortLinks(): BelongsToMany
@@ -41,13 +50,31 @@ class Document extends Model
     }
 
     /**
-     * Remove the underlying file when the document is deleted.
+     * Remove the underlying file only when the document is permanently deleted.
+     * Files sent to the trash keep their storage copy until the trash is emptied.
      */
     protected static function booted(): void
     {
         static::deleting(function (Document $document): void {
-            Storage::disk($document->disk)->delete($document->path);
+            if ($document->isForceDeleting()) {
+                Storage::disk($document->disk)->delete($document->path);
+            }
         });
+    }
+
+    /**
+     * Restore the document and any ancestor folder still in the trash.
+     */
+    public function restoreWithAncestors(): void
+    {
+        $this->restore();
+
+        $folder = $this->folder()->withTrashed()->first();
+
+        while ($folder !== null && $folder->trashed()) {
+            $folder->restore();
+            $folder = $folder->parent()->withTrashed()->first();
+        }
     }
 
     /**

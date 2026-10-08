@@ -2,19 +2,20 @@
 
 namespace App\Http\Requests;
 
+use App\Models\Folder;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
-class StoreDocumentsRequest extends FormRequest
+class UpdateFolderRequest extends FormRequest
 {
     /**
      * Determine if the user is authorized to make this request.
      */
     public function authorize(): bool
     {
-        return true;
+        return $this->user()->can('update', $this->route('folder'));
     }
 
     /**
@@ -24,21 +25,20 @@ class StoreDocumentsRequest extends FormRequest
      */
     public function rules(): array
     {
+        /** @var Folder $folder */
+        $folder = $this->route('folder');
+
         return [
-            'documents' => ['required', 'array', 'min:1', 'max:10'],
-            'documents.*' => [
+            'name' => [
                 'required',
-                'file',
-                Rule::file()->types(['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'txt', 'csv', 'odt', 'ods', 'jpg', 'jpeg', 'png']),
-                'max:20480',
-            ],
-            'folder' => [
-                'nullable',
-                'integer',
-                Rule::exists('folders', 'id')
+                'string',
+                'max:255',
+                Rule::unique('folders', 'name')
                     ->where(fn (Builder $query): Builder => $query
                         ->where('user_id', $this->user()->getKey())
-                        ->whereNull('deleted_at')),
+                        ->where('parent_id', $folder->parent_id)
+                        ->whereNull('deleted_at'))
+                    ->ignore($folder->getKey()),
             ],
         ];
     }

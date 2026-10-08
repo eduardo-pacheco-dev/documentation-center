@@ -7,7 +7,7 @@ use Illuminate\Database\Query\Builder;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
-class StoreDocumentsRequest extends FormRequest
+class StoreFolderRequest extends FormRequest
 {
     /**
      * Determine if the user is authorized to make this request.
@@ -25,14 +25,17 @@ class StoreDocumentsRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'documents' => ['required', 'array', 'min:1', 'max:10'],
-            'documents.*' => [
+            'name' => [
                 'required',
-                'file',
-                Rule::file()->types(['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'txt', 'csv', 'odt', 'ods', 'jpg', 'jpeg', 'png']),
-                'max:20480',
+                'string',
+                'max:255',
+                Rule::unique('folders', 'name')
+                    ->where(fn (Builder $query): Builder => $query
+                        ->where('user_id', $this->user()->getKey())
+                        ->where('parent_id', $this->input('parent_id'))
+                        ->whereNull('deleted_at')),
             ],
-            'folder' => [
+            'parent_id' => [
                 'nullable',
                 'integer',
                 Rule::exists('folders', 'id')

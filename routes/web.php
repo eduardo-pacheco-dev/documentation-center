@@ -2,7 +2,9 @@
 
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\DocumentController;
+use App\Http\Controllers\Admin\FolderController;
 use App\Http\Controllers\Admin\ShortLinkController;
+use App\Http\Controllers\Admin\TrashController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\RegisteredUserController;
@@ -52,8 +54,28 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
     Route::get('files', [DocumentController::class, 'index'])->name('files.index');
     Route::post('files', [DocumentController::class, 'store'])->name('files.store');
     Route::post('files/generate-link', [DocumentController::class, 'generateLink'])->name('files.generate-link');
+    Route::post('files/move', [DocumentController::class, 'move'])->name('files.move');
     Route::put('files/{document}', [DocumentController::class, 'update'])->name('files.update');
     Route::delete('files/{document}', [DocumentController::class, 'destroy'])->name('files.destroy');
+
+    Route::post('folders', [FolderController::class, 'store'])->name('folders.store');
+    Route::put('folders/{folder}', [FolderController::class, 'update'])->name('folders.update');
+    Route::delete('folders/{folder}', [FolderController::class, 'destroy'])->name('folders.destroy');
+
+    Route::get('trash', [TrashController::class, 'index'])->name('trash.index');
+    Route::delete('trash', [TrashController::class, 'destroy'])->name('trash.destroy');
+    Route::patch('trash/documents/{document}/restore', [TrashController::class, 'restoreDocument'])
+        ->withTrashed()
+        ->name('trash.documents.restore');
+    Route::delete('trash/documents/{document}', [TrashController::class, 'forceDestroyDocument'])
+        ->withTrashed()
+        ->name('trash.documents.force-destroy');
+    Route::patch('trash/folders/{folder}/restore', [TrashController::class, 'restoreFolder'])
+        ->withTrashed()
+        ->name('trash.folders.restore');
+    Route::delete('trash/folders/{folder}', [TrashController::class, 'forceDestroyFolder'])
+        ->withTrashed()
+        ->name('trash.folders.force-destroy');
 
     Route::middleware('admin')->group(function () {
         Route::get('users', [UserController::class, 'index'])->name('users.index');

@@ -72,8 +72,8 @@ test('users can delete their own files', function () {
         ->deleteJson('/api/v1/files/'.$document->getKey())
         ->assertNoContent();
 
-    $this->assertDatabaseMissing('documents', ['id' => $document->getKey()]);
-    Storage::disk('local')->assertMissing($document->path);
+    $this->assertSoftDeleted('documents', ['id' => $document->getKey()]);
+    Storage::disk('local')->assertExists($document->path);
 });
 
 test('users can not delete a file owned by another user', function () {

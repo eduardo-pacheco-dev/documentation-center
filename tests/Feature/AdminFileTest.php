@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\Document;
+use App\Models\Folder;
 use App\Models\ShortLink;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -268,7 +269,7 @@ test('the links modal reports when a file is in no link', function () {
         ->assertSee('Este arquivo ainda não está em nenhum link.');
 });
 
-test('users can delete their own files', function () {
+test('users can move their own files to the trash', function () {
     Storage::fake('local');
 
     $user = User::factory()->create();
@@ -281,8 +282,9 @@ test('users can delete their own files', function () {
         ->assertRedirect('/admin/files')
         ->assertSessionHas('status');
 
-    $this->assertDatabaseMissing('documents', ['id' => $document->getKey()]);
-    Storage::disk('local')->assertMissing($document->path);
+    $this->assertSoftDeleted('documents', ['id' => $document->getKey()]);
+    Storage::disk('local')->assertExists($document->path);
+    $this->get('/admin/files')->assertDontSee($document->original_name);
 });
 
 test('users can not delete files owned by someone else', function () {
@@ -309,4 +311,102 @@ test('a generated link shares the files on the public download page', function (
     $this->get('/s/'.$shortLink->code)
         ->assertOk()
         ->assertSee('contrato.pdf');
+});
+
+test('the files page offers moving files into folders', function () {
+    $user = User::factory()->create();
+    Document::factory()->for($user)->create();
+    Folder::factory()->for($user)->create(['name' => 'Destino']);
+
+    $this->actingAs($user)
+        ->get('/admin/files')
+        ->assertOk()
+        ->assertSee('Mover para')
+        ->assertSee('move-modal', false)
+        ->assertSee('Destino');
+});
+
+test('users can move their own files into a folder', function () {
+    $user = User::factory()->create();
+    $folder = Folder::factory()->for($user)->create(['name' => 'Destino']);
+    $document = Document::factory()->for($user)->create();
+    $other = Document::factory()->for($user)->create();
+
+    $this->actingAs($user)
+        ->from('/admin/files')
+        ->post('/admin/files/move', [
+            'document_ids' => [$document->getKey()],
+            'folder' => $folder->getKey(),
+        ])
+        ->assertRedirect('/admin/files')
+        ->assertSessionHas('status');
+
+    $this->assertDatabaseHas('documents', ['id' => $document->getKey(), 'folder_id' => $folder->getKey()]);
+    $this->assertDatabaseHas('documents', ['id' => $other->getKey(), 'folder_id' => null]);
+});
+
+test('files can be moved back to the library root', function () {
+    $user = User::factory()->create();
+    $folder = Folder::factory()->for($user)->create();
+    $document = Document::factory()->for($user)->create(['folder_id' => $folder->getKey()]);
+
+    $this->actingAs($user)
+        ->from('/admin/files')
+        ->post('/admin/files/move', ['document_ids' => [$document->getKey()]])
+        ->assertRedirect('/admin/files')
+        ->assertSessionHas('status');
+
+    $this->assertDatabaseHas('documents', ['id' => $document->getKey(), 'folder_id' => null]);
+});
+
+test('moving files to a folder owned by someone else is rejected', function () {
+    $foreign = Folder::factory()->create();
+    $user = User::factory()->create();
+    $document = Document::factory()->for($user)->create();
+
+    $this->actingAs($user)
+        ->from('/admin/files')
+        ->post('/admin/files/move', [
+            'document_ids' => [$document->getKey()],
+            'folder' => $foreign->getKey(),
+        ])
+        ->assertRedirect('/admin/files')
+        ->assertSessionHasErrors('folder');
+
+    $this->assertDatabaseHas('documents', ['id' => $document->getKey(), 'folder_id' => null]);
+});
+
+test('moving files owned by someone else is rejected', function () {
+    $user = User::factory()->create();
+    $folder = Folder::factory()->for($user)->create();
+    $foreign = Document::factory()->create();
+
+    $this->actingAs($user)
+        ->from('/admin/files')
+        ->post('/admin/files/move', [
+            'document_ids' => [$foreign->getKey()],
+            'folder' => $folder->getKey(),
+        ])
+        ->assertRedirect('/admin/files')
+        ->assertSessionHasErrors('document_ids.0');
+
+    $this->assertDatabaseHas('documents', ['id' => $foreign->getKey(), 'folder_id' => null]);
+});
+
+test('trashed files can not be moved', function () {
+    $user = User::factory()->create();
+    $folder = Folder::factory()->for($user)->create();
+    $document = Document::factory()->for($user)->create();
+    $document->delete();
+
+    $this->actingAs($user)
+        ->from('/admin/files')
+        ->post('/admin/files/move', [
+            'document_ids' => [$document->getKey()],
+            'folder' => $folder->getKey(),
+        ])
+        ->assertRedirect('/admin/files')
+        ->assertSessionHasErrors('document_ids.0');
+
+    $this->assertSoftDeleted('documents', ['id' => $document->getKey()]);
 });
