@@ -334,7 +334,7 @@
                             <x-sort-header column="size" label="Tamanho" class="w-28 whitespace-nowrap bg-gray-50/80 px-4 py-3 dark:bg-gray-800/60" />
                             <x-sort-header column="short_links_count" label="Links" class="w-24 whitespace-nowrap bg-gray-50/80 px-4 py-3 dark:bg-gray-800/60" />
                             <x-sort-header column="created_at" label="Modificado" class="w-32 whitespace-nowrap bg-gray-50/80 px-4 py-3 dark:bg-gray-800/60" />
-                            <th scope="col" class="w-32 rounded-tr-xl bg-gray-50/80 px-4 py-3 text-right font-semibold dark:bg-gray-800/60">Ações</th>
+                            <th scope="col" class="w-24 rounded-tr-xl bg-gray-50/80 px-4 py-3 text-right font-semibold dark:bg-gray-800/60">Ações</th>
                         </tr>
                     </thead>
 
@@ -446,11 +446,11 @@
                     <div
                         data-folder-row
                         data-folder-id="{{ $currentFolder->getKey() }}"
-                        class="group relative flex flex-col overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm transition hover:border-gray-300 hover:shadow-md dark:border-gray-800 dark:bg-gray-900 dark:hover:border-gray-700"
+                        class="group relative flex flex-col rounded-xl border border-gray-200 bg-white shadow-sm transition hover:border-gray-300 hover:shadow-md dark:border-gray-800 dark:bg-gray-900 dark:hover:border-gray-700"
                     >
                         <a
                             href="{{ route('admin.files.index', array_merge($navQuery, ['folder' => $currentFolder->getKey()])) }}"
-                            class="flex h-32 items-center justify-center bg-gradient-to-b from-amber-50 to-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 dark:from-amber-500/10 dark:to-gray-900"
+                            class="flex h-32 items-center justify-center rounded-t-xl bg-gradient-to-b from-amber-50 to-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 dark:from-amber-500/10 dark:to-gray-900"
                         >
                             <x-icon name="folder" class="h-14 w-14 text-amber-500 dark:text-amber-400" />
                         </a>
@@ -476,9 +476,9 @@
                         data-row
                         data-document-id="{{ $document->getKey() }}"
                         data-document-name="{{ $document->original_name }}"
-                        class="group relative flex flex-col overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm transition hover:border-gray-300 hover:shadow-md dark:border-gray-800 dark:bg-gray-900 dark:hover:border-gray-700"
+                        class="group relative flex flex-col rounded-xl border border-gray-200 bg-white shadow-sm transition hover:border-gray-300 hover:shadow-md dark:border-gray-800 dark:bg-gray-900 dark:hover:border-gray-700"
                     >
-                        <div class="relative flex h-32 items-center justify-center bg-gradient-to-b from-gray-50 to-white dark:from-gray-800/70 dark:to-gray-900">
+                        <div class="relative flex h-32 items-center justify-center rounded-t-xl bg-gradient-to-b from-gray-50 to-white dark:from-gray-800/70 dark:to-gray-900">
                             <x-file-type-icon :name="$document->original_name" size="lg" />
 
                             <input
