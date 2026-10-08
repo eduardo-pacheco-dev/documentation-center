@@ -65,6 +65,14 @@
                                 Arquivos
                             </a>
 
+                            <a
+                                href="{{ route('admin.projects.index') }}"
+                                class="flex flex-col items-center gap-1 rounded-md px-2 py-3 text-xs font-medium {{ request()->routeIs('admin.projects.*') ? 'bg-gray-100 text-gray-900 dark:bg-gray-800 dark:text-white' : 'text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800' }}"
+                            >
+                                <x-icon name="briefcase" class="h-5 w-5" />
+                                Projetos
+                            </a>
+
                             @if (auth()->user()->is_admin)
                                 <a
                                     href="{{ route('admin.users.index') }}"

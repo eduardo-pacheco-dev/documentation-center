@@ -3,6 +3,15 @@
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\DocumentController;
 use App\Http\Controllers\Admin\FolderController;
+use App\Http\Controllers\Admin\ProjectAssignmentController;
+use App\Http\Controllers\Admin\ProjectBaselineController;
+use App\Http\Controllers\Admin\ProjectController;
+use App\Http\Controllers\Admin\ProjectDependencyController;
+use App\Http\Controllers\Admin\ProjectGanttController;
+use App\Http\Controllers\Admin\ProjectMemberController;
+use App\Http\Controllers\Admin\ProjectResourceController;
+use App\Http\Controllers\Admin\ProjectScheduleController;
+use App\Http\Controllers\Admin\ProjectTaskController;
 use App\Http\Controllers\Admin\ShortLinkController;
 use App\Http\Controllers\Admin\TrashController;
 use App\Http\Controllers\Admin\UserController;
@@ -62,6 +71,42 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
     Route::post('folders', [FolderController::class, 'store'])->name('folders.store');
     Route::put('folders/{folder}', [FolderController::class, 'update'])->name('folders.update');
     Route::delete('folders/{folder}', [FolderController::class, 'destroy'])->name('folders.destroy');
+
+    Route::get('projects', [ProjectController::class, 'index'])->name('projects.index');
+    Route::get('projects/create', [ProjectController::class, 'create'])->name('projects.create');
+    Route::post('projects', [ProjectController::class, 'store'])->name('projects.store');
+    Route::get('projects/{project}', [ProjectController::class, 'show'])->name('projects.show');
+    Route::get('projects/{project}/edit', [ProjectController::class, 'edit'])->name('projects.edit');
+    Route::put('projects/{project}', [ProjectController::class, 'update'])->name('projects.update');
+    Route::delete('projects/{project}', [ProjectController::class, 'destroy'])->name('projects.destroy');
+
+    Route::post('projects/{project}/tasks', [ProjectTaskController::class, 'store'])->name('projects.tasks.store');
+    Route::put('projects/{project}/tasks/{task}', [ProjectTaskController::class, 'update'])->name('projects.tasks.update');
+    Route::delete('projects/{project}/tasks/{task}', [ProjectTaskController::class, 'destroy'])->name('projects.tasks.destroy');
+    Route::patch('projects/{project}/tasks/{task}/progress', [ProjectTaskController::class, 'progress'])->name('projects.tasks.progress');
+
+    Route::post('projects/{project}/dependencies', [ProjectDependencyController::class, 'store'])->name('projects.dependencies.store');
+    Route::delete('projects/{project}/dependencies/{dependency}', [ProjectDependencyController::class, 'destroy'])->name('projects.dependencies.destroy');
+
+    Route::post('projects/{project}/resources', [ProjectResourceController::class, 'store'])->name('projects.resources.store');
+    Route::put('projects/{project}/resources/{resource}', [ProjectResourceController::class, 'update'])->name('projects.resources.update');
+    Route::delete('projects/{project}/resources/{resource}', [ProjectResourceController::class, 'destroy'])->name('projects.resources.destroy');
+
+    Route::post('projects/{project}/assignments', [ProjectAssignmentController::class, 'store'])->name('projects.assignments.store');
+    Route::delete('projects/{project}/assignments/{assignment}', [ProjectAssignmentController::class, 'destroy'])->name('projects.assignments.destroy');
+
+    Route::post('projects/{project}/schedule', [ProjectScheduleController::class, 'store'])->name('projects.schedule.store');
+    Route::post('projects/{project}/level', [ProjectScheduleController::class, 'level'])->name('projects.level.store');
+
+    Route::post('projects/{project}/baselines', [ProjectBaselineController::class, 'store'])->name('projects.baselines.store');
+    Route::post('projects/{project}/baselines/{baseline}/restore', [ProjectBaselineController::class, 'restore'])->name('projects.baselines.restore');
+
+    Route::post('projects/{project}/members', [ProjectMemberController::class, 'store'])->name('projects.members.store');
+    Route::put('projects/{project}/members/{member}', [ProjectMemberController::class, 'update'])->name('projects.members.update');
+    Route::delete('projects/{project}/members/{member}', [ProjectMemberController::class, 'destroy'])->name('projects.members.destroy');
+
+    Route::get('projects/{project}/gantt', [ProjectGanttController::class, 'data'])->name('projects.gantt.data');
+    Route::put('projects/{project}/gantt/tasks/{task}', [ProjectGanttController::class, 'move'])->name('projects.gantt.move');
 
     Route::get('trash', fn () => redirect()->route('admin.files.index', ['view' => 'trash']))->name('trash.index');
     Route::delete('trash', [TrashController::class, 'destroy'])->name('trash.destroy');

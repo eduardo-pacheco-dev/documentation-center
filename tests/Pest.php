@@ -1,5 +1,11 @@
 <?php
 
+use App\Enums\DependencyType;
+use App\Models\Project;
+use App\Models\Resource;
+use App\Models\ResourceAssignment;
+use App\Models\Task;
+use App\Models\TaskDependency;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -38,13 +44,49 @@ expect()->extend('toBeOne', function () {
 | Functions
 |--------------------------------------------------------------------------
 |
-| While Pest is very powerful out-of-the-box, you may have some testing code specific to your
-| project that you don't want to repeat in every file. Here you can also expose helpers as
-| global functions to help you to reduce the number of lines of code in your test files.
+| While Pest is very powerful out-of-the-box, you may sometimes need some testing code specific
+| to your project that you don't want to repeat in many test files. Here you can also expose
+| helpers as global functions to help you to reduce the number of lines of code in your tests.
 |
 */
 
 function something()
 {
     // ..
+}
+
+/**
+ * A project that starts on Monday 2026-01-05 with a standard working calendar.
+ */
+function workingProject(string $startDate = '2026-01-05'): Project
+{
+    return Project::factory()->withCalendar()->create(['start_date' => $startDate]);
+}
+
+/**
+ * Link two tasks with a finish to start dependency.
+ */
+function finishToStart(Task $predecessor, Task $successor, int $lag = 0): TaskDependency
+{
+    return TaskDependency::query()->create([
+        'project_id' => $predecessor->project_id,
+        'predecessor_id' => $predecessor->getKey(),
+        'successor_id' => $successor->getKey(),
+        'type' => DependencyType::FinishToStart,
+        'lag_minutes' => $lag,
+    ]);
+}
+
+/**
+ * Assign a resource to a task for its whole duration.
+ */
+function assign(Resource $resource, Task $task, float $units = 100): ResourceAssignment
+{
+    return ResourceAssignment::query()->create([
+        'resource_id' => $resource->getKey(),
+        'task_id' => $task->getKey(),
+        'units' => $units,
+        'work_minutes' => $task->duration_minutes,
+        'cost' => 0,
+    ]);
 }

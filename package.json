@@ -15,5 +15,8 @@
     },
     "optionalDependencies": {
         "@laravel/multiplex": "^0.4.1"
+    },
+    "dependencies": {
+        "dhtmlx-gantt": "^10.0.3"
     }
 }
