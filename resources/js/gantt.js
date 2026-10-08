@@ -96,6 +96,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     gantt.init(container);
 
+    document.addEventListener('gantt:resize', () => {
+        gantt.setSizes();
+        gantt.render();
+    });
+
     fetch(dataUrl, { headers: { 'Accept': 'application/json' } })
         .then((response) => response.json())
         .then((data) => gantt.parse(data));

@@ -1,6 +1,6 @@
 @php($currency = $project->currency ?? 'BRL')
 
-<section id="evm" class="mt-8">
+<section id="evm" class="mt-8 hidden" data-project-panel>
     <h2 class="flex items-center gap-2 text-lg font-semibold text-gray-900 dark:text-gray-100">
         <x-icon name="chart-bar" class="h-5 w-5 text-gray-400 dark:text-gray-500" />
         Desempenho (EVM)

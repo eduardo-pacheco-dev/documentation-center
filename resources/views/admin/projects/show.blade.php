@@ -35,23 +35,31 @@
         </div>
     </div>
 
-    <div class="mt-6">
-        @include('admin.projects.partials.kpis')
+    <div class="mt-6 grid gap-6 lg:grid-cols-[16rem_minmax(0,1fr)]">
+        <aside>
+            <x-project-sections-nav />
+        </aside>
+
+        <div class="min-w-0">
+            <div id="kpis" data-project-panel>
+                @include('admin.projects.partials.kpis')
+            </div>
+
+            @include('admin.projects.partials.gantt')
+            @include('admin.projects.partials.tasks')
+
+            @if ($canPlan)
+                @include('admin.projects.partials.task-modal')
+            @endif
+
+            @include('admin.projects.partials.dependencies')
+            @include('admin.projects.partials.resources')
+            @include('admin.projects.partials.assignments')
+            @include('admin.projects.partials.members')
+            @include('admin.projects.partials.baselines')
+            @include('admin.projects.partials.evm')
+        </div>
     </div>
-
-    @include('admin.projects.partials.gantt')
-    @include('admin.projects.partials.tasks')
-
-    @if ($canPlan)
-        @include('admin.projects.partials.task-modal')
-    @endif
-
-    @include('admin.projects.partials.dependencies')
-    @include('admin.projects.partials.resources')
-    @include('admin.projects.partials.assignments')
-    @include('admin.projects.partials.members')
-    @include('admin.projects.partials.baselines')
-    @include('admin.projects.partials.evm')
 
     @vite(['resources/js/gantt.js'])
 
@@ -65,5 +73,64 @@
                 event.preventDefault();
             }
         });
+
+        const sectionLinks = [...document.querySelectorAll('[data-project-section]')];
+        const panels = [...document.querySelectorAll('[data-project-panel]')];
+
+        const setActiveLink = (id) => {
+            sectionLinks.forEach((link) => {
+                const isActive = id !== null && link.dataset.projectSection === id;
+                link.classList.toggle('bg-gray-100', isActive);
+                link.classList.toggle('text-gray-900', isActive);
+                link.classList.toggle('dark:bg-gray-800', isActive);
+                link.classList.toggle('dark:text-gray-100', isActive);
+
+                if (isActive) {
+                    link.setAttribute('aria-current', 'location');
+                } else {
+                    link.removeAttribute('aria-current');
+                }
+            });
+        };
+
+        sectionLinks.forEach((link) => {
+            link.addEventListener('click', (event) => {
+                event.preventDefault();
+
+                const id = link.dataset.projectSection;
+
+                panels.forEach((panel) => panel.classList.toggle('hidden', panel.id !== id));
+
+                if (id === 'gantt') {
+                    document.dispatchEvent(new CustomEvent('gantt:resize'));
+                }
+
+                setActiveLink(id);
+                document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            });
+        });
+
+        const showAllButton = document.querySelector('[data-project-sections-showall]');
+
+        if (showAllButton) {
+            showAllButton.addEventListener('click', (event) => {
+                event.preventDefault();
+                panels.forEach((panel) => panel.classList.remove('hidden'));
+                setActiveLink(null);
+                document.dispatchEvent(new CustomEvent('gantt:resize'));
+            });
+        }
+
+        if ('IntersectionObserver' in window && panels.length > 0) {
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach((entry) => {
+                    if (entry.isIntersecting) {
+                        setActiveLink(entry.target.id);
+                    }
+                });
+            }, { rootMargin: '-96px 0px -70% 0px' });
+
+            panels.forEach((panel) => observer.observe(panel));
+        }
     </script>
 </x-layouts.admin>

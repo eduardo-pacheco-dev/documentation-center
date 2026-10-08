@@ -1,6 +1,6 @@
 @php($minutesPerDay = max(1, $project->calendars()->orderByDesc('is_default')->orderBy('id')->value('minutes_per_day') ?? 480))
 
-<section id="tasks" class="mt-8">
+<section id="tasks" class="mt-8 hidden" data-project-panel>
     <div class="flex flex-wrap items-center justify-between gap-3">
         <h2 class="flex items-center gap-2 text-lg font-semibold text-gray-900 dark:text-gray-100">
             <x-icon name="rectangle-stack" class="h-5 w-5 text-gray-400 dark:text-gray-500" />

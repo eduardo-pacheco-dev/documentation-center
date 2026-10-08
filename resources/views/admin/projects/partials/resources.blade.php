@@ -1,4 +1,4 @@
-<section id="resources" class="mt-8">
+<section id="resources" class="mt-8 hidden" data-project-panel>
     <div x-data="{ open: false, action: '', method: 'POST', form: {}, updateTemplate: $el.dataset.updateTemplate }" data-update-template="{{ route('admin.projects.resources.update', [$project, '__RESOURCE__']) }}">
         <div class="flex flex-wrap items-center justify-between gap-3">
             <h2 class="flex items-center gap-2 text-lg font-semibold text-gray-900 dark:text-gray-100">
