@@ -63,7 +63,7 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
     Route::put('folders/{folder}', [FolderController::class, 'update'])->name('folders.update');
     Route::delete('folders/{folder}', [FolderController::class, 'destroy'])->name('folders.destroy');
 
-    Route::get('trash', [TrashController::class, 'index'])->name('trash.index');
+    Route::get('trash', fn () => redirect()->route('admin.files.index', ['view' => 'trash']))->name('trash.index');
     Route::delete('trash', [TrashController::class, 'destroy'])->name('trash.destroy');
     Route::patch('trash/documents/{document}/restore', [TrashController::class, 'restoreDocument'])
         ->withTrashed()

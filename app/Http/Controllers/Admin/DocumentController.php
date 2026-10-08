@@ -69,9 +69,22 @@ class DocumentController extends Controller
 
         $query->orderBy($sort, $direction)->orderBy('id', $direction);
 
-        $view = in_array($request->query('view'), ['table', 'cards'], true)
+        $view = in_array($request->query('view'), ['table', 'cards', 'trash'], true)
             ? $request->query('view')
             : 'table';
+
+        $items = collect();
+
+        if ($view === 'trash') {
+            $trashedFolders = Folder::onlyTrashed()->whereBelongsTo($request->user())->get();
+            $trashedDocuments = Document::onlyTrashed()->whereBelongsTo($request->user())->get();
+
+            $items = $trashedFolders
+                ->map(fn (Folder $folder): array => ['type' => 'folder', 'model' => $folder])
+                ->concat($trashedDocuments->map(fn (Document $document): array => ['type' => 'document', 'model' => $document]))
+                ->sortByDesc(fn (array $item): ?\DateTimeInterface => $item['model']->deleted_at)
+                ->values();
+        }
 
         return view('admin.files.index', [
             'documents' => $query->paginate(10)->withQueryString(),
@@ -81,6 +94,7 @@ class DocumentController extends Controller
             'search' => $search,
             'view' => $view,
             'folderTree' => $this->folderTree($request),
+            'items' => $items,
         ]);
     }
 

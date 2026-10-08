@@ -9,14 +9,15 @@ use Illuminate\Support\Facades\Storage;
 uses(RefreshDatabase::class);
 
 test('guests are redirected to the login page when opening the trash', function () {
-    $this->get('/admin/trash')->assertRedirect('/login');
+    $this->get('/admin/files?view=trash')->assertRedirect('/login');
 });
 
-test('the admin navigation links to the trash', function () {
+test('the files page offers the trash as a view mode', function () {
     $this->actingAs(User::factory()->create())
         ->get('/admin/files')
         ->assertOk()
-        ->assertSee('Lixeira');
+        ->assertSee('view=trash', false)
+        ->assertSee('title="Lixeira"', false);
 });
 
 test('users see only their own trashed items', function () {
@@ -32,7 +33,7 @@ test('users see only their own trashed items', function () {
     $otherDocument->delete();
 
     $this->actingAs($user)
-        ->get('/admin/trash')
+        ->get('/admin/files?view=trash')
         ->assertOk()
         ->assertSee('Minha pasta lixeira')
         ->assertSee('meu-lixeira.pdf')
@@ -42,7 +43,7 @@ test('users see only their own trashed items', function () {
 
 test('the trash shows an empty state when there is nothing to restore', function () {
     $this->actingAs(User::factory()->create())
-        ->get('/admin/trash')
+        ->get('/admin/files?view=trash')
         ->assertOk()
         ->assertSee('A lixeira está vazia');
 });
@@ -62,9 +63,9 @@ test('a trashed file can be restored back to the library', function () {
         ->assertDontSee('restaurado.pdf');
 
     $this->actingAs($user)
-        ->from('/admin/trash')
+        ->from('/admin/files?view=trash')
         ->patch('/admin/trash/documents/'.$document->getKey().'/restore')
-        ->assertRedirect('/admin/trash')
+        ->assertRedirect('/admin/files?view=trash')
         ->assertSessionHas('status');
 
     $this->assertDatabaseHas('documents', ['id' => $document->getKey(), 'deleted_at' => null]);
@@ -90,9 +91,9 @@ test('restoring a file also restores its ancestor folders without leaving siblin
     $this->assertSoftDeleted('documents', ['id' => $document->getKey()]);
 
     $this->actingAs($user)
-        ->from('/admin/trash')
+        ->from('/admin/files?view=trash')
         ->patch('/admin/trash/documents/'.$document->getKey().'/restore')
-        ->assertRedirect('/admin/trash');
+        ->assertRedirect('/admin/files?view=trash');
 
     $this->assertDatabaseHas('documents', ['id' => $document->getKey(), 'deleted_at' => null]);
     $this->assertDatabaseHas('folders', ['id' => $child->getKey(), 'deleted_at' => null]);
@@ -110,9 +111,9 @@ test('restoring a folder restores its subfolders and files', function () {
     $folder->delete();
 
     $this->actingAs($user)
-        ->from('/admin/trash')
+        ->from('/admin/files?view=trash')
         ->patch('/admin/trash/folders/'.$folder->getKey().'/restore')
-        ->assertRedirect('/admin/trash')
+        ->assertRedirect('/admin/files?view=trash')
         ->assertSessionHas('status');
 
     $this->assertDatabaseHas('folders', ['id' => $folder->getKey(), 'deleted_at' => null]);
@@ -131,9 +132,9 @@ test('force deleting a trashed file removes the row and the storage file', funct
     $document->delete();
 
     $this->actingAs($user)
-        ->from('/admin/trash')
+        ->from('/admin/files?view=trash')
         ->delete('/admin/trash/documents/'.$document->getKey())
-        ->assertRedirect('/admin/trash')
+        ->assertRedirect('/admin/files?view=trash')
         ->assertSessionHas('status');
 
     $this->assertDatabaseMissing('documents', ['id' => $document->getKey()]);
@@ -151,9 +152,9 @@ test('force deleting a trashed folder purges its contents and storage files', fu
     $folder->delete();
 
     $this->actingAs($user)
-        ->from('/admin/trash')
+        ->from('/admin/files?view=trash')
         ->delete('/admin/trash/folders/'.$folder->getKey())
-        ->assertRedirect('/admin/trash')
+        ->assertRedirect('/admin/files?view=trash')
         ->assertSessionHas('status');
 
     $this->assertDatabaseMissing('folders', ['id' => $folder->getKey()]);
@@ -175,9 +176,9 @@ test('emptying the trash purges only the items of the authenticated user', funct
     $otherDocument->delete();
 
     $this->actingAs($user)
-        ->from('/admin/trash')
+        ->from('/admin/files?view=trash')
         ->delete('/admin/trash')
-        ->assertRedirect('/admin/trash')
+        ->assertRedirect('/admin/files?view=trash')
         ->assertSessionHas('status');
 
     $this->assertDatabaseMissing('folders', ['id' => $folder->getKey()]);

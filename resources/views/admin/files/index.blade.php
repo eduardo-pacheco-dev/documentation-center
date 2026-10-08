@@ -35,6 +35,7 @@
         $viewModes = [
             'table' => ['label' => 'Lista', 'icon' => 'table-cells'],
             'cards' => ['label' => 'Grade', 'icon' => 'squares-2x2'],
+            'trash' => ['label' => 'Lixeira', 'icon' => 'trash'],
         ];
 
         $navQuery = request()->query();
@@ -106,6 +107,7 @@
                 </div>
             </div>
 
+            @if ($view !== 'trash')
             <form
                 method="GET"
                 action="{{ route('admin.files.index') }}"
@@ -144,6 +146,7 @@
                     </a>
                 @endif
             </form>
+            @endif
 
             @if ($view === 'table')
                 <div class="relative">
@@ -199,6 +202,7 @@
     </div>
 
     <div class="mt-4 flex flex-col gap-6 lg:flex-row lg:items-start">
+        @if ($view !== 'trash')
         <aside class="w-full shrink-0 lg:w-64">
             <nav
                 aria-label="Árvore de pastas"
@@ -222,8 +226,14 @@
                 </ul>
             </nav>
         </aside>
+        @endif
 
         <div class="min-w-0 flex-1">
+
+            @if ($view === 'trash')
+                @include('admin.trash.list', ['items' => $items])
+            @else
+
     <nav aria-label="Você está em" class="flex flex-wrap items-center gap-1.5 text-sm text-gray-500 dark:text-gray-400">
         <a
             href="{{ $rootUrl }}"
@@ -730,6 +740,7 @@
             </div>
         </div>
     @endif
+            @endif
         </div>
     </div>
 
@@ -1154,7 +1165,7 @@
 
                 const savedView = localStorage.getItem('files-view');
 
-                if (!['table', 'cards'].includes(savedView)) {
+                if (!['table', 'cards', 'trash'].includes(savedView)) {
                     return;
                 }
 

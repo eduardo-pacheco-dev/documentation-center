@@ -7,27 +7,9 @@ use App\Models\Document;
 use App\Models\Folder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\View\View;
 
 class TrashController extends Controller
 {
-    /**
-     * List every trashed folder and file owned by the authenticated user.
-     */
-    public function index(Request $request): View
-    {
-        $documents = Document::onlyTrashed()->whereBelongsTo($request->user())->get();
-        $folders = Folder::onlyTrashed()->whereBelongsTo($request->user())->get();
-
-        $items = $folders
-            ->map(fn (Folder $folder): array => ['type' => 'folder', 'model' => $folder])
-            ->concat($documents->map(fn (Document $document): array => ['type' => 'document', 'model' => $document]))
-            ->sortByDesc(fn (array $item): ?\DateTimeInterface => $item['model']->deleted_at)
-            ->values();
-
-        return view('admin.trash.index', ['items' => $items]);
-    }
-
     /**
      * Restore a trashed file, bringing back any ancestor folder still in the trash.
      */
