@@ -72,6 +72,18 @@ it('renders the work order list in the alternate view modes', function () {
     $this->actingAs($owner)->get('/admin/work-orders?view=compact')->assertOk()->assertSee('Alpha Manutenção');
 });
 
+it('renders the create form inside a modal on the work orders list', function () {
+    $owner = User::factory()->create();
+    ownedClient($owner);
+
+    $this->actingAs($owner)
+        ->get('/admin/work-orders')
+        ->assertOk()
+        ->assertSee('data-modal-open="work-order-modal"', false)
+        ->assertSee('id="work-order-modal"', false)
+        ->assertSee(route('admin.work-orders.store'), false);
+});
+
 it('creates a work order with items and computes the totals', function () {
     $user = User::factory()->create();
     $client = ownedClient($user);

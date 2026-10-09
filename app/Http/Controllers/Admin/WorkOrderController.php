@@ -73,6 +73,7 @@ class WorkOrderController extends Controller
             'status' => $status,
             'view' => $view,
             'perPage' => $perPage,
+            ...$this->formData($request->user()),
         ]);
     }
 
