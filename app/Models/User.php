@@ -66,6 +66,16 @@ class User extends Authenticatable
     }
 
     /**
+     * The catalog items registered by the user.
+     *
+     * @return HasMany<CatalogItem, $this>
+     */
+    public function catalogItems(): HasMany
+    {
+        return $this->hasMany(CatalogItem::class);
+    }
+
+    /**
      * The project memberships held by the user.
      *
      * @return HasMany<ProjectMember, $this>

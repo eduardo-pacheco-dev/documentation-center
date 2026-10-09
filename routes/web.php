@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Admin\CatalogItemController;
 use App\Http\Controllers\Admin\ClientController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\DocumentController;
@@ -88,6 +89,14 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
     Route::get('clients/{client}/edit', [ClientController::class, 'edit'])->name('clients.edit');
     Route::put('clients/{client}', [ClientController::class, 'update'])->name('clients.update');
     Route::delete('clients/{client}', [ClientController::class, 'destroy'])->name('clients.destroy');
+
+    Route::get('catalog', [CatalogItemController::class, 'index'])->name('catalog.index');
+    Route::get('catalog/create', [CatalogItemController::class, 'create'])->name('catalog.create');
+    Route::post('catalog', [CatalogItemController::class, 'store'])->name('catalog.store');
+    Route::get('catalog/{catalogItem}', [CatalogItemController::class, 'show'])->name('catalog.show');
+    Route::get('catalog/{catalogItem}/edit', [CatalogItemController::class, 'edit'])->name('catalog.edit');
+    Route::put('catalog/{catalogItem}', [CatalogItemController::class, 'update'])->name('catalog.update');
+    Route::delete('catalog/{catalogItem}', [CatalogItemController::class, 'destroy'])->name('catalog.destroy');
 
     Route::post('projects/{project}/tasks', [ProjectTaskController::class, 'store'])->name('projects.tasks.store');
     Route::put('projects/{project}/tasks/{task}', [ProjectTaskController::class, 'update'])->name('projects.tasks.update');
