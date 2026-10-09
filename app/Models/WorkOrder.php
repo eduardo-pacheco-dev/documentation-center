@@ -76,6 +76,21 @@ class WorkOrder extends Model
     }
 
     /**
+     * Generate the next sequential number for the user's work orders.
+     */
+    public static function generateNumber(User $user): string
+    {
+        $sequence = $user->workOrders()->withTrashed()->count() + 1;
+
+        do {
+            $number = 'OS-'.str_pad((string) $sequence, 4, '0', STR_PAD_LEFT);
+            $sequence++;
+        } while ($user->workOrders()->withTrashed()->where('number', $number)->exists());
+
+        return $number;
+    }
+
+    /**
      * Get the attributes that should be cast.
      *
      * @return array<string, string>

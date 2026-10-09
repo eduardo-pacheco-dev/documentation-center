@@ -20,6 +20,7 @@ use App\Http\Controllers\Admin\ShortLinkController;
 use App\Http\Controllers\Admin\TrashController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Admin\WorkOrderController;
+use App\Http\Controllers\Admin\WorkOrderImportController;
 use App\Http\Controllers\Admin\WorkOrderProjectController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\RegisteredUserController;
@@ -111,6 +112,8 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
 
     Route::get('work-orders', [WorkOrderController::class, 'index'])->name('work-orders.index');
     Route::get('work-orders/create', [WorkOrderController::class, 'create'])->name('work-orders.create');
+    Route::post('work-orders/import', [WorkOrderImportController::class, 'store'])->name('work-orders.import');
+    Route::get('work-orders/import/template', [WorkOrderImportController::class, 'template'])->name('work-orders.import.template');
     Route::post('work-orders', [WorkOrderController::class, 'store'])->name('work-orders.store');
     Route::get('work-orders/{workOrder}', [WorkOrderController::class, 'show'])->name('work-orders.show');
     Route::post('work-orders/{workOrder}/project', [WorkOrderProjectController::class, 'store'])->name('work-orders.project.store');

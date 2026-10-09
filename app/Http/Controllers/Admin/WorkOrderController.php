@@ -101,7 +101,7 @@ class WorkOrderController extends Controller
         $attributes['completed_at'] = $this->resolveCompletedAt($status, null);
 
         $workOrder = DB::transaction(function () use ($request, $attributes, $items): WorkOrder {
-            $attributes['number'] = $this->nextNumber($request->user());
+            $attributes['number'] = WorkOrder::generateNumber($request->user());
 
             $workOrder = $request->user()->workOrders()->create($attributes);
             $workOrder->items()->createMany($this->normalizeItems($items));
@@ -236,20 +236,5 @@ class WorkOrderController extends Controller
         }
 
         return $current?->toDateString() ?? now()->toDateString();
-    }
-
-    /**
-     * Generate the next sequential number for the user's work orders.
-     */
-    private function nextNumber(User $user): string
-    {
-        $sequence = $user->workOrders()->withTrashed()->count() + 1;
-
-        do {
-            $number = 'OS-'.str_pad((string) $sequence, 4, '0', STR_PAD_LEFT);
-            $sequence++;
-        } while ($user->workOrders()->withTrashed()->where('number', $number)->exists());
-
-        return $number;
     }
 }

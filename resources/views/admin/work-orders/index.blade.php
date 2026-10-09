@@ -14,14 +14,25 @@
             <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Abra e acompanhe as ordens de serviço dos seus clientes.</p>
         </div>
 
-        <button
-            type="button"
-            data-modal-open="work-order-modal"
-            class="inline-flex items-center gap-1.5 rounded-md bg-gray-900 dark:bg-white px-4 py-2 text-sm font-medium text-white dark:text-gray-900 hover:bg-gray-700 dark:hover:bg-gray-200"
-        >
-            <x-icon name="plus" class="h-4 w-4" />
-            Nova OS
-        </button>
+        <div class="flex items-center gap-2">
+            <button
+                type="button"
+                data-modal-open="work-order-import-modal"
+                class="inline-flex items-center gap-1.5 rounded-md border border-gray-300 dark:border-gray-700 dark:bg-gray-900 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800"
+            >
+                <x-icon name="arrow-up-tray" class="h-4 w-4" />
+                Importar em massa
+            </button>
+
+            <button
+                type="button"
+                data-modal-open="work-order-modal"
+                class="inline-flex items-center gap-1.5 rounded-md bg-gray-900 dark:bg-white px-4 py-2 text-sm font-medium text-white dark:text-gray-900 hover:bg-gray-700 dark:hover:bg-gray-200"
+            >
+                <x-icon name="plus" class="h-4 w-4" />
+                Nova OS
+            </button>
+        </div>
     </div>
 
     <div class="mt-6 flex flex-wrap items-center justify-between gap-4">
@@ -366,6 +377,102 @@
         </div>
     </div>
 
+    <div
+        id="work-order-import-modal"
+        class="fixed inset-0 z-50 hidden"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="work-order-import-modal-title"
+        @if ($errors->any() && old('modal') === 'import') data-open @endif
+    >
+        <div class="absolute inset-0 bg-gray-900/50" data-modal-close></div>
+
+        <div class="absolute left-1/2 top-1/2 max-h-[90vh] w-full max-w-xl -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-xl bg-white p-5 shadow-xl dark:bg-gray-900">
+            <div class="flex items-start justify-between gap-4">
+                <div>
+                    <h2 id="work-order-import-modal-title" class="flex items-center gap-2 text-base font-semibold text-gray-900 dark:text-gray-100">
+                        <x-icon name="arrow-up-tray" class="h-5 w-5 text-gray-400 dark:text-gray-500" />
+                        Importar ordens de serviço
+                    </h2>
+                    <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Envie uma planilha Excel (.xlsx) com uma OS por linha.</p>
+                </div>
+
+                <button
+                    type="button"
+                    class="rounded-full p-1 text-gray-400 dark:text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-700"
+                    data-modal-close
+                >
+                    <span class="sr-only">Fechar</span>
+                    <x-icon name="x-mark" class="h-5 w-5" />
+                </button>
+            </div>
+
+            @if ($errors->any() && old('modal') === 'import')
+                <div
+                    data-modal-error
+                    class="mt-4 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300"
+                >
+                    <p class="font-medium">Nenhuma OS foi criada. Corrija os itens abaixo e tente novamente:</p>
+
+                    <ul class="mt-2 list-disc space-y-1 pl-5">
+                        @forelse ($errors->get('import') as $message)
+                            <li>{{ $message }}</li>
+                        @empty
+                            <li>Verifique o arquivo enviado.</li>
+                        @endforelse
+                    </ul>
+                </div>
+            @endif
+
+            <div class="mt-4 rounded-md border border-gray-200 bg-gray-50 p-3 text-sm text-gray-600 dark:border-gray-800 dark:bg-gray-800/50 dark:text-gray-300">
+                <p>Colunas: <span class="font-medium">Cliente, Título, Descrição, Prioridade, Status, Abertura, Previsão, Observações</span>.</p>
+                <p class="mt-1">O cliente precisa já existir. Prioridade: baixa, normal, alta ou urgente. Status: aberta, em andamento, concluída ou cancelada. Datas em dd/mm/aaaa.</p>
+                <a
+                    href="{{ route('admin.work-orders.import.template') }}"
+                    class="mt-2 inline-flex items-center gap-1 font-medium text-indigo-600 hover:text-indigo-500 dark:text-indigo-400 dark:hover:text-indigo-300"
+                >
+                    <x-icon name="arrow-down-tray" class="h-4 w-4" />
+                    Baixar modelo
+                </a>
+            </div>
+
+            <form method="POST" action="{{ route('admin.work-orders.import') }}" enctype="multipart/form-data" class="mt-5">
+                @csrf
+                <input type="hidden" name="modal" value="import">
+
+                <label for="import-file" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Planilha (.xlsx)</label>
+                <input
+                    type="file"
+                    name="file"
+                    id="import-file"
+                    accept=".xlsx,.xls"
+                    required
+                    class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-700 dark:bg-gray-900 px-3 py-2 text-sm text-gray-700 dark:text-gray-200 file:mr-3 file:rounded-md file:border-0 file:bg-gray-900 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-white dark:file:bg-white dark:file:text-gray-900"
+                >
+                @error('file')
+                    <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p>
+                @enderror
+
+                <div class="mt-6 flex justify-end gap-2">
+                    <button
+                        type="button"
+                        class="rounded-md border border-gray-300 dark:border-gray-700 dark:bg-gray-900 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800"
+                        data-modal-close
+                    >
+                        Cancelar
+                    </button>
+                    <button
+                        type="submit"
+                        class="inline-flex items-center gap-1.5 rounded-md bg-gray-900 dark:bg-white px-4 py-2 text-sm font-medium text-white dark:text-gray-900 hover:bg-gray-700 dark:hover:bg-gray-200"
+                    >
+                        <x-icon name="arrow-up-tray" class="h-4 w-4" />
+                        Importar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <script>
         (function () {
             const params = new URLSearchParams(window.location.search);
@@ -467,6 +574,11 @@
         const workOrderModal = document.getElementById('work-order-modal');
         if (workOrderModal?.hasAttribute('data-open')) {
             openModal(workOrderModal);
+        }
+
+        const workOrderImportModal = document.getElementById('work-order-import-modal');
+        if (workOrderImportModal?.hasAttribute('data-open')) {
+            openModal(workOrderImportModal);
         }
 
         const searchForm = document.querySelector('[data-search-form]');
