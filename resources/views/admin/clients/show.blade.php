@@ -101,6 +101,10 @@
         </div>
     </div>
 
+    @include('admin.clients.partials.contacts', ['client' => $client])
+
+    @include('admin.clients.partials.documents', ['client' => $client])
+
     <div class="mt-4 rounded-xl border border-gray-200 bg-white px-5 py-4 text-xs text-gray-500 shadow-sm dark:border-gray-800 dark:bg-gray-900 dark:text-gray-400">
         Criado em {{ $client->created_at->format('d/m/Y H:i') }}
         &middot;
@@ -207,10 +211,21 @@
                 }
             });
 
-            const editModal = document.getElementById('client-edit-modal');
-            if (editModal?.hasAttribute('data-open')) {
-                openModal(editModal);
-            }
+            document.addEventListener('submit', (event) => {
+                const form = event.target.closest('[data-confirm-delete]');
+
+                if (!form) {
+                    return;
+                }
+
+                const message = form.dataset.confirmDelete || 'Tem certeza que deseja remover este item?';
+
+                if (!window.confirm(message)) {
+                    event.preventDefault();
+                }
+            });
+
+            document.querySelectorAll('[role="dialog"][data-open]').forEach(openModal);
         })();
     </script>
 </x-layouts.admin>

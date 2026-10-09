@@ -94,6 +94,8 @@ class ClientController extends Controller
     {
         $this->authorize('view', $client);
 
+        $client->load(['contacts', 'documents']);
+
         return view('admin.clients.show', ['client' => $client]);
     }
 

@@ -73,7 +73,7 @@ class ClientSeeder extends Seeder
         $position = $index - 1;
         [$city, $state] = self::CITIES[$position % count(self::CITIES)];
 
-        Client::create([
+        $client = Client::create([
             'user_id' => $owner->getKey(),
             'name' => sprintf(
                 '%s %s',
@@ -96,5 +96,23 @@ class ClientSeeder extends Seeder
             'notes' => $position % 4 === 0 ? fake('pt_BR')->sentence() : null,
             'status' => $index % 5 === 0 ? ClientStatus::Inactive : ClientStatus::Active,
         ]);
+
+        $this->seedContacts($client, $position);
+    }
+
+    /**
+     * Seed a few contacts for the given client.
+     */
+    private function seedContacts(Client $client, int $position): void
+    {
+        foreach (range(1, $position % 3) as $index) {
+            $client->contacts()->create([
+                'name' => fake()->name(),
+                'position' => fake()->randomElement(['Diretor', 'Gerente', 'Comprador', 'Financeiro', 'Comercial']),
+                'phone' => fake('pt_BR')->phoneNumber(),
+                'email' => fake()->unique()->safeEmail(),
+                'is_primary' => $index === 1,
+            ]);
+        }
     }
 }

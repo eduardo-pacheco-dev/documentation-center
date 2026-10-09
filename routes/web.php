@@ -1,7 +1,9 @@
 <?php
 
 use App\Http\Controllers\Admin\CatalogItemController;
+use App\Http\Controllers\Admin\ClientContactController;
 use App\Http\Controllers\Admin\ClientController;
+use App\Http\Controllers\Admin\ClientDocumentController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\DocumentController;
 use App\Http\Controllers\Admin\FolderController;
@@ -90,6 +92,13 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
     Route::get('clients/{client}/edit', [ClientController::class, 'edit'])->name('clients.edit');
     Route::put('clients/{client}', [ClientController::class, 'update'])->name('clients.update');
     Route::delete('clients/{client}', [ClientController::class, 'destroy'])->name('clients.destroy');
+
+    Route::post('clients/{client}/contacts', [ClientContactController::class, 'store'])->name('clients.contacts.store');
+    Route::put('clients/{client}/contacts/{contact}', [ClientContactController::class, 'update'])->name('clients.contacts.update');
+    Route::delete('clients/{client}/contacts/{contact}', [ClientContactController::class, 'destroy'])->name('clients.contacts.destroy');
+
+    Route::post('clients/{client}/documents', [ClientDocumentController::class, 'store'])->name('clients.documents.store');
+    Route::delete('clients/{client}/documents/{document}', [ClientDocumentController::class, 'destroy'])->name('clients.documents.destroy');
 
     Route::get('catalog', [CatalogItemController::class, 'index'])->name('catalog.index');
     Route::get('catalog/create', [CatalogItemController::class, 'create'])->name('catalog.create');

@@ -53,6 +53,28 @@ class Client extends Model
     }
 
     /**
+     * The contacts registered for the client.
+     *
+     * @return HasMany<ClientContact, $this>
+     */
+    public function contacts(): HasMany
+    {
+        return $this->hasMany(ClientContact::class)
+            ->orderByDesc('is_primary')
+            ->orderBy('name');
+    }
+
+    /**
+     * The files attached to the client.
+     *
+     * @return HasMany<Document, $this>
+     */
+    public function documents(): HasMany
+    {
+        return $this->hasMany(Document::class)->latest();
+    }
+
+    /**
      * Restrict a query to the clients the user owns.
      */
     public function scopeOwnedBy(Builder $query, User $user): Builder

@@ -270,21 +270,26 @@
                 cep: maskCep,
             };
 
-            document.querySelectorAll('[data-mask]').forEach((input) => {
+            const format = (input) => {
                 const formatter = masks[input.dataset.mask];
 
                 if (!formatter) return;
 
-                const apply = () => {
-                    const formatted = formatter(input.value);
+                const formatted = formatter(input.value);
 
-                    if (formatted !== input.value) {
-                        input.value = formatted;
-                    }
-                };
+                if (formatted !== input.value) {
+                    input.value = formatted;
+                }
+            };
 
-                apply();
-                input.addEventListener('input', apply);
+            document.querySelectorAll('[data-mask]').forEach(format);
+
+            document.addEventListener('input', (event) => {
+                const input = event.target.closest('[data-mask]');
+
+                if (input) {
+                    format(input);
+                }
             });
         })();
     </script>
