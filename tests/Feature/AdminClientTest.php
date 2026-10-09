@@ -144,6 +144,18 @@ it('updates the client details', function () {
         ->and($client->status->value)->toBe('inactive');
 });
 
+it('renders the edit form inside a modal on the client page', function () {
+    $user = User::factory()->create();
+    $client = Client::factory()->create(['user_id' => $user->getKey(), 'name' => 'Cliente Modal Ltda.']);
+
+    $this->actingAs($user)
+        ->get("/admin/clients/{$client->getKey()}")
+        ->assertOk()
+        ->assertSee('data-modal-open="client-edit-modal"', false)
+        ->assertSee('id="client-edit-modal"', false)
+        ->assertSee(route('admin.clients.update', $client), false);
+});
+
 it('soft deletes the client', function () {
     $user = User::factory()->create();
     $client = Client::factory()->create(['user_id' => $user->getKey()]);
