@@ -11,6 +11,14 @@ Before relying on a package's API, confirm its installed version:
 - PHP packages: run `composer show --direct` to list direct dependencies with versions, or `composer show <vendor/package>` for a single package.
 - JS packages: check `package.json` for the installed versions.
 
+## Tech Stack
+
+- **Runtime:** PHP 8.4, Laravel 13, SQLite
+- **Frontend:** Blade, Tailwind CSS 4, Alpine.js 3 (CDN), Vite 8, dhtmlx-gantt 10
+- **Auth & API:** Laravel Sanctum 4, l5-swagger (OpenAPI)
+- **Testing & style:** Pest 5, Laravel Pint, Faker, Mockery
+- **Tooling:** Laravel Herd, Laravel Boost (MCP), Laravel Pail, Tinker
+
 ## Skills Activation
 
 This project has domain-specific skills available in `**/skills/**`. You MUST activate the relevant skill whenever you work in that domain—don't wait until you're stuck.
