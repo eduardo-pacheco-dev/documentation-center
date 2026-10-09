@@ -163,6 +163,8 @@
         </div>
     </div>
 
+    @include('admin.erbs.partials.documents', ['erb' => $erb])
+
     <div class="mt-4 rounded-xl border border-gray-200 bg-white px-5 py-4 text-xs text-gray-500 shadow-sm dark:border-gray-800 dark:bg-gray-900 dark:text-gray-400">
         Criado em {{ $erb->created_at->format('d/m/Y H:i') }}
         &middot;

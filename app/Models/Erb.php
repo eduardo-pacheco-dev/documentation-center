@@ -64,6 +64,16 @@ class Erb extends Model
     }
 
     /**
+     * The files attached to the ERB.
+     *
+     * @return HasMany<Document, $this>
+     */
+    public function documents(): HasMany
+    {
+        return $this->hasMany(Document::class)->latest();
+    }
+
+    /**
      * Restrict a query to the ERBs the user owns.
      */
     public function scopeOwnedBy(Builder $query, User $user): Builder

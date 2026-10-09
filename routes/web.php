@@ -7,6 +7,7 @@ use App\Http\Controllers\Admin\ClientDocumentController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\DocumentController;
 use App\Http\Controllers\Admin\ErbController;
+use App\Http\Controllers\Admin\ErbDocumentController;
 use App\Http\Controllers\Admin\FolderController;
 use App\Http\Controllers\Admin\ProjectAssignmentController;
 use App\Http\Controllers\Admin\ProjectBaselineController;
@@ -118,6 +119,9 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
     Route::get('erbs/{erb}/edit', [ErbController::class, 'edit'])->name('erbs.edit');
     Route::put('erbs/{erb}', [ErbController::class, 'update'])->name('erbs.update');
     Route::delete('erbs/{erb}', [ErbController::class, 'destroy'])->name('erbs.destroy');
+
+    Route::post('erbs/{erb}/documents', [ErbDocumentController::class, 'store'])->name('erbs.documents.store');
+    Route::delete('erbs/{erb}/documents/{document}', [ErbDocumentController::class, 'destroy'])->name('erbs.documents.destroy');
 
     Route::get('work-orders', [WorkOrderController::class, 'index'])->name('work-orders.index');
     Route::get('work-orders/create', [WorkOrderController::class, 'create'])->name('work-orders.create');
