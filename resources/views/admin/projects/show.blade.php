@@ -7,6 +7,12 @@
             </h1>
             <div class="mt-2 flex flex-wrap items-center gap-3 text-sm text-gray-500 dark:text-gray-400">
                 <x-project-status :project="$project" />
+                @if ($project->erb)
+                    <a href="{{ route('admin.erbs.show', $project->erb) }}" class="inline-flex items-center gap-1 hover:text-gray-900 dark:hover:text-gray-100">
+                        <x-icon name="signal" class="h-4 w-4" />
+                        {{ $project->erb->code }}
+                    </a>
+                @endif
                 <span>Início: {{ $project->start_date?->format('d/m/Y') ?? '—' }}</span>
                 <span>Orçamento: {{ number_format((float) $project->budget, 2, ',', '.') }} {{ $project->currency }}</span>
             </div>

@@ -231,6 +231,12 @@
         </svg>
     @break
 
+    @case('signal')
+        <svg {{ $attributes->merge(['class' => 'h-4 w-4']) }} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9.348 14.652a3.75 3.75 0 0 1 0-5.304m5.304 0a3.75 3.75 0 0 1 0 5.304m-7.425 2.121a6.75 6.75 0 0 1 0-9.546m9.546 0a6.75 6.75 0 0 1 0 9.546m-11.33-3.414a9.75 9.75 0 0 1 13.796 0M12 21.75a9.75 9.75 0 0 0 9.75-9.75A9.75 9.75 0 0 0 12 2.25 9.75 9.75 0 0 0 2.25 12c0 5.385 4.365 9.75 9.75 9.75Z"/>
+        </svg>
+    @break
+
     @case('cube')
         <svg {{ $attributes->merge(['class' => 'h-4 w-4']) }} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
             <path stroke-linecap="round" stroke-linejoin="round" d="m21 7.5-9-5.25L3 7.5m18 0-9 5.25m9-5.25v9l-9 5.25M3 7.5l9 5.25M3 7.5v9l9 5.25m0-9v9"/>

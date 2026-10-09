@@ -122,7 +122,7 @@ class WorkOrderController extends Controller
     {
         $this->authorize('view', $workOrder);
 
-        $workOrder->load(['client', 'items.catalogItem', 'project']);
+        $workOrder->load(['client', 'erb', 'items.catalogItem', 'project']);
 
         return view('admin.work-orders.show', ['workOrder' => $workOrder]);
     }
@@ -191,9 +191,12 @@ class WorkOrderController extends Controller
 
         $catalogItems = $user->catalogItems()->orderBy('name')->get(['id', 'name', 'unit', 'price', 'type']);
 
+        $erbs = $user->erbs()->orderBy('name')->get(['id', 'code', 'name']);
+
         return [
             'clients' => $clients,
             'catalogItems' => $catalogItems,
+            'erbs' => $erbs,
             'catalogData' => $catalogItems->map(fn (CatalogItem $item): array => [
                 'id' => $item->getKey(),
                 'name' => $item->name,

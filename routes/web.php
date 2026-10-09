@@ -6,6 +6,7 @@ use App\Http\Controllers\Admin\ClientController;
 use App\Http\Controllers\Admin\ClientDocumentController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\DocumentController;
+use App\Http\Controllers\Admin\ErbController;
 use App\Http\Controllers\Admin\FolderController;
 use App\Http\Controllers\Admin\ProjectAssignmentController;
 use App\Http\Controllers\Admin\ProjectBaselineController;
@@ -109,6 +110,14 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
     Route::get('catalog/{catalogItem}/edit', [CatalogItemController::class, 'edit'])->name('catalog.edit');
     Route::put('catalog/{catalogItem}', [CatalogItemController::class, 'update'])->name('catalog.update');
     Route::delete('catalog/{catalogItem}', [CatalogItemController::class, 'destroy'])->name('catalog.destroy');
+
+    Route::get('erbs', [ErbController::class, 'index'])->name('erbs.index');
+    Route::get('erbs/create', [ErbController::class, 'create'])->name('erbs.create');
+    Route::post('erbs', [ErbController::class, 'store'])->name('erbs.store');
+    Route::get('erbs/{erb}', [ErbController::class, 'show'])->name('erbs.show');
+    Route::get('erbs/{erb}/edit', [ErbController::class, 'edit'])->name('erbs.edit');
+    Route::put('erbs/{erb}', [ErbController::class, 'update'])->name('erbs.update');
+    Route::delete('erbs/{erb}', [ErbController::class, 'destroy'])->name('erbs.destroy');
 
     Route::get('work-orders', [WorkOrderController::class, 'index'])->name('work-orders.index');
     Route::get('work-orders/create', [WorkOrderController::class, 'create'])->name('work-orders.create');

@@ -86,6 +86,16 @@ class User extends Authenticatable
     }
 
     /**
+     * The ERBs registered by the user.
+     *
+     * @return HasMany<Erb, $this>
+     */
+    public function erbs(): HasMany
+    {
+        return $this->hasMany(Erb::class);
+    }
+
+    /**
      * The project memberships held by the user.
      *
      * @return HasMany<ProjectMember, $this>

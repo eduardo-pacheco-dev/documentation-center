@@ -1,4 +1,5 @@
 @php($project = $project ?? null)
+@php($erbs = $erbs ?? collect())
 
 <div class="grid gap-5 sm:grid-cols-2">
     <div class="sm:col-span-2">
@@ -62,6 +63,25 @@
             @endforeach
         </select>
         @error('status')
+            <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p>
+        @enderror
+    </div>
+
+    <div class="sm:col-span-2">
+        <label for="erb_id" class="block text-sm font-medium text-gray-700 dark:text-gray-300">ERB (Estação Rádio Base)</label>
+        <select
+            name="erb_id"
+            id="erb_id"
+            class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-700 dark:bg-gray-900 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500"
+        >
+            <option value="">Nenhuma ERB vinculada</option>
+            @foreach ($erbs as $erb)
+                <option value="{{ $erb->getKey() }}" @selected((string) old('erb_id', $project?->erb_id) === (string) $erb->getKey())>
+                    {{ $erb->code }} — {{ $erb->name }}
+                </option>
+            @endforeach
+        </select>
+        @error('erb_id')
             <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p>
         @enderror
     </div>

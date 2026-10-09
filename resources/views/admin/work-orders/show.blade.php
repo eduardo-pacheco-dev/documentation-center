@@ -21,6 +21,15 @@
                     <x-icon name="building-office" class="h-4 w-4" />
                     {{ $workOrder->client->name }}
                 </a>
+                @if ($workOrder->erb)
+                    <a
+                        href="{{ route('admin.erbs.show', $workOrder->erb) }}"
+                        class="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-indigo-600 dark:text-gray-400 dark:hover:text-indigo-400"
+                    >
+                        <x-icon name="signal" class="h-4 w-4" />
+                        {{ $workOrder->erb->code }}
+                    </a>
+                @endif
             </div>
         </div>
 

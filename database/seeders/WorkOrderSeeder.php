@@ -37,8 +37,10 @@ class WorkOrderSeeder extends Seeder
 
             $catalogItems = $user->catalogItems()->orderBy('id')->get();
 
+            $erbs = $user->erbs()->orderBy('id')->get();
+
             foreach (range(1, self::WORK_ORDER_COUNT) as $index) {
-                $this->seedWorkOrder($user, $clients, $catalogItems, $index);
+                $this->seedWorkOrder($user, $clients, $catalogItems, $erbs, $index);
             }
         }
     }
@@ -48,8 +50,9 @@ class WorkOrderSeeder extends Seeder
      *
      * @param  Collection<int, Client>  $clients
      * @param  Collection<int, CatalogItem>  $catalogItems
+     * @param  Collection<int, Erb>  $erbs
      */
-    private function seedWorkOrder(User $owner, Collection $clients, Collection $catalogItems, int $index): void
+    private function seedWorkOrder(User $owner, Collection $clients, Collection $catalogItems, Collection $erbs, int $index): void
     {
         $position = $index - 1;
         $status = WorkOrderStatus::cases()[$position % count(WorkOrderStatus::cases())];
@@ -59,6 +62,7 @@ class WorkOrderSeeder extends Seeder
         $workOrder = WorkOrder::create([
             'user_id' => $owner->getKey(),
             'client_id' => $clients->get($position % $clients->count())->getKey(),
+            'erb_id' => $erbs->isEmpty() ? null : $erbs->get($position % $erbs->count())->getKey(),
             'number' => 'OS-'.str_pad((string) $index, 4, '0', STR_PAD_LEFT),
             'title' => fake()->randomElement([
                 'Manutenção elétrica', 'Instalação hidráulica', 'Reforma de escritório',

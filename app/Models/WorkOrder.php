@@ -17,6 +17,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 #[Fillable([
     'user_id',
     'client_id',
+    'erb_id',
     'number',
     'title',
     'description',
@@ -47,6 +48,14 @@ class WorkOrder extends Model
     public function client(): BelongsTo
     {
         return $this->belongsTo(Client::class);
+    }
+
+    /**
+     * The ERB the work order was carried out on.
+     */
+    public function erb(): BelongsTo
+    {
+        return $this->belongsTo(Erb::class);
     }
 
     /**

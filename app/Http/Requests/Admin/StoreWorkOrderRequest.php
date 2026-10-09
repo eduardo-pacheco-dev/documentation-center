@@ -35,6 +35,11 @@ class StoreWorkOrderRequest extends FormRequest
                 'integer',
                 Rule::exists('clients', 'id')->where(fn ($query) => $query->where('user_id', $userId)),
             ],
+            'erb_id' => [
+                'nullable',
+                'integer',
+                Rule::exists('erbs', 'id')->where(fn ($query) => $query->where('user_id', $userId)),
+            ],
             'title' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string', 'max:2000'],
             'priority' => ['required', new Enum(WorkOrderPriority::class)],

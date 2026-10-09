@@ -68,11 +68,13 @@ class ProjectController extends Controller
     /**
      * Show the form to create a project.
      */
-    public function create(): View
+    public function create(Request $request): View
     {
         $this->authorize('create', Project::class);
 
-        return view('admin.projects.create');
+        return view('admin.projects.create', [
+            'erbs' => $request->user()->erbs()->orderBy('name')->get(['id', 'code', 'name']),
+        ]);
     }
 
     /**
@@ -123,9 +125,12 @@ class ProjectController extends Controller
      */
     public function edit(Request $request, Project $project): View
     {
-        $this->authorize('plan', $project);
+        $this->authorize('update', $project);
 
-        return view('admin.projects.edit', ['project' => $project]);
+        return view('admin.projects.edit', [
+            'project' => $project,
+            'erbs' => $request->user()->erbs()->orderBy('name')->get(['id', 'code', 'name']),
+        ]);
     }
 
     /**
