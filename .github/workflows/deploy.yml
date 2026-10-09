@@ -26,7 +26,6 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: ${{ secrets.SSH_PORT || '22' }}
           envs: WEB_USER
-          script_stop: true
           script: |
             cd "${{ secrets.SERVER_PATH }}"
             bash deploy.sh
