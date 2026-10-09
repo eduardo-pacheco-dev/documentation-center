@@ -76,6 +76,16 @@ class User extends Authenticatable
     }
 
     /**
+     * The work orders created by the user.
+     *
+     * @return HasMany<WorkOrder, $this>
+     */
+    public function workOrders(): HasMany
+    {
+        return $this->hasMany(WorkOrder::class);
+    }
+
+    /**
      * The project memberships held by the user.
      *
      * @return HasMany<ProjectMember, $this>

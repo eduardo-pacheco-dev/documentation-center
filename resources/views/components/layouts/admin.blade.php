@@ -89,6 +89,14 @@
                                 Catálogo
                             </a>
 
+                            <a
+                                href="{{ route('admin.work-orders.index') }}"
+                                class="flex flex-col items-center gap-1 rounded-md px-2 py-3 text-xs font-medium {{ request()->routeIs('admin.work-orders.*') ? 'bg-gray-100 text-gray-900 dark:bg-gray-800 dark:text-white' : 'text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800' }}"
+                            >
+                                <x-icon name="clipboard-document-list" class="h-5 w-5" />
+                                Ordens de serviço
+                            </a>
+
                             @if (auth()->user()->is_admin)
                                 <a
                                     href="{{ route('admin.users.index') }}"

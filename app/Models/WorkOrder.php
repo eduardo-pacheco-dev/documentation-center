@@ -2,9 +2,9 @@
 
 namespace App\Models;
 
-use App\Enums\CatalogItemStatus;
-use App\Enums\CatalogItemType;
-use Database\Factories\CatalogItemFactory;
+use App\Enums\WorkOrderPriority;
+use App\Enums\WorkOrderStatus;
+use Database\Factories\WorkOrderFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -15,24 +15,25 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 #[Fillable([
     'user_id',
-    'type',
-    'name',
-    'code',
-    'unit',
-    'price',
-    'cost',
-    'stock_quantity',
+    'client_id',
+    'number',
+    'title',
     'description',
-    'notes',
+    'priority',
     'status',
+    'opened_at',
+    'due_at',
+    'completed_at',
+    'total',
+    'notes',
 ])]
-class CatalogItem extends Model
+class WorkOrder extends Model
 {
-    /** @use HasFactory<CatalogItemFactory> */
+    /** @use HasFactory<WorkOrderFactory> */
     use HasFactory, SoftDeletes;
 
     /**
-     * The user that created the catalog item.
+     * The user that created the work order.
      */
     public function user(): BelongsTo
     {
@@ -40,17 +41,25 @@ class CatalogItem extends Model
     }
 
     /**
-     * The work order lines that reference the catalog item.
+     * The client the work order belongs to.
+     */
+    public function client(): BelongsTo
+    {
+        return $this->belongsTo(Client::class);
+    }
+
+    /**
+     * The line items of the work order.
      *
      * @return HasMany<WorkOrderItem, $this>
      */
-    public function workOrderItems(): HasMany
+    public function items(): HasMany
     {
         return $this->hasMany(WorkOrderItem::class);
     }
 
     /**
-     * Restrict a query to the catalog items the user owns.
+     * Restrict a query to the work orders the user owns.
      */
     public function scopeOwnedBy(Builder $query, User $user): Builder
     {
@@ -65,11 +74,12 @@ class CatalogItem extends Model
     protected function casts(): array
     {
         return [
-            'type' => CatalogItemType::class,
-            'status' => CatalogItemStatus::class,
-            'price' => 'decimal:2',
-            'cost' => 'decimal:2',
-            'stock_quantity' => 'decimal:2',
+            'priority' => WorkOrderPriority::class,
+            'status' => WorkOrderStatus::class,
+            'opened_at' => 'date',
+            'due_at' => 'date',
+            'completed_at' => 'date',
+            'total' => 'decimal:2',
         ];
     }
 }

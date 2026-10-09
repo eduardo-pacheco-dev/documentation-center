@@ -17,6 +17,7 @@ use App\Http\Controllers\Admin\ProjectTaskController;
 use App\Http\Controllers\Admin\ShortLinkController;
 use App\Http\Controllers\Admin\TrashController;
 use App\Http\Controllers\Admin\UserController;
+use App\Http\Controllers\Admin\WorkOrderController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Http\Controllers\ProfileController;
@@ -97,6 +98,14 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
     Route::get('catalog/{catalogItem}/edit', [CatalogItemController::class, 'edit'])->name('catalog.edit');
     Route::put('catalog/{catalogItem}', [CatalogItemController::class, 'update'])->name('catalog.update');
     Route::delete('catalog/{catalogItem}', [CatalogItemController::class, 'destroy'])->name('catalog.destroy');
+
+    Route::get('work-orders', [WorkOrderController::class, 'index'])->name('work-orders.index');
+    Route::get('work-orders/create', [WorkOrderController::class, 'create'])->name('work-orders.create');
+    Route::post('work-orders', [WorkOrderController::class, 'store'])->name('work-orders.store');
+    Route::get('work-orders/{workOrder}', [WorkOrderController::class, 'show'])->name('work-orders.show');
+    Route::get('work-orders/{workOrder}/edit', [WorkOrderController::class, 'edit'])->name('work-orders.edit');
+    Route::put('work-orders/{workOrder}', [WorkOrderController::class, 'update'])->name('work-orders.update');
+    Route::delete('work-orders/{workOrder}', [WorkOrderController::class, 'destroy'])->name('work-orders.destroy');
 
     Route::post('projects/{project}/tasks', [ProjectTaskController::class, 'store'])->name('projects.tasks.store');
     Route::put('projects/{project}/tasks/{task}', [ProjectTaskController::class, 'update'])->name('projects.tasks.update');
