@@ -122,7 +122,7 @@ class WorkOrderController extends Controller
     {
         $this->authorize('view', $workOrder);
 
-        $workOrder->load(['client', 'items.catalogItem']);
+        $workOrder->load(['client', 'items.catalogItem', 'project']);
 
         return view('admin.work-orders.show', ['workOrder' => $workOrder]);
     }

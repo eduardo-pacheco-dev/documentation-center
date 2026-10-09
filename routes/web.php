@@ -20,6 +20,7 @@ use App\Http\Controllers\Admin\ShortLinkController;
 use App\Http\Controllers\Admin\TrashController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Admin\WorkOrderController;
+use App\Http\Controllers\Admin\WorkOrderProjectController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Http\Controllers\ProfileController;
@@ -112,6 +113,7 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
     Route::get('work-orders/create', [WorkOrderController::class, 'create'])->name('work-orders.create');
     Route::post('work-orders', [WorkOrderController::class, 'store'])->name('work-orders.store');
     Route::get('work-orders/{workOrder}', [WorkOrderController::class, 'show'])->name('work-orders.show');
+    Route::post('work-orders/{workOrder}/project', [WorkOrderProjectController::class, 'store'])->name('work-orders.project.store');
     Route::get('work-orders/{workOrder}/edit', [WorkOrderController::class, 'edit'])->name('work-orders.edit');
     Route::put('work-orders/{workOrder}', [WorkOrderController::class, 'update'])->name('work-orders.update');
     Route::delete('work-orders/{workOrder}', [WorkOrderController::class, 'destroy'])->name('work-orders.destroy');

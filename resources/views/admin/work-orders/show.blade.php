@@ -83,6 +83,44 @@
         </div>
     </div>
 
+    <div class="mt-4 rounded-xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-800 dark:bg-gray-900">
+        <div class="flex flex-wrap items-center justify-between gap-3">
+            <div class="flex items-center gap-2">
+                <x-icon name="briefcase" class="h-5 w-5 text-gray-400 dark:text-gray-500" />
+                <h2 class="text-xs font-semibold uppercase text-gray-500 dark:text-gray-400">Projeto</h2>
+            </div>
+
+            @if ($workOrder->project === null)
+                <form method="POST" action="{{ route('admin.work-orders.project.store', $workOrder) }}">
+                    @csrf
+                    <button
+                        type="submit"
+                        class="inline-flex items-center gap-1.5 rounded-md bg-gray-900 dark:bg-white px-3 py-1.5 text-sm font-medium text-white dark:text-gray-900 hover:bg-gray-700 dark:hover:bg-gray-200"
+                    >
+                        <x-icon name="plus" class="h-4 w-4" />
+                        Criar projeto
+                    </button>
+                </form>
+            @endif
+        </div>
+
+        @if ($workOrder->project !== null)
+            <div class="mt-3">
+                <a
+                    href="{{ route('admin.projects.show', $workOrder->project) }}"
+                    class="text-sm font-medium text-indigo-600 hover:text-indigo-500 dark:text-indigo-400 dark:hover:text-indigo-300"
+                >
+                    {{ $workOrder->project->name }}
+                </a>
+                <p class="mt-0.5 text-xs text-gray-400 dark:text-gray-500">{{ $workOrder->project->status->label() }}</p>
+            </div>
+        @else
+            <p class="mt-3 text-sm text-gray-500 dark:text-gray-400">
+                Nenhum projeto vinculado. Crie um projeto a partir desta OS para iniciar o planejamento.
+            </p>
+        @endif
+    </div>
+
     <div class="mt-4 rounded-xl border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900">
         <div class="border-b border-gray-100 px-5 py-3 dark:border-gray-800">
             <h2 class="text-xs font-semibold uppercase text-gray-500 dark:text-gray-400">Itens da OS</h2>
