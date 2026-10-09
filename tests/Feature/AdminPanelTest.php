@@ -1,6 +1,8 @@
 <?php
 
+use App\Enums\WorkOrderStatus;
 use App\Models\User;
+use App\Models\WorkOrder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
 
@@ -214,13 +216,33 @@ test('deactivated sessions are terminated by the active middleware', function ()
     $this->assertGuest();
 });
 
-test('the dashboard shows platform statistics', function () {
-    User::factory()->count(2)->create();
-    User::factory()->admin()->create();
-
+test('the dashboard shows the signed in user summaries', function () {
     $this->actingAs(User::factory()->create())
         ->get('/admin')
         ->assertOk()
-        ->assertSee('Total de usuários')
-        ->assertSee('Administradores');
+        ->assertSee('Clientes')
+        ->assertSee('Ordens de serviço')
+        ->assertSee('Projetos em andamento')
+        ->assertSee('Arquivos recentes');
+});
+
+test('the dashboard only surfaces the signed in user work orders', function () {
+    $user = User::factory()->create();
+
+    WorkOrder::factory()->for($user)->create([
+        'title' => 'Troca de bomba hidráulica',
+        'status' => WorkOrderStatus::Open,
+    ]);
+    WorkOrder::factory()->for($user)->completed()->create();
+
+    WorkOrder::factory()->create([
+        'title' => 'Ordem de outro usuário',
+        'status' => WorkOrderStatus::Open,
+    ]);
+
+    $this->actingAs($user)
+        ->get('/admin')
+        ->assertOk()
+        ->assertSee('Troca de bomba hidráulica')
+        ->assertDontSee('Ordem de outro usuário');
 });
