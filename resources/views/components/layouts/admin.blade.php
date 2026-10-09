@@ -23,7 +23,7 @@
         <header class="border-b border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900">
             <div class="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3">
                 <div class="flex items-center gap-2">
-                    <div x-data="{ navOpen: false }" class="relative">
+                    <div x-data="{ navOpen: false, expanded: false }" class="relative">
                         <button
                             type="button"
                             @click="navOpen = !navOpen"
@@ -34,77 +34,56 @@
                             <x-icon name="bars-3" class="h-5 w-5" />
                         </button>
 
+                        @php
+                            $navItems = [
+                                ['url' => route('admin.dashboard'), 'active' => 'admin.dashboard', 'icon' => 'home', 'label' => 'Dashboard'],
+                                ['url' => route('admin.links.index'), 'active' => 'admin.links.*', 'icon' => 'link', 'label' => 'Links'],
+                                ['url' => route('admin.files.index'), 'active' => 'admin.files.*', 'icon' => 'document-text', 'label' => 'Arquivos'],
+                                ['url' => route('admin.projects.index'), 'active' => 'admin.projects.*', 'icon' => 'briefcase', 'label' => 'Projetos'],
+                                ['url' => route('admin.clients.index'), 'active' => 'admin.clients.*', 'icon' => 'building-office', 'label' => 'Clientes'],
+                                ['url' => route('admin.catalog.index'), 'active' => 'admin.catalog.*', 'icon' => 'cube', 'label' => 'Catálogo'],
+                                ['url' => route('admin.work-orders.index'), 'active' => 'admin.work-orders.*', 'icon' => 'clipboard-document-list', 'label' => 'Ordens de serviço'],
+                            ];
+
+                            if (auth()->user()->is_admin) {
+                                $navItems[] = ['url' => route('admin.users.index'), 'active' => 'admin.users.*', 'icon' => 'users', 'label' => 'Usuários'];
+                            }
+
+                            $visibleLimit = 9;
+                        @endphp
+
                         <div
                             x-show="navOpen"
                             @click.away="navOpen = false"
                             x-transition
                             style="display: none;"
-                            class="absolute left-0 z-50 mt-2 grid w-44 grid-cols-2 gap-1 rounded-md border border-gray-200 bg-white p-1.5 shadow-lg dark:border-gray-800 dark:bg-gray-900"
+                            class="absolute left-0 z-50 mt-2 w-64 rounded-md border border-gray-200 bg-white p-1.5 shadow-lg dark:border-gray-800 dark:bg-gray-900"
                         >
-                            <a
-                                href="{{ route('admin.dashboard') }}"
-                                class="flex flex-col items-center gap-1 rounded-md px-2 py-3 text-xs font-medium {{ request()->routeIs('admin.dashboard') ? 'bg-gray-100 text-gray-900 dark:bg-gray-800 dark:text-white' : 'text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800' }}"
-                            >
-                                <x-icon name="home" class="h-5 w-5" />
-                                Dashboard
-                            </a>
+                            <div class="grid grid-cols-3 gap-1">
+                                @foreach ($navItems as $index => $item)
+                                    <a
+                                        href="{{ $item['url'] }}"
+                                        @if ($index >= $visibleLimit) x-show="expanded" style="display: none;" @endif
+                                        class="flex flex-col items-center gap-1 rounded-md px-2 py-3 text-xs font-medium {{ request()->routeIs($item['active']) ? 'bg-gray-100 text-gray-900 dark:bg-gray-800 dark:text-white' : 'text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800' }}"
+                                    >
+                                        <x-icon :name="$item['icon']" class="h-5 w-5" />
+                                        {{ $item['label'] }}
+                                    </a>
+                                @endforeach
+                            </div>
 
-                            <a
-                                href="{{ route('admin.links.index') }}"
-                                class="flex flex-col items-center gap-1 rounded-md px-2 py-3 text-xs font-medium {{ request()->routeIs('admin.links.*') ? 'bg-gray-100 text-gray-900 dark:bg-gray-800 dark:text-white' : 'text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800' }}"
-                            >
-                                <x-icon name="link" class="h-5 w-5" />
-                                Links
-                            </a>
-
-                            <a
-                                href="{{ route('admin.files.index') }}"
-                                class="flex flex-col items-center gap-1 rounded-md px-2 py-3 text-xs font-medium {{ request()->routeIs('admin.files.*') ? 'bg-gray-100 text-gray-900 dark:bg-gray-800 dark:text-white' : 'text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800' }}"
-                            >
-                                <x-icon name="document-text" class="h-5 w-5" />
-                                Arquivos
-                            </a>
-
-                            <a
-                                href="{{ route('admin.projects.index') }}"
-                                class="flex flex-col items-center gap-1 rounded-md px-2 py-3 text-xs font-medium {{ request()->routeIs('admin.projects.*') ? 'bg-gray-100 text-gray-900 dark:bg-gray-800 dark:text-white' : 'text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800' }}"
-                            >
-                                <x-icon name="briefcase" class="h-5 w-5" />
-                                Projetos
-                            </a>
-
-                            <a
-                                href="{{ route('admin.clients.index') }}"
-                                class="flex flex-col items-center gap-1 rounded-md px-2 py-3 text-xs font-medium {{ request()->routeIs('admin.clients.*') ? 'bg-gray-100 text-gray-900 dark:bg-gray-800 dark:text-white' : 'text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800' }}"
-                            >
-                                <x-icon name="building-office" class="h-5 w-5" />
-                                Clientes
-                            </a>
-
-                            <a
-                                href="{{ route('admin.catalog.index') }}"
-                                class="flex flex-col items-center gap-1 rounded-md px-2 py-3 text-xs font-medium {{ request()->routeIs('admin.catalog.*') ? 'bg-gray-100 text-gray-900 dark:bg-gray-800 dark:text-white' : 'text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800' }}"
-                            >
-                                <x-icon name="cube" class="h-5 w-5" />
-                                Catálogo
-                            </a>
-
-                            <a
-                                href="{{ route('admin.work-orders.index') }}"
-                                class="flex flex-col items-center gap-1 rounded-md px-2 py-3 text-xs font-medium {{ request()->routeIs('admin.work-orders.*') ? 'bg-gray-100 text-gray-900 dark:bg-gray-800 dark:text-white' : 'text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800' }}"
-                            >
-                                <x-icon name="clipboard-document-list" class="h-5 w-5" />
-                                Ordens de serviço
-                            </a>
-
-                            @if (auth()->user()->is_admin)
-                                <a
-                                    href="{{ route('admin.users.index') }}"
-                                    class="flex flex-col items-center gap-1 rounded-md px-2 py-3 text-xs font-medium {{ request()->routeIs('admin.users.*') ? 'bg-gray-100 text-gray-900 dark:bg-gray-800 dark:text-white' : 'text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800' }}"
+                            @if (count($navItems) > $visibleLimit)
+                                <button
+                                    type="button"
+                                    @click="expanded = !expanded"
+                                    :aria-expanded="expanded"
+                                    class="mt-1 flex w-full items-center justify-center gap-1 rounded-md px-2 py-2 text-xs font-medium text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800"
                                 >
-                                    <x-icon name="users" class="h-5 w-5" />
-                                    Usuários
-                                </a>
+                                    <span x-text="expanded ? 'Ver menos' : 'Ver mais'"></span>
+                                    <span class="transition-transform" :class="expanded ? 'rotate-180' : ''">
+                                        <x-icon name="chevron-down" class="h-4 w-4" />
+                                    </span>
+                                </button>
                             @endif
                         </div>
                     </div>
