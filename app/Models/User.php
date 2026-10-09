@@ -56,6 +56,16 @@ class User extends Authenticatable
     }
 
     /**
+     * The clients registered by the user.
+     *
+     * @return HasMany<Client, $this>
+     */
+    public function clients(): HasMany
+    {
+        return $this->hasMany(Client::class);
+    }
+
+    /**
      * The project memberships held by the user.
      *
      * @return HasMany<ProjectMember, $this>
