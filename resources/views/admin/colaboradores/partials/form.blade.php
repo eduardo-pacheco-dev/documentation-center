@@ -33,13 +33,16 @@
     </div>
 
     <div>
-        <label for="document" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Documento</label>
+        <label for="document" class="block text-sm font-medium text-gray-700 dark:text-gray-300">CPF</label>
         <input
             type="text"
             name="document"
             id="document"
+            maxlength="14"
             value="{{ old('document', $colaborador?->document) }}"
-            placeholder="Ex.: 000.000.000-00"
+            placeholder="000.000.000-00"
+            inputmode="numeric"
+            data-mask="cpf"
             class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-700 dark:bg-gray-900 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500"
         >
         @error('document')
@@ -53,8 +56,11 @@
             type="text"
             name="phone"
             id="phone"
+            maxlength="30"
             value="{{ old('phone', $colaborador?->phone) }}"
-            placeholder="Ex.: (11) 99999-9999"
+            inputmode="tel"
+            placeholder="(00) 00000-0000"
+            data-mask="phone"
             class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-700 dark:bg-gray-900 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500"
         >
         @error('phone')
@@ -108,3 +114,57 @@
         @enderror
     </div>
 </div>
+
+@once
+    <script>
+        (() => {
+            const maskCpf = (value) => {
+                const digits = value.replace(/\D/g, '').slice(0, 11);
+
+                if (digits.length > 9) return `${digits.slice(0, 3)}.${digits.slice(3, 6)}.${digits.slice(6, 9)}-${digits.slice(9)}`;
+                if (digits.length > 6) return `${digits.slice(0, 3)}.${digits.slice(3, 6)}.${digits.slice(6)}`;
+                if (digits.length > 3) return `${digits.slice(0, 3)}.${digits.slice(3)}`;
+
+                return digits;
+            };
+
+            const maskPhone = (value) => {
+                const digits = value.replace(/\D/g, '').slice(0, 11);
+
+                if (digits.length === 0) return '';
+                if (digits.length <= 2) return `(${digits}`;
+                if (digits.length <= 6) return `(${digits.slice(0, 2)}) ${digits.slice(2)}`;
+                if (digits.length <= 10) return `(${digits.slice(0, 2)}) ${digits.slice(2, 6)}-${digits.slice(6)}`;
+
+                return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
+            };
+
+            const masks = {
+                cpf: maskCpf,
+                phone: maskPhone,
+            };
+
+            const format = (input) => {
+                const formatter = masks[input.dataset.mask];
+
+                if (!formatter) return;
+
+                const formatted = formatter(input.value);
+
+                if (formatted !== input.value) {
+                    input.value = formatted;
+                }
+            };
+
+            document.querySelectorAll('[data-mask]').forEach(format);
+
+            document.addEventListener('input', (event) => {
+                const input = event.target.closest('[data-mask]');
+
+                if (input) {
+                    format(input);
+                }
+            });
+        })();
+    </script>
+@endonce
