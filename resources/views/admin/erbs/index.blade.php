@@ -106,7 +106,7 @@
 
     @if ($view === 'table')
         <div class="mt-4 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 shadow-sm">
-            <div class="overflow-x-auto">
+            <div class="overflow-x-auto lg:overflow-x-visible">
                 <table class="min-w-full divide-y divide-gray-200 text-sm dark:divide-gray-800">
                     <thead class="rounded-t-xl bg-gray-50 text-left text-xs uppercase text-gray-500 dark:bg-gray-800 dark:text-gray-400">
                         <tr>
