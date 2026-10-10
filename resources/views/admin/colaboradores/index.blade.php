@@ -3,7 +3,7 @@
         $viewQuery = request()->query();
         unset($viewQuery['page']);
 
-        $hasFilters = $search !== '' || $status !== null || $regional !== null || $uf !== null;
+        $hasFilters = $search !== '' || $status !== null || $contractRegime !== null || $regional !== null || $uf !== null;
     @endphp
 
     <div class="flex items-center justify-between">
@@ -17,7 +17,7 @@
 
         <div class="flex items-center gap-2">
             <a
-                href="{{ route('admin.colaboradores.export', array_filter(['search' => $search, 'status' => $status, 'regional' => $regional, 'uf' => $uf])) }}"
+                href="{{ route('admin.colaboradores.export', array_filter(['search' => $search, 'status' => $status, 'contract_regime' => $contractRegime, 'regional' => $regional, 'uf' => $uf])) }}"
                 data-export-link
                 data-export-filename="colaboradores.xlsx"
                 class="inline-flex items-center gap-1.5 rounded-md border border-gray-300 dark:border-gray-700 dark:bg-gray-900 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800"
@@ -53,7 +53,7 @@
             class="flex flex-wrap items-center gap-2"
             data-search-form
         >
-            @foreach (['view', 'sort', 'direction', 'per_page', 'status', 'regional', 'uf'] as $param)
+            @foreach (['view', 'sort', 'direction', 'per_page', 'status', 'contract_regime', 'regional', 'uf'] as $param)
                 @if (request($param))
                     <input type="hidden" name="{{ $param }}" value="{{ request($param) }}">
                 @endif
@@ -96,6 +96,19 @@
             >
                 @foreach (['' => 'Todos os status', 'active' => 'Ativos', 'inactive' => 'Inativos'] as $value => $label)
                     <option value="{{ $value }}" @selected($status === ($value ?: null))>{{ $label }}</option>
+                @endforeach
+            </select>
+
+            <label for="regime-filter" class="sr-only">Filtrar por regime</label>
+            <select
+                id="regime-filter"
+                name="contract_regime"
+                onchange="this.form.submit()"
+                class="rounded-md border border-gray-300 dark:border-gray-700 dark:bg-gray-900 py-2 pl-3 pr-8 text-sm text-gray-700 dark:text-gray-200 focus:border-indigo-500 focus:outline-none focus:ring-indigo-500"
+            >
+                <option value="">Todos os regimes</option>
+                @foreach (\App\Enums\ContractRegime::cases() as $regimeOption)
+                    <option value="{{ $regimeOption->value }}" @selected($contractRegime === $regimeOption->value)>{{ $regimeOption->label() }}</option>
                 @endforeach
             </select>
 
@@ -142,14 +155,16 @@
 
     @if ($view === 'table')
         <div class="mt-4 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 shadow-sm">
-            <div class="overflow-x-auto lg:overflow-x-visible">
+            <div class="overflow-x-auto">
                 <table class="min-w-full divide-y divide-gray-200 text-sm dark:divide-gray-800">
                     <thead class="rounded-t-xl bg-gray-50 text-left text-xs uppercase text-gray-500 dark:bg-gray-800 dark:text-gray-400">
                         <tr>
-                            <x-sort-header column="name" label="Nome" icon="user" class="px-5 py-3" />
+                            <x-sort-header column="name" label="Colaborador" icon="user" class="px-5 py-3" />
                             <x-sort-header column="role" label="Função" class="px-5 py-3" />
-                            <th class="px-5 py-3 font-medium">CPF</th>
-                            <x-sort-header column="email" label="E-mail" class="px-5 py-3" />
+                            <x-sort-header column="document" label="CPF" class="px-5 py-3" />
+                            <x-sort-header column="contract_regime" label="Regime" class="px-5 py-3" />
+                            <x-sort-header column="regional" label="Regional" class="px-5 py-3" />
+                            <x-sort-header column="uf" label="UF" class="px-5 py-3" />
                             <x-sort-header column="status" label="Status" icon="flag" class="px-5 py-3" />
                             <x-sort-header column="updated_at" label="Atualizado" default="updated_at" class="px-5 py-3" />
                             <th class="px-5 py-3 text-right font-medium">Ações</th>
@@ -157,19 +172,32 @@
                     </thead>
                     <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
                         @forelse ($colaboradores as $colaborador)
-                            <tr>
+                            <tr class="transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/50">
                                 <td class="px-5 py-3">
                                     <a
                                         href="{{ route('admin.colaboradores.show', $colaborador) }}"
                                         class="flex items-center gap-2 font-medium text-gray-900 hover:text-indigo-600 dark:text-gray-100 dark:hover:text-indigo-400"
                                     >
-                                        <x-icon name="user" class="h-4 w-4 text-gray-400 dark:text-gray-500" />
-                                        {{ $colaborador->name }}
+                                        <x-icon name="user" class="h-4 w-4 shrink-0 text-gray-400 dark:text-gray-500" />
+                                        <span class="truncate">{{ $colaborador->name }}</span>
                                     </a>
+                                    @if ($colaborador->email)
+                                        <p class="mt-0.5 max-w-[18rem] truncate pl-6 text-xs text-gray-500 dark:text-gray-400">{{ $colaborador->email }}</p>
+                                    @endif
                                 </td>
                                 <td class="whitespace-nowrap px-5 py-3 text-gray-500 dark:text-gray-400">{{ $colaborador->role ?? '—' }}</td>
                                 <td class="whitespace-nowrap px-5 py-3 text-gray-500 dark:text-gray-400">{{ $colaborador->document ?? '—' }}</td>
-                                <td class="whitespace-nowrap px-5 py-3 text-gray-500 dark:text-gray-400">{{ $colaborador->email ?? '—' }}</td>
+                                <td class="whitespace-nowrap px-5 py-3">
+                                    @if ($colaborador->contract_regime)
+                                        <span class="inline-flex rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600 dark:bg-gray-800 dark:text-gray-300">
+                                            {{ $colaborador->contract_regime->label() }}
+                                        </span>
+                                    @else
+                                        <span class="text-gray-500 dark:text-gray-400">—</span>
+                                    @endif
+                                </td>
+                                <td class="whitespace-nowrap px-5 py-3 text-gray-500 dark:text-gray-400">{{ $colaborador->regional ?? '—' }}</td>
+                                <td class="whitespace-nowrap px-5 py-3 text-gray-500 dark:text-gray-400">{{ $colaborador->uf?->value ?? '—' }}</td>
                                 <td class="px-5 py-3">
                                     <x-colaborador-status :colaborador="$colaborador" />
                                 </td>
@@ -182,7 +210,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td class="px-5 py-6 text-gray-500 dark:text-gray-400" colspan="7">
+                                <td class="px-5 py-6 text-gray-500 dark:text-gray-400" colspan="9">
                                     <span class="inline-flex items-center gap-2">
                                         <x-icon name="user" class="h-4 w-4" />
                                         @if ($hasFilters)
@@ -200,7 +228,7 @@
 
             <div class="flex flex-wrap items-center justify-between gap-3 px-5 py-4">
                 <form method="GET" action="{{ route('admin.colaboradores.index') }}" class="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
-                    @foreach (['search', 'view', 'sort', 'direction', 'status', 'regional', 'uf'] as $param)
+                    @foreach (['search', 'view', 'sort', 'direction', 'status', 'contract_regime', 'regional', 'uf'] as $param)
                         @if (request($param))
                             <input type="hidden" name="{{ $param }}" value="{{ request($param) }}">
                         @endif
@@ -278,7 +306,7 @@
 
         <div class="flex flex-wrap items-center justify-between gap-3 pt-4">
             <form method="GET" action="{{ route('admin.colaboradores.index') }}" class="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
-                @foreach (['search', 'view', 'sort', 'direction', 'status', 'regional', 'uf'] as $param)
+                @foreach (['search', 'view', 'sort', 'direction', 'status', 'contract_regime', 'regional', 'uf'] as $param)
                     @if (request($param))
                         <input type="hidden" name="{{ $param }}" value="{{ request($param) }}">
                     @endif
@@ -339,7 +367,7 @@
 
         <div class="flex flex-wrap items-center justify-between gap-3 pt-4">
             <form method="GET" action="{{ route('admin.colaboradores.index') }}" class="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
-                @foreach (['search', 'view', 'sort', 'direction', 'status', 'regional', 'uf'] as $param)
+                @foreach (['search', 'view', 'sort', 'direction', 'status', 'contract_regime', 'regional', 'uf'] as $param)
                     @if (request($param))
                         <input type="hidden" name="{{ $param }}" value="{{ request($param) }}">
                     @endif

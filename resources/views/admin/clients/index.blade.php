@@ -361,23 +361,53 @@
                 @csrf
                 <input type="hidden" name="modal" value="create">
 
-                @include('admin.clients.partials.form', ['client' => null])
+                <div class="mb-5">
+                    <div class="flex items-center justify-between text-xs font-medium text-gray-500 dark:text-gray-400">
+                        <span data-wizard-label>Dados do cliente</span>
+                        <span data-wizard-counter>Passo 1 de 3</span>
+                    </div>
+                    <div class="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-gray-200 dark:bg-gray-800">
+                        <div data-wizard-progress class="h-full w-1/3 rounded-full bg-indigo-500 transition-all duration-200"></div>
+                    </div>
+                </div>
 
-                <div class="mt-6 flex justify-end gap-2">
+                @include('admin.clients.partials.form', ['client' => null, 'wizard' => true])
+
+                <div class="mt-6 flex items-center justify-between gap-3">
                     <button
                         type="button"
-                        class="rounded-md border border-gray-300 dark:border-gray-700 dark:bg-gray-900 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800"
+                        class="rounded-md px-3 py-2 text-sm font-medium text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100"
                         data-modal-close
                     >
                         Cancelar
                     </button>
-                    <button
-                        type="submit"
-                        class="inline-flex items-center gap-1.5 rounded-md bg-gray-900 dark:bg-white px-4 py-2 text-sm font-medium text-white dark:text-gray-900 hover:bg-gray-700 dark:hover:bg-gray-200"
-                    >
-                        <x-icon name="check" class="h-4 w-4" />
-                        Criar cliente
-                    </button>
+
+                    <div class="flex items-center gap-3">
+                        <button
+                            type="button"
+                            data-wizard-prev
+                            class="hidden rounded-md border border-gray-300 dark:border-gray-700 dark:bg-gray-900 px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800"
+                        >
+                            Voltar
+                        </button>
+
+                        <button
+                            type="button"
+                            data-wizard-next
+                            class="inline-flex items-center gap-1.5 rounded-md bg-gray-900 dark:bg-white px-4 py-2 text-sm font-medium text-white dark:text-gray-900 hover:bg-gray-700 dark:hover:bg-gray-200"
+                        >
+                            Próximo
+                        </button>
+
+                        <button
+                            type="submit"
+                            data-wizard-submit
+                            class="hidden items-center gap-1.5 rounded-md bg-gray-900 dark:bg-white px-4 py-2 text-sm font-medium text-white dark:text-gray-900 hover:bg-gray-700 dark:hover:bg-gray-200"
+                        >
+                            <x-icon name="check" class="h-4 w-4" />
+                            Criar cliente
+                        </button>
+                    </div>
                 </div>
             </form>
         </div>
@@ -595,6 +625,79 @@
         const clientModal = document.getElementById('client-modal');
         if (clientModal?.hasAttribute('data-open')) {
             openModal(clientModal);
+        }
+
+        const wizard = clientModal?.querySelector('[data-wizard]');
+
+        if (wizard) {
+            const steps = Array.from(wizard.querySelectorAll('[data-wizard-step]'));
+            const label = clientModal.querySelector('[data-wizard-label]');
+            const counter = clientModal.querySelector('[data-wizard-counter]');
+            const progressBar = clientModal.querySelector('[data-wizard-progress]');
+            const prevButton = clientModal.querySelector('[data-wizard-prev]');
+            const nextButton = clientModal.querySelector('[data-wizard-next]');
+            const submitButton = clientModal.querySelector('[data-wizard-submit]');
+
+            const stepLabels = ['Dados do cliente', 'Endereço', 'Observações'];
+            const progressWidths = ['w-1/3', 'w-2/3', 'w-full'];
+
+            let current = 0;
+
+            const render = () => {
+                steps.forEach((step, index) => {
+                    step.classList.toggle('hidden', index !== current);
+                });
+
+                if (label) {
+                    label.textContent = stepLabels[current] || '';
+                }
+
+                if (counter) {
+                    counter.textContent = 'Passo ' + (current + 1) + ' de ' + steps.length;
+                }
+
+                if (progressBar) {
+                    progressBar.classList.remove('w-1/3', 'w-2/3', 'w-full');
+                    progressBar.classList.add(progressWidths[current] || 'w-full');
+                }
+
+                prevButton?.classList.toggle('hidden', current === 0);
+                nextButton?.classList.toggle('hidden', current === steps.length - 1);
+                submitButton?.classList.toggle('hidden', current !== steps.length - 1);
+                submitButton?.classList.toggle('inline-flex', current === steps.length - 1);
+            };
+
+            const goTo = (index) => {
+                current = Math.max(0, Math.min(index, steps.length - 1));
+                render();
+            };
+
+            const firstErrorStep = () => {
+                const index = steps.findIndex((step) => step.querySelector('.text-red-600'));
+
+                return index === -1 ? 0 : index;
+            };
+
+            nextButton?.addEventListener('click', () => {
+                const step = steps[current];
+                const invalid = Array.from(step.querySelectorAll('input, select, textarea')).find((field) => !field.checkValidity());
+
+                if (invalid) {
+                    invalid.reportValidity();
+
+                    return;
+                }
+
+                goTo(current + 1);
+            });
+
+            prevButton?.addEventListener('click', () => goTo(current - 1));
+
+            document.querySelectorAll('[data-modal-open="client-modal"]').forEach((opener) => {
+                opener.addEventListener('click', () => goTo(0));
+            });
+
+            goTo(firstErrorStep());
         }
 
         const importModal = document.getElementById('client-import-modal');

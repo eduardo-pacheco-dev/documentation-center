@@ -83,6 +83,30 @@ it('creates a client owned by the authenticated user', function () {
         ->assertSee('São Paulo');
 });
 
+it('renders the new client modal as a step wizard', function () {
+    $user = User::factory()->create();
+
+    $this->actingAs($user)
+        ->get('/admin/clients')
+        ->assertOk()
+        ->assertSee('data-wizard-label', false)
+        ->assertSee('data-wizard-counter', false)
+        ->assertSee('data-wizard-progress', false)
+        ->assertSee('data-wizard-prev', false)
+        ->assertSee('data-wizard-next', false)
+        ->assertSee('data-wizard-submit', false)
+        ->assertSee('Passo 1 de 3', false);
+});
+
+it('renders the standalone client form without wizard scaffolding', function () {
+    $user = User::factory()->create();
+
+    $this->actingAs($user)
+        ->get('/admin/clients/create')
+        ->assertOk()
+        ->assertDontSee('data-wizard', false);
+});
+
 it('defaults the client status to active when it is not sent', function () {
     $user = User::factory()->create();
 

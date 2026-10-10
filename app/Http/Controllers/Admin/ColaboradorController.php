@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Enums\ColaboradorStatus;
+use App\Enums\ContractRegime;
 use App\Enums\Uf;
 use App\Exports\ColaboradoresExport;
 use App\Http\Controllers\Controller;
@@ -26,9 +27,9 @@ class ColaboradorController extends Controller
     {
         $this->authorize('viewAny', Colaborador::class);
 
-        ['search' => $search, 'status' => $status, 'regional' => $regional, 'uf' => $uf, 'regionals' => $regionals] = $this->resolveFilters($request);
+        ['search' => $search, 'status' => $status, 'contractRegime' => $contractRegime, 'regional' => $regional, 'uf' => $uf, 'regionals' => $regionals] = $this->resolveFilters($request);
 
-        $sortableColumns = ['name', 'role', 'email', 'status', 'updated_at'];
+        $sortableColumns = ['name', 'role', 'document', 'email', 'contract_regime', 'regional', 'uf', 'status', 'updated_at'];
 
         if (in_array($request->query('sort'), $sortableColumns, true)) {
             $sort = $request->query('sort');
@@ -52,6 +53,7 @@ class ColaboradorController extends Controller
                 ->orWhere('email', 'like', "%{$search}%")
                 ->orWhere('document', 'like', "%{$search}%")))
             ->when($status !== null, fn (Builder $query) => $query->where('status', $status))
+            ->when($contractRegime !== null, fn (Builder $query) => $query->where('contract_regime', $contractRegime))
             ->when($regional !== null, fn (Builder $query) => $query->where('regional', $regional))
             ->when($uf !== null, fn (Builder $query) => $query->where('uf', $uf))
             ->orderBy($sort, $direction)
@@ -67,6 +69,7 @@ class ColaboradorController extends Controller
             'colaboradores' => $colaboradores,
             'search' => $search,
             'status' => $status,
+            'contractRegime' => $contractRegime,
             'regional' => $regional,
             'uf' => $uf,
             'regionals' => $regionals,
@@ -92,10 +95,10 @@ class ColaboradorController extends Controller
     {
         $this->authorize('viewAny', Colaborador::class);
 
-        ['search' => $search, 'status' => $status, 'regional' => $regional, 'uf' => $uf] = $this->resolveFilters($request);
+        ['search' => $search, 'status' => $status, 'contractRegime' => $contractRegime, 'regional' => $regional, 'uf' => $uf] = $this->resolveFilters($request);
 
         return Excel::download(
-            new ColaboradoresExport($request->user(), $search, $status, $regional, $uf),
+            new ColaboradoresExport($request->user(), $search, $status, $contractRegime, $regional, $uf),
             'colaboradores.xlsx',
         );
     }
@@ -103,7 +106,7 @@ class ColaboradorController extends Controller
     /**
      * Resolve the supported list filters from the request.
      *
-     * @return array{search: string, status: ?string, regional: ?string, uf: ?string, regionals: Collection<int, string>}
+     * @return array{search: string, status: ?string, contractRegime: ?string, regional: ?string, uf: ?string, regionals: Collection<int, string>}
      */
     private function resolveFilters(Request $request): array
     {
@@ -111,6 +114,10 @@ class ColaboradorController extends Controller
 
         $status = in_array($request->query('status'), array_column(ColaboradorStatus::cases(), 'value'), true)
             ? $request->query('status')
+            : null;
+
+        $contractRegime = in_array($request->query('contract_regime'), array_column(ContractRegime::cases(), 'value'), true)
+            ? $request->query('contract_regime')
             : null;
 
         $regionals = Colaborador::query()
@@ -132,6 +139,7 @@ class ColaboradorController extends Controller
         return [
             'search' => $search,
             'status' => $status,
+            'contractRegime' => $contractRegime,
             'regional' => $regional,
             'uf' => $uf,
             'regionals' => $regionals,

@@ -15,6 +15,7 @@ class ColaboradoresExport implements FromQuery, WithHeadings, WithMapping
         private readonly User $user,
         private readonly string $search,
         private readonly ?string $status,
+        private readonly ?string $contractRegime = null,
         private readonly ?string $regional = null,
         private readonly ?string $uf = null,
     ) {}
@@ -32,6 +33,7 @@ class ColaboradoresExport implements FromQuery, WithHeadings, WithMapping
                 ->orWhere('email', 'like', "%{$this->search}%")
                 ->orWhere('document', 'like', "%{$this->search}%")))
             ->when($this->status !== null, fn (Builder $query) => $query->where('status', $this->status))
+            ->when($this->contractRegime !== null, fn (Builder $query) => $query->where('contract_regime', $this->contractRegime))
             ->when($this->regional !== null, fn (Builder $query) => $query->where('regional', $this->regional))
             ->when($this->uf !== null, fn (Builder $query) => $query->where('uf', $this->uf))
             ->orderBy('name')

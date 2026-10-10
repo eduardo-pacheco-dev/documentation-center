@@ -86,6 +86,27 @@ it('filters the colaborador list by regional and uf', function () {
         ->assertSee('Maria Souza');
 });
 
+it('filters the colaborador list by contract regime', function () {
+    $owner = User::factory()->create();
+
+    Colaborador::factory()->create([
+        'user_id' => $owner->getKey(),
+        'name' => 'João da Silva',
+        'contract_regime' => 'CLT',
+    ]);
+    Colaborador::factory()->create([
+        'user_id' => $owner->getKey(),
+        'name' => 'Maria Souza',
+        'contract_regime' => 'PJ',
+    ]);
+
+    $this->actingAs($owner)
+        ->get('/admin/colaboradores?contract_regime=CLT')
+        ->assertOk()
+        ->assertSee('João da Silva')
+        ->assertDontSee('Maria Souza');
+});
+
 it('renders the colaborador list in the alternate view modes', function () {
     $owner = User::factory()->create();
 
