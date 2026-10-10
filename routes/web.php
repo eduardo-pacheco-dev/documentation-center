@@ -5,6 +5,7 @@ use App\Http\Controllers\Admin\ClientContactController;
 use App\Http\Controllers\Admin\ClientController;
 use App\Http\Controllers\Admin\ClientDocumentController;
 use App\Http\Controllers\Admin\ColaboradorController;
+use App\Http\Controllers\Admin\ColaboradorImportController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\DocumentController;
 use App\Http\Controllers\Admin\ErbCommentController;
@@ -142,6 +143,9 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
     Route::get('colaboradores', [ColaboradorController::class, 'index'])->name('colaboradores.index');
     Route::get('colaboradores/create', [ColaboradorController::class, 'create'])->name('colaboradores.create');
     Route::post('colaboradores', [ColaboradorController::class, 'store'])->name('colaboradores.store');
+    Route::post('colaboradores/import', [ColaboradorImportController::class, 'store'])->name('colaboradores.import');
+    Route::get('colaboradores/import/template', [ColaboradorImportController::class, 'template'])->name('colaboradores.import.template');
+    Route::get('colaboradores/export', [ColaboradorController::class, 'export'])->name('colaboradores.export');
     Route::get('colaboradores/{colaborador}', [ColaboradorController::class, 'show'])->name('colaboradores.show');
     Route::get('colaboradores/{colaborador}/edit', [ColaboradorController::class, 'edit'])->name('colaboradores.edit');
     Route::put('colaboradores/{colaborador}', [ColaboradorController::class, 'update'])->name('colaboradores.update');

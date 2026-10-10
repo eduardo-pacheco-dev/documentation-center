@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Enums\ColaboradorStatus;
+use App\Exports\ColaboradoresExport;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\StoreColaboradorRequest;
 use App\Http\Requests\Admin\UpdateColaboradorRequest;
@@ -11,6 +12,8 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
+use Maatwebsite\Excel\Facades\Excel;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class ColaboradorController extends Controller
 {
@@ -79,6 +82,27 @@ class ColaboradorController extends Controller
         $this->authorize('create', Colaborador::class);
 
         return view('admin.colaboradores.create');
+    }
+
+    /**
+     * Download the colaboradores, honoring the current list filters, as a spreadsheet.
+     */
+    public function export(Request $request): BinaryFileResponse
+    {
+        $this->authorize('viewAny', Colaborador::class);
+
+        $search = (string) $request->query('search', '');
+
+        $statuses = array_column(ColaboradorStatus::cases(), 'value');
+
+        $status = in_array($request->query('status'), $statuses, true)
+            ? $request->query('status')
+            : null;
+
+        return Excel::download(
+            new ColaboradoresExport($request->user(), $search, $status),
+            'colaboradores.xlsx',
+        );
     }
 
     /**
