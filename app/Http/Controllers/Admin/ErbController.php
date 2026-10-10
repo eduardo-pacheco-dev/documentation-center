@@ -110,6 +110,8 @@ class ErbController extends Controller
             'projects' => fn ($query) => $query->orderByDesc('updated_at'),
             'documents',
             'comments.user',
+            'radioLinksAsEndA' => fn ($query) => $query->with('erbB:id,code,name')->orderByDesc('updated_at'),
+            'radioLinksAsEndB' => fn ($query) => $query->with('erbA:id,code,name')->orderByDesc('updated_at'),
         ]);
 
         return view('admin.erbs.show', ['erb' => $erb]);

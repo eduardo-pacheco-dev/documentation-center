@@ -20,6 +20,7 @@ use App\Http\Controllers\Admin\ProjectMemberController;
 use App\Http\Controllers\Admin\ProjectResourceController;
 use App\Http\Controllers\Admin\ProjectScheduleController;
 use App\Http\Controllers\Admin\ProjectTaskController;
+use App\Http\Controllers\Admin\RadioLinkController;
 use App\Http\Controllers\Admin\ShortLinkController;
 use App\Http\Controllers\Admin\TrashController;
 use App\Http\Controllers\Admin\UserController;
@@ -129,6 +130,14 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
 
     Route::post('erbs/{erb}/comments', [ErbCommentController::class, 'store'])->name('erbs.comments.store');
     Route::delete('erbs/{erb}/comments/{comment}', [ErbCommentController::class, 'destroy'])->name('erbs.comments.destroy');
+
+    Route::get('radio-links', [RadioLinkController::class, 'index'])->name('radio-links.index');
+    Route::get('radio-links/create', [RadioLinkController::class, 'create'])->name('radio-links.create');
+    Route::post('radio-links', [RadioLinkController::class, 'store'])->name('radio-links.store');
+    Route::get('radio-links/{radioLink}', [RadioLinkController::class, 'show'])->name('radio-links.show');
+    Route::get('radio-links/{radioLink}/edit', [RadioLinkController::class, 'edit'])->name('radio-links.edit');
+    Route::put('radio-links/{radioLink}', [RadioLinkController::class, 'update'])->name('radio-links.update');
+    Route::delete('radio-links/{radioLink}', [RadioLinkController::class, 'destroy'])->name('radio-links.destroy');
 
     Route::get('work-orders', [WorkOrderController::class, 'index'])->name('work-orders.index');
     Route::get('work-orders/create', [WorkOrderController::class, 'create'])->name('work-orders.create');

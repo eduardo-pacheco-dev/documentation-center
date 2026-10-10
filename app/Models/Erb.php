@@ -84,6 +84,26 @@ class Erb extends Model
     }
 
     /**
+     * The radio links where the ERB is the A end.
+     *
+     * @return HasMany<RadioLink, $this>
+     */
+    public function radioLinksAsEndA(): HasMany
+    {
+        return $this->hasMany(RadioLink::class, 'erb_a_id');
+    }
+
+    /**
+     * The radio links where the ERB is the B end.
+     *
+     * @return HasMany<RadioLink, $this>
+     */
+    public function radioLinksAsEndB(): HasMany
+    {
+        return $this->hasMany(RadioLink::class, 'erb_b_id');
+    }
+
+    /**
      * Restrict a query to the ERBs the user owns.
      */
     public function scopeOwnedBy(Builder $query, User $user): Builder

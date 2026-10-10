@@ -96,6 +96,16 @@ class User extends Authenticatable
     }
 
     /**
+     * The radio links created by the user.
+     *
+     * @return HasMany<RadioLink, $this>
+     */
+    public function radioLinks(): HasMany
+    {
+        return $this->hasMany(RadioLink::class);
+    }
+
+    /**
      * The project memberships held by the user.
      *
      * @return HasMany<ProjectMember, $this>

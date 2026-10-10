@@ -163,6 +163,46 @@
         </div>
     </div>
 
+    <div class="mt-4 rounded-xl border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900">
+        <div class="flex items-center gap-2 border-b border-gray-100 px-5 py-4 dark:border-gray-800">
+            <x-icon name="arrows-right-left" class="h-5 w-5 text-gray-400 dark:text-gray-500" />
+            <h2 class="text-sm font-semibold text-gray-900 dark:text-gray-100">Radio links</h2>
+            <span class="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600 dark:bg-gray-800 dark:text-gray-300">
+                {{ $erb->radioLinksAsEndA->count() + $erb->radioLinksAsEndB->count() }}
+            </span>
+        </div>
+
+        @php
+            $radioLinks = $erb->radioLinksAsEndA->merge($erb->radioLinksAsEndB)->sortByDesc('updated_at');
+        @endphp
+
+        @if ($radioLinks->isEmpty())
+            <p class="px-5 py-6 text-sm text-gray-500 dark:text-gray-400">Nenhum radio link vinculado a esta ERB.</p>
+        @else
+            <div class="divide-y divide-gray-100 dark:divide-gray-800">
+                @foreach ($radioLinks as $radioLink)
+                    @php
+                        $otherEnd = $radioLink->erb_a_id === $erb->getKey() ? $radioLink->erbB : $radioLink->erbA;
+                    @endphp
+                    <div class="flex flex-wrap items-center justify-between gap-3 px-5 py-3">
+                        <div class="flex min-w-0 items-center gap-3">
+                            <a href="{{ route('admin.radio-links.show', $radioLink) }}" class="text-sm font-medium text-gray-900 hover:text-indigo-600 dark:text-gray-100 dark:hover:text-indigo-400">
+                                {{ $radioLink->code }}
+                            </a>
+                            <span class="text-xs text-gray-500 dark:text-gray-400">
+                                com {{ $otherEnd?->code ?? 'ERB removida' }}
+                                @if ($radioLink->frequency !== null)
+                                    &middot; {{ number_format((float) $radioLink->frequency, 1, ',', '.') }} GHz
+                                @endif
+                            </span>
+                        </div>
+                        <x-radio-link-status :radio-link="$radioLink" />
+                    </div>
+                @endforeach
+            </div>
+        @endif
+    </div>
+
     @include('admin.erbs.partials.documents', ['erb' => $erb])
 
     @include('admin.erbs.partials.comments', ['erb' => $erb])

@@ -29,6 +29,7 @@ class DatabaseSeeder extends Seeder
         $this->call(ClientSeeder::class);
         $this->call(CatalogItemSeeder::class);
         $this->call(ErbSeeder::class);
+        $this->call(RadioLinkSeeder::class);
         $this->call(WorkOrderSeeder::class);
     }
 }
