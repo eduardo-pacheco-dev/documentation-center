@@ -30,6 +30,7 @@ class DatabaseSeeder extends Seeder
         $this->call(CatalogItemSeeder::class);
         $this->call(ErbSeeder::class);
         $this->call(RadioLinkSeeder::class);
+        $this->call(ColaboradorSeeder::class);
         $this->call(WorkOrderSeeder::class);
     }
 }
