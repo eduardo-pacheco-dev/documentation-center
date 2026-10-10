@@ -80,6 +80,34 @@ it('does not filter the export by an unknown status', function () {
     expect($rows)->toHaveCount(3);
 });
 
+it('filters the export by regional and uf', function () {
+    $user = User::factory()->create();
+    Colaborador::factory()->create([
+        'user_id' => $user->getKey(),
+        'name' => 'João da Silva',
+        'regional' => 'NO',
+        'uf' => 'PA',
+    ]);
+    Colaborador::factory()->create([
+        'user_id' => $user->getKey(),
+        'name' => 'Maria Souza',
+        'regional' => 'SP',
+        'uf' => 'SP',
+    ]);
+
+    $byRegional = colaboradorWorkbookRows(
+        $this->actingAs($user)->get(route('admin.colaboradores.export', ['regional' => 'NO']))->streamedContent(),
+    );
+    $byUf = colaboradorWorkbookRows(
+        $this->actingAs($user)->get(route('admin.colaboradores.export', ['uf' => 'SP']))->streamedContent(),
+    );
+
+    expect($byRegional)->toHaveCount(2)
+        ->and($byRegional[1][0])->toBe('João da Silva')
+        ->and($byUf)->toHaveCount(2)
+        ->and($byUf[1][0])->toBe('Maria Souza');
+});
+
 it('requires authentication to export colaboradores', function () {
     $this->get(route('admin.colaboradores.export'))->assertRedirect('/login');
 });

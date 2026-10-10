@@ -2,6 +2,8 @@
     @php
         $viewQuery = request()->query();
         unset($viewQuery['page']);
+
+        $hasFilters = $search !== '' || $status !== null || $regional !== null || $uf !== null;
     @endphp
 
     <div class="flex items-center justify-between">
@@ -15,7 +17,7 @@
 
         <div class="flex items-center gap-2">
             <a
-                href="{{ route('admin.colaboradores.export', array_filter(['search' => $search, 'status' => $status])) }}"
+                href="{{ route('admin.colaboradores.export', array_filter(['search' => $search, 'status' => $status, 'regional' => $regional, 'uf' => $uf])) }}"
                 class="inline-flex items-center gap-1.5 rounded-md border border-gray-300 dark:border-gray-700 dark:bg-gray-900 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800"
             >
                 <x-icon name="arrow-down-tray" class="h-4 w-4" />
@@ -49,7 +51,7 @@
             class="flex flex-wrap items-center gap-2"
             data-search-form
         >
-            @foreach (['view', 'sort', 'direction', 'per_page', 'status'] as $param)
+            @foreach (['view', 'sort', 'direction', 'per_page', 'status', 'regional', 'uf'] as $param)
                 @if (request($param))
                     <input type="hidden" name="{{ $param }}" value="{{ request($param) }}">
                 @endif
@@ -74,9 +76,9 @@
                 Buscar
             </button>
 
-            @if ($search !== '')
+            @if ($hasFilters)
                 <a
-                    href="{{ route('admin.colaboradores.index', array_filter(['status' => $status, 'view' => $view])) }}"
+                    href="{{ route('admin.colaboradores.index', array_filter(['view' => $view])) }}"
                     class="text-sm text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100"
                 >
                     Limpar
@@ -92,6 +94,32 @@
             >
                 @foreach (['' => 'Todos os status', 'active' => 'Ativos', 'inactive' => 'Inativos'] as $value => $label)
                     <option value="{{ $value }}" @selected($status === ($value ?: null))>{{ $label }}</option>
+                @endforeach
+            </select>
+
+            <label for="regional-filter" class="sr-only">Filtrar por regional</label>
+            <select
+                id="regional-filter"
+                name="regional"
+                onchange="this.form.submit()"
+                class="rounded-md border border-gray-300 dark:border-gray-700 dark:bg-gray-900 py-2 pl-3 pr-8 text-sm text-gray-700 dark:text-gray-200 focus:border-indigo-500 focus:outline-none focus:ring-indigo-500"
+            >
+                <option value="">Todas as regionais</option>
+                @foreach ($regionals as $regionalOption)
+                    <option value="{{ $regionalOption }}" @selected($regional === $regionalOption)>{{ $regionalOption }}</option>
+                @endforeach
+            </select>
+
+            <label for="uf-filter" class="sr-only">Filtrar por UF</label>
+            <select
+                id="uf-filter"
+                name="uf"
+                onchange="this.form.submit()"
+                class="rounded-md border border-gray-300 dark:border-gray-700 dark:bg-gray-900 py-2 pl-3 pr-8 text-sm text-gray-700 dark:text-gray-200 focus:border-indigo-500 focus:outline-none focus:ring-indigo-500"
+            >
+                <option value="">Todas as UFs</option>
+                @foreach (\App\Enums\Uf::cases() as $ufOption)
+                    <option value="{{ $ufOption->value }}" @selected($uf === $ufOption->value)>{{ $ufOption->value }} - {{ $ufOption->label() }}</option>
                 @endforeach
             </select>
         </form>
@@ -155,7 +183,7 @@
                                 <td class="px-5 py-6 text-gray-500 dark:text-gray-400" colspan="7">
                                     <span class="inline-flex items-center gap-2">
                                         <x-icon name="user" class="h-4 w-4" />
-                                        @if ($search !== '' || $status !== null)
+                                        @if ($hasFilters)
                                             Nenhum colaborador encontrado para os filtros informados.
                                         @else
                                             Nenhum colaborador cadastrado até o momento.
@@ -170,7 +198,7 @@
 
             <div class="flex flex-wrap items-center justify-between gap-3 px-5 py-4">
                 <form method="GET" action="{{ route('admin.colaboradores.index') }}" class="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
-                    @foreach (['search', 'view', 'sort', 'direction', 'status'] as $param)
+                    @foreach (['search', 'view', 'sort', 'direction', 'status', 'regional', 'uf'] as $param)
                         @if (request($param))
                             <input type="hidden" name="{{ $param }}" value="{{ request($param) }}">
                         @endif
@@ -237,7 +265,7 @@
             @empty
                 <p class="col-span-full flex items-center gap-2 py-8 text-sm text-gray-500 dark:text-gray-400">
                     <x-icon name="user" class="h-4 w-4 text-gray-400 dark:text-gray-500" />
-                    @if ($search !== '' || $status !== null)
+                    @if ($hasFilters)
                         Nenhum colaborador encontrado para os filtros informados.
                     @else
                         Nenhum colaborador cadastrado até o momento.
@@ -248,7 +276,7 @@
 
         <div class="flex flex-wrap items-center justify-between gap-3 pt-4">
             <form method="GET" action="{{ route('admin.colaboradores.index') }}" class="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
-                @foreach (['search', 'view', 'sort', 'direction', 'status'] as $param)
+                @foreach (['search', 'view', 'sort', 'direction', 'status', 'regional', 'uf'] as $param)
                     @if (request($param))
                         <input type="hidden" name="{{ $param }}" value="{{ request($param) }}">
                     @endif
@@ -298,7 +326,7 @@
             @empty
                 <p class="flex items-center gap-2 px-5 py-8 text-sm text-gray-500 dark:text-gray-400">
                     <x-icon name="user" class="h-4 w-4 text-gray-400 dark:text-gray-500" />
-                    @if ($search !== '' || $status !== null)
+                    @if ($hasFilters)
                         Nenhum colaborador encontrado para os filtros informados.
                     @else
                         Nenhum colaborador cadastrado até o momento.
@@ -309,7 +337,7 @@
 
         <div class="flex flex-wrap items-center justify-between gap-3 pt-4">
             <form method="GET" action="{{ route('admin.colaboradores.index') }}" class="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
-                @foreach (['search', 'view', 'sort', 'direction', 'status'] as $param)
+                @foreach (['search', 'view', 'sort', 'direction', 'status', 'regional', 'uf'] as $param)
                     @if (request($param))
                         <input type="hidden" name="{{ $param }}" value="{{ request($param) }}">
                     @endif

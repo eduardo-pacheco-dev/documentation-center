@@ -51,6 +51,41 @@ it('filters the colaborador list by search term and status', function () {
         ->assertDontSee('João da Silva');
 });
 
+it('filters the colaborador list by regional and uf', function () {
+    $owner = User::factory()->create();
+
+    Colaborador::factory()->create([
+        'user_id' => $owner->getKey(),
+        'name' => 'João da Silva',
+        'regional' => 'NO',
+        'uf' => 'PA',
+    ]);
+    Colaborador::factory()->create([
+        'user_id' => $owner->getKey(),
+        'name' => 'Maria Souza',
+        'regional' => 'SP',
+        'uf' => 'SP',
+    ]);
+
+    $this->actingAs($owner)
+        ->get('/admin/colaboradores?regional=NO')
+        ->assertOk()
+        ->assertSee('João da Silva')
+        ->assertDontSee('Maria Souza');
+
+    $this->actingAs($owner)
+        ->get('/admin/colaboradores?uf=SP')
+        ->assertOk()
+        ->assertSee('Maria Souza')
+        ->assertDontSee('João da Silva');
+
+    $this->actingAs($owner)
+        ->get('/admin/colaboradores?regional=INEXISTENTE&uf=ZZ')
+        ->assertOk()
+        ->assertSee('João da Silva')
+        ->assertSee('Maria Souza');
+});
+
 it('renders the colaborador list in the alternate view modes', function () {
     $owner = User::factory()->create();
 

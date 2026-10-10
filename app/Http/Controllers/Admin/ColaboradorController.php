@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Enums\ColaboradorStatus;
+use App\Enums\Uf;
 use App\Exports\ColaboradoresExport;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\StoreColaboradorRequest;
@@ -11,6 +12,7 @@ use App\Models\Colaborador;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\View\View;
 use Maatwebsite\Excel\Facades\Excel;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
@@ -24,13 +26,7 @@ class ColaboradorController extends Controller
     {
         $this->authorize('viewAny', Colaborador::class);
 
-        $search = (string) $request->query('search', '');
-
-        $statuses = array_column(ColaboradorStatus::cases(), 'value');
-
-        $status = in_array($request->query('status'), $statuses, true)
-            ? $request->query('status')
-            : null;
+        ['search' => $search, 'status' => $status, 'regional' => $regional, 'uf' => $uf, 'regionals' => $regionals] = $this->resolveFilters($request);
 
         $sortableColumns = ['name', 'role', 'email', 'status', 'updated_at'];
 
@@ -56,6 +52,8 @@ class ColaboradorController extends Controller
                 ->orWhere('email', 'like', "%{$search}%")
                 ->orWhere('document', 'like', "%{$search}%")))
             ->when($status !== null, fn (Builder $query) => $query->where('status', $status))
+            ->when($regional !== null, fn (Builder $query) => $query->where('regional', $regional))
+            ->when($uf !== null, fn (Builder $query) => $query->where('uf', $uf))
             ->orderBy($sort, $direction)
             ->orderBy('id', $direction)
             ->paginate($perPage)
@@ -69,6 +67,9 @@ class ColaboradorController extends Controller
             'colaboradores' => $colaboradores,
             'search' => $search,
             'status' => $status,
+            'regional' => $regional,
+            'uf' => $uf,
+            'regionals' => $regionals,
             'view' => $view,
             'perPage' => $perPage,
         ]);
@@ -91,18 +92,50 @@ class ColaboradorController extends Controller
     {
         $this->authorize('viewAny', Colaborador::class);
 
+        ['search' => $search, 'status' => $status, 'regional' => $regional, 'uf' => $uf] = $this->resolveFilters($request);
+
+        return Excel::download(
+            new ColaboradoresExport($request->user(), $search, $status, $regional, $uf),
+            'colaboradores.xlsx',
+        );
+    }
+
+    /**
+     * Resolve the supported list filters from the request.
+     *
+     * @return array{search: string, status: ?string, regional: ?string, uf: ?string, regionals: Collection<int, string>}
+     */
+    private function resolveFilters(Request $request): array
+    {
         $search = (string) $request->query('search', '');
 
-        $statuses = array_column(ColaboradorStatus::cases(), 'value');
-
-        $status = in_array($request->query('status'), $statuses, true)
+        $status = in_array($request->query('status'), array_column(ColaboradorStatus::cases(), 'value'), true)
             ? $request->query('status')
             : null;
 
-        return Excel::download(
-            new ColaboradoresExport($request->user(), $search, $status),
-            'colaboradores.xlsx',
-        );
+        $regionals = Colaborador::query()
+            ->ownedBy($request->user())
+            ->whereNotNull('regional')
+            ->where('regional', '!=', '')
+            ->distinct()
+            ->orderBy('regional')
+            ->pluck('regional');
+
+        $regional = $regionals->contains($request->query('regional'))
+            ? $request->query('regional')
+            : null;
+
+        $uf = in_array($request->query('uf'), array_column(Uf::cases(), 'value'), true)
+            ? $request->query('uf')
+            : null;
+
+        return [
+            'search' => $search,
+            'status' => $status,
+            'regional' => $regional,
+            'uf' => $uf,
+            'regionals' => $regionals,
+        ];
     }
 
     /**
