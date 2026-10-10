@@ -1,160 +1,93 @@
-@php($colaborador = $colaborador ?? null)
+@php
+    $colaborador = $colaborador ?? null;
+    $wizard = $wizard ?? false;
+@endphp
 
-<div class="grid gap-5 sm:grid-cols-2">
-    <div class="sm:col-span-2">
-        <label for="name" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Nome</label>
-        <input
-            type="text"
-            name="name"
-            id="name"
-            value="{{ old('name', $colaborador?->name) }}"
-            required
-            placeholder="Ex.: Ana Carvalho"
-            class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-700 dark:bg-gray-900 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500"
-        >
-        @error('name')
-            <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p>
-        @enderror
+<div class="space-y-5" @if ($wizard) data-wizard @endif>
+    <div @if ($wizard) data-wizard-step @endif class="grid gap-5 sm:grid-cols-2">
+        <div class="sm:col-span-2">
+            <label for="name" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Nome</label>
+            <input
+                type="text"
+                name="name"
+                id="name"
+                value="{{ old('name', $colaborador?->name) }}"
+                required
+                placeholder="Ex.: Ana Carvalho"
+                class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-700 dark:bg-gray-900 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500"
+            >
+            @error('name')
+                <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p>
+            @enderror
+        </div>
+
+        <div>
+            <label for="birth_date" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Data de Nascimento</label>
+            <input
+                type="date"
+                name="birth_date"
+                id="birth_date"
+                value="{{ old('birth_date', $colaborador?->birth_date?->format('Y-m-d')) }}"
+                class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-700 dark:bg-gray-900 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500"
+            >
+            @error('birth_date')
+                <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p>
+            @enderror
+        </div>
+
+        <div>
+            <label for="status" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Status</label>
+            <select
+                name="status"
+                id="status"
+                class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-700 dark:bg-gray-900 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500"
+            >
+                @foreach (\App\Enums\ColaboradorStatus::cases() as $status)
+                    <option value="{{ $status->value }}" @selected(old('status', $colaborador?->status?->value ?? 'active') === $status->value)>
+                        {{ $status->label() }}
+                    </option>
+                @endforeach
+            </select>
+            @error('status')
+                <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p>
+            @enderror
+        </div>
+
+        <div class="sm:col-span-2">
+            <label for="mother_name" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Nome da Mãe</label>
+            <input
+                type="text"
+                name="mother_name"
+                id="mother_name"
+                value="{{ old('mother_name', $colaborador?->mother_name) }}"
+                placeholder="Ex.: Maria Lúcia da Costa Ferreira"
+                class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-700 dark:bg-gray-900 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500"
+            >
+            @error('mother_name')
+                <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p>
+            @enderror
+        </div>
     </div>
 
-    <div>
-        <label for="contract_regime" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Regime de Contrato</label>
-        <select
-            name="contract_regime"
-            id="contract_regime"
-            class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-700 dark:bg-gray-900 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500"
-        >
-            <option value="">Selecione...</option>
-            @foreach (\App\Enums\ContractRegime::cases() as $regime)
-                <option value="{{ $regime->value }}" @selected(old('contract_regime', $colaborador?->contract_regime?->value) === $regime->value)>
-                    {{ $regime->label() }}
-                </option>
-            @endforeach
-        </select>
-        @error('contract_regime')
-            <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p>
-        @enderror
-    </div>
+    <div @if ($wizard) data-wizard-step @endif class="grid gap-5 sm:grid-cols-2">
+        <div>
+            <label for="document" class="block text-sm font-medium text-gray-700 dark:text-gray-300">CPF</label>
+            <input
+                type="text"
+                name="document"
+                id="document"
+                maxlength="14"
+                value="{{ old('document', $colaborador?->document) }}"
+                placeholder="000.000.000-00"
+                inputmode="numeric"
+                data-mask="cpf"
+                class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-700 dark:bg-gray-900 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500"
+            >
+            @error('document')
+                <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p>
+            @enderror
+        </div>
 
-    <div>
-        <label for="regional" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Regional</label>
-        <input
-            type="text"
-            name="regional"
-            id="regional"
-            maxlength="50"
-            value="{{ old('regional', $colaborador?->regional) }}"
-            placeholder="Ex.: NO"
-            class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-700 dark:bg-gray-900 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500"
-        >
-        @error('regional')
-            <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p>
-        @enderror
-    </div>
-
-    <div>
-        <label for="uf" class="block text-sm font-medium text-gray-700 dark:text-gray-300">UF</label>
-        <select
-            name="uf"
-            id="uf"
-            class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-700 dark:bg-gray-900 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500"
-        >
-            <option value="">Selecione...</option>
-            @foreach (\App\Enums\Uf::cases() as $uf)
-                <option value="{{ $uf->value }}" @selected(old('uf', $colaborador?->uf?->value) === $uf->value)>
-                    {{ $uf->label() }} ({{ $uf->value }})
-                </option>
-            @endforeach
-        </select>
-        @error('uf')
-            <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p>
-        @enderror
-    </div>
-
-    <div>
-        <label for="pis" class="block text-sm font-medium text-gray-700 dark:text-gray-300">PIS</label>
-        <input
-            type="text"
-            name="pis"
-            id="pis"
-            maxlength="14"
-            value="{{ old('pis', $colaborador?->pis) }}"
-            placeholder="000.00000.00-0"
-            inputmode="numeric"
-            data-mask="pis"
-            class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-700 dark:bg-gray-900 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500"
-        >
-        @error('pis')
-            <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p>
-        @enderror
-    </div>
-
-    <div>
-        <label for="role" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Função</label>
-        <input
-            type="text"
-            name="role"
-            id="role"
-            value="{{ old('role', $colaborador?->role) }}"
-            placeholder="Ex.: Técnico em telecomunicações"
-            class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-700 dark:bg-gray-900 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500"
-        >
-        @error('role')
-            <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p>
-        @enderror
-    </div>
-
-    <div>
-        <label for="document" class="block text-sm font-medium text-gray-700 dark:text-gray-300">CPF</label>
-        <input
-            type="text"
-            name="document"
-            id="document"
-            maxlength="14"
-            value="{{ old('document', $colaborador?->document) }}"
-            placeholder="000.000.000-00"
-            inputmode="numeric"
-            data-mask="cpf"
-            class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-700 dark:bg-gray-900 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500"
-        >
-        @error('document')
-            <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p>
-        @enderror
-    </div>
-
-    <div>
-        <label for="cnpj" class="block text-sm font-medium text-gray-700 dark:text-gray-300">CNPJ</label>
-        <input
-            type="text"
-            name="cnpj"
-            id="cnpj"
-            maxlength="18"
-            value="{{ old('cnpj', $colaborador?->cnpj) }}"
-            placeholder="00.000.000/0000-00"
-            inputmode="numeric"
-            data-mask="cnpj"
-            class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-700 dark:bg-gray-900 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500"
-        >
-        @error('cnpj')
-            <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p>
-        @enderror
-    </div>
-
-    <div>
-        <label for="birth_date" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Data de Nascimento</label>
-        <input
-            type="date"
-            name="birth_date"
-            id="birth_date"
-            value="{{ old('birth_date', $colaborador?->birth_date?->format('Y-m-d')) }}"
-            class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-700 dark:bg-gray-900 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500"
-        >
-        @error('birth_date')
-            <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p>
-        @enderror
-    </div>
-
-    <div class="grid gap-5 sm:col-span-2 sm:grid-cols-2">
         <div>
             <label for="rg" class="block text-sm font-medium text-gray-700 dark:text-gray-300">RG</label>
             <input
@@ -172,6 +105,42 @@
         </div>
 
         <div>
+            <label for="cnpj" class="block text-sm font-medium text-gray-700 dark:text-gray-300">CNPJ</label>
+            <input
+                type="text"
+                name="cnpj"
+                id="cnpj"
+                maxlength="18"
+                value="{{ old('cnpj', $colaborador?->cnpj) }}"
+                placeholder="00.000.000/0000-00"
+                inputmode="numeric"
+                data-mask="cnpj"
+                class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-700 dark:bg-gray-900 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500"
+            >
+            @error('cnpj')
+                <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p>
+            @enderror
+        </div>
+
+        <div>
+            <label for="pis" class="block text-sm font-medium text-gray-700 dark:text-gray-300">PIS</label>
+            <input
+                type="text"
+                name="pis"
+                id="pis"
+                maxlength="14"
+                value="{{ old('pis', $colaborador?->pis) }}"
+                placeholder="000.00000.00-0"
+                inputmode="numeric"
+                data-mask="pis"
+                class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-700 dark:bg-gray-900 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500"
+            >
+            @error('pis')
+                <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p>
+            @enderror
+        </div>
+
+        <div class="sm:col-span-2">
             <label for="rg_issuer" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Órgão Emissor</label>
             <input
                 type="text"
@@ -188,83 +157,121 @@
         </div>
     </div>
 
-    <div class="sm:col-span-2">
-        <label for="mother_name" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Nome da Mãe</label>
-        <input
-            type="text"
-            name="mother_name"
-            id="mother_name"
-            value="{{ old('mother_name', $colaborador?->mother_name) }}"
-            placeholder="Ex.: Maria Lúcia da Costa Ferreira"
-            class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-700 dark:bg-gray-900 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500"
-        >
-        @error('mother_name')
-            <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p>
-        @enderror
-    </div>
+    <div @if ($wizard) data-wizard-step @endif class="grid gap-5 sm:grid-cols-2">
+        <div>
+            <label for="contract_regime" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Regime de Contrato</label>
+            <select
+                name="contract_regime"
+                id="contract_regime"
+                class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-700 dark:bg-gray-900 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500"
+            >
+                <option value="">Selecione...</option>
+                @foreach (\App\Enums\ContractRegime::cases() as $regime)
+                    <option value="{{ $regime->value }}" @selected(old('contract_regime', $colaborador?->contract_regime?->value) === $regime->value)>
+                        {{ $regime->label() }}
+                    </option>
+                @endforeach
+            </select>
+            @error('contract_regime')
+                <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p>
+            @enderror
+        </div>
 
-    <div>
-        <label for="phone" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Contato</label>
-        <input
-            type="text"
-            name="phone"
-            id="phone"
-            maxlength="30"
-            value="{{ old('phone', $colaborador?->phone) }}"
-            inputmode="tel"
-            placeholder="(00) 00000-0000"
-            data-mask="phone"
-            class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-700 dark:bg-gray-900 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500"
-        >
-        @error('phone')
-            <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p>
-        @enderror
-    </div>
+        <div>
+            <label for="regional" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Regional</label>
+            <input
+                type="text"
+                name="regional"
+                id="regional"
+                maxlength="50"
+                value="{{ old('regional', $colaborador?->regional) }}"
+                placeholder="Ex.: NO"
+                class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-700 dark:bg-gray-900 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500"
+            >
+            @error('regional')
+                <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p>
+            @enderror
+        </div>
 
-    <div>
-        <label for="email" class="block text-sm font-medium text-gray-700 dark:text-gray-300">E-mail</label>
-        <input
-            type="email"
-            name="email"
-            id="email"
-            value="{{ old('email', $colaborador?->email) }}"
-            placeholder="Ex.: joao@empresa.com.br"
-            class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-700 dark:bg-gray-900 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500"
-        >
-        @error('email')
-            <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p>
-        @enderror
-    </div>
+        <div>
+            <label for="uf" class="block text-sm font-medium text-gray-700 dark:text-gray-300">UF</label>
+            <select
+                name="uf"
+                id="uf"
+                class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-700 dark:bg-gray-900 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500"
+            >
+                <option value="">Selecione...</option>
+                @foreach (\App\Enums\Uf::cases() as $uf)
+                    <option value="{{ $uf->value }}" @selected(old('uf', $colaborador?->uf?->value) === $uf->value)>
+                        {{ $uf->label() }} ({{ $uf->value }})
+                    </option>
+                @endforeach
+            </select>
+            @error('uf')
+                <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p>
+            @enderror
+        </div>
 
-    <div>
-        <label for="status" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Status</label>
-        <select
-            name="status"
-            id="status"
-            class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-700 dark:bg-gray-900 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500"
-        >
-            @foreach (\App\Enums\ColaboradorStatus::cases() as $status)
-                <option value="{{ $status->value }}" @selected(old('status', $colaborador?->status?->value ?? 'active') === $status->value)>
-                    {{ $status->label() }}
-                </option>
-            @endforeach
-        </select>
-        @error('status')
-            <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p>
-        @enderror
-    </div>
+        <div>
+            <label for="role" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Função</label>
+            <input
+                type="text"
+                name="role"
+                id="role"
+                value="{{ old('role', $colaborador?->role) }}"
+                placeholder="Ex.: Técnico em telecomunicações"
+                class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-700 dark:bg-gray-900 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500"
+            >
+            @error('role')
+                <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p>
+            @enderror
+        </div>
 
-    <div class="sm:col-span-2">
-        <label for="notes" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Observações</label>
-        <textarea
-            name="notes"
-            id="notes"
-            rows="3"
-            class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-700 dark:bg-gray-900 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500"
-        >{{ old('notes', $colaborador?->notes) }}</textarea>
-        @error('notes')
-            <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p>
-        @enderror
+        <div>
+            <label for="phone" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Contato</label>
+            <input
+                type="text"
+                name="phone"
+                id="phone"
+                maxlength="30"
+                value="{{ old('phone', $colaborador?->phone) }}"
+                inputmode="tel"
+                placeholder="(00) 00000-0000"
+                data-mask="phone"
+                class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-700 dark:bg-gray-900 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500"
+            >
+            @error('phone')
+                <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p>
+            @enderror
+        </div>
+
+        <div>
+            <label for="email" class="block text-sm font-medium text-gray-700 dark:text-gray-300">E-mail</label>
+            <input
+                type="email"
+                name="email"
+                id="email"
+                value="{{ old('email', $colaborador?->email) }}"
+                placeholder="Ex.: joao@empresa.com.br"
+                class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-700 dark:bg-gray-900 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500"
+            >
+            @error('email')
+                <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p>
+            @enderror
+        </div>
+
+        <div class="sm:col-span-2">
+            <label for="notes" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Observações</label>
+            <textarea
+                name="notes"
+                id="notes"
+                rows="3"
+                class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-700 dark:bg-gray-900 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500"
+            >{{ old('notes', $colaborador?->notes) }}</textarea>
+            @error('notes')
+                <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p>
+            @enderror
+        </div>
     </div>
 </div>
 

@@ -27,11 +27,21 @@
         <form method="POST" action="{{ route('admin.colaboradores.store') }}" class="px-5 py-4">
             @csrf
 
+            <div class="mb-5">
+                <div class="flex items-center justify-between text-xs font-medium text-gray-500 dark:text-gray-400">
+                    <span data-wizard-label>Dados pessoais</span>
+                    <span data-wizard-counter>Passo 1 de 3</span>
+                </div>
+                <div class="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-gray-200 dark:bg-gray-800">
+                    <div data-wizard-progress class="h-full w-1/3 rounded-full bg-indigo-500 transition-all duration-200"></div>
+                </div>
+            </div>
+
             @php($colaborador = null)
 
-            @include('admin.colaboradores.partials.form')
+            @include('admin.colaboradores.partials.form', ['wizard' => true])
 
-            <div class="mt-6 flex items-center justify-end gap-3">
+            <div class="mt-6 flex items-center justify-between gap-3">
                 <button
                     type="button"
                     data-create-modal-close
@@ -40,13 +50,32 @@
                     Cancelar
                 </button>
 
-                <button
-                    type="submit"
-                    class="inline-flex items-center gap-1.5 rounded-md bg-gray-900 dark:bg-white px-4 py-2 text-sm font-medium text-white dark:text-gray-900 hover:bg-gray-700 dark:hover:bg-gray-200"
-                >
-                    <x-icon name="check" class="h-4 w-4" />
-                    Criar colaborador
-                </button>
+                <div class="flex items-center gap-3">
+                    <button
+                        type="button"
+                        data-wizard-prev
+                        class="hidden rounded-md border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
+                    >
+                        Voltar
+                    </button>
+
+                    <button
+                        type="button"
+                        data-wizard-next
+                        class="inline-flex items-center gap-1.5 rounded-md bg-gray-900 dark:bg-white px-4 py-2 text-sm font-medium text-white dark:text-gray-900 hover:bg-gray-700 dark:hover:bg-gray-200"
+                    >
+                        Próximo
+                    </button>
+
+                    <button
+                        type="submit"
+                        data-wizard-submit
+                        class="hidden items-center gap-1.5 rounded-md bg-gray-900 dark:bg-white px-4 py-2 text-sm font-medium text-white dark:text-gray-900 hover:bg-gray-700 dark:hover:bg-gray-200"
+                    >
+                        <x-icon name="check" class="h-4 w-4" />
+                        Criar colaborador
+                    </button>
+                </div>
             </div>
         </form>
     </div>

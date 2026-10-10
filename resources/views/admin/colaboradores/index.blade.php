@@ -570,6 +570,79 @@
             openModal(createModal);
         }
 
+        const wizard = createModal?.querySelector('[data-wizard]');
+
+        if (wizard) {
+            const steps = Array.from(wizard.querySelectorAll('[data-wizard-step]'));
+            const label = createModal.querySelector('[data-wizard-label]');
+            const counter = createModal.querySelector('[data-wizard-counter]');
+            const progressBar = createModal.querySelector('[data-wizard-progress]');
+            const prevButton = createModal.querySelector('[data-wizard-prev]');
+            const nextButton = createModal.querySelector('[data-wizard-next]');
+            const submitButton = createModal.querySelector('[data-wizard-submit]');
+
+            const stepLabels = ['Dados pessoais', 'Documentos', 'Contrato e contato'];
+            const progressWidths = ['w-1/3', 'w-2/3', 'w-full'];
+
+            let current = 0;
+
+            const render = () => {
+                steps.forEach((step, index) => {
+                    step.classList.toggle('hidden', index !== current);
+                });
+
+                if (label) {
+                    label.textContent = stepLabels[current] || '';
+                }
+
+                if (counter) {
+                    counter.textContent = 'Passo ' + (current + 1) + ' de ' + steps.length;
+                }
+
+                if (progressBar) {
+                    progressBar.classList.remove('w-1/3', 'w-2/3', 'w-full');
+                    progressBar.classList.add(progressWidths[current] || 'w-full');
+                }
+
+                prevButton?.classList.toggle('hidden', current === 0);
+                nextButton?.classList.toggle('hidden', current === steps.length - 1);
+                submitButton?.classList.toggle('hidden', current !== steps.length - 1);
+                submitButton?.classList.toggle('inline-flex', current === steps.length - 1);
+            };
+
+            const goTo = (index) => {
+                current = Math.max(0, Math.min(index, steps.length - 1));
+                render();
+            };
+
+            const firstErrorStep = () => {
+                const index = steps.findIndex((step) => step.querySelector('.text-red-600'));
+
+                return index === -1 ? 0 : index;
+            };
+
+            nextButton?.addEventListener('click', () => {
+                const step = steps[current];
+                const invalid = Array.from(step.querySelectorAll('input, select, textarea')).find((field) => !field.checkValidity());
+
+                if (invalid) {
+                    invalid.reportValidity();
+
+                    return;
+                }
+
+                goTo(current + 1);
+            });
+
+            prevButton?.addEventListener('click', () => goTo(current - 1));
+
+            document.querySelectorAll('[data-create-modal-open]').forEach((opener) => {
+                opener.addEventListener('click', () => goTo(0));
+            });
+
+            goTo(firstErrorStep());
+        }
+
         const importModal = document.getElementById('colaborador-import-modal');
 
         if (importModal?.hasAttribute('data-open')) {
