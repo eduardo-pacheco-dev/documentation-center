@@ -41,7 +41,13 @@
             <x-icon name="exclamation-triangle" class="h-5 w-5" />
         </span>
 
-        <p data-toast-message class="flex-1 break-words text-sm text-gray-700 dark:text-gray-200"></p>
+        <div class="flex-1 space-y-2">
+            <p data-toast-message class="break-words text-sm text-gray-700 dark:text-gray-200"></p>
+
+            <div data-toast-progress hidden class="h-1.5 w-full overflow-hidden rounded-full bg-gray-200 dark:bg-gray-700">
+                <div data-toast-progress-bar class="h-full w-0 rounded-full bg-indigo-500 transition-all duration-200" style="width: 0%"></div>
+            </div>
+        </div>
 
         <button
             type="button"
