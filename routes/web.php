@@ -6,6 +6,7 @@ use App\Http\Controllers\Admin\ClientController;
 use App\Http\Controllers\Admin\ClientDocumentController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\DocumentController;
+use App\Http\Controllers\Admin\ErbCommentController;
 use App\Http\Controllers\Admin\ErbController;
 use App\Http\Controllers\Admin\ErbDocumentController;
 use App\Http\Controllers\Admin\FolderController;
@@ -122,6 +123,9 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
 
     Route::post('erbs/{erb}/documents', [ErbDocumentController::class, 'store'])->name('erbs.documents.store');
     Route::delete('erbs/{erb}/documents/{document}', [ErbDocumentController::class, 'destroy'])->name('erbs.documents.destroy');
+
+    Route::post('erbs/{erb}/comments', [ErbCommentController::class, 'store'])->name('erbs.comments.store');
+    Route::delete('erbs/{erb}/comments/{comment}', [ErbCommentController::class, 'destroy'])->name('erbs.comments.destroy');
 
     Route::get('work-orders', [WorkOrderController::class, 'index'])->name('work-orders.index');
     Route::get('work-orders/create', [WorkOrderController::class, 'create'])->name('work-orders.create');

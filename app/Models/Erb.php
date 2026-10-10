@@ -74,6 +74,16 @@ class Erb extends Model
     }
 
     /**
+     * The comments made about the ERB.
+     *
+     * @return HasMany<Comment, $this>
+     */
+    public function comments(): HasMany
+    {
+        return $this->hasMany(Comment::class)->oldest();
+    }
+
+    /**
      * Restrict a query to the ERBs the user owns.
      */
     public function scopeOwnedBy(Builder $query, User $user): Builder

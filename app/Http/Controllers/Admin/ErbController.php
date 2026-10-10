@@ -109,6 +109,7 @@ class ErbController extends Controller
             'workOrders' => fn ($query) => $query->with('client:id,name')->orderByDesc('opened_at')->orderByDesc('id'),
             'projects' => fn ($query) => $query->orderByDesc('updated_at'),
             'documents',
+            'comments.user',
         ]);
 
         return view('admin.erbs.show', ['erb' => $erb]);
