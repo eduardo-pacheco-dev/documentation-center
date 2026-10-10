@@ -9,6 +9,7 @@ use App\Http\Controllers\Admin\DocumentController;
 use App\Http\Controllers\Admin\ErbCommentController;
 use App\Http\Controllers\Admin\ErbController;
 use App\Http\Controllers\Admin\ErbDocumentController;
+use App\Http\Controllers\Admin\ErbImportController;
 use App\Http\Controllers\Admin\FolderController;
 use App\Http\Controllers\Admin\ProjectAssignmentController;
 use App\Http\Controllers\Admin\ProjectBaselineController;
@@ -116,6 +117,8 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
     Route::get('erbs', [ErbController::class, 'index'])->name('erbs.index');
     Route::get('erbs/create', [ErbController::class, 'create'])->name('erbs.create');
     Route::post('erbs', [ErbController::class, 'store'])->name('erbs.store');
+    Route::post('erbs/import', [ErbImportController::class, 'store'])->name('erbs.import');
+    Route::get('erbs/import/template', [ErbImportController::class, 'template'])->name('erbs.import.template');
     Route::get('erbs/{erb}', [ErbController::class, 'show'])->name('erbs.show');
     Route::get('erbs/{erb}/edit', [ErbController::class, 'edit'])->name('erbs.edit');
     Route::put('erbs/{erb}', [ErbController::class, 'update'])->name('erbs.update');
