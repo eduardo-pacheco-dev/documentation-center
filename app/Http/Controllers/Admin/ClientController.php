@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Exports\ClientsExport;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\StoreClientRequest;
 use App\Http\Requests\Admin\UpdateClientRequest;
@@ -10,6 +11,8 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
+use Maatwebsite\Excel\Facades\Excel;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class ClientController extends Controller
 {
@@ -70,6 +73,21 @@ class ClientController extends Controller
         $this->authorize('create', Client::class);
 
         return view('admin.clients.create');
+    }
+
+    /**
+     * Download the clients, honoring the current list filters, as a spreadsheet.
+     */
+    public function export(Request $request): BinaryFileResponse
+    {
+        $this->authorize('viewAny', Client::class);
+
+        $search = (string) $request->query('search', '');
+
+        return Excel::download(
+            new ClientsExport($request->user(), $search),
+            'clientes.xlsx',
+        );
     }
 
     /**

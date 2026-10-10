@@ -4,6 +4,7 @@ use App\Http\Controllers\Admin\CatalogItemController;
 use App\Http\Controllers\Admin\ClientContactController;
 use App\Http\Controllers\Admin\ClientController;
 use App\Http\Controllers\Admin\ClientDocumentController;
+use App\Http\Controllers\Admin\ClientImportController;
 use App\Http\Controllers\Admin\ColaboradorController;
 use App\Http\Controllers\Admin\ColaboradorImportController;
 use App\Http\Controllers\Admin\DashboardController;
@@ -97,6 +98,9 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
     Route::get('clients', [ClientController::class, 'index'])->name('clients.index');
     Route::get('clients/create', [ClientController::class, 'create'])->name('clients.create');
     Route::post('clients', [ClientController::class, 'store'])->name('clients.store');
+    Route::post('clients/import', [ClientImportController::class, 'store'])->name('clients.import');
+    Route::get('clients/import/template', [ClientImportController::class, 'template'])->name('clients.import.template');
+    Route::get('clients/export', [ClientController::class, 'export'])->name('clients.export');
     Route::get('clients/{client}', [ClientController::class, 'show'])->name('clients.show');
     Route::get('clients/{client}/edit', [ClientController::class, 'edit'])->name('clients.edit');
     Route::put('clients/{client}', [ClientController::class, 'update'])->name('clients.update');
