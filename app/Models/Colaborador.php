@@ -3,6 +3,8 @@
 namespace App\Models;
 
 use App\Enums\ColaboradorStatus;
+use App\Enums\ContractRegime;
+use App\Enums\Uf;
 use Database\Factories\ColaboradorFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
@@ -14,8 +16,17 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 #[Fillable([
     'user_id',
     'name',
+    'contract_regime',
+    'regional',
+    'uf',
+    'pis',
     'role',
     'document',
+    'cnpj',
+    'rg',
+    'rg_issuer',
+    'birth_date',
+    'mother_name',
     'phone',
     'email',
     'status',
@@ -56,6 +67,9 @@ class Colaborador extends Model
     {
         return [
             'status' => ColaboradorStatus::class,
+            'contract_regime' => ContractRegime::class,
+            'uf' => Uf::class,
+            'birth_date' => 'date',
         ];
     }
 }

@@ -3,6 +3,8 @@
 namespace Database\Seeders;
 
 use App\Enums\ColaboradorStatus;
+use App\Enums\ContractRegime;
+use App\Enums\Uf;
 use App\Models\Colaborador;
 use App\Models\User;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
@@ -47,6 +49,13 @@ class ColaboradorSeeder extends Seeder
     ];
 
     /**
+     * The regional assignments used for the seeded colaboradores.
+     *
+     * @var list<string>
+     */
+    private const REGIONALS = ['NO', 'NE', 'CO', 'SE', 'S'];
+
+    /**
      * Run the database seeds.
      */
     public function run(): void
@@ -70,6 +79,8 @@ class ColaboradorSeeder extends Seeder
         $position = $index - 1;
         $firstName = self::FIRST_NAMES[$position % count(self::FIRST_NAMES)];
         $lastName = self::LAST_NAMES[intdiv($position, count(self::FIRST_NAMES)) % count(self::LAST_NAMES)];
+        $uf = Uf::cases()[$position % count(Uf::cases())];
+        $regimes = ContractRegime::cases();
 
         Colaborador::firstOrCreate(
             [
@@ -78,7 +89,16 @@ class ColaboradorSeeder extends Seeder
             ],
             [
                 'name' => $firstName.' '.$lastName,
+                'contract_regime' => $regimes[$position % count($regimes)]->value,
+                'regional' => self::REGIONALS[$position % count(self::REGIONALS)],
+                'uf' => $uf->value,
+                'pis' => sprintf('%03d.%05d.%02d-%1d', 1 + $index, 10001 + $index, 10 + $position, $index % 10),
                 'role' => self::ROLES[$position % count(self::ROLES)],
+                'cnpj' => null,
+                'rg' => (string) (100000 + $index),
+                'rg_issuer' => 'SSP/'.$uf->value,
+                'birth_date' => fake('pt_BR')->dateTimeBetween('-55 years', '-19 years')->format('Y-m-d'),
+                'mother_name' => fake('pt_BR')->name('female'),
                 'phone' => sprintf('(11) 9%04d-%04d', 1000 + $index, 2000 + $index),
                 'email' => 'colaborador'.str_pad((string) $index, 3, '0', STR_PAD_LEFT).'@example.com',
                 'status' => $index % 6 === 0 ? ColaboradorStatus::Inactive : ColaboradorStatus::Active,

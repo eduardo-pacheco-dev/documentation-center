@@ -40,12 +40,16 @@
                     <dd class="font-medium text-gray-900 dark:text-gray-100">{{ $colaborador->name }}</dd>
                 </div>
                 <div class="flex items-center justify-between gap-4">
-                    <dt class="text-gray-500 dark:text-gray-400">Cargo</dt>
+                    <dt class="text-gray-500 dark:text-gray-400">Função</dt>
                     <dd class="font-medium text-gray-900 dark:text-gray-100">{{ $colaborador->role ?? '—' }}</dd>
                 </div>
                 <div class="flex items-center justify-between gap-4">
-                    <dt class="text-gray-500 dark:text-gray-400">Documento</dt>
-                    <dd class="font-medium text-gray-900 dark:text-gray-100">{{ $colaborador->document ?? '—' }}</dd>
+                    <dt class="text-gray-500 dark:text-gray-400">Data de nascimento</dt>
+                    <dd class="font-medium text-gray-900 dark:text-gray-100">{{ $colaborador->birth_date?->format('d/m/Y') ?? '—' }}</dd>
+                </div>
+                <div class="flex items-center justify-between gap-4">
+                    <dt class="text-gray-500 dark:text-gray-400">Nome da mãe</dt>
+                    <dd class="font-medium text-gray-900 dark:text-gray-100">{{ $colaborador->mother_name ?? '—' }}</dd>
                 </div>
                 <div class="flex items-center justify-between gap-4">
                     <dt class="text-gray-500 dark:text-gray-400">Status</dt>
@@ -55,12 +59,50 @@
         </div>
 
         <div class="rounded-xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-800 dark:bg-gray-900">
-            <h2 class="text-xs font-semibold uppercase text-gray-500 dark:text-gray-400">Contato</h2>
+            <h2 class="text-xs font-semibold uppercase text-gray-500 dark:text-gray-400">Documentos</h2>
             <dl class="mt-3 space-y-2 text-sm">
+                <div class="flex items-center justify-between gap-4">
+                    <dt class="text-gray-500 dark:text-gray-400">CPF</dt>
+                    <dd class="font-medium text-gray-900 dark:text-gray-100">{{ $colaborador->document ?? '—' }}</dd>
+                </div>
+                <div class="flex items-center justify-between gap-4">
+                    <dt class="text-gray-500 dark:text-gray-400">CNPJ</dt>
+                    <dd class="font-medium text-gray-900 dark:text-gray-100">{{ $colaborador->cnpj ?? '—' }}</dd>
+                </div>
+                <div class="flex items-center justify-between gap-4">
+                    <dt class="text-gray-500 dark:text-gray-400">PIS</dt>
+                    <dd class="font-medium text-gray-900 dark:text-gray-100">{{ $colaborador->pis ?? '—' }}</dd>
+                </div>
+                <div class="flex items-center justify-between gap-4">
+                    <dt class="text-gray-500 dark:text-gray-400">RG</dt>
+                    <dd class="font-medium text-gray-900 dark:text-gray-100">{{ $colaborador->rg ?? '—' }}</dd>
+                </div>
+                <div class="flex items-center justify-between gap-4">
+                    <dt class="text-gray-500 dark:text-gray-400">Órgão emissor</dt>
+                    <dd class="font-medium text-gray-900 dark:text-gray-100">{{ $colaborador->rg_issuer ?? '—' }}</dd>
+                </div>
+            </dl>
+        </div>
+
+        <div class="rounded-xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-800 dark:bg-gray-900">
+            <h2 class="text-xs font-semibold uppercase text-gray-500 dark:text-gray-400">Contrato e lotação</h2>
+            <dl class="mt-3 space-y-2 text-sm">
+                <div class="flex items-center justify-between gap-4">
+                    <dt class="text-gray-500 dark:text-gray-400">Regime de contrato</dt>
+                    <dd class="font-medium text-gray-900 dark:text-gray-100">{{ $colaborador->contract_regime?->value ?? '—' }}</dd>
+                </div>
+                <div class="flex items-center justify-between gap-4">
+                    <dt class="text-gray-500 dark:text-gray-400">Regional</dt>
+                    <dd class="font-medium text-gray-900 dark:text-gray-100">{{ $colaborador->regional ?? '—' }}</dd>
+                </div>
+                <div class="flex items-center justify-between gap-4">
+                    <dt class="text-gray-500 dark:text-gray-400">UF</dt>
+                    <dd class="font-medium text-gray-900 dark:text-gray-100">{{ $colaborador->uf?->value ?? '—' }}</dd>
+                </div>
                 <div class="flex items-center justify-between gap-4">
                     <dt class="flex items-center gap-1 text-gray-500 dark:text-gray-400">
                         <x-icon name="phone" class="h-3.5 w-3.5" />
-                        Telefone
+                        Contato
                     </dt>
                     <dd class="font-medium text-gray-900 dark:text-gray-100">{{ $colaborador->phone ?? '—' }}</dd>
                 </div>
@@ -74,7 +116,7 @@
             </dl>
         </div>
 
-        <div class="rounded-xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-800 dark:bg-gray-900">
+        <div class="rounded-xl border border-gray-200 bg-white p-5 shadow-sm sm:col-span-2 lg:col-span-3 dark:border-gray-800 dark:bg-gray-900">
             <h2 class="text-xs font-semibold uppercase text-gray-500 dark:text-gray-400">Observações</h2>
             <p class="mt-3 text-sm text-gray-700 dark:text-gray-300">
                 {{ $colaborador->notes ?? 'Nenhuma observação registrada.' }}

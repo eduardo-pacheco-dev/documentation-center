@@ -61,7 +61,7 @@
                     type="search"
                     name="search"
                     value="{{ $search }}"
-                    placeholder="Buscar por nome, cargo, e-mail ou documento..."
+                    placeholder="Buscar por nome, função, e-mail ou CPF..."
                     class="block w-full rounded-md border border-gray-300 dark:border-gray-700 dark:bg-gray-900 py-2 pl-9 pr-3 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500"
                     data-search-input
                 >
@@ -117,8 +117,8 @@
                     <thead class="rounded-t-xl bg-gray-50 text-left text-xs uppercase text-gray-500 dark:bg-gray-800 dark:text-gray-400">
                         <tr>
                             <x-sort-header column="name" label="Nome" icon="user" class="px-5 py-3" />
-                            <x-sort-header column="role" label="Cargo" class="px-5 py-3" />
-                            <th class="px-5 py-3 font-medium">Documento</th>
+                            <x-sort-header column="role" label="Função" class="px-5 py-3" />
+                            <th class="px-5 py-3 font-medium">CPF</th>
                             <x-sort-header column="email" label="E-mail" class="px-5 py-3" />
                             <x-sort-header column="status" label="Status" icon="flag" class="px-5 py-3" />
                             <x-sort-header column="updated_at" label="Atualizado" default="updated_at" class="px-5 py-3" />
@@ -204,7 +204,7 @@
                                 <a href="{{ route('admin.colaboradores.show', $colaborador) }}" class="block truncate text-sm font-medium text-gray-900 hover:text-indigo-600 dark:text-gray-100 dark:hover:text-indigo-400">
                                     {{ $colaborador->name }}
                                 </a>
-                                <p class="truncate text-xs text-gray-500 dark:text-gray-400">{{ $colaborador->role ?? 'Cargo não informado' }}</p>
+                                <p class="truncate text-xs text-gray-500 dark:text-gray-400">{{ $colaborador->role ?? 'Função não informada' }}</p>
                             </div>
                         </div>
 
@@ -281,7 +281,7 @@
                             {{ $colaborador->name }}
                         </a>
                         <p class="truncate text-xs text-gray-500 dark:text-gray-400">
-                            {{ $colaborador->role ?? 'Cargo não informado' }}{{ $colaborador->email ? ' · '.$colaborador->email : '' }}
+                            {{ $colaborador->role ?? 'Função não informada' }}{{ $colaborador->email ? ' · '.$colaborador->email : '' }}
                         </p>
                     </div>
 
@@ -381,8 +381,8 @@
             @endif
 
             <div class="mt-4 rounded-md border border-gray-200 bg-gray-50 p-3 text-sm text-gray-600 dark:border-gray-800 dark:bg-gray-800/50 dark:text-gray-300">
-                <p>Colunas: <span class="font-medium">Nome, Cargo, CPF, Telefone, E-mail, Status, Observações</span>.</p>
-                <p class="mt-1">Nome é obrigatório. Status: ativo ou inativo.</p>
+                <p>Colunas: <span class="font-medium">Nome, Regime de Contrato, Regional, UF, PIS, Função, CPF, CNPJ, RG, Órgão Emissor, Data de Nascimento, Nome da Mãe, Contato, E-mail, Status, Observações</span>.</p>
+                <p class="mt-1">Nome é obrigatório. Status: ativo ou inativo. Regime: CLT, PJ, Estágio, Aprendiz ou Temporário. UF: sigla com 2 letras. Data de Nascimento: dd/mm/aaaa.</p>
                 <a
                     href="{{ route('admin.colaboradores.import.template') }}"
                     class="mt-2 inline-flex items-center gap-1 font-medium text-indigo-600 hover:text-indigo-500 dark:text-indigo-400 dark:hover:text-indigo-300"

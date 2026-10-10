@@ -3,6 +3,8 @@
 namespace App\Http\Requests\Admin;
 
 use App\Enums\ColaboradorStatus;
+use App\Enums\ContractRegime;
+use App\Enums\Uf;
 use App\Models\Colaborador;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
@@ -30,6 +32,10 @@ class StoreColaboradorRequest extends FormRequest
 
         return [
             'name' => ['required', 'string', 'max:255'],
+            'contract_regime' => ['nullable', new Enum(ContractRegime::class)],
+            'regional' => ['nullable', 'string', 'max:50'],
+            'uf' => ['nullable', new Enum(Uf::class)],
+            'pis' => ['nullable', 'string', 'max:20'],
             'role' => ['nullable', 'string', 'max:255'],
             'document' => [
                 'nullable',
@@ -39,6 +45,11 @@ class StoreColaboradorRequest extends FormRequest
                     ->where(fn ($query) => $query->where('user_id', $userId))
                     ->whereNull('deleted_at'),
             ],
+            'cnpj' => ['nullable', 'string', 'max:20'],
+            'rg' => ['nullable', 'string', 'max:30'],
+            'rg_issuer' => ['nullable', 'string', 'max:50'],
+            'birth_date' => ['nullable', 'date'],
+            'mother_name' => ['nullable', 'string', 'max:255'],
             'phone' => ['nullable', 'string', 'max:30'],
             'email' => ['nullable', 'email', 'max:255'],
             'status' => ['nullable', new Enum(ColaboradorStatus::class)],

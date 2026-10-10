@@ -67,8 +67,17 @@ it('creates a colaborador owned by the authenticated user', function () {
 
     $response = $this->actingAs($user)->post('/admin/colaboradores', [
         'name' => 'João da Silva',
+        'contract_regime' => 'CLT',
+        'regional' => 'NO',
+        'uf' => 'PA',
+        'pis' => '123.45678.90-1',
         'role' => 'Técnico N2',
         'document' => '123.456.789-00',
+        'cnpj' => '12.345.678/0001-95',
+        'rg' => '3062601',
+        'rg_issuer' => 'SSP/PA',
+        'birth_date' => '1978-04-13',
+        'mother_name' => 'Maria Lúcia da Costa Ferreira',
         'phone' => '(11) 99999-9999',
         'email' => 'joao@empresa.com.br',
         'status' => 'active',
@@ -81,7 +90,17 @@ it('creates a colaborador owned by the authenticated user', function () {
 
     expect($colaborador->user_id)->toBe($user->getKey())
         ->and($colaborador->name)->toBe('João da Silva')
+        ->and($colaborador->contract_regime->value)->toBe('CLT')
+        ->and($colaborador->regional)->toBe('NO')
+        ->and($colaborador->uf->value)->toBe('PA')
+        ->and($colaborador->pis)->toBe('123.45678.90-1')
         ->and($colaborador->role)->toBe('Técnico N2')
+        ->and($colaborador->document)->toBe('123.456.789-00')
+        ->and($colaborador->cnpj)->toBe('12.345.678/0001-95')
+        ->and($colaborador->rg)->toBe('3062601')
+        ->and($colaborador->rg_issuer)->toBe('SSP/PA')
+        ->and($colaborador->birth_date->format('Y-m-d'))->toBe('1978-04-13')
+        ->and($colaborador->mother_name)->toBe('Maria Lúcia da Costa Ferreira')
         ->and($colaborador->email)->toBe('joao@empresa.com.br')
         ->and($colaborador->status->value)->toBe('active');
 
@@ -89,7 +108,34 @@ it('creates a colaborador owned by the authenticated user', function () {
         ->get(route('admin.colaboradores.show', $colaborador))
         ->assertOk()
         ->assertSee('João da Silva')
-        ->assertSee('joao@empresa.com.br');
+        ->assertSee('joao@empresa.com.br')
+        ->assertSee('SSP/PA');
+});
+
+it('rejects an invalid contract regime', function () {
+    $user = User::factory()->create();
+
+    $this->actingAs($user)
+        ->post('/admin/colaboradores', [
+            'name' => 'João da Silva',
+            'contract_regime' => 'CLTZ',
+        ])
+        ->assertSessionHasErrors('contract_regime');
+
+    expect(Colaborador::query()->count())->toBe(0);
+});
+
+it('rejects an invalid UF', function () {
+    $user = User::factory()->create();
+
+    $this->actingAs($user)
+        ->post('/admin/colaboradores', [
+            'name' => 'João da Silva',
+            'uf' => 'ZZ',
+        ])
+        ->assertSessionHasErrors('uf');
+
+    expect(Colaborador::query()->count())->toBe(0);
 });
 
 it('defaults the colaborador status to active when it is not sent', function () {

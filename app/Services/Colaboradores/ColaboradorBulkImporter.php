@@ -3,11 +3,17 @@
 namespace App\Services\Colaboradores;
 
 use App\Enums\ColaboradorStatus;
+use App\Enums\ContractRegime;
+use App\Enums\Uf;
 use App\Models\User;
 use Illuminate\Contracts\Validation\ValidationRule;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
+use PhpOffice\PhpSpreadsheet\Shared\Date as ExcelDate;
+use Throwable;
 
 class ColaboradorBulkImporter
 {
@@ -54,6 +60,30 @@ class ColaboradorBulkImporter
                 continue;
             }
 
+            $regime = $this->parseContractRegime($data['regime_de_contrato'] ?? null);
+
+            if ($this->hasValue($data['regime_de_contrato'] ?? null) && $regime === null) {
+                $errors[] = "Linha {$line}: regime de contrato inválido (use CLT, PJ, Estágio, Aprendiz ou Temporário).";
+
+                continue;
+            }
+
+            $uf = $this->parseUf($data['uf'] ?? null);
+
+            if ($this->hasValue($data['uf'] ?? null) && $uf === null) {
+                $errors[] = "Linha {$line}: UF inválida (use a sigla com 2 letras, ex.: SP).";
+
+                continue;
+            }
+
+            $birthDate = $this->parseDate($data['data_de_nascimento'] ?? null);
+
+            if ($this->hasValue($data['data_de_nascimento'] ?? null) && $birthDate === null) {
+                $errors[] = "Linha {$line}: data de nascimento inválida (use dd/mm/aaaa).";
+
+                continue;
+            }
+
             $document = isset($data['cpf']) ? $this->normalizeDocument($data['cpf']) : null;
 
             if ($document !== null && isset($existingDocuments[$document])) {
@@ -68,9 +98,18 @@ class ColaboradorBulkImporter
 
             $prepared[] = [
                 'name' => $data['nome'],
-                'role' => $data['cargo'] ?? null,
+                'contract_regime' => $regime?->value,
+                'regional' => $data['regional'] ?? null,
+                'uf' => $uf?->value,
+                'pis' => $data['pis'] ?? null,
+                'role' => $data['funcao'] ?? $data['cargo'] ?? null,
                 'document' => $document === null ? null : $this->formatCpf($document),
-                'phone' => $data['telefone'] ?? null,
+                'cnpj' => $data['cnpj'] ?? null,
+                'rg' => $data['rg'] ?? null,
+                'rg_issuer' => $data['orgao_emissor'] ?? null,
+                'birth_date' => $birthDate?->toDateString(),
+                'mother_name' => $data['nome_da_mae'] ?? null,
+                'phone' => $data['contato'] ?? $data['telefone'] ?? null,
                 'email' => $data['e_mail'] ?? null,
                 'status' => $status->value,
                 'notes' => $data['observacoes'] ?? null,
@@ -99,13 +138,108 @@ class ColaboradorBulkImporter
     {
         return [
             'nome' => ['required', 'string', 'max:255'],
+            'regime_de_contrato' => ['nullable', 'string', 'max:30'],
+            'regional' => ['nullable', 'string', 'max:50'],
+            'uf' => ['nullable', 'string', 'max:2'],
+            'pis' => ['nullable', 'string', 'max:20'],
+            'funcao' => ['nullable', 'string', 'max:255'],
             'cargo' => ['nullable', 'string', 'max:255'],
             'cpf' => ['nullable', 'string', 'max:30'],
+            'cnpj' => ['nullable', 'string', 'max:20'],
+            'rg' => ['nullable', 'string', 'max:30'],
+            'orgao_emissor' => ['nullable', 'string', 'max:50'],
+            'data_de_nascimento' => ['nullable'],
+            'nome_da_mae' => ['nullable', 'string', 'max:255'],
+            'contato' => ['nullable', 'string', 'max:30'],
             'telefone' => ['nullable', 'string', 'max:30'],
             'e_mail' => ['nullable', 'email', 'max:255'],
             'status' => ['nullable', 'string'],
             'observacoes' => ['nullable', 'string', 'max:2000'],
         ];
+    }
+
+    /**
+     * Whether the given cell contains a value.
+     */
+    private function hasValue(mixed $value): bool
+    {
+        return $value !== null && trim((string) $value) !== '';
+    }
+
+    /**
+     * Parse the contract regime label or enum value from a spreadsheet cell.
+     */
+    private function parseContractRegime(mixed $value): ?ContractRegime
+    {
+        $token = $this->token($value);
+
+        if ($token === '') {
+            return null;
+        }
+
+        foreach (ContractRegime::cases() as $case) {
+            if ($this->token($case->value) === $token || $this->token($case->label()) === $token) {
+                return $case;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Parse the UF code from a spreadsheet cell.
+     */
+    private function parseUf(mixed $value): ?Uf
+    {
+        $code = mb_strtoupper(trim((string) $value));
+
+        if ($code === '') {
+            return null;
+        }
+
+        return Uf::tryFrom($code);
+    }
+
+    /**
+     * Parse a date cell, accepting Excel serials and common string formats.
+     */
+    private function parseDate(mixed $value): ?Carbon
+    {
+        if (! $this->hasValue($value)) {
+            return null;
+        }
+
+        if (is_numeric($value)) {
+            try {
+                return Carbon::instance(ExcelDate::excelToDateTimeObject((float) $value))->startOfDay();
+            } catch (Throwable) {
+                return null;
+            }
+        }
+
+        $value = trim((string) $value);
+
+        foreach (['d/m/Y', 'd-m-Y', 'Y-m-d'] as $format) {
+            try {
+                $date = Carbon::createFromFormat($format, $value);
+
+                if ($date !== false) {
+                    return $date->startOfDay();
+                }
+            } catch (Throwable) {
+                // Try the next format.
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Normalize a value into a comparable, accent-free lowercase token.
+     */
+    private function token(mixed $value): string
+    {
+        return Str::slug(trim((string) $value), '');
     }
 
     /**
