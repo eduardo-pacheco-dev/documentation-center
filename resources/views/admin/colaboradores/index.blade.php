@@ -392,7 +392,7 @@
                 </a>
             </div>
 
-            <form method="POST" action="{{ route('admin.colaboradores.import') }}" enctype="multipart/form-data" class="mt-5">
+            <form method="POST" action="{{ route('admin.colaboradores.import') }}" enctype="multipart/form-data" class="mt-5" data-import-form>
                 @csrf
                 <input type="hidden" name="modal" value="import">
 
@@ -403,11 +403,25 @@
                     id="import-file"
                     accept=".xlsx,.xls"
                     required
+                    data-import-file
                     class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-700 dark:bg-gray-900 px-3 py-2 text-sm text-gray-700 dark:text-gray-200 file:mr-3 file:rounded-md file:border-0 file:bg-gray-900 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-white dark:file:bg-white dark:file:text-gray-900"
                 >
                 @error('file')
                     <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p>
                 @enderror
+
+                <div data-import-progress hidden class="mt-4">
+                    <div class="h-2 w-full overflow-hidden rounded-full bg-gray-200 dark:bg-gray-800">
+                        <div data-import-progress-bar class="h-full w-0 rounded-full bg-indigo-500 transition-all duration-200" style="width: 0%"></div>
+                    </div>
+                    <p data-import-progress-label class="mt-1 text-xs text-gray-500 dark:text-gray-400">Enviando planilha...</p>
+                </div>
+
+                <div data-import-errors hidden class="mt-4 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300">
+                    <p class="font-medium">Nenhum colaborador foi criado. Corrija os itens abaixo e tente novamente:</p>
+
+                    <ul data-import-errors-list class="mt-2 list-disc space-y-1 pl-5"></ul>
+                </div>
 
                 <div class="mt-6 flex justify-end gap-2">
                     <button
@@ -419,7 +433,8 @@
                     </button>
                     <button
                         type="submit"
-                        class="inline-flex items-center gap-1.5 rounded-md bg-gray-900 dark:bg-white px-4 py-2 text-sm font-medium text-white dark:text-gray-900 hover:bg-gray-700 dark:hover:bg-gray-200"
+                        data-import-submit
+                        class="inline-flex items-center gap-1.5 rounded-md bg-gray-900 dark:bg-white px-4 py-2 text-sm font-medium text-white dark:text-gray-900 hover:bg-gray-700 dark:hover:bg-gray-200 disabled:cursor-not-allowed disabled:opacity-60"
                     >
                         <x-icon name="arrow-up-tray" class="h-4 w-4" />
                         Importar
@@ -560,5 +575,144 @@
         if (importModal?.hasAttribute('data-open')) {
             openModal(importModal);
         }
+    </script>
+
+    <script>
+        (function () {
+            const form = document.querySelector('[data-import-form]');
+
+            if (!form) {
+                return;
+            }
+
+            const fileInput = form.querySelector('[data-import-file]');
+            const submitButton = form.querySelector('[data-import-submit]');
+            const progress = form.querySelector('[data-import-progress]');
+            const progressBar = form.querySelector('[data-import-progress-bar]');
+            const progressLabel = form.querySelector('[data-import-progress-label]');
+            const errorsBox = form.querySelector('[data-import-errors]');
+            const errorsList = form.querySelector('[data-import-errors-list]');
+
+            const resetErrors = () => {
+                if (errorsBox) {
+                    errorsBox.hidden = true;
+                }
+
+                if (errorsList) {
+                    errorsList.innerHTML = '';
+                }
+            };
+
+            const showErrors = (messages) => {
+                if (!errorsBox || !errorsList) {
+                    return;
+                }
+
+                errorsList.innerHTML = '';
+
+                messages.forEach((message) => {
+                    const item = document.createElement('li');
+                    item.textContent = message;
+                    errorsList.appendChild(item);
+                });
+
+                errorsBox.hidden = false;
+                errorsBox.scrollIntoView({ block: 'center', behavior: 'smooth' });
+            };
+
+            const setProgress = (value, label) => {
+                if (!progress || !progressBar) {
+                    return;
+                }
+
+                progress.hidden = false;
+                progressBar.style.width = value + '%';
+
+                if (progressLabel && label) {
+                    progressLabel.textContent = label;
+                }
+            };
+
+            const enable = () => {
+                if (submitButton) {
+                    submitButton.disabled = false;
+                }
+            };
+
+            form.addEventListener('submit', (event) => {
+                event.preventDefault();
+
+                if (!fileInput || fileInput.files.length === 0) {
+                    fileInput?.reportValidity();
+
+                    return;
+                }
+
+                resetErrors();
+
+                const xhr = new XMLHttpRequest();
+                xhr.open('POST', form.action, true);
+                xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
+                xhr.setRequestHeader('Accept', 'application/json');
+
+                xhr.upload.addEventListener('progress', (progressEvent) => {
+                    if (!progressEvent.lengthComputable) {
+                        return;
+                    }
+
+                    const percent = Math.min(100, Math.round((progressEvent.loaded / progressEvent.total) * 100));
+                    setProgress(percent, percent < 100 ? 'Enviando planilha... ' + percent + '%' : 'Processando planilha...');
+                });
+
+                xhr.addEventListener('load', () => {
+                    let payload = {};
+
+                    try {
+                        payload = JSON.parse(xhr.responseText);
+                    } catch (error) {
+                        payload = {};
+                    }
+
+                    if (xhr.status >= 200 && xhr.status < 300) {
+                        setProgress(100, 'Concluído!');
+                        window.location = payload.redirect || window.location.href;
+
+                        return;
+                    }
+
+                    if (progress) {
+                        progress.hidden = true;
+                    }
+
+                    enable();
+
+                    const errors = payload.errors || {};
+                    let messages = errors.import || Object.values(errors).flat();
+
+                    if (!Array.isArray(messages) || messages.length === 0) {
+                        messages = [payload.message || 'Não foi possível importar a planilha.'];
+                    }
+
+                    showErrors(messages);
+                    window.toasts?.error('Não foi possível importar a planilha.');
+                });
+
+                xhr.addEventListener('error', () => {
+                    if (progress) {
+                        progress.hidden = true;
+                    }
+
+                    enable();
+                    window.toasts?.error('Erro de rede ao enviar a planilha.');
+                });
+
+                if (submitButton) {
+                    submitButton.disabled = true;
+                }
+
+                setProgress(0, 'Enviando planilha...');
+                xhr.send(new FormData(form));
+            });
+        })();
     </script>
 </x-layouts.admin>

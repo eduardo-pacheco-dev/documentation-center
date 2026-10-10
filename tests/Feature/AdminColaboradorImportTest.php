@@ -221,6 +221,37 @@ it('downloads the import template', function () {
     $response->assertHeader('content-type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
 });
 
+it('imports colaboradores via ajax and returns a redirect url', function () {
+    $user = User::factory()->create();
+
+    $file = colaboradorWorkbook([
+        ['João da Silva', '', '', '', '', 'Técnico N2', '123.456.789-00', '', '', '', '', '', '', '', 'ativo', ''],
+    ]);
+
+    $this->actingAs($user)
+        ->postJson(route('admin.colaboradores.import'), ['file' => $file])
+        ->assertOk()
+        ->assertJsonPath('redirect', route('admin.colaboradores.index'))
+        ->assertSessionHas('status');
+
+    expect(Colaborador::query()->count())->toBe(1);
+});
+
+it('returns json validation errors when an ajax import is invalid', function () {
+    $user = User::factory()->create();
+
+    $file = colaboradorWorkbook([
+        ['Bruno Lima', '', '', '', '', 'Técnico N2', '', '', '', '', '', '', '', 'demitido', ''],
+    ]);
+
+    $this->actingAs($user)
+        ->postJson(route('admin.colaboradores.import'), ['file' => $file])
+        ->assertStatus(422)
+        ->assertJsonValidationErrors('import');
+
+    expect(Colaborador::query()->count())->toBe(0);
+});
+
 it('requires authentication to import colaboradores', function () {
     $this->post(route('admin.colaboradores.import'))->assertRedirect('/login');
 });

@@ -4,9 +4,11 @@
         <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Acesse o painel administrativo.</p>
 
         @if (session('status'))
-            <div class="mt-4 rounded-md border border-green-200 dark:border-green-900 bg-green-50 dark:bg-green-950 px-3 py-2 text-sm text-green-800 dark:text-green-300">
-                {{ session('status') }}
-            </div>
+            <noscript>
+                <div class="mt-4 rounded-md border border-green-200 dark:border-green-900 bg-green-50 dark:bg-green-950 px-3 py-2 text-sm text-green-800 dark:text-green-300">
+                    {{ session('status') }}
+                </div>
+            </noscript>
         @endif
 
         <form method="POST" action="{{ route('login') }}" class="mt-6 space-y-4">

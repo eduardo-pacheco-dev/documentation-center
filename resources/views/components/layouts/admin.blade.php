@@ -149,9 +149,11 @@
 
         <main class="mx-auto w-full max-w-6xl flex-1 px-4 py-8">
             @if (session('status'))
-                <div class="mb-6 rounded-md border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800 dark:border-green-900 dark:bg-green-950 dark:text-green-300">
-                    {{ session('status') }}
-                </div>
+                <noscript>
+                    <div class="mb-6 rounded-md border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800 dark:border-green-900 dark:bg-green-950 dark:text-green-300">
+                        {{ session('status') }}
+                    </div>
+                </noscript>
             @endif
 
             {{ $slot }}
@@ -160,5 +162,7 @@
         <footer class="border-t border-gray-200 bg-white px-4 py-6 text-center text-sm text-gray-500 dark:border-gray-800 dark:bg-gray-950 dark:text-gray-400">
             <p>&copy; {{ date('Y') }} {{ config('app.name') }}. Todos os direitos reservados.</p>
         </footer>
+
+        <x-toasts />
     </body>
 </html>
