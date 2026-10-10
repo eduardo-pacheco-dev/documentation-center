@@ -28,4 +28,6 @@ jobs:
           envs: WEB_USER
           script: |
             cd "${{ secrets.SERVER_PATH }}"
+            git fetch --prune origin main
+            git checkout origin/main -- deploy.sh
             bash deploy.sh
