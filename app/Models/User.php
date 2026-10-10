@@ -106,6 +106,16 @@ class User extends Authenticatable
     }
 
     /**
+     * The colaboradores registered by the user.
+     *
+     * @return HasMany<Colaborador, $this>
+     */
+    public function colaboradores(): HasMany
+    {
+        return $this->hasMany(Colaborador::class);
+    }
+
+    /**
      * The project memberships held by the user.
      *
      * @return HasMany<ProjectMember, $this>

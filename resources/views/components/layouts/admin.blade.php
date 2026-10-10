@@ -45,6 +45,7 @@
                                 ['url' => route('admin.radio-links.index'), 'active' => 'admin.radio-links.*', 'icon' => 'arrows-right-left', 'label' => 'Radio links'],
                                 ['url' => route('admin.catalog.index'), 'active' => 'admin.catalog.*', 'icon' => 'cube', 'label' => 'Catálogo'],
                                 ['url' => route('admin.work-orders.index'), 'active' => 'admin.work-orders.*', 'icon' => 'clipboard-document-list', 'label' => 'Ordens de serviço'],
+                                ['url' => route('admin.colaboradores.index'), 'active' => 'admin.colaboradores.*', 'icon' => 'user', 'label' => 'Colaboradores'],
                             ];
 
                             if (auth()->user()->is_admin) {

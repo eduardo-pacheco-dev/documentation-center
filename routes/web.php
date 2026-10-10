@@ -4,6 +4,7 @@ use App\Http\Controllers\Admin\CatalogItemController;
 use App\Http\Controllers\Admin\ClientContactController;
 use App\Http\Controllers\Admin\ClientController;
 use App\Http\Controllers\Admin\ClientDocumentController;
+use App\Http\Controllers\Admin\ColaboradorController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\DocumentController;
 use App\Http\Controllers\Admin\ErbCommentController;
@@ -137,6 +138,14 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
     Route::get('radio-links/{radioLink}/edit', [RadioLinkController::class, 'edit'])->name('radio-links.edit');
     Route::put('radio-links/{radioLink}', [RadioLinkController::class, 'update'])->name('radio-links.update');
     Route::delete('radio-links/{radioLink}', [RadioLinkController::class, 'destroy'])->name('radio-links.destroy');
+
+    Route::get('colaboradores', [ColaboradorController::class, 'index'])->name('colaboradores.index');
+    Route::get('colaboradores/create', [ColaboradorController::class, 'create'])->name('colaboradores.create');
+    Route::post('colaboradores', [ColaboradorController::class, 'store'])->name('colaboradores.store');
+    Route::get('colaboradores/{colaborador}', [ColaboradorController::class, 'show'])->name('colaboradores.show');
+    Route::get('colaboradores/{colaborador}/edit', [ColaboradorController::class, 'edit'])->name('colaboradores.edit');
+    Route::put('colaboradores/{colaborador}', [ColaboradorController::class, 'update'])->name('colaboradores.update');
+    Route::delete('colaboradores/{colaborador}', [ColaboradorController::class, 'destroy'])->name('colaboradores.destroy');
 
     Route::get('work-orders', [WorkOrderController::class, 'index'])->name('work-orders.index');
     Route::get('work-orders/create', [WorkOrderController::class, 'create'])->name('work-orders.create');
