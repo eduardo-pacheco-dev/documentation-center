@@ -132,7 +132,6 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
     Route::delete('erbs/{erb}/comments/{comment}', [ErbCommentController::class, 'destroy'])->name('erbs.comments.destroy');
 
     Route::get('radio-links', [RadioLinkController::class, 'index'])->name('radio-links.index');
-    Route::get('radio-links/create', [RadioLinkController::class, 'create'])->name('radio-links.create');
     Route::post('radio-links', [RadioLinkController::class, 'store'])->name('radio-links.store');
     Route::get('radio-links/{radioLink}', [RadioLinkController::class, 'show'])->name('radio-links.show');
     Route::get('radio-links/{radioLink}/edit', [RadioLinkController::class, 'edit'])->name('radio-links.edit');

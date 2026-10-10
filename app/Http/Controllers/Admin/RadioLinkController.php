@@ -79,17 +79,6 @@ class RadioLinkController extends Controller
             'status' => $status,
             'view' => $view,
             'perPage' => $perPage,
-        ]);
-    }
-
-    /**
-     * Show the form to create a radio link.
-     */
-    public function create(Request $request): View
-    {
-        $this->authorize('create', RadioLink::class);
-
-        return view('admin.radio-links.create', [
             'erbs' => $this->endpoints($request),
         ]);
     }

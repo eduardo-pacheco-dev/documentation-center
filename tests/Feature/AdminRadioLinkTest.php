@@ -122,8 +122,6 @@ it('creates a radio link owned by the authenticated user', function () {
     $user = User::factory()->create();
     $endpoints = radioLinkEndpoints($user);
 
-    $this->actingAs($user)->get('/admin/radio-links/create')->assertOk();
-
     $response = $this->actingAs($user)
         ->post('/admin/radio-links', validRadioLinkPayload($endpoints['endA'], $endpoints['endB']));
 
