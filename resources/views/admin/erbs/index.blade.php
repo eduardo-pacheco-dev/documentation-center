@@ -28,6 +28,7 @@
 
             <a
                 href="{{ route('admin.erbs.create') }}"
+                data-modal-open="erb-create-modal"
                 class="inline-flex items-center gap-1.5 rounded-md bg-gray-900 dark:bg-white px-4 py-2 text-sm font-medium text-white dark:text-gray-900 hover:bg-gray-700 dark:hover:bg-gray-200"
             >
                 <x-icon name="plus" class="h-4 w-4" />
@@ -422,6 +423,93 @@
         </div>
     </div>
 
+    <div
+        id="erb-create-modal"
+        class="fixed inset-0 z-50 hidden"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="erb-create-modal-title"
+        @if ($errors->any() && old('modal') === 'create') data-open @endif
+    >
+        <div class="absolute inset-0 bg-gray-900/50" data-modal-close></div>
+
+        <div class="absolute left-1/2 top-1/2 max-h-[90vh] w-full max-w-2xl -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-xl bg-white p-5 shadow-xl dark:bg-gray-900">
+            <div class="flex items-start justify-between gap-4">
+                <div>
+                    <h2 id="erb-create-modal-title" class="flex items-center gap-2 text-base font-semibold text-gray-900 dark:text-gray-100">
+                        <x-icon name="signal" class="h-5 w-5 text-gray-400 dark:text-gray-500" />
+                        Nova ERB
+                    </h2>
+                    <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Preencha as etapas abaixo para cadastrar a estação rádio base.</p>
+                </div>
+
+                <button
+                    type="button"
+                    class="rounded-full p-1 text-gray-400 dark:text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-700"
+                    data-modal-close
+                >
+                    <span class="sr-only">Fechar</span>
+                    <x-icon name="x-mark" class="h-5 w-5" />
+                </button>
+            </div>
+
+            @if ($errors->any() && old('modal') === 'create')
+                <div
+                    data-modal-error
+                    class="mt-4 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300"
+                >
+                    <p class="font-medium">Não foi possível criar a ERB. Corrija os itens destacados e tente novamente.</p>
+                </div>
+            @endif
+
+            <form method="POST" action="{{ route('admin.erbs.store') }}" class="mt-5" data-wizard novalidate>
+                @csrf
+                <input type="hidden" name="modal" value="create">
+
+                <ol data-wizard-steps class="flex flex-wrap items-center gap-2" role="list"></ol>
+
+                <div class="mt-5">
+                    @include('admin.erbs.partials.form', ['wizard' => true])
+                </div>
+
+                <div class="mt-6 flex items-center gap-2 border-t border-gray-100 pt-4 dark:border-gray-800">
+                    <button
+                        type="button"
+                        data-wizard-prev
+                        class="hidden rounded-md border border-gray-300 dark:border-gray-700 dark:bg-gray-900 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800"
+                    >
+                        Voltar
+                    </button>
+
+                    <div class="ml-auto flex items-center gap-2">
+                        <button
+                            type="button"
+                            class="rounded-md border border-gray-300 dark:border-gray-700 dark:bg-gray-900 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800"
+                            data-modal-close
+                        >
+                            Cancelar
+                        </button>
+                        <button
+                            type="button"
+                            data-wizard-next
+                            class="inline-flex items-center gap-1.5 rounded-md bg-gray-900 dark:bg-white px-4 py-2 text-sm font-medium text-white dark:text-gray-900 hover:bg-gray-700 dark:hover:bg-gray-200"
+                        >
+                            Próximo
+                        </button>
+                        <button
+                            type="submit"
+                            data-wizard-submit
+                            class="hidden items-center gap-1.5 rounded-md bg-gray-900 dark:bg-white px-4 py-2 text-sm font-medium text-white dark:text-gray-900 hover:bg-gray-700 dark:hover:bg-gray-200"
+                        >
+                            <x-icon name="check" class="h-4 w-4" />
+                            Criar ERB
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <script>
         (function () {
             const params = new URLSearchParams(window.location.search);
@@ -520,10 +608,7 @@
             }
         });
 
-        const erbImportModal = document.getElementById('erb-import-modal');
-        if (erbImportModal?.hasAttribute('data-open')) {
-            openModal(erbImportModal);
-        }
+        document.querySelectorAll('[role="dialog"][data-open]').forEach(openModal);
 
         const searchForm = document.querySelector('[data-search-form]');
         const searchInput = document.querySelector('[data-search-input]');
@@ -546,6 +631,100 @@
                 searchInput.focus();
                 searchInput.setSelectionRange(searchInput.value.length, searchInput.value.length);
             }
+        }
+
+        const wizard = document.querySelector('[data-wizard]');
+
+        if (wizard) {
+            const panels = Array.from(wizard.querySelectorAll('[data-wizard-panel]'));
+            const stepsList = wizard.querySelector('[data-wizard-steps]');
+            const prevButton = wizard.querySelector('[data-wizard-prev]');
+            const nextButton = wizard.querySelector('[data-wizard-next]');
+            const submitButton = wizard.querySelector('[data-wizard-submit]');
+            const scroller = wizard.closest('.overflow-y-auto');
+            const baseIndicator = 'inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-medium transition';
+            const inactiveIndicator = baseIndicator + ' border-gray-300 text-gray-600 hover:bg-gray-100 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800';
+            const activeIndicator = baseIndicator + ' border-gray-900 bg-gray-900 text-white dark:border-white dark:bg-white dark:text-gray-900';
+            const doneIndicator = baseIndicator + ' border-green-500 text-green-600 dark:text-green-400';
+            let current = 0;
+
+            if (stepsList) {
+                stepsList.innerHTML = panels.map((panel, index) => `
+                    <li>
+                        <button type="button" data-wizard-indicator="${index}" class="${inactiveIndicator}">
+                            <span class="inline-flex h-5 w-5 items-center justify-center rounded-full bg-gray-200 text-[0.65rem] font-semibold text-gray-700 dark:bg-gray-700 dark:text-gray-200">${index + 1}</span>
+                            <span>${panel.dataset.wizardTitle ?? ''}</span>
+                        </button>
+                    </li>
+                `).join('');
+            }
+
+            const indicators = stepsList ? Array.from(stepsList.querySelectorAll('[data-wizard-indicator]')) : [];
+
+            const firstInvalid = (panel) => Array.from(panel.querySelectorAll('input, select, textarea'))
+                .find((field) => !field.checkValidity());
+
+            const render = () => {
+                panels.forEach((panel, index) => panel.classList.toggle('hidden', index !== current));
+
+                indicators.forEach((indicator, index) => {
+                    indicator.className = index === current
+                        ? activeIndicator
+                        : (index < current ? doneIndicator : inactiveIndicator);
+                });
+
+                prevButton.classList.toggle('hidden', current === 0);
+                nextButton.classList.toggle('hidden', current === panels.length - 1);
+                submitButton.classList.toggle('hidden', current !== panels.length - 1);
+                submitButton.classList.toggle('inline-flex', current === panels.length - 1);
+            };
+
+            const goTo = (index) => {
+                current = Math.max(0, Math.min(index, panels.length - 1));
+                render();
+
+                if (scroller) {
+                    scroller.scrollTop = 0;
+                }
+            };
+
+            nextButton.addEventListener('click', () => {
+                const invalid = firstInvalid(panels[current]);
+
+                if (invalid) {
+                    invalid.reportValidity();
+                    return;
+                }
+
+                goTo(current + 1);
+            });
+
+            prevButton.addEventListener('click', () => goTo(current - 1));
+
+            indicators.forEach((indicator) => {
+                indicator.addEventListener('click', () => goTo(Number(indicator.dataset.wizardIndicator)));
+            });
+
+            wizard.addEventListener('submit', (event) => {
+                for (let index = 0; index < panels.length; index++) {
+                    const invalid = firstInvalid(panels[index]);
+
+                    if (invalid) {
+                        event.preventDefault();
+                        goTo(index);
+                        invalid.reportValidity();
+                        return;
+                    }
+                }
+            });
+
+            document.querySelectorAll('[data-modal-open="erb-create-modal"]').forEach((opener) => {
+                opener.addEventListener('click', () => goTo(0));
+            });
+
+            const errorPanel = panels.findIndex((panel) => panel.querySelector('.text-red-600'));
+
+            goTo(errorPanel > -1 ? errorPanel : 0);
         }
     </script>
 </x-layouts.admin>

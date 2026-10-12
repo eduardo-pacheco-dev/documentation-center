@@ -105,6 +105,28 @@ it('creates an ERB owned by the authenticated user', function () {
         ->assertSee('Vivo');
 });
 
+it('renders the stepped create ERB modal on the list page', function () {
+    $user = User::factory()->create();
+
+    $this->actingAs($user)
+        ->get('/admin/erbs')
+        ->assertOk()
+        ->assertSee('data-modal-open="erb-create-modal"', false)
+        ->assertSee('id="erb-create-modal"', false)
+        ->assertSee('data-wizard-panel', false);
+});
+
+it('reopens the create ERB modal when validation fails', function () {
+    $user = User::factory()->create();
+
+    $this->actingAs($user)
+        ->from('/admin/erbs')
+        ->followingRedirects()
+        ->post('/admin/erbs', ['modal' => 'create', 'name' => 'Sem código'])
+        ->assertOk()
+        ->assertSee('data-open', false);
+});
+
 it('defaults the ERB status to active when it is not sent', function () {
     $user = User::factory()->create();
 
