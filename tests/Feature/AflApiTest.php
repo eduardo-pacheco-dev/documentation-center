@@ -69,6 +69,37 @@ test('users can filter sites by the assigned person', function () {
         ->assertJsonPath('0.endDate', '2025-11-01');
 });
 
+test('users can filter their sites by the site and end identifiers', function () {
+    $user = User::factory()->create();
+
+    Erb::factory()->for($user)->create([
+        'code' => 'PAMBA45',
+        'site_id' => 'PABLM',
+        'end_id' => 'PABLM_0001',
+    ]);
+    Erb::factory()->for($user)->create([
+        'code' => 'PAMBA41',
+        'site_id' => 'PABXA',
+        'end_id' => 'PABXA_0002',
+    ]);
+
+    $token = $user->createToken('mobile')->plainTextToken;
+
+    $this->withToken($token)
+        ->getJson('/api/v1/sites?siteId=PABLM')
+        ->assertOk()
+        ->assertJsonCount(1)
+        ->assertJsonPath('0.id', 'PAMBA45')
+        ->assertJsonPath('0.siteId', 'PABLM')
+        ->assertJsonPath('0.endId', 'PABLM_0001');
+
+    $this->withToken($token)
+        ->getJson('/api/v1/sites?endId=PABXA_0002')
+        ->assertOk()
+        ->assertJsonCount(1)
+        ->assertJsonPath('0.id', 'PAMBA41');
+});
+
 test('users can fetch a single site by code', function () {
     $user = User::factory()->create();
     $erb = Erb::factory()->for($user)->create(['code' => 'PAMBA45', 'city' => 'Salvador', 'state' => 'BA']);

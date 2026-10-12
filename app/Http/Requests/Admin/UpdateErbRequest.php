@@ -47,6 +47,8 @@ class UpdateErbRequest extends FormRequest
                     ->ignore($this->erb()->getKey()),
             ],
             'name' => ['required', 'string', 'max:255'],
+            'site_id' => ['nullable', 'string', 'max:255'],
+            'end_id' => ['nullable', 'string', 'max:60'],
             'operator' => ['nullable', 'string', 'max:80'],
             'technology' => ['nullable', 'string', 'max:40'],
             'assigned_to' => ['nullable', 'email', 'max:255'],

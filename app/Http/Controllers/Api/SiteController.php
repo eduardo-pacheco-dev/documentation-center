@@ -15,6 +15,8 @@ use OpenApi\Attributes as OA;
     properties: [
         new OA\Property(property: 'id', type: 'string', example: 'PAMBA45'),
         new OA\Property(property: 'assignedTo', type: 'string', nullable: true, example: 'dev@afl.com.br'),
+        new OA\Property(property: 'siteId', type: 'string', nullable: true, example: 'SITE-00001'),
+        new OA\Property(property: 'endId', type: 'string', nullable: true, example: 'PABLM_0001'),
         new OA\Property(property: 'name', type: 'string', nullable: true, example: 'Sede Administrativa'),
         new OA\Property(property: 'city', type: 'string', nullable: true, example: 'Salvador'),
         new OA\Property(property: 'state', type: 'string', nullable: true, example: 'BA'),
@@ -43,6 +45,8 @@ class SiteController extends Controller
             new OA\Parameter(name: '_page', in: 'query', required: false, schema: new OA\Schema(type: 'integer', default: 1)),
             new OA\Parameter(name: '_limit', in: 'query', required: false, schema: new OA\Schema(type: 'integer', default: 15)),
             new OA\Parameter(name: 'assignedTo', in: 'query', required: false, description: 'Filtra pelos sites atribuídos ao e-mail.', schema: new OA\Schema(type: 'string')),
+            new OA\Parameter(name: 'siteId', in: 'query', required: false, description: 'Filtra pelo identificador do site.', schema: new OA\Schema(type: 'string')),
+            new OA\Parameter(name: 'endId', in: 'query', required: false, description: 'Filtra pelo código de identificação da ERB.', schema: new OA\Schema(type: 'string')),
         ],
         responses: [
             new OA\Response(
@@ -63,7 +67,9 @@ class SiteController extends Controller
 
         $query = Erb::query()
             ->ownedBy($request->user())
-            ->when($request->filled('assignedTo'), fn ($builder) => $builder->where('assigned_to', $request->query('assignedTo')));
+            ->when($request->filled('assignedTo'), fn ($builder) => $builder->where('assigned_to', $request->query('assignedTo')))
+            ->when($request->filled('siteId'), fn ($builder) => $builder->where('site_id', $request->query('siteId')))
+            ->when($request->filled('endId'), fn ($builder) => $builder->where('end_id', $request->query('endId')));
 
         $total = (clone $query)->count();
 

@@ -18,6 +18,8 @@ class SiteResource extends JsonResource
         return [
             'id' => $this->code,
             'assignedTo' => $this->assigned_to,
+            'siteId' => $this->site_id,
+            'endId' => $this->end_id,
             'name' => $this->name,
             'city' => $this->city,
             'state' => $this->state,

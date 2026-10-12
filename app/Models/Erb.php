@@ -17,6 +17,8 @@ use Illuminate\Database\Eloquent\SoftDeletes;
     'code',
     'assigned_to',
     'name',
+    'site_id',
+    'end_id',
     'operator',
     'technology',
     'nokia_smp_id',

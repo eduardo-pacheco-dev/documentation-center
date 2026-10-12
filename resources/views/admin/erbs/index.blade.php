@@ -56,7 +56,7 @@
                     type="search"
                     name="search"
                     value="{{ $search }}"
-                    placeholder="Buscar por código, nome, operadora, tecnologia ou cidade..."
+                    placeholder="Buscar por código, nome, site ID, end ID, operadora, tecnologia ou cidade..."
                     class="block w-full rounded-md border border-gray-300 dark:border-gray-700 dark:bg-gray-900 py-2 pl-9 pr-3 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500"
                     data-search-input
                 >

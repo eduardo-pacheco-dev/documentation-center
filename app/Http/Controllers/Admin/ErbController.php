@@ -51,6 +51,8 @@ class ErbController extends Controller
             ->when($search !== '', fn (Builder $query) => $query->where(fn (Builder $inner) => $inner
                 ->where('code', 'like', "%{$search}%")
                 ->orWhere('name', 'like', "%{$search}%")
+                ->orWhere('site_id', 'like', "%{$search}%")
+                ->orWhere('end_id', 'like', "%{$search}%")
                 ->orWhere('operator', 'like', "%{$search}%")
                 ->orWhere('technology', 'like', "%{$search}%")
                 ->orWhere('city', 'like', "%{$search}%")))

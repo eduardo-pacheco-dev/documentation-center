@@ -95,6 +95,14 @@
             <h2 class="text-xs font-semibold uppercase text-gray-500 dark:text-gray-400">Integração AFL</h2>
             <dl class="mt-3 space-y-2 text-sm">
                 <div class="flex items-center justify-between gap-4">
+                    <dt class="text-gray-500 dark:text-gray-400">Site ID</dt>
+                    <dd class="truncate font-medium text-gray-900 dark:text-gray-100">{{ $erb->site_id ?? '—' }}</dd>
+                </div>
+                <div class="flex items-center justify-between gap-4">
+                    <dt class="text-gray-500 dark:text-gray-400">End ID</dt>
+                    <dd class="truncate font-medium text-gray-900 dark:text-gray-100">{{ $erb->end_id ?? '—' }}</dd>
+                </div>
+                <div class="flex items-center justify-between gap-4">
                     <dt class="text-gray-500 dark:text-gray-400">Responsável</dt>
                     <dd class="truncate font-medium text-gray-900 dark:text-gray-100">{{ $erb->assigned_to ?? '—' }}</dd>
                 </div>

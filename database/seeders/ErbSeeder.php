@@ -69,11 +69,15 @@ class ErbSeeder extends Seeder
     {
         $position = $index - 1;
         [$city, $state] = self::CITIES[$position % count(self::CITIES)];
+        $name = 'ERB '.$city.' '.(intdiv($position, count(self::CITIES)) + 1);
+        $endPrefix = strtoupper(substr(preg_replace('/[^A-Za-z]/', '', $city) ?? '', 0, 5));
 
         Erb::create([
             'user_id' => $owner->getKey(),
             'code' => 'ERB-'.str_pad((string) $index, 5, '0', STR_PAD_LEFT),
-            'name' => 'ERB '.$city.' '.intdiv($position, count(self::CITIES)) + 1,
+            'site_id' => $name,
+            'end_id' => $endPrefix.'_'.str_pad((string) $index, 4, '0', STR_PAD_LEFT),
+            'name' => $name,
             'operator' => self::OPERATORS[$position % count(self::OPERATORS)],
             'technology' => self::TECHNOLOGIES[$position % count(self::TECHNOLOGIES)],
             'status' => match (true) {

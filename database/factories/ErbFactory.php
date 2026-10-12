@@ -24,6 +24,8 @@ class ErbFactory extends Factory
             'code' => 'ERB-'.fake()->unique()->numerify('#####'),
             'assigned_to' => fake()->safeEmail(),
             'name' => 'ERB '.fake()->city(),
+            'site_id' => 'SITE'.fake()->unique()->numerify('#####'),
+            'end_id' => strtoupper(fake()->unique()->bothify('????_####')),
             'operator' => fake()->randomElement(['Vivo', 'Claro', 'TIM', 'Oi', 'Algar', 'Sercomtel']),
             'technology' => fake()->randomElement(['2G', '3G', '4G', '5G', '4G/5G']),
             'nokia_smp_id' => 'SMP'.fake()->unique()->numerify('####'),

@@ -38,6 +38,36 @@
     </div>
 
     <div>
+        <label for="site_id" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Site ID</label>
+        <input
+            type="text"
+            name="site_id"
+            id="site_id"
+            value="{{ old('site_id', $erb?->site_id) }}"
+            placeholder="Ex.: SITE-00001"
+            class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-700 dark:bg-gray-900 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500"
+        >
+        @error('site_id')
+            <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p>
+        @enderror
+    </div>
+
+    <div>
+        <label for="end_id" class="block text-sm font-medium text-gray-700 dark:text-gray-300">End ID</label>
+        <input
+            type="text"
+            name="end_id"
+            id="end_id"
+            value="{{ old('end_id', $erb?->end_id) }}"
+            placeholder="Ex.: PABLM_0001"
+            class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-700 dark:bg-gray-900 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500"
+        >
+        @error('end_id')
+            <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p>
+        @enderror
+    </div>
+
+    <div>
         <label for="operator" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Operadora</label>
         <input
             type="text"

@@ -55,6 +55,53 @@ it('filters the ERB list by search term and status', function () {
         ->assertDontSee('Alpha Norte');
 });
 
+it('stores the site and end identifiers when creating an ERB', function () {
+    $user = User::factory()->create();
+
+    $this->actingAs($user)->post('/admin/erbs', [
+        'code' => 'ERB-00050',
+        'name' => 'ERB Central',
+        'site_id' => 'PABLM',
+        'end_id' => 'PABLM_0001',
+    ])->assertRedirect();
+
+    $erb = Erb::query()->firstOrFail();
+
+    expect($erb->site_id)->toBe('PABLM')
+        ->and($erb->end_id)->toBe('PABLM_0001');
+});
+
+it('filters the ERB list by site and end identifiers', function () {
+    $owner = User::factory()->create();
+
+    Erb::factory()->create([
+        'user_id' => $owner->getKey(),
+        'code' => 'ERB-00001',
+        'name' => 'Alpha Norte',
+        'site_id' => 'PABLM',
+        'end_id' => 'PABLM_0001',
+    ]);
+    Erb::factory()->create([
+        'user_id' => $owner->getKey(),
+        'code' => 'ERB-00002',
+        'name' => 'Beta Sul',
+        'site_id' => 'PABXA',
+        'end_id' => 'PABXA_0002',
+    ]);
+
+    $this->actingAs($owner)
+        ->get('/admin/erbs?search=PABLM_0001')
+        ->assertOk()
+        ->assertSee('Alpha Norte')
+        ->assertDontSee('Beta Sul');
+
+    $this->actingAs($owner)
+        ->get('/admin/erbs?search=PABXA')
+        ->assertOk()
+        ->assertSee('Beta Sul')
+        ->assertDontSee('Alpha Norte');
+});
+
 it('renders the ERB list in the alternate view modes', function () {
     $owner = User::factory()->create();
 
