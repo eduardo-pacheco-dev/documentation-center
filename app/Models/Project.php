@@ -17,6 +17,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 #[Fillable([
     'user_id',
+    'code',
     'work_order_id',
     'erb_id',
     'name',
@@ -35,6 +36,33 @@ class Project extends Model
 {
     /** @use HasFactory<ProjectFactory> */
     use HasFactory, SoftDeletes;
+
+    /**
+     * Boot the model and assign a sequential code when none is provided.
+     */
+    protected static function booted(): void
+    {
+        static::creating(function (Project $project): void {
+            if (blank($project->code) && $project->user_id !== null) {
+                $project->code = static::generateCode($project->user);
+            }
+        });
+    }
+
+    /**
+     * Generate the next sequential code for the user's projects.
+     */
+    public static function generateCode(User $user): string
+    {
+        $sequence = $user->projects()->withTrashed()->count() + 1;
+
+        do {
+            $code = 'PRJ-'.str_pad((string) $sequence, 4, '0', STR_PAD_LEFT);
+            $sequence++;
+        } while ($user->projects()->withTrashed()->where('code', $code)->exists());
+
+        return $code;
+    }
 
     /**
      * The user that created the project.
@@ -58,6 +86,16 @@ class Project extends Model
     public function erb(): BelongsTo
     {
         return $this->belongsTo(Erb::class);
+    }
+
+    /**
+     * The data-collection forms that belong to the project.
+     *
+     * @return HasMany<Form, $this>
+     */
+    public function forms(): HasMany
+    {
+        return $this->hasMany(Form::class);
     }
 
     /**

@@ -92,6 +92,32 @@
         </div>
 
         <div class="rounded-xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-800 dark:bg-gray-900">
+            <h2 class="text-xs font-semibold uppercase text-gray-500 dark:text-gray-400">Integração AFL</h2>
+            <dl class="mt-3 space-y-2 text-sm">
+                <div class="flex items-center justify-between gap-4">
+                    <dt class="text-gray-500 dark:text-gray-400">Responsável</dt>
+                    <dd class="truncate font-medium text-gray-900 dark:text-gray-100">{{ $erb->assigned_to ?? '—' }}</dd>
+                </div>
+                <div class="flex items-center justify-between gap-4">
+                    <dt class="text-gray-500 dark:text-gray-400">ID SMP</dt>
+                    <dd class="truncate font-medium text-gray-900 dark:text-gray-100">{{ $erb->nokia_smp_id ?? '—' }}</dd>
+                </div>
+                <div class="flex items-center justify-between gap-4">
+                    <dt class="text-gray-500 dark:text-gray-400">Ordem de serviço</dt>
+                    <dd class="truncate font-medium text-gray-900 dark:text-gray-100">{{ $erb->service_order_id ?? '—' }}</dd>
+                </div>
+                <div class="flex items-center justify-between gap-4">
+                    <dt class="text-gray-500 dark:text-gray-400">Início</dt>
+                    <dd class="font-medium text-gray-900 dark:text-gray-100">{{ $erb->start_date?->format('d/m/Y') ?? '—' }}</dd>
+                </div>
+                <div class="flex items-center justify-between gap-4">
+                    <dt class="text-gray-500 dark:text-gray-400">Fim</dt>
+                    <dd class="font-medium text-gray-900 dark:text-gray-100">{{ $erb->end_date?->format('d/m/Y') ?? '—' }}</dd>
+                </div>
+            </dl>
+        </div>
+
+        <div class="rounded-xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-800 dark:bg-gray-900">
             <h2 class="text-xs font-semibold uppercase text-gray-500 dark:text-gray-400">Observações</h2>
             <p class="mt-3 text-sm text-gray-700 dark:text-gray-300">
                 {{ $erb->notes ?? 'Nenhuma observação registrada.' }}

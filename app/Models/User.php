@@ -46,6 +46,24 @@ class User extends Authenticatable
     }
 
     /**
+     * The ERBs registered by the user.
+     */
+    public function erbs(): HasMany
+    {
+        return $this->hasMany(Erb::class);
+    }
+
+    /**
+     * The data-collection forms created by the user.
+     *
+     * @return HasMany<Form, $this>
+     */
+    public function forms(): HasMany
+    {
+        return $this->hasMany(Form::class);
+    }
+
+    /**
      * The projects created by the user.
      *
      * @return HasMany<Project, $this>
@@ -83,16 +101,6 @@ class User extends Authenticatable
     public function workOrders(): HasMany
     {
         return $this->hasMany(WorkOrder::class);
-    }
-
-    /**
-     * The ERBs registered by the user.
-     *
-     * @return HasMany<Erb, $this>
-     */
-    public function erbs(): HasMany
-    {
-        return $this->hasMany(Erb::class);
     }
 
     /**

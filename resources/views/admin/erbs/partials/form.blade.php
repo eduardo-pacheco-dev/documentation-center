@@ -64,6 +64,84 @@
     </div>
 
     <div class="sm:col-span-2">
+        <h2 class="text-sm font-semibold text-gray-900 dark:text-gray-100">Integração AFL</h2>
+        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Dados do site sincronizados com a plataforma AFL.</p>
+    </div>
+
+    <div class="sm:col-span-2">
+        <label for="assigned_to" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Responsável (e-mail)</label>
+        <input
+            type="email"
+            name="assigned_to"
+            id="assigned_to"
+            value="{{ old('assigned_to', $erb?->assigned_to) }}"
+            placeholder="Ex.: dev@afl.com.br"
+            class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-700 dark:bg-gray-900 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500"
+        >
+        @error('assigned_to')
+            <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p>
+        @enderror
+    </div>
+
+    <div>
+        <label for="nokia_smp_id" class="block text-sm font-medium text-gray-700 dark:text-gray-300">ID SMP Nokia</label>
+        <input
+            type="text"
+            name="nokia_smp_id"
+            id="nokia_smp_id"
+            value="{{ old('nokia_smp_id', $erb?->nokia_smp_id) }}"
+            placeholder="Ex.: SMP1000"
+            class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-700 dark:bg-gray-900 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500"
+        >
+        @error('nokia_smp_id')
+            <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p>
+        @enderror
+    </div>
+
+    <div>
+        <label for="service_order_id" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Ordem de serviço</label>
+        <input
+            type="text"
+            name="service_order_id"
+            id="service_order_id"
+            value="{{ old('service_order_id', $erb?->service_order_id) }}"
+            placeholder="Ex.: OS-10000"
+            class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-700 dark:bg-gray-900 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500"
+        >
+        @error('service_order_id')
+            <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p>
+        @enderror
+    </div>
+
+    <div>
+        <label for="start_date" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Data de início</label>
+        <input
+            type="date"
+            name="start_date"
+            id="start_date"
+            value="{{ old('start_date', $erb?->start_date?->format('Y-m-d')) }}"
+            class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-700 dark:bg-gray-900 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500"
+        >
+        @error('start_date')
+            <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p>
+        @enderror
+    </div>
+
+    <div>
+        <label for="end_date" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Data de fim</label>
+        <input
+            type="date"
+            name="end_date"
+            id="end_date"
+            value="{{ old('end_date', $erb?->end_date?->format('Y-m-d')) }}"
+            class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-700 dark:bg-gray-900 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500"
+        >
+        @error('end_date')
+            <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p>
+        @enderror
+    </div>
+
+    <div class="sm:col-span-2">
         <label for="status" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Status</label>
         <select
             name="status"

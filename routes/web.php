@@ -14,6 +14,7 @@ use App\Http\Controllers\Admin\ErbController;
 use App\Http\Controllers\Admin\ErbDocumentController;
 use App\Http\Controllers\Admin\ErbImportController;
 use App\Http\Controllers\Admin\FolderController;
+use App\Http\Controllers\Admin\FormController;
 use App\Http\Controllers\Admin\ProjectAssignmentController;
 use App\Http\Controllers\Admin\ProjectBaselineController;
 use App\Http\Controllers\Admin\ProjectController;
@@ -136,6 +137,14 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
 
     Route::post('erbs/{erb}/comments', [ErbCommentController::class, 'store'])->name('erbs.comments.store');
     Route::delete('erbs/{erb}/comments/{comment}', [ErbCommentController::class, 'destroy'])->name('erbs.comments.destroy');
+
+    Route::get('forms', [FormController::class, 'index'])->name('forms.index');
+    Route::get('forms/create', [FormController::class, 'create'])->name('forms.create');
+    Route::post('forms', [FormController::class, 'store'])->name('forms.store');
+    Route::get('forms/{form}', [FormController::class, 'show'])->name('forms.show');
+    Route::get('forms/{form}/edit', [FormController::class, 'edit'])->name('forms.edit');
+    Route::put('forms/{form}', [FormController::class, 'update'])->name('forms.update');
+    Route::delete('forms/{form}', [FormController::class, 'destroy'])->name('forms.destroy');
 
     Route::get('radio-links', [RadioLinkController::class, 'index'])->name('radio-links.index');
     Route::post('radio-links', [RadioLinkController::class, 'store'])->name('radio-links.store');

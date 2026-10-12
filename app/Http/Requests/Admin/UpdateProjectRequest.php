@@ -19,6 +19,15 @@ class UpdateProjectRequest extends ProjectRequest
         $userId = $this->user()?->getKey();
 
         return [
+            'code' => [
+                'nullable',
+                'string',
+                'max:20',
+                Rule::unique('projects', 'code')
+                    ->where(fn ($query) => $query->where('user_id', $userId))
+                    ->whereNull('deleted_at')
+                    ->ignore($this->project()->getKey()),
+            ],
             'name' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string', 'max:2000'],
             'status' => ['nullable', new Enum(ProjectStatus::class)],

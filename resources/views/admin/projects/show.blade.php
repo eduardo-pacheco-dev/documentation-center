@@ -4,6 +4,9 @@
             <h1 class="flex items-center gap-2 text-xl font-semibold">
                 <x-icon name="briefcase" class="h-5 w-5 text-gray-400 dark:text-gray-500" />
                 {{ $project->name }}
+                @if ($project->code)
+                    <span class="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600 dark:bg-gray-800 dark:text-gray-300">{{ $project->code }}</span>
+                @endif
             </h1>
             <div class="mt-2 flex flex-wrap items-center gap-3 text-sm text-gray-500 dark:text-gray-400">
                 <x-project-status :project="$project" />

@@ -15,9 +15,14 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 #[Fillable([
     'user_id',
     'code',
+    'assigned_to',
     'name',
     'operator',
     'technology',
+    'nokia_smp_id',
+    'start_date',
+    'end_date',
+    'service_order_id',
     'status',
     'street',
     'number',
@@ -122,6 +127,8 @@ class Erb extends Model
             'status' => ErbStatus::class,
             'latitude' => 'decimal:7',
             'longitude' => 'decimal:7',
+            'start_date' => 'date',
+            'end_date' => 'date',
         ];
     }
 }
