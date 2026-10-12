@@ -2,7 +2,9 @@
 
 namespace Database\Factories;
 
+use App\Enums\ErbOperator;
 use App\Enums\ErbStatus;
+use App\Enums\ErbTechnology;
 use App\Models\Erb;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
@@ -26,8 +28,8 @@ class ErbFactory extends Factory
             'name' => 'ERB '.fake()->city(),
             'site_id' => 'SITE'.fake()->unique()->numerify('#####'),
             'end_id' => strtoupper(fake()->unique()->bothify('????_####')),
-            'operator' => fake()->randomElement(['Vivo', 'Claro', 'TIM', 'Oi', 'Algar', 'Sercomtel']),
-            'technology' => fake()->randomElement(['2G', '3G', '4G', '5G', '4G/5G']),
+            'operator' => fake()->randomElement(ErbOperator::cases())->value,
+            'technology' => fake()->randomElement(ErbTechnology::cases())->value,
             'nokia_smp_id' => 'SMP'.fake()->unique()->numerify('####'),
             'start_date' => fake()->dateTimeBetween('-1 year', 'now')->format('Y-m-d'),
             'end_date' => fake()->dateTimeBetween('now', '+1 year')->format('Y-m-d'),

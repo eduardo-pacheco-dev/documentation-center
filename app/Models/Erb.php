@@ -43,6 +43,37 @@ class Erb extends Model
     use HasFactory, SoftDeletes;
 
     /**
+     * Assign a sequential code and derive the name when they are not provided.
+     */
+    protected static function booted(): void
+    {
+        static::saving(function (Erb $erb): void {
+            if (blank($erb->code) && $erb->user_id !== null) {
+                $erb->code = static::generateCode($erb->user);
+            }
+
+            if (blank($erb->name)) {
+                $erb->name = $erb->site_id ?: ($erb->end_id ?: $erb->code);
+            }
+        });
+    }
+
+    /**
+     * Generate the next sequential code for the user's ERBs.
+     */
+    public static function generateCode(User $user): string
+    {
+        $sequence = $user->erbs()->withTrashed()->count() + 1;
+
+        do {
+            $code = 'ERB-'.str_pad((string) $sequence, 4, '0', STR_PAD_LEFT);
+            $sequence++;
+        } while ($user->erbs()->withTrashed()->where('code', $code)->exists());
+
+        return $code;
+    }
+
+    /**
      * The user that created the ERB.
      */
     public function user(): BelongsTo

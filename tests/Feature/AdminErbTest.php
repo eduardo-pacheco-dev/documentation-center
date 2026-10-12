@@ -1,5 +1,7 @@
 <?php
 
+use App\Enums\ErbOperator;
+use App\Enums\ErbTechnology;
 use App\Models\Client;
 use App\Models\Erb;
 use App\Models\Project;
@@ -117,8 +119,8 @@ it('creates an ERB owned by the authenticated user', function () {
     $this->actingAs($user)->get('/admin/erbs/create')->assertOk();
 
     $response = $this->actingAs($user)->post('/admin/erbs', [
-        'code' => 'ERB-00042',
-        'name' => 'ERB Centro',
+        'site_id' => 'PABLM',
+        'end_id' => 'PABLM_0001',
         'operator' => 'Vivo',
         'technology' => '4G/5G',
         'status' => 'active',
@@ -139,8 +141,10 @@ it('creates an ERB owned by the authenticated user', function () {
     $response->assertRedirect(route('admin.erbs.show', $erb));
 
     expect($erb->user_id)->toBe($user->getKey())
-        ->and($erb->code)->toBe('ERB-00042')
-        ->and($erb->name)->toBe('ERB Centro')
+        ->and($erb->code)->toBe('ERB-0001')
+        ->and($erb->name)->toBe('PABLM')
+        ->and($erb->site_id)->toBe('PABLM')
+        ->and($erb->end_id)->toBe('PABLM_0001')
         ->and($erb->operator)->toBe('Vivo')
         ->and($erb->city)->toBe('São Paulo')
         ->and($erb->status->value)->toBe('active');
@@ -148,7 +152,7 @@ it('creates an ERB owned by the authenticated user', function () {
     $this->actingAs($user)
         ->get(route('admin.erbs.show', $erb))
         ->assertOk()
-        ->assertSee('ERB-00042')
+        ->assertSee('ERB-0001')
         ->assertSee('Vivo');
 });
 
@@ -161,6 +165,55 @@ it('renders the stepped create ERB modal on the list page', function () {
         ->assertSee('data-modal-open="erb-create-modal"', false)
         ->assertSee('id="erb-create-modal"', false)
         ->assertSee('data-wizard-panel', false);
+});
+
+it('does not render the code, name or AFL integration fields on the ERB forms', function () {
+    $user = User::factory()->create();
+
+    foreach (['/admin/erbs', '/admin/erbs/create'] as $url) {
+        $this->actingAs($user)
+            ->get($url)
+            ->assertOk()
+            ->assertDontSee('name="code"', false)
+            ->assertDontSee('name="name"', false)
+            ->assertDontSee('name="assigned_to"', false)
+            ->assertDontSee('name="nokia_smp_id"', false)
+            ->assertDontSee('name="service_order_id"', false)
+            ->assertDontSee('data-wizard-title="Integração AFL"', false);
+    }
+});
+
+it('renders the operator and technology comboboxes with the allowed options', function () {
+    $user = User::factory()->create();
+
+    $response = $this->actingAs($user)->get('/admin/erbs/create')->assertOk();
+
+    $response->assertSee('name="operator"', false)
+        ->assertSee('name="technology"', false)
+        ->assertSee('Selecione a operadora', false)
+        ->assertSee('Selecione a tecnologia', false);
+
+    foreach (ErbOperator::cases() as $operator) {
+        $response->assertSee('value="'.$operator->value.'"', false);
+    }
+
+    foreach (ErbTechnology::cases() as $technology) {
+        $response->assertSee('value="'.$technology->value.'"', false);
+    }
+});
+
+it('rejects operators and technologies outside the allowed options', function () {
+    $user = User::factory()->create();
+
+    $this->actingAs($user)
+        ->post('/admin/erbs', [
+            'site_id' => 'PABLM',
+            'operator' => 'Nextel',
+            'technology' => '6G',
+        ])
+        ->assertSessionHasErrors(['operator', 'technology']);
+
+    expect(Erb::query()->count())->toBe(0);
 });
 
 it('reopens the create ERB modal when validation fails', function () {
@@ -178,19 +231,18 @@ it('defaults the ERB status to active when it is not sent', function () {
     $user = User::factory()->create();
 
     $this->actingAs($user)->post('/admin/erbs', [
-        'code' => 'ERB-00007',
-        'name' => 'Sem Status',
+        'site_id' => 'PABLM',
     ])->assertRedirect();
 
     expect(Erb::query()->firstOrFail()->status->value)->toBe('active');
 });
 
-it('rejects an ERB without a code or name', function () {
+it('rejects an ERB without a site or end identifier', function () {
     $user = User::factory()->create();
 
     $this->actingAs($user)
         ->post('/admin/erbs', [])
-        ->assertSessionHasErrors(['code', 'name']);
+        ->assertSessionHasErrors(['site_id', 'end_id']);
 
     expect(Erb::query()->count())->toBe(0);
 });
@@ -201,7 +253,7 @@ it('rejects a duplicate code owned by the same user', function () {
     Erb::factory()->create(['user_id' => $user->getKey(), 'code' => 'ERB-00042']);
 
     $this->actingAs($user)
-        ->post('/admin/erbs', ['code' => 'ERB-00042', 'name' => 'Duplicada'])
+        ->post('/admin/erbs', ['code' => 'ERB-00042', 'site_id' => 'PABLM'])
         ->assertSessionHasErrors('code');
 });
 
@@ -210,8 +262,7 @@ it('rejects invalid coordinates', function () {
 
     $this->actingAs($user)
         ->post('/admin/erbs', [
-            'code' => 'ERB-00010',
-            'name' => 'Coordenadas Inválidas',
+            'site_id' => 'PABLM',
             'latitude' => '-120',
             'longitude' => '200',
         ])

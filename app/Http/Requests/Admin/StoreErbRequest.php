@@ -2,7 +2,9 @@
 
 namespace App\Http\Requests\Admin;
 
+use App\Enums\ErbOperator;
 use App\Enums\ErbStatus;
+use App\Enums\ErbTechnology;
 use App\Models\Erb;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
@@ -30,18 +32,18 @@ class StoreErbRequest extends FormRequest
 
         return [
             'code' => [
-                'required',
+                'nullable',
                 'string',
                 'max:60',
                 Rule::unique('erbs', 'code')
                     ->where(fn ($query) => $query->where('user_id', $userId))
                     ->whereNull('deleted_at'),
             ],
-            'name' => ['required', 'string', 'max:255'],
-            'site_id' => ['nullable', 'string', 'max:255'],
-            'end_id' => ['nullable', 'string', 'max:60'],
-            'operator' => ['nullable', 'string', 'max:80'],
-            'technology' => ['nullable', 'string', 'max:40'],
+            'name' => ['nullable', 'string', 'max:255'],
+            'site_id' => ['nullable', 'string', 'max:255', 'required_without:end_id'],
+            'end_id' => ['nullable', 'string', 'max:60', 'required_without:site_id'],
+            'operator' => ['nullable', new Enum(ErbOperator::class)],
+            'technology' => ['nullable', new Enum(ErbTechnology::class)],
             'assigned_to' => ['nullable', 'email', 'max:255'],
             'nokia_smp_id' => ['nullable', 'string', 'max:60'],
             'service_order_id' => ['nullable', 'string', 'max:60'],

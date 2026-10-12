@@ -2,7 +2,9 @@
 
 namespace Database\Seeders;
 
+use App\Enums\ErbOperator;
 use App\Enums\ErbStatus;
+use App\Enums\ErbTechnology;
 use App\Models\Erb;
 use App\Models\User;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
@@ -17,20 +19,6 @@ class ErbSeeder extends Seeder
      * The number of ERBs to seed.
      */
     private const ERB_COUNT = 24;
-
-    /**
-     * The mobile operators used to compose an ERB.
-     *
-     * @var list<string>
-     */
-    private const OPERATORS = ['Vivo', 'Claro', 'TIM', 'Oi', 'Algar', 'Sercomtel'];
-
-    /**
-     * The generations supported by the ERB sites.
-     *
-     * @var list<string>
-     */
-    private const TECHNOLOGIES = ['2G', '3G', '4G', '5G', '4G/5G'];
 
     /**
      * The cities used to compose an ERB address.
@@ -78,8 +66,8 @@ class ErbSeeder extends Seeder
             'site_id' => $name,
             'end_id' => $endPrefix.'_'.str_pad((string) $index, 4, '0', STR_PAD_LEFT),
             'name' => $name,
-            'operator' => self::OPERATORS[$position % count(self::OPERATORS)],
-            'technology' => self::TECHNOLOGIES[$position % count(self::TECHNOLOGIES)],
+            'operator' => ErbOperator::cases()[$position % count(ErbOperator::cases())]->value,
+            'technology' => ErbTechnology::cases()[$position % count(ErbTechnology::cases())]->value,
             'status' => match (true) {
                 $index % 7 === 0 => ErbStatus::Maintenance,
                 $index % 5 === 0 => ErbStatus::Inactive,

@@ -6,38 +6,6 @@
 
 <div data-wizard-panel data-wizard-title="Identificação" class="{{ $panelClass(0) }}">
     <div>
-        <label for="code" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Código</label>
-        <input
-            type="text"
-            name="code"
-            id="code"
-            value="{{ old('code', $erb?->code) }}"
-            required
-            placeholder="Ex.: ERB-00001"
-            class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-700 dark:bg-gray-900 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500"
-        >
-        @error('code')
-            <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p>
-        @enderror
-    </div>
-
-    <div>
-        <label for="name" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Nome</label>
-        <input
-            type="text"
-            name="name"
-            id="name"
-            value="{{ old('name', $erb?->name) }}"
-            required
-            placeholder="Ex.: ERB Centro"
-            class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-700 dark:bg-gray-900 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500"
-        >
-        @error('name')
-            <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p>
-        @enderror
-    </div>
-
-    <div>
         <label for="site_id" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Site ID</label>
         <input
             type="text"
@@ -69,14 +37,18 @@
 
     <div>
         <label for="operator" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Operadora</label>
-        <input
-            type="text"
+        <select
             name="operator"
             id="operator"
-            value="{{ old('operator', $erb?->operator) }}"
-            placeholder="Ex.: Vivo"
             class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-700 dark:bg-gray-900 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500"
         >
+            <option value="">Selecione a operadora</option>
+            @foreach (\App\Enums\ErbOperator::cases() as $operatorOption)
+                <option value="{{ $operatorOption->value }}" @selected(old('operator', $erb?->operator) === $operatorOption->value)>
+                    {{ $operatorOption->label() }}
+                </option>
+            @endforeach
+        </select>
         @error('operator')
             <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p>
         @enderror
@@ -84,14 +56,18 @@
 
     <div>
         <label for="technology" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Tecnologia</label>
-        <input
-            type="text"
+        <select
             name="technology"
             id="technology"
-            value="{{ old('technology', $erb?->technology) }}"
-            placeholder="Ex.: 4G/5G"
             class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-700 dark:bg-gray-900 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500"
         >
+            <option value="">Selecione a tecnologia</option>
+            @foreach (\App\Enums\ErbTechnology::cases() as $technologyOption)
+                <option value="{{ $technologyOption->value }}" @selected(old('technology', $erb?->technology) === $technologyOption->value)>
+                    {{ $technologyOption->label() }}
+                </option>
+            @endforeach
+        </select>
         @error('technology')
             <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p>
         @enderror
@@ -116,89 +92,7 @@
     </div>
 </div>
 
-<div data-wizard-panel data-wizard-title="Integração AFL" class="{{ $panelClass(1) }}">
-    <div class="sm:col-span-2">
-        @unless ($wizard)
-            <h2 class="text-sm font-semibold text-gray-900 dark:text-gray-100">Integração AFL</h2>
-        @endunless
-        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Dados do site sincronizados com a plataforma AFL.</p>
-    </div>
-
-    <div class="sm:col-span-2">
-        <label for="assigned_to" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Responsável (e-mail)</label>
-        <input
-            type="email"
-            name="assigned_to"
-            id="assigned_to"
-            value="{{ old('assigned_to', $erb?->assigned_to) }}"
-            placeholder="Ex.: dev@afl.com.br"
-            class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-700 dark:bg-gray-900 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500"
-        >
-        @error('assigned_to')
-            <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p>
-        @enderror
-    </div>
-
-    <div>
-        <label for="nokia_smp_id" class="block text-sm font-medium text-gray-700 dark:text-gray-300">ID SMP Nokia</label>
-        <input
-            type="text"
-            name="nokia_smp_id"
-            id="nokia_smp_id"
-            value="{{ old('nokia_smp_id', $erb?->nokia_smp_id) }}"
-            placeholder="Ex.: SMP1000"
-            class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-700 dark:bg-gray-900 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500"
-        >
-        @error('nokia_smp_id')
-            <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p>
-        @enderror
-    </div>
-
-    <div>
-        <label for="service_order_id" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Ordem de serviço</label>
-        <input
-            type="text"
-            name="service_order_id"
-            id="service_order_id"
-            value="{{ old('service_order_id', $erb?->service_order_id) }}"
-            placeholder="Ex.: OS-10000"
-            class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-700 dark:bg-gray-900 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500"
-        >
-        @error('service_order_id')
-            <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p>
-        @enderror
-    </div>
-
-    <div>
-        <label for="start_date" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Data de início</label>
-        <input
-            type="date"
-            name="start_date"
-            id="start_date"
-            value="{{ old('start_date', $erb?->start_date?->format('Y-m-d')) }}"
-            class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-700 dark:bg-gray-900 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500"
-        >
-        @error('start_date')
-            <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p>
-        @enderror
-    </div>
-
-    <div>
-        <label for="end_date" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Data de fim</label>
-        <input
-            type="date"
-            name="end_date"
-            id="end_date"
-            value="{{ old('end_date', $erb?->end_date?->format('Y-m-d')) }}"
-            class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-700 dark:bg-gray-900 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500"
-        >
-        @error('end_date')
-            <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p>
-        @enderror
-    </div>
-</div>
-
-<div data-wizard-panel data-wizard-title="Localização" class="{{ $panelClass(2) }}">
+<div data-wizard-panel data-wizard-title="Localização" class="{{ $panelClass(1) }}">
     <div class="sm:col-span-2">
         @unless ($wizard)
             <h2 class="text-sm font-semibold text-gray-900 dark:text-gray-100">Localização</h2>
