@@ -10,6 +10,20 @@ use Illuminate\Validation\Rules\Enum;
 class UpdateProjectRequest extends ProjectRequest
 {
     /**
+     * Normalize blank numeric fields to their database defaults.
+     */
+    protected function prepareForValidation(): void
+    {
+        if ($this->has('budget') && blank($this->input('budget'))) {
+            $this->merge(['budget' => 0]);
+        }
+
+        if ($this->has('priority') && blank($this->input('priority'))) {
+            $this->merge(['priority' => 500]);
+        }
+    }
+
+    /**
      * Get the validation rules that apply to the request.
      *
      * @return array<string, ValidationRule|array<mixed>|string>

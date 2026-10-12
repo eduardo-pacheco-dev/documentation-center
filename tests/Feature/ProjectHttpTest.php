@@ -39,6 +39,43 @@ it('creates a project with its default calendar', function () {
         ->and(Calendar::query()->where('project_id', $project->getKey())->where('is_default', true)->exists())->toBeTrue();
 });
 
+it('creates a project when budget and priority are left empty', function () {
+    $user = User::factory()->create();
+
+    $this->actingAs($user)->post('/admin/projects', [
+        'name' => 'Lançamento da loja',
+        'description' => '',
+        'start_date' => '2026-03-02',
+        'status' => 'active',
+        'priority' => '',
+        'currency' => 'BRL',
+        'budget' => '',
+    ])->assertRedirect();
+
+    $project = Project::query()->where('name', 'Lançamento da loja')->firstOrFail();
+
+    expect($project->budget)->toEqual(0.0)
+        ->and($project->priority)->toBe(500);
+});
+
+it('keeps the budget default when the edit form clears it', function () {
+    $user = User::factory()->create();
+    $project = Project::factory()->for($user)->create(['budget' => 25000]);
+
+    $this->actingAs($user)->put("/admin/projects/{$project->getKey()}", [
+        'name' => $project->name,
+        'description' => '',
+        'start_date' => $project->start_date->toDateString(),
+        'status' => 'active',
+        'priority' => '',
+        'currency' => 'BRL',
+        'budget' => '',
+    ])->assertRedirect();
+
+    expect($project->fresh()->budget)->toEqual(0.0)
+        ->and($project->fresh()->priority)->toBe(500);
+});
+
 it('lists the projects the user owns or belongs to', function () {
     $owner = User::factory()->create();
     $member = User::factory()->create();

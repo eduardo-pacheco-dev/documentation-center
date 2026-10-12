@@ -12,6 +12,20 @@ use Illuminate\Validation\Rules\Enum;
 class StoreProjectRequest extends FormRequest
 {
     /**
+     * Normalize blank numeric fields to their database defaults.
+     */
+    protected function prepareForValidation(): void
+    {
+        if ($this->has('budget') && blank($this->input('budget'))) {
+            $this->merge(['budget' => 0]);
+        }
+
+        if ($this->has('priority') && blank($this->input('priority'))) {
+            $this->merge(['priority' => 500]);
+        }
+    }
+
+    /**
      * Determine if the user is authorized to make this request.
      */
     public function authorize(): bool
