@@ -35,5 +35,6 @@ class DatabaseSeeder extends Seeder
         $this->call(RadioLinkSeeder::class);
         $this->call(ColaboradorSeeder::class);
         $this->call(WorkOrderSeeder::class);
+        $this->call(ShortLinkSeeder::class);
     }
 }
