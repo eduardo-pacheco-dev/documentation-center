@@ -20,6 +20,18 @@ class UserController extends Controller
     {
         $search = $request->string('search')->trim()->toString();
 
+        $profile = in_array($request->query('profile'), ['admin', 'user'], true)
+            ? $request->query('profile')
+            : null;
+
+        $status = in_array($request->query('status'), ['active', 'inactive'], true)
+            ? $request->query('status')
+            : null;
+
+        $perPage = in_array($request->integer('per_page'), [10, 25, 50], true)
+            ? $request->integer('per_page')
+            : 10;
+
         $sortableColumns = ['name', 'email', 'is_admin', 'created_at'];
 
         if (in_array($request->query('sort'), $sortableColumns, true)) {
@@ -42,6 +54,14 @@ class UserController extends Controller
             });
         }
 
+        if ($profile !== null) {
+            $query->where('is_admin', $profile === 'admin');
+        }
+
+        if ($status !== null) {
+            $query->where('is_active', $status === 'active');
+        }
+
         $query->orderBy($sort, $direction)->orderBy('id', $direction);
 
         $view = in_array($request->query('view'), ['table', 'cards', 'compact'], true)
@@ -49,9 +69,12 @@ class UserController extends Controller
             : 'table';
 
         return view('admin.users.index', [
-            'users' => $query->paginate(10)->withQueryString(),
+            'users' => $query->paginate($perPage)->withQueryString(),
             'search' => $search,
+            'profile' => $profile,
+            'status' => $status,
             'view' => $view,
+            'perPage' => $perPage,
         ]);
     }
 

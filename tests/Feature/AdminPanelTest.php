@@ -45,6 +45,52 @@ test('administrators can search for users', function () {
         ->assertDontSee('João Souza');
 });
 
+test('administrators can filter users by profile', function () {
+    $admin = User::factory()->admin()->create();
+    User::factory()->admin()->create(['name' => 'Alice Admin', 'email' => 'alice@example.com']);
+    User::factory()->create(['name' => 'Bruno Comum', 'email' => 'bruno@example.com']);
+
+    $this->actingAs($admin)
+        ->get('/admin/users?profile=admin')
+        ->assertOk()
+        ->assertSee('Alice Admin')
+        ->assertDontSee('Bruno Comum');
+
+    $this->actingAs($admin)
+        ->get('/admin/users?profile=user')
+        ->assertOk()
+        ->assertSee('Bruno Comum')
+        ->assertDontSee('Alice Admin');
+});
+
+test('administrators can filter users by status', function () {
+    $admin = User::factory()->admin()->create();
+    User::factory()->create(['name' => 'Bruno Comum', 'email' => 'bruno@example.com', 'is_active' => false]);
+    User::factory()->create(['name' => 'Carla Ativa', 'email' => 'carla@example.com']);
+
+    $this->actingAs($admin)
+        ->get('/admin/users?status=inactive')
+        ->assertOk()
+        ->assertSee('Bruno Comum')
+        ->assertDontSee('Carla Ativa');
+
+    $this->actingAs($admin)
+        ->get('/admin/users?status=active')
+        ->assertOk()
+        ->assertSee('Carla Ativa')
+        ->assertDontSee('Bruno Comum');
+});
+
+test('administrators can paginate the user list with a custom page size', function () {
+    $admin = User::factory()->admin()->create();
+    User::factory()->count(12)->create();
+
+    $this->actingAs($admin)
+        ->get('/admin/users?per_page=25')
+        ->assertOk()
+        ->assertSee('25 por página');
+});
+
 test('administrators can sort users by name', function () {
     $admin = User::factory()->admin()->create(['name' => 'Alice Admin', 'email' => 'alice@example.com']);
     User::factory()->create(['name' => 'Bob Bravo', 'email' => 'bob@example.com']);
