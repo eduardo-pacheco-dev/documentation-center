@@ -239,6 +239,7 @@
     @endif
 
     @include('admin.links.partials.create-modal')
+    @include('admin.links.partials.link-modal')
 
     <script>
         (function () {
@@ -343,6 +344,59 @@
             if (createModal.hasAttribute('data-open-on-load')) {
                 openCreateModal();
             }
+        }
+
+        const linkModal = document.querySelector('[data-link-modal]');
+
+        if (linkModal) {
+            const linkUrl = linkModal.querySelector('[data-link-modal-url]');
+            const linkTitle = linkModal.querySelector('[data-link-modal-title]');
+            const linkOpen = linkModal.querySelector('[data-link-modal-open-link]');
+            const linkCopy = linkModal.querySelector('[data-link-modal-copy]');
+            const linkCopyLabel = linkModal.querySelector('[data-link-modal-copy-label]');
+
+            const openLinkModal = (button) => {
+                linkUrl.textContent = button.dataset.linkUrl;
+                linkTitle.textContent = button.dataset.linkTitle;
+                linkOpen.href = button.dataset.linkUrl;
+                linkCopyLabel.textContent = 'Copiar';
+                linkModal.classList.remove('hidden');
+                document.body.style.overflow = 'hidden';
+            };
+
+            const closeLinkModal = () => {
+                linkModal.classList.add('hidden');
+                document.body.style.overflow = '';
+            };
+
+            document.querySelectorAll('[data-link-modal-open]').forEach((button) => {
+                button.addEventListener('click', () => {
+                    closeDropdowns();
+                    openLinkModal(button);
+                });
+            });
+
+            linkModal.querySelectorAll('[data-link-modal-close]').forEach((button) => {
+                button.addEventListener('click', closeLinkModal);
+            });
+
+            linkCopy.addEventListener('click', async () => {
+                try {
+                    await navigator.clipboard.writeText(linkOpen.href);
+                    linkCopyLabel.textContent = 'Copiado!';
+                    setTimeout(() => {
+                        linkCopyLabel.textContent = 'Copiar';
+                    }, 2000);
+                } catch (error) {
+                    window.prompt('Copie o link:', linkOpen.href);
+                }
+            });
+
+            document.addEventListener('keydown', (event) => {
+                if (event.key === 'Escape' && !linkModal.classList.contains('hidden')) {
+                    closeLinkModal();
+                }
+            });
         }
     </script>
 </x-layouts.admin>

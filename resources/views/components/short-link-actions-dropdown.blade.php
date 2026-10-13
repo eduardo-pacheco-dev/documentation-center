@@ -17,6 +17,19 @@
         role="menu"
         data-dropdown-menu
     >
+        <button
+            type="button"
+            data-link-modal-open
+            data-link-url="{{ $shortLink->url }}"
+            data-link-code="{{ $shortLink->code }}"
+            data-link-title="{{ $shortLink->title }}"
+            class="flex w-full items-center gap-2 px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800"
+            role="menuitem"
+        >
+            <x-icon name="link" class="h-4 w-4 text-gray-400 dark:text-gray-500" />
+            Link
+        </button>
+
         <a
             href="{{ route('admin.links.edit', $shortLink) }}"
             class="flex items-center gap-2 px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800"

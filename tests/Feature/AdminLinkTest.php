@@ -35,6 +35,19 @@ test('renders the create form inside a modal on the links list', function () {
         ->assertSee(route('admin.links.store'), false);
 });
 
+test('the actions menu exposes a link action that opens a modal with the public url', function () {
+    $user = User::factory()->create();
+    $shortLink = ShortLink::factory()->for($user)->create();
+
+    $this->actingAs($user)
+        ->get('/admin/links')
+        ->assertOk()
+        ->assertSee('data-link-modal-open', false)
+        ->assertSee('data-link-url="'.$shortLink->url.'"', false)
+        ->assertSee('data-link-modal', false)
+        ->assertSee($shortLink->url);
+});
+
 test('a link belongs to its owner and is visible only to it', function () {
     $owner = User::factory()->create();
     $shortLink = ShortLink::factory()->for($owner)->create();
