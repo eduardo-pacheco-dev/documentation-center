@@ -30,6 +30,27 @@ test('an unknown code returns not found', function () {
     $this->get('/s/nao-existe')->assertNotFound();
 });
 
+test('a redirect link sends the visitor to its destination and records the access', function () {
+    $shortLink = ShortLink::factory()->redirect('https://example.com/portal')->create(['used_count' => 0]);
+
+    $this->get('/s/'.$shortLink->code)
+        ->assertRedirect('https://example.com/portal');
+
+    $this->assertDatabaseHas('short_links', ['id' => $shortLink->getKey(), 'used_count' => 1]);
+});
+
+test('a redirect link without a destination is not found', function () {
+    $shortLink = ShortLink::factory()->redirect()->create(['redirect_url' => null]);
+
+    $this->get('/s/'.$shortLink->code)->assertNotFound();
+});
+
+test('an inactive redirect link is gone', function () {
+    $shortLink = ShortLink::factory()->redirect()->inactive()->create();
+
+    $this->get('/s/'.$shortLink->code)->assertStatus(410);
+});
+
 test('an inactive link is gone', function () {
     $shortLink = ShortLink::factory()->inactive()->create();
 

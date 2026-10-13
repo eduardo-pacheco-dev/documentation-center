@@ -15,7 +15,7 @@
                     <x-icon name="link" class="h-5 w-5 text-gray-400 dark:text-gray-500" />
                     Novo link
                 </h2>
-                <p class="mt-0.5 text-sm text-gray-500 dark:text-gray-400">Crie um link curto para enviar ou baixar documentos.</p>
+                <p class="mt-0.5 text-sm text-gray-500 dark:text-gray-400">Crie um link curto para enviar, baixar ou redirecionar visitantes.</p>
             </div>
 
             <button

@@ -19,7 +19,7 @@ class ShortLinkSeeder extends Seeder
     /**
      * The links seeded for every user.
      *
-     * @var list<array{title: string, type: ShortLinkType, state: string, files: int}>
+     * @var list<array{title: string, type: ShortLinkType, state: string, files: int, redirect_url?: string}>
      */
     private const LINKS = [
         ['title' => 'Envio de contratos', 'type' => ShortLinkType::Upload, 'state' => 'active', 'files' => 3],
@@ -29,6 +29,7 @@ class ShortLinkSeeder extends Seeder
         ['title' => 'Certidões negativas', 'type' => ShortLinkType::Download, 'state' => 'password', 'files' => 1],
         ['title' => 'Relatório final', 'type' => ShortLinkType::Download, 'state' => 'expired', 'files' => 1],
         ['title' => 'Termo de encerramento', 'type' => ShortLinkType::Upload, 'state' => 'inactive', 'files' => 0],
+        ['title' => 'Portal do cliente', 'type' => ShortLinkType::Redirect, 'state' => 'active', 'files' => 0, 'redirect_url' => 'https://example.com/portal'],
     ];
 
     /**
@@ -64,7 +65,7 @@ class ShortLinkSeeder extends Seeder
     /**
      * Seed one link owned by the given user.
      *
-     * @param  array{title: string, type: ShortLinkType, state: string, files: int}  $definition
+     * @param  array{title: string, type: ShortLinkType, state: string, files: int, redirect_url?: string}  $definition
      */
     private function seedLink(User $owner, array $definition): void
     {
@@ -77,6 +78,9 @@ class ShortLinkSeeder extends Seeder
                 'code' => ShortLink::createCode(),
                 'type' => $definition['type'],
                 'description' => ucfirst(fake('pt_BR')->sentence(12)),
+                'redirect_url' => $definition['type'] === ShortLinkType::Redirect
+                    ? ($definition['redirect_url'] ?? null)
+                    : null,
                 'is_active' => $definition['state'] !== 'inactive',
                 'expires_at' => $this->expiresAt($definition['state']),
                 'max_uses' => $definition['state'] === 'limited' ? 10 : null,

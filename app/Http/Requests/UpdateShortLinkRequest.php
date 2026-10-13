@@ -28,6 +28,7 @@ class UpdateShortLinkRequest extends FormRequest
             'title' => ['sometimes', 'required', 'string', 'max:255'],
             'type' => ['sometimes', Rule::enum(ShortLinkType::class)],
             'description' => ['nullable', 'string', 'max:5000'],
+            'redirect_url' => ['nullable', 'required_if:type,redirect', 'url', 'max:2048'],
             'expires_at' => ['nullable', 'date'],
             'max_uses' => ['nullable', 'integer', 'min:1', 'max:10000000'],
             'password' => ['nullable', 'string', 'min:6', 'max:255'],

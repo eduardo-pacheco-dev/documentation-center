@@ -19,6 +19,7 @@ use Illuminate\Support\Str;
     'type',
     'title',
     'description',
+    'redirect_url',
     'is_active',
     'expires_at',
     'max_uses',
@@ -72,6 +73,14 @@ class ShortLink extends Model
     protected function url(): Attribute
     {
         return Attribute::get(fn () => route('public.short-links.show', $this->code));
+    }
+
+    /**
+     * Whether the link redirects visitors to another address.
+     */
+    public function isRedirect(): bool
+    {
+        return $this->type === ShortLinkType::Redirect;
     }
 
     /**

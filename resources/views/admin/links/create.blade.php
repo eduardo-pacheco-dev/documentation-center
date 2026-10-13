@@ -1,6 +1,6 @@
 <x-layouts.admin title="Novo link">
     <h1 class="text-xl font-semibold">Novo link</h1>
-    <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Crie um link curto para enviar ou baixar documentos.</p>
+    <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Crie um link curto para enviar, baixar ou redirecionar visitantes.</p>
 
     <form
         method="POST"

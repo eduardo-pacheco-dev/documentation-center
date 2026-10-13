@@ -21,7 +21,7 @@ class LinkController extends Controller
     /**
      * Open the public page for a short link.
      */
-    public function show(string $code): View|Response
+    public function show(string $code): View|Response|RedirectResponse
     {
         $shortLink = ShortLink::query()->where('code', $code)->firstOrFail();
 
@@ -36,6 +36,12 @@ class LinkController extends Controller
         }
 
         $shortLink->recordAccess();
+
+        if ($shortLink->isRedirect()) {
+            abort_if($shortLink->redirect_url === null, 404);
+
+            return redirect()->away($shortLink->redirect_url);
+        }
 
         $documents = $this->documentsFor($shortLink);
 

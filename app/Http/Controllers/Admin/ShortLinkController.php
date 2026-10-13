@@ -95,6 +95,9 @@ class ShortLinkController extends Controller
         $attributes['user_id'] = $request->user()->getKey();
         $attributes['code'] = ShortLink::createCode();
         $attributes['is_active'] = $request->boolean('is_active');
+        $attributes['redirect_url'] = $request->input('type') === ShortLinkType::Redirect->value
+            ? $request->string('redirect_url')->toString()
+            : null;
 
         if ($request->filled('password')) {
             $attributes['password'] = Hash::make($request->string('password'));
@@ -142,6 +145,12 @@ class ShortLinkController extends Controller
         if ($request->has('password')) {
             $attributes['password'] = $request->filled('password')
                 ? Hash::make($request->string('password'))
+                : null;
+        }
+
+        if ($request->has('type')) {
+            $attributes['redirect_url'] = $request->input('type') === ShortLinkType::Redirect->value
+                ? $request->string('redirect_url')->toString()
                 : null;
         }
 

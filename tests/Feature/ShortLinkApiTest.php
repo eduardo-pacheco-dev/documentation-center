@@ -45,6 +45,25 @@ test('users can create a short link through the api', function () {
     expect($response->json('data.code'))->not->toBeEmpty;
 });
 
+test('users can create a redirect link through the api', function () {
+    $user = User::factory()->create();
+    $token = $user->createToken('mobile')->plainTextToken;
+
+    $this->withToken($token)->postJson('/api/v1/links', [
+        'title' => 'Portal do cliente',
+        'type' => 'redirect',
+        'redirect_url' => 'https://example.com/portal',
+    ])->assertCreated()
+        ->assertJsonPath('data.type', 'redirect')
+        ->assertJsonPath('data.redirect_url', 'https://example.com/portal');
+
+    $this->assertDatabaseHas('short_links', [
+        'user_id' => $user->getKey(),
+        'type' => 'redirect',
+        'redirect_url' => 'https://example.com/portal',
+    ]);
+});
+
 test('link creation validates the payload', function () {
     $token = User::factory()->create()->createToken('mobile')->plainTextToken;
 

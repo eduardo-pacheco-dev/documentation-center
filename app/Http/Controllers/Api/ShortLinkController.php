@@ -23,9 +23,10 @@ use OpenApi\Attributes as OA;
         new OA\Property(property: 'id', type: 'integer', example: 1),
         new OA\Property(property: 'code', type: 'string', example: 'aB3xK9qZ'),
         new OA\Property(property: 'url', type: 'string', format: 'uri', example: 'https://documentation-center.test/s/aB3xK9qZ'),
-        new OA\Property(property: 'type', type: 'string', enum: ['upload', 'download'], example: 'upload'),
+        new OA\Property(property: 'type', type: 'string', enum: ['upload', 'download', 'redirect'], example: 'upload'),
         new OA\Property(property: 'title', type: 'string', example: 'Entrega de contratos'),
         new OA\Property(property: 'description', type: 'string', nullable: true, example: 'Envie os documentos assinados.'),
+        new OA\Property(property: 'redirect_url', type: 'string', format: 'uri', nullable: true, example: 'https://example.com/destino'),
         new OA\Property(property: 'is_active', type: 'boolean', example: true),
         new OA\Property(property: 'expires_at', type: 'string', format: 'date-time', nullable: true, example: '2026-12-31T23:59:59'),
         new OA\Property(property: 'max_uses', type: 'integer', nullable: true, example: 100),
@@ -42,8 +43,9 @@ use OpenApi\Attributes as OA;
     required: ['title', 'type'],
     properties: [
         new OA\Property(property: 'title', type: 'string', maxLength: 255, example: 'Entrega de contratos'),
-        new OA\Property(property: 'type', type: 'string', enum: ['upload', 'download'], example: 'upload'),
+        new OA\Property(property: 'type', type: 'string', enum: ['upload', 'download', 'redirect'], example: 'upload'),
         new OA\Property(property: 'description', type: 'string', nullable: true, example: 'Envie os documentos assinados.'),
+        new OA\Property(property: 'redirect_url', type: 'string', format: 'uri', nullable: true, example: 'https://example.com/destino'),
         new OA\Property(property: 'expires_at', type: 'string', format: 'date-time', nullable: true, example: '2026-12-31'),
         new OA\Property(property: 'max_uses', type: 'integer', minimum: 1, nullable: true, example: 100),
         new OA\Property(property: 'password', type: 'string', format: 'password', minLength: 6, nullable: true),
@@ -155,6 +157,9 @@ class ShortLinkController extends Controller
 
         $attributes['user_id'] = $request->user()->getKey();
         $attributes['code'] = ShortLink::createCode();
+        $attributes['redirect_url'] = $request->input('type') === ShortLinkType::Redirect->value
+            ? $request->string('redirect_url')->toString()
+            : null;
 
         if ($request->filled('password')) {
             $attributes['password'] = Hash::make($request->string('password'));
@@ -238,6 +243,12 @@ class ShortLinkController extends Controller
         if ($request->has('password')) {
             $attributes['password'] = $request->filled('password')
                 ? Hash::make($request->string('password'))
+                : null;
+        }
+
+        if ($request->has('type')) {
+            $attributes['redirect_url'] = $request->input('type') === ShortLinkType::Redirect->value
+                ? $request->string('redirect_url')->toString()
                 : null;
         }
 

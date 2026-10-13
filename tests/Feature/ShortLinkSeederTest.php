@@ -26,6 +26,17 @@ it('seeds upload and download links for every user', function () {
         ->and($upload->receivedDocuments()->count())->toBeGreaterThan(0);
 });
 
+it('seeds a redirect link with a destination', function () {
+    User::factory()->create();
+
+    $this->seed(ShortLinkSeeder::class);
+
+    $redirect = ShortLink::query()->where('type', ShortLinkType::Redirect)->first();
+
+    expect($redirect)->not->toBeNull()
+        ->and($redirect->redirect_url)->toBe('https://example.com/portal');
+});
+
 it('does not duplicate links when seeded twice', function () {
     User::factory()->create();
 

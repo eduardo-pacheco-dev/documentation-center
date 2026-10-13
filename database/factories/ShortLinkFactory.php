@@ -46,6 +46,17 @@ class ShortLinkFactory extends Factory
     }
 
     /**
+     * Mark the link as a redirect link to another address.
+     */
+    public function redirect(string $url = 'https://example.com/destino'): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'type' => ShortLinkType::Redirect,
+            'redirect_url' => $url,
+        ]);
+    }
+
+    /**
      * Deactivate the link.
      */
     public function inactive(): static

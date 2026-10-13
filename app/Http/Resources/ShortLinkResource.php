@@ -21,6 +21,7 @@ class ShortLinkResource extends JsonResource
             'type' => $this->type,
             'title' => $this->title,
             'description' => $this->description,
+            'redirect_url' => $this->redirect_url,
             'is_active' => $this->is_active,
             'expires_at' => $this->whenNotNull($this->expires_at?->toIso8601String()),
             'max_uses' => $this->max_uses,

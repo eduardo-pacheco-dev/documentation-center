@@ -218,6 +218,91 @@ test('users can create an upload link', function () {
     ]);
 });
 
+test('users can create a redirect link', function () {
+    $user = User::factory()->create();
+
+    $this->actingAs($user)->post('/admin/links', [
+        'title' => 'Portal do cliente',
+        'type' => 'redirect',
+        'redirect_url' => 'https://example.com/portal',
+    ])->assertRedirect();
+
+    $this->assertDatabaseHas('short_links', [
+        'user_id' => $user->getKey(),
+        'type' => 'redirect',
+        'title' => 'Portal do cliente',
+        'redirect_url' => 'https://example.com/portal',
+    ]);
+});
+
+test('creating a redirect link requires a valid destination', function () {
+    $this->actingAs(User::factory()->create())
+        ->from('/admin/links/create')
+        ->post('/admin/links', ['title' => 'Sem destino', 'type' => 'redirect'])
+        ->assertRedirect('/admin/links/create')
+        ->assertSessionHasErrors('redirect_url');
+
+    $this->actingAs(User::factory()->create())
+        ->from('/admin/links/create')
+        ->post('/admin/links', [
+            'title' => 'Destino inválido',
+            'type' => 'redirect',
+            'redirect_url' => 'nao-e-uma-url',
+        ])
+        ->assertRedirect('/admin/links/create')
+        ->assertSessionHasErrors('redirect_url');
+});
+
+test('switching a link to redirect stores the destination', function () {
+    $user = User::factory()->create();
+    $shortLink = ShortLink::factory()->for($user)->create();
+
+    $this->actingAs($user)
+        ->from('/admin/links/'.$shortLink->getKey().'/edit')
+        ->put('/admin/links/'.$shortLink->getKey(), [
+            'title' => $shortLink->title,
+            'type' => 'redirect',
+            'redirect_url' => 'https://example.com/destino',
+        ])
+        ->assertRedirect();
+
+    $this->assertDatabaseHas('short_links', [
+        'id' => $shortLink->getKey(),
+        'type' => 'redirect',
+        'redirect_url' => 'https://example.com/destino',
+    ]);
+});
+
+test('switching away from redirect clears the destination', function () {
+    $user = User::factory()->create();
+    $shortLink = ShortLink::factory()->for($user)->redirect()->create();
+
+    $this->actingAs($user)
+        ->from('/admin/links/'.$shortLink->getKey().'/edit')
+        ->put('/admin/links/'.$shortLink->getKey(), [
+            'title' => $shortLink->title,
+            'type' => 'download',
+        ])
+        ->assertRedirect();
+
+    $this->assertDatabaseHas('short_links', [
+        'id' => $shortLink->getKey(),
+        'type' => 'download',
+        'redirect_url' => null,
+    ]);
+});
+
+test('the edit page renders the redirect destination for a redirect link', function () {
+    $user = User::factory()->create();
+    $shortLink = ShortLink::factory()->for($user)->redirect('https://example.com/portal')->create();
+
+    $this->actingAs($user)
+        ->get('/admin/links/'.$shortLink->getKey().'/edit')
+        ->assertOk()
+        ->assertSee('redirect_url')
+        ->assertSee('https://example.com/portal');
+});
+
 test('users can not edit links owned by someone else', function () {
     $shortLink = ShortLink::factory()->create();
 

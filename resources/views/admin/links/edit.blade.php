@@ -18,11 +18,12 @@
         </div>
     </div>
 
-    <form
-        method="POST"
-        action="{{ route('admin.links.update', $shortLink) }}"
-        class="mt-6 max-w-2xl space-y-4 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-5 shadow-sm"
-    >
+    <div x-data="{ type: '{{ old('type', $shortLink->type->value) }}' }">
+        <form
+            method="POST"
+            action="{{ route('admin.links.update', $shortLink) }}"
+            class="mt-6 max-w-2xl space-y-4 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-5 shadow-sm"
+        >
         @csrf
         @method('PUT')
 
@@ -47,12 +48,30 @@
                 id="type"
                 name="type"
                 required
+                x-model="type"
                 class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-700 dark:bg-gray-900 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500"
             >
                 <option value="upload" @selected(old('type', $shortLink->type->value) === 'upload')>Upload — terceiros enviam documentos</option>
                 <option value="download" @selected(old('type', $shortLink->type->value) === 'download')>Download — visitantes baixam documentos</option>
+                <option value="redirect" @selected(old('type', $shortLink->type->value) === 'redirect')>Redirect — redireciona para um endereço</option>
             </select>
             @error('type')
+                <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
+            @enderror
+        </div>
+
+        <div x-show="type === 'redirect'" @if (old('type', $shortLink->type->value) !== 'redirect') style="display: none" @endif>
+            <label for="redirect_url" class="block text-sm font-medium text-gray-700 dark:text-gray-200">Endereço de redirecionamento</label>
+            <input
+                id="redirect_url"
+                name="redirect_url"
+                type="url"
+                value="{{ old('redirect_url', $shortLink->redirect_url) }}"
+                placeholder="https://exemplo.com"
+                class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-700 dark:bg-gray-900 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500"
+            >
+            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">O visitante será redirecionado para este endereço ao abrir o link.</p>
+            @error('redirect_url')
                 <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
             @enderror
         </div>
@@ -143,7 +162,11 @@
         </button>
     </form>
 
-    <section class="mt-6 max-w-2xl rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-5 shadow-sm">
+    <section
+        x-show="type !== 'redirect'"
+        @if ($shortLink->isRedirect()) style="display: none" @endif
+        class="mt-6 max-w-2xl rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-5 shadow-sm"
+    >
         <h2 class="text-sm font-semibold">
             {{ $shortLink->type->value === 'download' ? 'Documentos no link' : 'Documentos recebidos' }}
         </h2>
@@ -215,4 +238,5 @@
             </p>
         @endif
     </section>
+    </div>
 </x-layouts.admin>
