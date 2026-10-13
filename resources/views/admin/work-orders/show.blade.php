@@ -34,13 +34,16 @@
         </div>
 
         <div class="flex items-center gap-2">
-            <a
-                href="{{ route('admin.work-orders.edit', $workOrder) }}"
-                class="inline-flex items-center gap-1.5 rounded-md bg-gray-900 dark:bg-white px-4 py-2 text-sm font-medium text-white dark:text-gray-900 hover:bg-gray-700 dark:hover:bg-gray-200"
-            >
-                <x-icon name="pencil-square" class="h-4 w-4" />
-                Editar
-            </a>
+            @can('update', $workOrder)
+                <button
+                    type="button"
+                    data-modal-open="work-order-edit-modal"
+                    class="inline-flex items-center gap-1.5 rounded-md bg-gray-900 dark:bg-white px-4 py-2 text-sm font-medium text-white dark:text-gray-900 hover:bg-gray-700 dark:hover:bg-gray-200"
+                >
+                    <x-icon name="pencil-square" class="h-4 w-4" />
+                    Editar
+                </button>
+            @endcan
 
             <a
                 href="{{ route('admin.work-orders.index') }}"
@@ -188,4 +191,147 @@
         &middot;
         Atualizado em {{ $workOrder->updated_at->format('d/m/Y H:i') }}
     </div>
+
+    @can('update', $workOrder)
+        @include('admin.work-orders.partials.edit-modal', ['workOrder' => $workOrder])
+    @endcan
+
+    <script>
+        const openModal = (modal) => {
+            modal.classList.remove('hidden');
+            document.body.classList.add('overflow-hidden');
+
+            const error = modal.querySelector('[data-modal-error]');
+            if (error) {
+                error.scrollIntoView({ block: 'center' });
+            }
+        };
+
+        const closeModal = (modal) => {
+            modal.classList.add('hidden');
+            document.body.classList.remove('overflow-hidden');
+        };
+
+        document.addEventListener('click', (event) => {
+            const opener = event.target.closest('[data-modal-open]');
+
+            if (opener) {
+                event.preventDefault();
+
+                const modal = document.getElementById(opener.dataset.modalOpen);
+                if (modal) {
+                    openModal(modal);
+                }
+
+                return;
+            }
+
+            const closer = event.target.closest('[data-modal-close]');
+            if (closer) {
+                closeModal(closer.closest('[role="dialog"]'));
+            }
+        });
+
+        document.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape') {
+                document.querySelectorAll('[role="dialog"]:not(.hidden)').forEach(closeModal);
+            }
+        });
+
+        document.querySelectorAll('[role="dialog"][data-open]').forEach(openModal);
+
+        const wizard = document.querySelector('[data-wizard]');
+
+        if (wizard) {
+            const panels = Array.from(wizard.querySelectorAll('[data-wizard-panel]'));
+            const stepsList = wizard.querySelector('[data-wizard-steps]');
+            const prevButton = wizard.querySelector('[data-wizard-prev]');
+            const nextButton = wizard.querySelector('[data-wizard-next]');
+            const submitButton = wizard.querySelector('[data-wizard-submit]');
+            const scroller = wizard.closest('.overflow-y-auto');
+            const baseIndicator = 'inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-medium transition';
+            const inactiveIndicator = baseIndicator + ' border-gray-300 text-gray-600 hover:bg-gray-100 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800';
+            const activeIndicator = baseIndicator + ' border-gray-900 bg-gray-900 text-white dark:border-white dark:bg-white dark:text-gray-900';
+            const doneIndicator = baseIndicator + ' border-green-500 text-green-600 dark:text-green-400';
+            let current = 0;
+
+            if (stepsList) {
+                stepsList.innerHTML = panels.map((panel, index) => `
+                    <li>
+                        <button type="button" data-wizard-indicator="${index}" class="${inactiveIndicator}">
+                            <span class="inline-flex h-5 w-5 items-center justify-center rounded-full bg-gray-200 text-[0.65rem] font-semibold text-gray-700 dark:bg-gray-700 dark:text-gray-200">${index + 1}</span>
+                            <span>${panel.dataset.wizardTitle ?? ''}</span>
+                        </button>
+                    </li>
+                `).join('');
+            }
+
+            const indicators = stepsList ? Array.from(stepsList.querySelectorAll('[data-wizard-indicator]')) : [];
+
+            const firstInvalid = (panel) => Array.from(panel.querySelectorAll('input, select, textarea'))
+                .find((field) => !field.checkValidity());
+
+            const render = () => {
+                panels.forEach((panel, index) => panel.classList.toggle('hidden', index !== current));
+
+                indicators.forEach((indicator, index) => {
+                    indicator.className = index === current
+                        ? activeIndicator
+                        : (index < current ? doneIndicator : inactiveIndicator);
+                });
+
+                prevButton.classList.toggle('hidden', current === 0);
+                nextButton.classList.toggle('hidden', current === panels.length - 1);
+                submitButton.classList.toggle('hidden', current !== panels.length - 1);
+                submitButton.classList.toggle('inline-flex', current === panels.length - 1);
+            };
+
+            const goTo = (index) => {
+                current = Math.max(0, Math.min(index, panels.length - 1));
+                render();
+
+                if (scroller) {
+                    scroller.scrollTop = 0;
+                }
+            };
+
+            nextButton.addEventListener('click', () => {
+                const invalid = firstInvalid(panels[current]);
+
+                if (invalid) {
+                    invalid.reportValidity();
+                    return;
+                }
+
+                goTo(current + 1);
+            });
+
+            prevButton.addEventListener('click', () => goTo(current - 1));
+
+            indicators.forEach((indicator) => {
+                indicator.addEventListener('click', () => goTo(Number(indicator.dataset.wizardIndicator)));
+            });
+
+            wizard.addEventListener('submit', (event) => {
+                for (let index = 0; index < panels.length; index++) {
+                    const invalid = firstInvalid(panels[index]);
+
+                    if (invalid) {
+                        event.preventDefault();
+                        goTo(index);
+                        invalid.reportValidity();
+                        return;
+                    }
+                }
+            });
+
+            document.querySelectorAll('[data-modal-open="work-order-edit-modal"]').forEach((opener) => {
+                opener.addEventListener('click', () => goTo(0));
+            });
+
+            const errorPanel = panels.findIndex((panel) => panel.querySelector('.text-red-600'));
+
+            goTo(errorPanel > -1 ? errorPanel : 0);
+        }
+    </script>
 </x-layouts.admin>

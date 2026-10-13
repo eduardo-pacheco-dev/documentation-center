@@ -118,13 +118,16 @@ class WorkOrderController extends Controller
     /**
      * Show the work order details.
      */
-    public function show(WorkOrder $workOrder): View
+    public function show(Request $request, WorkOrder $workOrder): View
     {
         $this->authorize('view', $workOrder);
 
         $workOrder->load(['client', 'erb', 'items.catalogItem', 'project']);
 
-        return view('admin.work-orders.show', ['workOrder' => $workOrder]);
+        return view('admin.work-orders.show', [
+            ...$this->formData($request->user()),
+            'workOrder' => $workOrder,
+        ]);
     }
 
     /**
@@ -134,11 +137,12 @@ class WorkOrderController extends Controller
     {
         $this->authorize('update', $workOrder);
 
-        $workOrder->load('items');
+        $workOrder->load(['client', 'erb', 'items.catalogItem', 'project']);
 
-        return view('admin.work-orders.edit', [
+        return view('admin.work-orders.show', [
             ...$this->formData($request->user()),
             'workOrder' => $workOrder,
+            'openEditModal' => true,
         ]);
     }
 
@@ -163,7 +167,9 @@ class WorkOrderController extends Controller
             $workOrder->update(['total' => $workOrder->items()->sum('total')]);
         });
 
-        return back()->with('status', 'Ordem de serviço atualizada com sucesso.');
+        return redirect()
+            ->route('admin.work-orders.show', $workOrder)
+            ->with('status', 'Ordem de serviço atualizada com sucesso.');
     }
 
     /**

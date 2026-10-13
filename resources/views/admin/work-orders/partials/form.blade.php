@@ -31,12 +31,16 @@
         ->flatMap(fn ($key) => $errors->get($key))
         ->values()
         ->all();
+
+    $wizard = $wizard ?? false;
+    $panelClass = fn (int $index): string => trim('grid gap-5 sm:grid-cols-2 '.($wizard && $index > 0 ? 'hidden' : ''));
 @endphp
 
 <script type="application/json" id="work-order-catalog-data">@json($catalogData, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT)</script>
 <script type="application/json" id="work-order-initial-items">@json($initialItems, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT)</script>
 
-<div class="grid gap-5 sm:grid-cols-2">
+<div class="space-y-5">
+    <div data-wizard-panel data-wizard-title="Identificação" class="{{ $panelClass(0) }}">
     <div class="sm:col-span-2">
         <label for="client_id" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Cliente</label>
         <select
@@ -97,7 +101,9 @@
             <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p>
         @enderror
     </div>
+    </div>
 
+    <div data-wizard-panel data-wizard-title="Planejamento" class="{{ $panelClass(1) }}">
     <div>
         <label for="priority" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Prioridade</label>
         <select
@@ -176,7 +182,9 @@
             <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p>
         @enderror
     </div>
+    </div>
 
+    <div data-wizard-panel data-wizard-title="Itens" class="{{ $panelClass(2) }}">
     <div
         class="sm:col-span-2"
         x-data="{
@@ -326,7 +334,9 @@
             <span class="text-lg font-semibold text-gray-900 dark:text-gray-100" x-text="money(total)"></span>
         </div>
     </div>
+    </div>
 
+    <div data-wizard-panel data-wizard-title="Observações" class="{{ $panelClass(3) }}">
     <div class="sm:col-span-2">
         <label for="notes" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Observações</label>
         <textarea
@@ -338,5 +348,6 @@
         @error('notes')
             <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p>
         @enderror
+    </div>
     </div>
 </div>
