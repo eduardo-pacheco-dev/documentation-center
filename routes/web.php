@@ -75,7 +75,7 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
 
     Route::resource('links', ShortLinkController::class)
         ->parameters(['links' => 'shortLink'])
-        ->except(['show']);
+        ->except(['show', 'edit']);
     Route::post('links/{shortLink}/documents', [ShortLinkController::class, 'storeDocuments'])->name('links.documents.store');
     Route::delete('links/{shortLink}/documents/{document}', [ShortLinkController::class, 'destroyDocument'])->name('links.documents.destroy');
 

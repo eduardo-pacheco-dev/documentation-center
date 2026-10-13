@@ -151,7 +151,7 @@ class DocumentController extends Controller
         $shortLink->documents()->attach($request->validated('document_ids'));
 
         return redirect()
-            ->route('admin.links.edit', $shortLink)
+            ->route('admin.links.index')
             ->with('status', 'Link de download criado com '.count($request->validated('document_ids')).' arquivo(s).');
     }
 

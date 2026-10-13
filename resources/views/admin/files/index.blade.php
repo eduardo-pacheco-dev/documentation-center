@@ -612,7 +612,7 @@
 
                                 <div class="flex shrink-0 items-center gap-1">
                                     <a
-                                        href="{{ route('admin.links.edit', $shortLink) }}"
+                                        href="{{ route('admin.links.index', ['search' => $shortLink->code]) }}"
                                         class="rounded-md px-2 py-1 text-xs font-medium text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-800"
                                     >
                                         Abrir

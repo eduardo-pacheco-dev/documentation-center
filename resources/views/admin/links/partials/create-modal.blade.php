@@ -1,6 +1,6 @@
 <div
     data-create-modal
-    @if ($errors->any()) data-open-on-load="true" @endif
+    @if ($errors->any() && old('modal') === 'create') data-open-on-load="true" @endif
     class="fixed inset-0 z-50 hidden flex overflow-y-auto p-4"
     role="dialog"
     aria-modal="true"
@@ -30,6 +30,7 @@
 
         <form method="POST" action="{{ route('admin.links.store') }}">
             @csrf
+            <input type="hidden" name="modal" value="create">
 
             <div class="space-y-4 px-5 py-4">
                 @include('admin.links.partials.form-fields')

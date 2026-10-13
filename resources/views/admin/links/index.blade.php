@@ -242,6 +242,10 @@
     @include('admin.links.partials.link-modal')
     @include('admin.links.partials.details-modal')
 
+    @foreach ($shortLinks as $shortLink)
+        @include('admin.links.partials.edit-modal', ['shortLink' => $shortLink])
+    @endforeach
+
     <script>
         (function () {
             const params = new URLSearchParams(window.location.search);
@@ -433,6 +437,76 @@
             document.addEventListener('keydown', (event) => {
                 if (event.key === 'Escape' && !detailsModal.classList.contains('hidden')) {
                     closeDetailsModal();
+                }
+            });
+        }
+
+        const editModals = document.querySelectorAll('[data-link-edit-modal]');
+
+        if (editModals.length) {
+            const openEditModal = (modal) => {
+                modal.classList.remove('hidden');
+                document.body.style.overflow = 'hidden';
+            };
+
+            const closeEditModal = (modal) => {
+                modal.classList.add('hidden');
+                document.body.style.overflow = '';
+            };
+
+            const closeOtherDialogs = () => {
+                document.querySelectorAll('[data-link-details-modal]:not(.hidden), [data-link-modal]:not(.hidden)').forEach((dialog) => {
+                    dialog.classList.add('hidden');
+                });
+
+                const detailsContent = document.querySelector('[data-link-details-content]');
+
+                if (detailsContent) {
+                    detailsContent.replaceChildren();
+                }
+            };
+
+            document.addEventListener('click', (event) => {
+                const opener = event.target.closest('[data-modal-open]');
+
+                if (opener) {
+                    event.preventDefault();
+                    closeDropdowns();
+                    closeOtherDialogs();
+
+                    const modal = document.getElementById(opener.dataset.modalOpen);
+
+                    if (modal) {
+                        openEditModal(modal);
+                    }
+
+                    return;
+                }
+
+                const closer = event.target.closest('[data-modal-close]');
+
+                if (closer) {
+                    const dialog = closer.closest('[role="dialog"]');
+
+                    if (dialog && dialog.hasAttribute('data-link-edit-modal')) {
+                        closeEditModal(dialog);
+                    }
+                }
+            });
+
+            document.addEventListener('keydown', (event) => {
+                if (event.key === 'Escape') {
+                    editModals.forEach((modal) => {
+                        if (!modal.classList.contains('hidden')) {
+                            closeEditModal(modal);
+                        }
+                    });
+                }
+            });
+
+            editModals.forEach((modal) => {
+                if (modal.hasAttribute('data-open')) {
+                    openEditModal(modal);
                 }
             });
         }

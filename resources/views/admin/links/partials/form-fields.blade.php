@@ -1,11 +1,13 @@
-<div x-data="{ type: '{{ old('type', 'upload') }}' }" class="space-y-4">
+@php($shortLink = $shortLink ?? null)
+
+<div x-data="{ type: '{{ old('type', $shortLink?->type->value ?? 'upload') }}' }" class="space-y-4">
     <div>
         <label for="title" class="block text-sm font-medium text-gray-700 dark:text-gray-200">Título</label>
         <input
             id="title"
             name="title"
             type="text"
-            value="{{ old('title') }}"
+            value="{{ old('title', $shortLink?->title) }}"
             required
             class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-700 dark:bg-gray-900 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500"
         >
@@ -23,22 +25,25 @@
             x-model="type"
             class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-700 dark:bg-gray-900 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500"
         >
-            <option value="upload" @selected(old('type') === 'upload')>Upload — terceiros enviam documentos</option>
-            <option value="download" @selected(old('type') === 'download')>Download — visitantes baixam documentos</option>
-            <option value="redirect" @selected(old('type') === 'redirect')>Redirect — redireciona para um endereço</option>
+            <option value="upload" @selected(old('type', $shortLink?->type->value ?? 'upload') === 'upload')>Upload — terceiros enviam documentos</option>
+            <option value="download" @selected(old('type', $shortLink?->type->value ?? 'upload') === 'download')>Download — visitantes baixam documentos</option>
+            <option value="redirect" @selected(old('type', $shortLink?->type->value ?? 'upload') === 'redirect')>Redirect — redireciona para um endereço</option>
         </select>
         @error('type')
             <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
         @enderror
     </div>
 
-    <div x-show="type === 'redirect'" style="display: none">
+    <div
+        x-show="type === 'redirect'"
+        @if (old('type', $shortLink?->type->value ?? 'upload') !== 'redirect') style="display: none" @endif
+    >
         <label for="redirect_url" class="block text-sm font-medium text-gray-700 dark:text-gray-200">Endereço de redirecionamento</label>
         <input
             id="redirect_url"
             name="redirect_url"
             type="url"
-            value="{{ old('redirect_url') }}"
+            value="{{ old('redirect_url', $shortLink?->redirect_url) }}"
             placeholder="https://exemplo.com"
             class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-700 dark:bg-gray-900 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500"
         >
@@ -55,7 +60,7 @@
             name="description"
             rows="3"
             class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-700 dark:bg-gray-900 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500"
-        >{{ old('description') }}</textarea>
+        >{{ old('description', $shortLink?->description) }}</textarea>
         @error('description')
             <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
         @enderror
@@ -68,7 +73,7 @@
                 id="expires_at"
                 name="expires_at"
                 type="datetime-local"
-                value="{{ old('expires_at') }}"
+                value="{{ old('expires_at', $shortLink?->expires_at?->format('Y-m-d\TH:i')) }}"
                 class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-700 dark:bg-gray-900 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500"
             >
             @error('expires_at')
@@ -83,7 +88,7 @@
                 name="max_uses"
                 type="number"
                 min="1"
-                value="{{ old('max_uses') }}"
+                value="{{ old('max_uses', $shortLink?->max_uses) }}"
                 placeholder="Sem limite"
                 class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-700 dark:bg-gray-900 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500"
             >
@@ -94,12 +99,17 @@
     </div>
 
     <div>
-        <label for="password" class="block text-sm font-medium text-gray-700 dark:text-gray-200">Senha de acesso</label>
+        <label for="password" class="block text-sm font-medium text-gray-700 dark:text-gray-200">
+            Senha de acesso
+            @if ($shortLink?->needsPassword())
+                <span class="text-xs font-normal text-gray-400 dark:text-gray-500">(definida — deixe vazio para remover)</span>
+            @endif
+        </label>
         <input
             id="password"
             name="password"
             type="password"
-            placeholder="Deixe vazio para liberar sem senha"
+            placeholder="{{ $shortLink?->needsPassword() ? 'Digite uma nova senha ou limpe para remover' : 'Deixe vazio para liberar sem senha' }}"
             class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-700 dark:bg-gray-900 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500"
         >
         @error('password')
@@ -114,7 +124,7 @@
                 type="checkbox"
                 name="is_active"
                 value="1"
-                checked
+                @checked(old('is_active', $shortLink?->is_active ?? true))
                 class="rounded border-gray-300 dark:border-gray-700 dark:bg-gray-900 text-indigo-600 dark:text-indigo-300 focus:ring-indigo-500"
             >
             Link ativo

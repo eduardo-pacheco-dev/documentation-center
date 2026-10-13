@@ -110,25 +110,8 @@ class ShortLinkController extends Controller
         }
 
         return redirect()
-            ->route('admin.links.edit', $shortLink)
+            ->route('admin.links.index')
             ->with('status', 'Link criado com sucesso.');
-    }
-
-    /**
-     * Show the form to edit a link and its documents.
-     */
-    public function edit(ShortLink $shortLink): View
-    {
-        $this->authorize('update', $shortLink);
-
-        $documents = $shortLink->type === ShortLinkType::Upload
-            ? $shortLink->receivedDocuments()->latest()->get()
-            : $shortLink->documents()->latest()->get();
-
-        return view('admin.links.edit', [
-            'shortLink' => $shortLink,
-            'documents' => $documents,
-        ]);
     }
 
     /**

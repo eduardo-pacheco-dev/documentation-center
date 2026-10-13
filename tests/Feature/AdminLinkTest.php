@@ -258,7 +258,7 @@ test('switching a link to redirect stores the destination', function () {
     $shortLink = ShortLink::factory()->for($user)->create();
 
     $this->actingAs($user)
-        ->from('/admin/links/'.$shortLink->getKey().'/edit')
+        ->from('/admin/links')
         ->put('/admin/links/'.$shortLink->getKey(), [
             'title' => $shortLink->title,
             'type' => 'redirect',
@@ -278,7 +278,7 @@ test('switching away from redirect clears the destination', function () {
     $shortLink = ShortLink::factory()->for($user)->redirect()->create();
 
     $this->actingAs($user)
-        ->from('/admin/links/'.$shortLink->getKey().'/edit')
+        ->from('/admin/links')
         ->put('/admin/links/'.$shortLink->getKey(), [
             'title' => $shortLink->title,
             'type' => 'download',
@@ -292,13 +292,15 @@ test('switching away from redirect clears the destination', function () {
     ]);
 });
 
-test('the edit page renders the redirect destination for a redirect link', function () {
+test('the links list renders an edit modal with the redirect destination for a redirect link', function () {
     $user = User::factory()->create();
     $shortLink = ShortLink::factory()->for($user)->redirect('https://example.com/portal')->create();
 
     $this->actingAs($user)
-        ->get('/admin/links/'.$shortLink->getKey().'/edit')
+        ->get('/admin/links')
         ->assertOk()
+        ->assertSee('data-link-edit-modal', false)
+        ->assertSee('data-modal-open="link-edit-modal-'.$shortLink->getKey().'"', false)
         ->assertSee('redirect_url')
         ->assertSee('https://example.com/portal');
 });
@@ -307,11 +309,7 @@ test('users can not edit links owned by someone else', function () {
     $shortLink = ShortLink::factory()->create();
 
     $this->actingAs(User::factory()->create())
-        ->get('/admin/links/'.$shortLink->getKey().'/edit')
-        ->assertForbidden();
-
-    $this->actingAs(User::factory()->create())
-        ->from('/admin/links/'.$shortLink->getKey().'/edit')
+        ->from('/admin/links')
         ->put('/admin/links/'.$shortLink->getKey(), [
             'title' => 'Tentar invadir',
             'type' => 'download',
@@ -324,7 +322,7 @@ test('users can update their own links', function () {
     $shortLink = ShortLink::factory()->for($user)->create();
 
     $this->actingAs($user)
-        ->from('/admin/links/'.$shortLink->getKey().'/edit')
+        ->from('/admin/links')
         ->put('/admin/links/'.$shortLink->getKey(), [
             'title' => 'Novo título',
             'type' => 'download',
@@ -367,7 +365,7 @@ test('users can attach documents to their links', function () {
     $shortLink = ShortLink::factory()->for($user)->create();
 
     $this->actingAs($user)
-        ->from('/admin/links/'.$shortLink->getKey().'/edit')
+        ->from('/admin/links')
         ->post('/admin/links/'.$shortLink->getKey().'/documents', [
             'documents' => [
                 UploadedFile::fake()->create('contrato.pdf', 100, 'application/pdf'),
@@ -427,7 +425,7 @@ test('users can detach a document from a download link without deleting it', fun
     Storage::disk('local')->put($document->path, 'conteudo');
 
     $this->actingAs($user)
-        ->from('/admin/links/'.$shortLink->getKey().'/edit')
+        ->from('/admin/links')
         ->delete('/admin/links/'.$shortLink->getKey().'/documents/'.$document->getKey())
         ->assertRedirect()
         ->assertSessionHas('status');
@@ -450,7 +448,7 @@ test('users can delete a received document from an upload link', function () {
     Storage::disk('local')->put($document->path, 'conteudo');
 
     $this->actingAs($user)
-        ->from('/admin/links/'.$shortLink->getKey().'/edit')
+        ->from('/admin/links')
         ->delete('/admin/links/'.$shortLink->getKey().'/documents/'.$document->getKey())
         ->assertRedirect()
         ->assertSessionHas('status');

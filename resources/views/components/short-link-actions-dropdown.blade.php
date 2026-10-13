@@ -40,14 +40,15 @@
             Link
         </button>
 
-        <a
-            href="{{ route('admin.links.edit', $shortLink) }}"
-            class="flex items-center gap-2 px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800"
+        <button
+            type="button"
+            data-modal-open="link-edit-modal-{{ $shortLink->getKey() }}"
+            class="flex w-full items-center gap-2 px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800"
             role="menuitem"
         >
             <x-icon name="pencil-square" class="h-4 w-4 text-gray-400 dark:text-gray-500" />
             Editar
-        </a>
+        </button>
 
         <form method="POST" action="{{ route('admin.links.destroy', $shortLink) }}">
             @csrf
@@ -160,13 +161,14 @@
                 Fechar
             </button>
 
-            <a
-                href="{{ route('admin.links.edit', $shortLink) }}"
+            <button
+                type="button"
+                data-modal-open="link-edit-modal-{{ $shortLink->getKey() }}"
                 class="inline-flex items-center gap-1.5 rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-700 dark:bg-white dark:text-gray-900 dark:hover:bg-gray-200"
             >
                 <x-icon name="pencil-square" class="h-4 w-4" />
                 Editar
-            </a>
+            </button>
         </footer>
     </template>
 </div>
