@@ -240,6 +240,7 @@
 
     @include('admin.links.partials.create-modal')
     @include('admin.links.partials.link-modal')
+    @include('admin.links.partials.details-modal')
 
     <script>
         (function () {
@@ -395,6 +396,43 @@
             document.addEventListener('keydown', (event) => {
                 if (event.key === 'Escape' && !linkModal.classList.contains('hidden')) {
                     closeLinkModal();
+                }
+            });
+        }
+
+        const detailsModal = document.querySelector('[data-link-details-modal]');
+
+        if (detailsModal) {
+            const detailsContent = detailsModal.querySelector('[data-link-details-content]');
+
+            const openDetailsModal = (template) => {
+                detailsContent.replaceChildren(template.content.cloneNode(true));
+                detailsModal.classList.remove('hidden');
+                document.body.style.overflow = 'hidden';
+            };
+
+            const closeDetailsModal = () => {
+                detailsModal.classList.add('hidden');
+                detailsContent.replaceChildren();
+                document.body.style.overflow = '';
+            };
+
+            document.querySelectorAll('[data-link-details-open]').forEach((button) => {
+                button.addEventListener('click', () => {
+                    closeDropdowns();
+                    openDetailsModal(button.closest('[data-link-actions]').querySelector('[data-link-details-template]'));
+                });
+            });
+
+            detailsModal.addEventListener('click', (event) => {
+                if (event.target.closest('[data-link-details-close]')) {
+                    closeDetailsModal();
+                }
+            });
+
+            document.addEventListener('keydown', (event) => {
+                if (event.key === 'Escape' && !detailsModal.classList.contains('hidden')) {
+                    closeDetailsModal();
                 }
             });
         }
