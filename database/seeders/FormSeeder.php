@@ -12,9 +12,16 @@ class FormSeeder extends Seeder
     use WithoutModelEvents;
 
     /**
-     * The number of forms to seed.
+     * The form statuses seeded per user, one rotation per user so everyone has filled forms.
+     *
+     * @var list<list<string>>
      */
-    private const FORM_COUNT = 18;
+    private const STATUS_ROTATIONS = [
+        ['Preenchido', 'Aprovado', 'Pendente'],
+        ['Aprovado', 'Em preenchimento', 'Preenchido'],
+        ['Preenchido', 'Pendente', 'Aprovado'],
+        ['Aprovado', 'Pendente', 'Em preenchimento'],
+    ];
 
     /**
      * The form types distributed across the seeded forms.
@@ -47,15 +54,21 @@ class FormSeeder extends Seeder
             return;
         }
 
-        foreach (range(1, self::FORM_COUNT) as $index) {
-            $this->seedForm($users->get($index % $users->count()), $index);
+        $index = 0;
+
+        foreach ($users->values() as $userIndex => $owner) {
+            $statuses = self::STATUS_ROTATIONS[$userIndex % count(self::STATUS_ROTATIONS)];
+
+            foreach ($statuses as $status) {
+                $this->seedForm($owner, ++$index, $status);
+            }
         }
     }
 
     /**
      * Seed one form attached to a project owned by the given user.
      */
-    private function seedForm(User $owner, int $index): void
+    private function seedForm(User $owner, int $index, string $status): void
     {
         $projects = $owner->projects()->orderBy('id')->get();
 
@@ -65,62 +78,53 @@ class FormSeeder extends Seeder
 
         $project = $projects->get(($index - 1) % $projects->count());
         $type = self::TYPES[($index - 1) % count(self::TYPES)];
-        $status = match (true) {
-            $index % 7 === 0 => 'Aprovado',
-            $index % 5 === 0 => 'Em preenchimento',
-            $index % 3 === 0 => 'Preenchido',
-            default => 'Pendente',
-        };
-
-        $sequence = $owner->forms()->count() + 1;
         $suffixes = self::NAME_SUFFIXES[$type];
         $suffix = $suffixes[($index - 1) % count($suffixes)];
 
         Form::create([
             'user_id' => $owner->getKey(),
             'project_id' => $project->getKey(),
-            'code' => 'FRM-'.str_pad((string) $sequence, 4, '0', STR_PAD_LEFT),
+            'code' => Form::generateCode($owner),
             'name' => $project->name ? $type.' - '.$suffix.' ('.$project->name.')' : $type.' - '.$suffix,
             'type' => $type,
             'status' => $status,
-            'steps' => $this->stepsFor($status),
+            'steps' => $this->structure(),
             'fields' => null,
         ]);
     }
 
     /**
-     * Build the steps of a form. Filled answers appear once the form is done.
+     * Build the empty structure (sections and questions) shared by the seeded forms.
      *
      * @return list<array<string, mixed>>
      */
-    private function stepsFor(string $status): array
+    private function structure(): array
     {
-        $filled = in_array($status, ['Preenchido', 'Aprovado'], true);
-
         return [
             [
                 'id' => 'S1',
                 'title' => 'Identificação',
                 'fields' => [
-                    ['id' => 'F1-1', 'type' => 'text', 'label' => 'Área registrada', 'value' => $filled ? 'Galpão Estrutura' : '', 'status' => $filled ? 'aprovado' : 'pendente'],
-                    ['id' => 'F1-2', 'type' => 'number', 'label' => 'Código SMP', 'value' => $filled ? 'SMP-1000' : '', 'status' => $filled ? 'aprovado' : 'pendente'],
-                    ['id' => 'F1-3', 'type' => 'date', 'label' => 'Data da vistoria', 'value' => $filled ? now()->toDateString() : '', 'status' => $filled ? 'aprovado' : 'pendente'],
+                    ['id' => 'F1-1', 'type' => 'text', 'label' => 'Área registrada', 'required' => true, 'value' => '', 'status' => 'pendente'],
+                    ['id' => 'F1-2', 'type' => 'number', 'label' => 'Código SMP', 'required' => false, 'value' => '', 'status' => 'pendente'],
+                    ['id' => 'F1-3', 'type' => 'date', 'label' => 'Data da vistoria', 'required' => true, 'value' => '', 'status' => 'pendente'],
                 ],
             ],
             [
                 'id' => 'S2',
                 'title' => 'Registro fotográfico',
                 'fields' => [
-                    ['id' => 'F2-1', 'type' => 'image', 'label' => 'Foto do painel', 'images' => $filled ? [fake()->imageUrl(640, 480, 'telecom')] : [], 'status' => $filled ? 'enviado' : 'pendente'],
-                    ['id' => 'F2-2', 'type' => 'image', 'label' => 'Foto do abrigo', 'images' => $filled && $status === 'Aprovado' ? [fake()->imageUrl(640, 480, 'building')] : [], 'status' => $filled ? 'enviado' : 'pendente'],
+                    ['id' => 'F2-1', 'type' => 'image', 'label' => 'Foto do painel', 'required' => true, 'images' => [], 'status' => 'pendente'],
+                    ['id' => 'F2-2', 'type' => 'image', 'label' => 'Foto do abrigo', 'required' => false, 'images' => [], 'status' => 'pendente'],
                 ],
             ],
             [
                 'id' => 'S3',
                 'title' => 'Conformidade',
                 'fields' => [
-                    ['id' => 'F3-1', 'type' => 'textarea', 'label' => 'Observações', 'value' => $filled ? fake('pt_BR')->sentence() : '', 'status' => $filled ? 'aprovado' : 'pendente'],
-                    ['id' => 'F3-2', 'type' => 'text', 'label' => 'Parecer', 'value' => $status === 'Aprovado' ? 'Conforme' : '', 'status' => $status === 'Aprovado' ? 'aprovado' : 'nao_aplicavel'],
+                    ['id' => 'F3-1', 'type' => 'textarea', 'label' => 'Observações', 'required' => false, 'value' => '', 'status' => 'pendente'],
+                    ['id' => 'F3-2', 'type' => 'radio', 'label' => 'Parecer', 'required' => true, 'options' => ['Conforme', 'Não conforme'], 'value' => '', 'status' => 'pendente'],
+                    ['id' => 'F3-3', 'type' => 'scale', 'label' => 'Grau de conservação', 'required' => false, 'scaleMin' => 1, 'scaleMax' => 5, 'scaleMinLabel' => 'Ruim', 'scaleMaxLabel' => 'Ótimo', 'value' => '', 'status' => 'pendente'],
                 ],
             ],
         ];
