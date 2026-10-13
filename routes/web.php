@@ -154,6 +154,7 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
 
     Route::get('forms/{form}/avaliacao', [FormEvaluationController::class, 'create'])->name('forms.evaluate');
     Route::post('forms/{form}/avaliacao', [FormEvaluationController::class, 'store'])->name('forms.evaluations.store');
+    Route::post('forms/{form}/avaliacao/auto-save', [FormEvaluationController::class, 'autosave'])->name('forms.evaluations.autosave');
 
     Route::get('form-templates', [FormTemplateController::class, 'index'])->name('form-templates.index');
     Route::post('form-templates', [FormTemplateController::class, 'store'])->name('form-templates.store');

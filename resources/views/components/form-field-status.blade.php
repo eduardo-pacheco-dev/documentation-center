@@ -9,9 +9,18 @@
         'nao_aplicavel' => ['bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300', 'minus-circle'],
         default => ['bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400', 'minus'],
     };
+
+    $labels = [
+        'aprovado' => 'Aprovado',
+        'reprovado' => 'Reprovado',
+        'pendente' => 'Pendente',
+        'nao_aplicavel' => 'Não aplicável',
+        'enviado' => 'Enviado',
+        'envio_pendente' => 'Envio pendente',
+    ];
 @endphp
 
 <span class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium {{ $styles[0] }}">
     <x-icon :name="$styles[1]" class="h-3.5 w-3.5" />
-    {{ $status ?: '—' }}
+    {{ $status ? ($labels[$status] ?? $status) : '—' }}
 </span>
