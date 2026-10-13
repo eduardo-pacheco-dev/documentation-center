@@ -133,7 +133,7 @@
                                         <x-icon name="signal" class="h-4 w-4 text-gray-400 dark:text-gray-500" />
                                         {{ $erb->code }}
                                     </a>
-                                    <p class="mt-0.5 max-w-[20rem] truncate text-xs text-gray-500 dark:text-gray-400">{{ $erb->name }}</p>
+                                    <p class="mt-0.5 max-w-[20rem] truncate text-xs text-gray-500 dark:text-gray-400">{{ $erb->end_id ?? '—' }}</p>
                                 </td>
                                 <td class="whitespace-nowrap px-5 py-3 text-gray-500 dark:text-gray-400">{{ $erb->operator ?? '—' }}</td>
                                 <td class="whitespace-nowrap px-5 py-3 text-gray-500 dark:text-gray-400">{{ $erb->technology ?? '—' }}</td>
@@ -469,7 +469,7 @@
                 <ol data-wizard-steps class="flex flex-wrap items-center gap-2" role="list"></ol>
 
                 <div class="mt-5">
-                    @include('admin.erbs.partials.form', ['wizard' => true])
+                    @include('admin.erbs.partials.form', ['wizard' => true, 'erb' => null])
                 </div>
 
                 <div class="mt-6 flex items-center gap-2 border-t border-gray-100 pt-4 dark:border-gray-800">

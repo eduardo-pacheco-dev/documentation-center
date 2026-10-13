@@ -15,18 +15,47 @@ it('requires an authenticated user to open the ERBs area', function () {
     $this->get('/admin/erbs')->assertRedirect('/login');
 });
 
-it('lists only the ERBs the user owns', function () {
+it('lists only the ERBs the user owns and shows the end identifier instead of the name', function () {
     $owner = User::factory()->create();
 
-    Erb::factory()->create(['user_id' => $owner->getKey(), 'code' => 'ERB-00001', 'name' => 'ERB do Titular']);
-    Erb::factory()->create(['code' => 'ERB-09999', 'name' => 'ERB Alheia']);
+    Erb::factory()->create([
+        'user_id' => $owner->getKey(),
+        'code' => 'ERB-00001',
+        'name' => 'ERB do Titular',
+        'end_id' => 'EST-ALFA-01',
+    ]);
+    Erb::factory()->create([
+        'code' => 'ERB-09999',
+        'name' => 'ERB Alheia',
+        'end_id' => 'EST-BETA-99',
+    ]);
 
     $this->actingAs($owner)
         ->get('/admin/erbs')
         ->assertOk()
         ->assertSee('ERB-00001')
-        ->assertSee('ERB do Titular')
-        ->assertDontSee('ERB Alheia');
+        ->assertSee('EST-ALFA-01')
+        ->assertDontSee('ERB do Titular')
+        ->assertDontSee('ERB-09999')
+        ->assertDontSee('EST-BETA-99');
+});
+
+it('does not prefill the create modal with an existing ERB from the list', function () {
+    $owner = User::factory()->create();
+
+    Erb::factory()->create([
+        'user_id' => $owner->getKey(),
+        'code' => 'ERB-00001',
+        'name' => 'ERB Existente',
+        'end_id' => 'EST-EXIST-1',
+        'street' => 'Rua Existente',
+    ]);
+
+    $this->actingAs($owner)
+        ->get('/admin/erbs')
+        ->assertOk()
+        ->assertDontSee('value="EST-EXIST-1"', false)
+        ->assertDontSee('value="Rua Existente"', false);
 });
 
 it('filters the ERB list by search term and status', function () {
@@ -37,24 +66,26 @@ it('filters the ERB list by search term and status', function () {
         'code' => 'ERB-00001',
         'name' => 'Alpha Norte',
         'status' => 'active',
+        'end_id' => 'EST-ALFA-01',
     ]);
     Erb::factory()->maintenance()->create([
         'user_id' => $owner->getKey(),
         'code' => 'ERB-00002',
         'name' => 'Beta Sul',
+        'end_id' => 'EST-BETA-02',
     ]);
 
     $this->actingAs($owner)
         ->get('/admin/erbs?search=Alpha')
         ->assertOk()
-        ->assertSee('Alpha Norte')
-        ->assertDontSee('Beta Sul');
+        ->assertSee('EST-ALFA-01')
+        ->assertDontSee('EST-BETA-02');
 
     $this->actingAs($owner)
         ->get('/admin/erbs?status=maintenance')
         ->assertOk()
-        ->assertSee('Beta Sul')
-        ->assertDontSee('Alpha Norte');
+        ->assertSee('EST-BETA-02')
+        ->assertDontSee('EST-ALFA-01');
 });
 
 it('stores the site and end identifiers when creating an ERB', function () {
@@ -94,14 +125,14 @@ it('filters the ERB list by site and end identifiers', function () {
     $this->actingAs($owner)
         ->get('/admin/erbs?search=PABLM_0001')
         ->assertOk()
-        ->assertSee('Alpha Norte')
-        ->assertDontSee('Beta Sul');
+        ->assertSee('ERB-00001')
+        ->assertDontSee('ERB-00002');
 
     $this->actingAs($owner)
         ->get('/admin/erbs?search=PABXA')
         ->assertOk()
-        ->assertSee('Beta Sul')
-        ->assertDontSee('Alpha Norte');
+        ->assertSee('ERB-00002')
+        ->assertDontSee('ERB-00001');
 });
 
 it('renders the ERB list in the alternate view modes', function () {
