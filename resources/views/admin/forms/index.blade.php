@@ -10,6 +10,7 @@
 
         <a
             href="{{ route('admin.forms.create') }}"
+            data-modal-open="form-create-modal"
             class="inline-flex items-center gap-1.5 rounded-md bg-gray-900 dark:bg-white px-4 py-2 text-sm font-medium text-white dark:text-gray-900 hover:bg-gray-700 dark:hover:bg-gray-200"
         >
             <x-icon name="plus" class="h-4 w-4" />
@@ -201,4 +202,149 @@
             <x-pagination :paginator="$forms" />
         </div>
     </div>
+
+    <div
+        id="form-create-modal"
+        class="fixed inset-0 z-50 hidden"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="form-create-modal-title"
+        @if ($errors->any() && old('modal') === 'create') data-open @endif
+    >
+        <div class="absolute inset-0 bg-gray-900/50" data-modal-close></div>
+
+        <div class="absolute left-1/2 top-1/2 max-h-[90vh] w-full max-w-2xl -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-xl bg-white p-5 shadow-xl dark:bg-gray-900">
+            <div class="flex items-start justify-between gap-4">
+                <div>
+                    <h2 id="form-create-modal-title" class="flex items-center gap-2 text-base font-semibold text-gray-900 dark:text-gray-100">
+                        <x-icon name="clipboard-document-list" class="h-5 w-5 text-gray-400 dark:text-gray-500" />
+                        Novo formulário
+                    </h2>
+                    <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Informe os dados do formulário.</p>
+                </div>
+
+                <button
+                    type="button"
+                    class="rounded-full p-1 text-gray-400 dark:text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-700"
+                    data-modal-close
+                >
+                    <span class="sr-only">Fechar</span>
+                    <x-icon name="x-mark" class="h-5 w-5" />
+                </button>
+            </div>
+
+            @if ($errors->any() && old('modal') === 'create')
+                <div
+                    data-modal-error
+                    class="mt-4 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300"
+                >
+                    <p class="font-medium">Não foi possível criar o formulário. Corrija os itens destacados e tente novamente.</p>
+                </div>
+            @endif
+
+            <form method="POST" action="{{ route('admin.forms.store') }}" class="mt-5 space-y-6">
+                @csrf
+                <input type="hidden" name="modal" value="create">
+
+                @include('admin.forms.partials.form', [
+                    'form' => null,
+                    'projects' => $projects,
+                    'types' => $types,
+                    'statuses' => $statuses,
+                ])
+
+                <div class="flex justify-end gap-2 border-t border-gray-100 pt-4 dark:border-gray-800">
+                    <button
+                        type="button"
+                        class="rounded-md border border-gray-300 dark:border-gray-700 dark:bg-gray-900 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800"
+                        data-modal-close
+                    >
+                        Cancelar
+                    </button>
+                    <button
+                        type="submit"
+                        class="inline-flex items-center gap-1.5 rounded-md bg-gray-900 dark:bg-white px-4 py-2 text-sm font-medium text-white dark:text-gray-900 hover:bg-gray-700 dark:hover:bg-gray-200"
+                    >
+                        <x-icon name="check" class="h-4 w-4" />
+                        Criar formulário
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        (function () {
+            const closeDropdowns = (except) => {
+                document.querySelectorAll('[data-dropdown-menu]:not(.hidden)').forEach((menu) => {
+                    if (menu !== except) {
+                        menu.classList.add('hidden');
+                        menu.previousElementSibling.setAttribute('aria-expanded', 'false');
+                    }
+                });
+            };
+
+            document.addEventListener('click', (event) => {
+                const toggle = event.target.closest('[data-dropdown-toggle]');
+
+                if (toggle) {
+                    const menu = toggle.nextElementSibling;
+                    const willOpen = menu.classList.contains('hidden');
+                    closeDropdowns(willOpen ? menu : null);
+                    menu.classList.toggle('hidden', !willOpen);
+                    toggle.setAttribute('aria-expanded', String(willOpen));
+                    return;
+                }
+
+                if (!event.target.closest('[data-dropdown-menu]')) {
+                    closeDropdowns();
+                }
+            });
+
+            const openModal = (modal) => {
+                modal.classList.remove('hidden');
+                document.body.classList.add('overflow-hidden');
+
+                const error = modal.querySelector('[data-modal-error]');
+                if (error) {
+                    error.scrollIntoView({ block: 'center' });
+                }
+            };
+
+            const closeModal = (modal) => {
+                modal.classList.add('hidden');
+                document.body.classList.remove('overflow-hidden');
+            };
+
+            document.addEventListener('click', (event) => {
+                const opener = event.target.closest('[data-modal-open]');
+
+                if (opener) {
+                    event.preventDefault();
+                    closeDropdowns();
+
+                    const modal = document.getElementById(opener.dataset.modalOpen);
+                    if (modal) {
+                        openModal(modal);
+                    }
+
+                    return;
+                }
+
+                const closer = event.target.closest('[data-modal-close]');
+                if (closer) {
+                    closeModal(closer.closest('[role="dialog"]'));
+                }
+            });
+
+            document.addEventListener('keydown', (event) => {
+                if (event.key === 'Escape') {
+                    closeDropdowns();
+                    document.querySelectorAll('[role="dialog"]:not(.hidden)').forEach(closeModal);
+                }
+            });
+
+            document.querySelectorAll('[role="dialog"][data-open]').forEach(openModal);
+        })();
+    </script>
 </x-layouts.admin>

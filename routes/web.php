@@ -147,6 +147,7 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
     Route::get('forms/{form}', [FormController::class, 'show'])->name('forms.show');
     Route::get('forms/{form}/edit', [FormController::class, 'edit'])->name('forms.edit');
     Route::put('forms/{form}', [FormController::class, 'update'])->name('forms.update');
+    Route::patch('forms/{form}/steps', [FormController::class, 'updateSteps'])->name('forms.steps.update');
     Route::delete('forms/{form}', [FormController::class, 'destroy'])->name('forms.destroy');
 
     Route::get('radio-links', [RadioLinkController::class, 'index'])->name('radio-links.index');

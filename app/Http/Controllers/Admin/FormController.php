@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\StoreFormRequest;
 use App\Http\Requests\Admin\UpdateFormRequest;
+use App\Http\Requests\Admin\UpdateFormStepsRequest;
 use App\Models\Form;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
@@ -60,6 +61,8 @@ class FormController extends Controller
             'status' => $status,
             'projectId' => $projectId,
             'perPage' => $perPage,
+            'types' => ['Registro Fotográfico', 'Checklist', 'Vistoria', 'Inspeção', 'Laudo Técnico'],
+            'statuses' => ['Pendente', 'Em preenchimento', 'Preenchido', 'Aprovado', 'Reprovado'],
         ]);
     }
 
@@ -142,6 +145,18 @@ class FormController extends Controller
         ]);
 
         return back()->with('status', 'Formulário atualizado com sucesso.');
+    }
+
+    /**
+     * Update the form structure (sections and questions) from the builder.
+     */
+    public function updateSteps(UpdateFormStepsRequest $request, Form $form): RedirectResponse
+    {
+        $form->update(['steps' => $request->input('steps', [])]);
+
+        return redirect()
+            ->route('admin.forms.show', $form)
+            ->with('status', 'Formulário atualizado com sucesso.');
     }
 
     /**

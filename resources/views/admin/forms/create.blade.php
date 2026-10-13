@@ -5,7 +5,7 @@
                 <x-icon name="clipboard-document-list" class="h-5 w-5 text-gray-400 dark:text-gray-500" />
                 Novo formulário
             </h1>
-            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Crie o modelo e preencha as etapas e campos padrão.</p>
+            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Informe os dados do formulário.</p>
         </div>
 
         <a
@@ -16,7 +16,7 @@
         </a>
     </div>
 
-    <form method="POST" action="{{ route('admin.forms.store') }}" class="mt-6 space-y-6" x-data="stepsEditor({{ json_encode([]) }})">
+    <form method="POST" action="{{ route('admin.forms.store') }}" class="mt-6 space-y-6">
         @csrf
 
         @include('admin.forms.partials.form', [

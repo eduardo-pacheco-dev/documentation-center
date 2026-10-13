@@ -5,7 +5,7 @@
                 <x-icon name="clipboard-document-list" class="h-5 w-5 text-gray-400 dark:text-gray-500" />
                 Editar {{ $form->code }}
             </h1>
-            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Atualize os dados e as etapas do formulário.</p>
+            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Atualize os dados do formulário.</p>
         </div>
 
         <a
@@ -16,7 +16,7 @@
         </a>
     </div>
 
-    <form method="POST" action="{{ route('admin.forms.update', $form) }}" class="mt-6 space-y-6" x-data="stepsEditor({{ json_encode($initialSteps ?? ($form->steps ?? [])) }})">
+    <form method="POST" action="{{ route('admin.forms.update', $form) }}" class="mt-6 space-y-6">
         @csrf
         @method('PUT')
 
