@@ -24,6 +24,17 @@ test('users can list their own links', function () {
         ->assertSee($shortLink->code);
 });
 
+test('renders the create form inside a modal on the links list', function () {
+    $user = User::factory()->create();
+
+    $this->actingAs($user)
+        ->get('/admin/links')
+        ->assertOk()
+        ->assertSee('data-create-modal-open', false)
+        ->assertSee('data-create-modal', false)
+        ->assertSee(route('admin.links.store'), false);
+});
+
 test('a link belongs to its owner and is visible only to it', function () {
     $owner = User::factory()->create();
     $shortLink = ShortLink::factory()->for($owner)->create();

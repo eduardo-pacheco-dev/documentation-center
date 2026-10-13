@@ -13,13 +13,14 @@
             <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Gerencie seus links de envio e download de documentos.</p>
         </div>
 
-        <a
-            href="{{ route('admin.links.create') }}"
+        <button
+            type="button"
+            data-create-modal-open
             class="inline-flex items-center gap-1.5 rounded-md bg-gray-900 dark:bg-white px-4 py-2 text-sm font-medium text-white dark:text-gray-900 hover:bg-gray-700 dark:hover:bg-gray-200"
         >
             <x-icon name="plus" class="h-4 w-4" />
             Novo link
-        </a>
+        </button>
     </div>
 
     <div class="mt-6 flex flex-wrap items-center justify-between gap-4">
@@ -237,6 +238,8 @@
         </div>
     @endif
 
+    @include('admin.links.partials.create-modal')
+
     <script>
         (function () {
             const params = new URLSearchParams(window.location.search);
@@ -313,6 +316,32 @@
             if (searchInput.value) {
                 searchInput.focus();
                 searchInput.setSelectionRange(searchInput.value.length, searchInput.value.length);
+            }
+        }
+
+        const createModal = document.querySelector('[data-create-modal]');
+
+        const openCreateModal = () => {
+            createModal.classList.remove('hidden');
+            document.body.style.overflow = 'hidden';
+        };
+
+        const closeCreateModal = () => {
+            createModal.classList.add('hidden');
+            document.body.style.overflow = '';
+        };
+
+        if (createModal) {
+            document.querySelectorAll('[data-create-modal-open]').forEach((button) => {
+                button.addEventListener('click', openCreateModal);
+            });
+
+            document.querySelectorAll('[data-create-modal-close]').forEach((button) => {
+                button.addEventListener('click', closeCreateModal);
+            });
+
+            if (createModal.hasAttribute('data-open-on-load')) {
+                openCreateModal();
             }
         }
     </script>
