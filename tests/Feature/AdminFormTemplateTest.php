@@ -123,9 +123,39 @@ it('rejects creating a template from a form the user does not own', function () 
     expect(FormTemplate::query()->count())->toBe(0);
 });
 
+it('renders the template edit page with details and structure tabs', function () {
+    $user = User::factory()->create();
+    $template = FormTemplate::factory()->ownedBy($user)->create();
+
+    $this->actingAs($user)
+        ->get(route('admin.form-templates.edit', $template))
+        ->assertOk()
+        ->assertSee('data-tab="details"', false)
+        ->assertSee('data-tab="structure"', false)
+        ->assertSee(route('admin.form-templates.update', $template), false)
+        ->assertSee(route('admin.form-templates.steps.update', $template), false);
+});
+
 it('updates a template the user owns', function () {
     $user = User::factory()->create();
     $template = FormTemplate::factory()->ownedBy($user)->create(['name' => 'Antigo']);
+
+    $this->actingAs($user)
+        ->put(route('admin.form-templates.update', $template), [
+            'name' => 'Atualizado',
+            'type' => 'Checklist',
+        ])
+        ->assertRedirect();
+
+    $template->refresh();
+
+    expect($template->name)->toBe('Atualizado');
+    expect($template->type)->toBe('Checklist');
+});
+
+it('updates the template structure from the builder', function () {
+    $user = User::factory()->create();
+    $template = FormTemplate::factory()->ownedBy($user)->create(['steps' => []]);
 
     $steps = [
         ['id' => 'S1', 'title' => 'Nova seção', 'fields' => [
@@ -134,18 +164,12 @@ it('updates a template the user owns', function () {
     ];
 
     $this->actingAs($user)
-        ->put(route('admin.form-templates.update', $template), [
-            'name' => 'Atualizado',
-            'type' => 'Checklist',
+        ->patch(route('admin.form-templates.steps.update', $template), [
             'steps_json' => json_encode($steps),
         ])
-        ->assertRedirect();
+        ->assertRedirect(route('admin.form-templates.edit', $template));
 
-    $template->refresh();
-
-    expect($template->name)->toBe('Atualizado');
-    expect($template->type)->toBe('Checklist');
-    expect($template->steps)->toBe($steps);
+    expect($template->fresh()->steps)->toBe($steps);
 });
 
 it('rejects an unsupported field type when updating a template', function () {
@@ -159,8 +183,7 @@ it('rejects an unsupported field type when updating a template', function () {
     ];
 
     $this->actingAs($user)
-        ->put(route('admin.form-templates.update', $template), [
-            'name' => 'Template',
+        ->patch(route('admin.form-templates.steps.update', $template), [
             'steps_json' => json_encode($steps),
         ])
         ->assertSessionHasErrors('steps.0.fields.0.type');

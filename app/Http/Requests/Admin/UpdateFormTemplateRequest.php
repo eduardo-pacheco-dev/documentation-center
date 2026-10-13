@@ -2,15 +2,12 @@
 
 namespace App\Http\Requests\Admin;
 
-use App\Http\Requests\Admin\Concerns\ValidatesFormSteps;
 use App\Models\FormTemplate;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 
 class UpdateFormTemplateRequest extends FormRequest
 {
-    use ValidatesFormSteps;
-
     /**
      * The template the request acts on.
      */
@@ -28,14 +25,6 @@ class UpdateFormTemplateRequest extends FormRequest
     }
 
     /**
-     * Decode the builder payload before validation runs.
-     */
-    protected function prepareForValidation(): void
-    {
-        $this->decodeStepsJson();
-    }
-
-    /**
      * Get the validation rules that apply to the request.
      *
      * @return array<string, ValidationRule|array<mixed>|string>
@@ -45,6 +34,6 @@ class UpdateFormTemplateRequest extends FormRequest
         return [
             'name' => ['required', 'string', 'max:255'],
             'type' => ['nullable', 'string', 'max:255'],
-        ] + $this->stepsValidationRules();
+        ];
     }
 }

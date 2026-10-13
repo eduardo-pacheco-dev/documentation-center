@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\StoreFormTemplateRequest;
 use App\Http\Requests\Admin\UpdateFormTemplateRequest;
+use App\Http\Requests\Admin\UpdateFormTemplateStepsRequest;
 use App\Models\Form;
 use App\Models\FormTemplate;
 use Illuminate\Contracts\View\View;
@@ -110,7 +111,7 @@ class FormTemplateController extends Controller
     }
 
     /**
-     * Update the template details and structure.
+     * Update the template details.
      */
     public function update(UpdateFormTemplateRequest $request, FormTemplate $formTemplate): RedirectResponse
     {
@@ -119,10 +120,21 @@ class FormTemplateController extends Controller
         $formTemplate->update([
             'name' => $attributes['name'],
             'type' => $attributes['type'] ?? null,
-            'steps' => $attributes['steps'] ?? [],
         ]);
 
         return back()->with('status', 'Template atualizado com sucesso.');
+    }
+
+    /**
+     * Update the template structure (sections and questions) from the builder.
+     */
+    public function updateSteps(UpdateFormTemplateStepsRequest $request, FormTemplate $formTemplate): RedirectResponse
+    {
+        $formTemplate->update(['steps' => $request->input('steps', [])]);
+
+        return redirect()
+            ->route('admin.form-templates.edit', $formTemplate)
+            ->with('status', 'Estrutura atualizada com sucesso.');
     }
 
     /**

@@ -160,6 +160,7 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
     Route::post('form-templates', [FormTemplateController::class, 'store'])->name('form-templates.store');
     Route::get('form-templates/{formTemplate}/edit', [FormTemplateController::class, 'edit'])->name('form-templates.edit');
     Route::put('form-templates/{formTemplate}', [FormTemplateController::class, 'update'])->name('form-templates.update');
+    Route::patch('form-templates/{formTemplate}/steps', [FormTemplateController::class, 'updateSteps'])->name('form-templates.steps.update');
     Route::delete('form-templates/{formTemplate}', [FormTemplateController::class, 'destroy'])->name('form-templates.destroy');
 
     Route::get('radio-links', [RadioLinkController::class, 'index'])->name('radio-links.index');
