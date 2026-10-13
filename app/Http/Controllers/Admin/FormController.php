@@ -109,6 +109,21 @@ class FormController extends Controller
     }
 
     /**
+     * Show the form and its application answers in read only mode.
+     */
+    public function show(Request $request, Form $form): View
+    {
+        $this->authorize('view', $form);
+
+        $form->load('project:id,code,name', 'user:id,name');
+
+        return view('admin.forms.show', [
+            'form' => $form,
+            'steps' => $form->steps ?? [],
+        ]);
+    }
+
+    /**
      * Resolve the starting structure from an optional template.
      *
      * @return array<int, array<string, mixed>>

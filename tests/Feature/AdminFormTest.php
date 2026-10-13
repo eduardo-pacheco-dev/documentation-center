@@ -217,10 +217,18 @@ it('shows the application answers in read only mode', function () {
     ]);
 
     $this->actingAs($user)
-        ->get(route('admin.forms.edit', $form))
+        ->get(route('admin.forms.show', $form))
         ->assertOk()
         ->assertSee('Respostas do aplicativo')
         ->assertSee('Galpão A');
+});
+
+it('forbids viewing a form the user does not own', function () {
+    $form = Form::factory()->create();
+
+    $this->actingAs(User::factory()->create())
+        ->get(route('admin.forms.show', $form))
+        ->assertForbidden();
 });
 
 it('rejects creating a form for a project the user does not own', function () {

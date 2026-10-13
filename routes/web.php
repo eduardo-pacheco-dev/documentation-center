@@ -146,6 +146,7 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
     Route::get('forms', [FormController::class, 'index'])->name('forms.index');
     Route::get('forms/create', [FormController::class, 'create'])->name('forms.create');
     Route::post('forms', [FormController::class, 'store'])->name('forms.store');
+    Route::get('forms/{form}', [FormController::class, 'show'])->name('forms.show');
     Route::get('forms/{form}/edit', [FormController::class, 'edit'])->name('forms.edit');
     Route::put('forms/{form}', [FormController::class, 'update'])->name('forms.update');
     Route::patch('forms/{form}/steps', [FormController::class, 'updateSteps'])->name('forms.steps.update');

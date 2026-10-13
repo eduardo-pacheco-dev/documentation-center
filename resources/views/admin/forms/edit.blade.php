@@ -11,19 +11,6 @@
 
     $structureError = collect($errors->keys())->contains(fn ($key) => str_starts_with($key, 'steps'));
     $activeTab = $structureError ? 'structure' : 'details';
-
-    $typeLabels = [
-        'text' => 'Texto curto',
-        'textarea' => 'Parágrafo',
-        'number' => 'Número',
-        'date' => 'Data',
-        'time' => 'Hora',
-        'radio' => 'Múltipla escolha',
-        'checkbox' => 'Caixas de seleção',
-        'dropdown' => 'Lista suspensa',
-        'scale' => 'Escala linear',
-        'image' => 'Imagem / foto',
-    ];
 @endphp
 
 <x-layouts.admin :title="$form->code">
@@ -121,22 +108,6 @@
                 {{ $fieldCount }}
             </span>
         </button>
-
-        @if ($hasResponses)
-            <button
-                type="button"
-                data-tab="responses"
-                role="tab"
-                aria-selected="{{ $activeTab === 'responses' ? 'true' : 'false' }}"
-                class="inline-flex shrink-0 items-center gap-2 border-b-2 px-3 py-3 text-sm font-medium transition-colors {{ $activeTab === 'responses' ? 'border-indigo-600 text-indigo-600 dark:border-indigo-400 dark:text-indigo-400' : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-100' }}"
-            >
-                <x-icon name="document-check" class="h-4 w-4" />
-                Respostas
-                <span class="rounded-full px-1.5 py-0.5 text-xs font-semibold {{ $activeTab === 'responses' ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-500/20 dark:text-indigo-300' : 'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400' }}">
-                    {{ $answeredCount }}
-                </span>
-            </button>
-        @endif
     </div>
 
     <div data-form-workspace data-initial-tab="{{ $activeTab }}" data-has-errors="{{ $errors->any() ? 'true' : 'false' }}">
@@ -246,14 +217,13 @@
                                 {{ $answeredCount }} {{ $answeredCount === 1 ? 'resposta preenchida' : 'respostas preenchidas' }}. Somente leitura.
                             </p>
 
-                            <button
-                                type="button"
-                                data-tab-go="responses"
+                            <a
+                                href="{{ route('admin.forms.show', $form) }}"
                                 class="mt-4 inline-flex w-full items-center justify-center gap-1.5 rounded-md border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200 dark:hover:bg-gray-800"
                             >
                                 Visualizar respostas
                                 <x-icon name="chevron-right" class="h-4 w-4" />
-                            </button>
+                            </a>
                         </div>
                     @endif
                 </div>
@@ -302,95 +272,6 @@
                 </form>
             </div>
         </section>
-
-        @if ($hasResponses)
-            <section data-tab-panel="responses" role="tabpanel" class="{{ $activeTab === 'responses' ? '' : 'hidden' }}">
-                <div class="mt-6">
-                    <div class="flex items-start gap-2 rounded-xl border border-indigo-100 bg-indigo-50 px-4 py-3 text-sm text-indigo-800 dark:border-indigo-500/20 dark:bg-indigo-500/10 dark:text-indigo-300">
-                        <x-icon name="exclamation-circle" class="h-4 w-4 shrink-0" />
-                        <p>Valores, status e fotos preenchidos pelos técnicos. Essas informações são somente leitura.</p>
-                    </div>
-
-                    <div class="mt-4 space-y-4">
-                        @foreach ($steps as $step)
-                            @php($answered = collect($step['fields'] ?? [])->filter(
-                                fn ($field) => filled($field['value'] ?? null) || ! empty($field['images'] ?? []),
-                            ))
-
-                            @if ($answered->isNotEmpty())
-                                <div class="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900">
-                                    <div class="flex flex-wrap items-center justify-between gap-2 border-b border-gray-100 px-5 py-4 dark:border-gray-800">
-                                        <div class="flex items-center gap-2">
-                                            <x-icon name="rectangle-stack" class="h-5 w-5 text-gray-400 dark:text-gray-500" />
-                                            <h3 class="text-sm font-semibold text-gray-900 dark:text-gray-100">
-                                                {{ $step['title'] ?: 'Seção' }}
-                                            </h3>
-                                        </div>
-                                        <span class="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600 dark:bg-gray-800 dark:text-gray-300">
-                                            {{ $answered->count() }} {{ $answered->count() === 1 ? 'resposta' : 'respostas' }}
-                                        </span>
-                                    </div>
-
-                                    <div class="divide-y divide-gray-100 dark:divide-gray-800">
-                                        @foreach ($answered as $field)
-                                            <div class="px-5 py-4">
-                                                <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                                                    <div class="min-w-0 flex-1">
-                                                        <p class="text-sm font-medium text-gray-900 dark:text-gray-100">
-                                                            {{ ($field['label'] ?? null) ?: ($field['id'] ?? 'Campo') }}
-                                                        </p>
-                                                        @if (!empty($field['id']))
-                                                            <p class="text-xs text-gray-500 dark:text-gray-400">
-                                                                {{ $field['id'] }} &middot; {{ $typeLabels[$field['type'] ?? null] ?? ($field['type'] ?? 'text') }}
-                                                            </p>
-                                                        @endif
-
-                                                        <div class="mt-2">
-                                                            @if (($field['type'] ?? null) === 'image')
-                                                                <div class="flex flex-wrap gap-2">
-                                                                    @forelse (($field['images'] ?? []) as $image)
-                                                                        <a
-                                                                            href="{{ $image }}"
-                                                                            target="_blank"
-                                                                            rel="noopener"
-                                                                            class="group relative block overflow-hidden rounded-lg ring-1 ring-gray-200 dark:ring-gray-800"
-                                                                        >
-                                                                            <img
-                                                                                src="{{ $image }}"
-                                                                                alt="{{ ($field['label'] ?? null) ?: 'Foto' }}"
-                                                                                loading="lazy"
-                                                                                class="h-16 w-24 object-cover transition duration-150 group-hover:opacity-80"
-                                                                            >
-                                                                            <span class="absolute inset-0 flex items-center justify-center bg-gray-900/0 text-white opacity-0 transition duration-150 group-hover:bg-gray-900/30 group-hover:opacity-100">
-                                                                                <x-icon name="eye" class="h-5 w-5" />
-                                                                            </span>
-                                                                        </a>
-                                                                    @empty
-                                                                        <span class="text-sm text-gray-500 dark:text-gray-400">Nenhuma foto.</span>
-                                                                    @endforelse
-                                                                </div>
-                                                            @else
-                                                                <div class="rounded-lg bg-gray-50 px-3 py-2 text-sm text-gray-700 dark:bg-gray-800/60 dark:text-gray-300">
-                                                                    <span class="whitespace-pre-wrap">{{ ($field['value'] ?? null) ?: '—' }}</span>
-                                                                </div>
-                                                            @endif
-                                                        </div>
-                                                    </div>
-
-                                                    <div class="shrink-0">
-                                                        <x-form-field-status :status="$field['status'] ?? null" />
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        @endforeach
-                                    </div>
-                                </div>
-                            @endif
-                        @endforeach
-                    </div>
-                </div>
-            </section>
-        @endif
     </div>
 
     <div
