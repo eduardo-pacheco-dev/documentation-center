@@ -32,7 +32,7 @@
             @csrf
             <input type="hidden" name="modal" value="create">
 
-            <div class="space-y-4 px-5 py-4">
+            <div class="space-y-4 px-5 py-4" x-data="{ type: '{{ old('type', 'upload') }}' }">
                 @include('admin.links.partials.form-fields')
             </div>
 

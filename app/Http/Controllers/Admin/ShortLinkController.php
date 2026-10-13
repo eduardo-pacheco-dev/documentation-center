@@ -38,6 +38,7 @@ class ShortLinkController extends Controller
 
         $query = ShortLink::query()
             ->whereBelongsTo($request->user())
+            ->with('documents')
             ->withCount(['documents', 'receivedDocuments']);
 
         $document = null;
@@ -178,7 +179,9 @@ class ShortLinkController extends Controller
             $count++;
         }
 
-        return back()->with('status', $count.' documento(s) adicionado(s) ao link.');
+        return back()
+            ->with('status', $count.' documento(s) adicionado(s) ao link.')
+            ->with('open_link_edit', $shortLink->getKey());
     }
 
     /**
@@ -193,13 +196,17 @@ class ShortLinkController extends Controller
 
             $document->delete();
 
-            return back()->with('status', 'Documento recebido movido para a lixeira.');
+            return back()
+                ->with('status', 'Documento recebido movido para a lixeira.')
+                ->with('open_link_edit', $shortLink->getKey());
         }
 
         abort_unless($shortLink->documents()->whereKey($document->getKey())->exists(), 404);
 
         $shortLink->documents()->detach($document);
 
-        return back()->with('status', 'Documento removido do link.');
+        return back()
+            ->with('status', 'Documento removido do link.')
+            ->with('open_link_edit', $shortLink->getKey());
     }
 }

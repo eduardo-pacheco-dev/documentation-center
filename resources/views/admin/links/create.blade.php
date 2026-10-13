@@ -6,6 +6,7 @@
         method="POST"
         action="{{ route('admin.links.store') }}"
         class="mt-6 max-w-2xl space-y-4 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-5 shadow-sm"
+        x-data="{ type: '{{ old('type', 'upload') }}' }"
     >
         @csrf
 

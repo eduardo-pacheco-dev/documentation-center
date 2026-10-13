@@ -1,6 +1,6 @@
 @php($shortLink = $shortLink ?? null)
 
-<div x-data="{ type: '{{ old('type', $shortLink?->type->value ?? 'upload') }}' }" class="space-y-4">
+<div class="space-y-4">
     <div>
         <label for="title" class="block text-sm font-medium text-gray-700 dark:text-gray-200">Título</label>
         <input

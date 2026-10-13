@@ -358,6 +358,21 @@ test('users can delete their own links', function () {
     $this->assertDatabaseMissing('short_links', ['id' => $shortLink->getKey()]);
 });
 
+test('the edit modal lets users attach documents to a download link', function () {
+    $user = User::factory()->create();
+    $shortLink = ShortLink::factory()->for($user)->download()->withDocuments(1)->create();
+    $document = $shortLink->documents()->firstOrFail();
+
+    $this->actingAs($user)
+        ->get('/admin/links')
+        ->assertOk()
+        ->assertSee('data-link-edit-modal', false)
+        ->assertSee('Arquivos para download')
+        ->assertSee(route('admin.links.documents.store', $shortLink), false)
+        ->assertSee(route('admin.links.documents.destroy', [$shortLink, $document]), false)
+        ->assertSee($document->original_name);
+});
+
 test('users can attach documents to their links', function () {
     Storage::fake('local');
 
@@ -373,7 +388,8 @@ test('users can attach documents to their links', function () {
             ],
         ])
         ->assertRedirect()
-        ->assertSessionHas('status');
+        ->assertSessionHas('status')
+        ->assertSessionHas('open_link_edit', $shortLink->getKey());
 
     $this->assertDatabaseCount('documents', 2);
 
