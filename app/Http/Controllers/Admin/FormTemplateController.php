@@ -23,6 +23,17 @@ class FormTemplateController extends Controller
 
         $search = (string) $request->query('search', '');
 
+        $types = FormTemplate::query()
+            ->whereNotNull('type')
+            ->distinct()
+            ->orderBy('type')
+            ->pluck('type')
+            ->all();
+
+        $type = in_array($request->query('type'), $types, true)
+            ? $request->query('type')
+            : null;
+
         if (in_array($request->query('sort'), ['name', 'type', 'created_at', 'updated_at'], true)) {
             $sort = $request->query('sort');
             $direction = in_array($request->query('direction'), ['asc', 'desc'], true)
@@ -42,14 +53,22 @@ class FormTemplateController extends Controller
             ->when($search !== '', fn (Builder $query) => $query->where(fn (Builder $inner) => $inner
                 ->where('name', 'like', "%{$search}%")
                 ->orWhere('type', 'like', "%{$search}%")))
+            ->when($type !== null, fn (Builder $query) => $query->where('type', $type))
             ->orderBy($sort, $direction)
             ->orderBy('id', $direction)
             ->paginate($perPage)
             ->withQueryString();
 
+        $view = in_array($request->query('view'), ['table', 'cards', 'compact'], true)
+            ? $request->query('view')
+            : 'table';
+
         return view('admin.form-templates.index', [
             'templates' => $templates,
             'search' => $search,
+            'type' => $type,
+            'types' => $types,
+            'view' => $view,
             'perPage' => $perPage,
         ]);
     }

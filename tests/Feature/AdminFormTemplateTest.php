@@ -38,6 +38,45 @@ it('filters the templates list by search term', function () {
         ->assertDontSee('Registro fotográfico padrão');
 });
 
+it('filters the templates list by type', function () {
+    $user = User::factory()->create();
+
+    FormTemplate::factory()->create(['name' => 'Registro fotográfico padrão', 'type' => 'Registro Fotográfico']);
+    FormTemplate::factory()->create(['name' => 'Checklist de segurança', 'type' => 'Checklist']);
+
+    $this->actingAs($user)
+        ->get(route('admin.form-templates.index', ['type' => 'Checklist']))
+        ->assertOk()
+        ->assertSee('Checklist de segurança')
+        ->assertDontSee('Registro fotográfico padrão');
+});
+
+it('ignores an unsupported type filter', function () {
+    $user = User::factory()->create();
+
+    FormTemplate::factory()->create(['name' => 'Checklist de segurança', 'type' => 'Checklist']);
+
+    $this->actingAs($user)
+        ->get(route('admin.form-templates.index', ['type' => 'Inexistente']))
+        ->assertOk()
+        ->assertSee('Checklist de segurança');
+});
+
+it('switches the templates list view mode', function () {
+    $user = User::factory()->create();
+    FormTemplate::factory()->create(['name' => 'Checklist de segurança', 'type' => 'Checklist']);
+
+    $this->actingAs($user)
+        ->get(route('admin.form-templates.index', ['view' => 'cards']))
+        ->assertOk()
+        ->assertSee('grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3');
+
+    $this->actingAs($user)
+        ->get(route('admin.form-templates.index', ['view' => 'compact']))
+        ->assertOk()
+        ->assertSee('divide-y divide-gray-100 rounded-xl');
+});
+
 it('creates a template from a form the user owns', function () {
     $user = User::factory()->create();
     $project = Project::factory()->for($user)->create();
