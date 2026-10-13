@@ -330,3 +330,73 @@ it('rejects an invalid auto-save payload', function () {
         ->assertStatus(422)
         ->assertJsonValidationErrors(['status', 'image_decisions_json']);
 });
+
+it('records the evaluated field and image changes on the evaluation', function () {
+    $form = Form::factory()->create(['status' => 'Preenchido', 'steps' => evaluationSteps()]);
+
+    $this->actingAs(User::factory()->create())
+        ->post(route('admin.forms.evaluate', $form), [
+            'status' => 'Aprovado',
+            'decisions' => [
+                'F1-1' => 'aprovado',
+                'F1-2' => 'reprovado',
+            ],
+            'image_decisions_json' => json_encode(['F1-2' => ['0' => 'reprovado']]),
+        ])
+        ->assertRedirect();
+
+    $changes = FormEvaluation::latest('id')->first()->changes;
+
+    expect($changes)->toHaveCount(3);
+    expect($changes[0])->toMatchArray([
+        'type' => 'field',
+        'id' => 'F1-1',
+        'from' => 'envio_pendente',
+        'to' => 'aprovado',
+    ]);
+    expect($changes[1])->toMatchArray([
+        'type' => 'field',
+        'id' => 'F1-2',
+        'from' => 'enviado',
+        'to' => 'reprovado',
+    ]);
+    expect($changes[2])->toMatchArray([
+        'type' => 'image',
+        'id' => 'F1-2',
+        'index' => 0,
+        'from' => null,
+        'to' => 'reprovado',
+    ]);
+});
+
+it('ignores unchanged decisions when recording changes', function () {
+    $steps = evaluationSteps();
+    $steps[0]['fields'][0]['status'] = 'aprovado';
+
+    $form = Form::factory()->create(['status' => 'Aprovado', 'steps' => $steps]);
+
+    $this->actingAs(User::factory()->create())
+        ->postJson(route('admin.forms.evaluations.autosave', $form), [
+            'status' => 'Aprovado',
+            'decisions' => ['F1-1' => 'aprovado'],
+        ])
+        ->assertOk();
+
+    expect(FormEvaluation::latest('id')->first()->changes)->toBe([]);
+});
+
+it('shows the evaluated changes in the history', function () {
+    $form = Form::factory()->create(['steps' => evaluationSteps()]);
+
+    FormEvaluation::factory()->for($form)->create([
+        'status' => 'Aprovado',
+        'changes' => [
+            ['type' => 'field', 'id' => 'F1-1', 'label' => 'Área registrada', 'from' => 'envio_pendente', 'to' => 'aprovado'],
+        ],
+    ]);
+
+    $this->actingAs(User::factory()->create())
+        ->get(route('admin.forms.evaluate', $form))
+        ->assertOk()
+        ->assertSee('&rarr;', false);
+});

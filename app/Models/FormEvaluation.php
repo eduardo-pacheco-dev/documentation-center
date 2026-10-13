@@ -13,11 +13,24 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
     'user_id',
     'status',
     'notes',
+    'changes',
 ])]
 class FormEvaluation extends Model
 {
     /** @use HasFactory<FormEvaluationFactory> */
     use HasFactory;
+
+    /**
+     * Get the attributes that should be cast.
+     *
+     * @return array<string, string>
+     */
+    protected function casts(): array
+    {
+        return [
+            'changes' => 'array',
+        ];
+    }
 
     /**
      * The form the evaluation belongs to.

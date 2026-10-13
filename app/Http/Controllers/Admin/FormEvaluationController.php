@@ -69,8 +69,11 @@ class FormEvaluationController extends Controller
      */
     private function commitEvaluation(Form $form, User $user, array $attributes, ?string $imageDecisionsJson): ?FormEvaluation
     {
+        $stepsBefore = $form->steps ?? [];
+        $changes = $this->buildChanges($stepsBefore, $attributes, $imageDecisionsJson);
+
         $steps = $this->applyDecisions(
-            $this->applyImageDecisions($form->steps ?? [], $imageDecisionsJson),
+            $this->applyImageDecisions($stepsBefore, $imageDecisionsJson),
             $attributes['decisions'] ?? [],
         );
 
@@ -91,7 +94,81 @@ class FormEvaluationController extends Controller
             'user_id' => $user->getKey(),
             'status' => $status,
             'notes' => $notes,
+            'changes' => $changes,
         ]);
+    }
+
+    /**
+     * Build the list of evaluated field and image changes contained in the payload.
+     *
+     * @param  array<int, array<string, mixed>>  $steps
+     * @param  array<string, mixed>  $attributes
+     * @return array<int, array<string, mixed>>
+     */
+    private function buildChanges(array $steps, array $attributes, ?string $imageDecisionsJson): array
+    {
+        $fields = collect($steps)
+            ->flatMap(fn (array $step) => $step['fields'] ?? [])
+            ->keyBy('id');
+
+        $changes = [];
+
+        foreach ($attributes['decisions'] ?? [] as $fieldId => $decision) {
+            $field = $fields->get($fieldId);
+
+            if ($field === null || blank($decision)) {
+                continue;
+            }
+
+            $from = $field['status'] ?? null;
+
+            if ($from === $decision) {
+                continue;
+            }
+
+            $changes[] = [
+                'type' => 'field',
+                'id' => $fieldId,
+                'label' => $field['label'] ?? $fieldId,
+                'from' => $from,
+                'to' => $decision,
+            ];
+        }
+
+        $imageDecisions = json_decode((string) $imageDecisionsJson, true);
+
+        if (is_array($imageDecisions)) {
+            foreach ($imageDecisions as $fieldId => $decisions) {
+                $field = $fields->get($fieldId);
+
+                if ($field === null || ! is_array($decisions)) {
+                    continue;
+                }
+
+                foreach ($decisions as $index => $decision) {
+                    if (! in_array($decision, ['aprovado', 'reprovado'], true)) {
+                        continue;
+                    }
+
+                    $from = $field['imageDecisions'][$index] ?? null;
+
+                    if ($from === $decision) {
+                        continue;
+                    }
+
+                    $changes[] = [
+                        'type' => 'image',
+                        'id' => $fieldId,
+                        'label' => $field['label'] ?? $fieldId,
+                        'index' => (int) $index,
+                        'from' => $from,
+                        'to' => $decision,
+                    ];
+                }
+            }
+        }
+
+        return $changes;
     }
 
     /**
