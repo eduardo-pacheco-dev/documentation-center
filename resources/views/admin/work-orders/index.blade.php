@@ -106,7 +106,7 @@
 
     @if ($view === 'table')
         <div class="mt-4 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 shadow-sm">
-            <div class="overflow-x-auto lg:overflow-x-visible">
+            <div class="overflow-x-auto">
                 <table class="min-w-full divide-y divide-gray-200 text-sm dark:divide-gray-800">
                     <thead class="rounded-t-xl bg-gray-50 text-left text-xs uppercase text-gray-500 dark:bg-gray-800 dark:text-gray-400">
                         <tr>
@@ -506,6 +506,21 @@
             });
         };
 
+        const positionDropdown = (toggle, menu) => {
+            const toggleRect = toggle.getBoundingClientRect();
+            const menuRect = menu.getBoundingClientRect();
+            const opensUp = window.innerHeight - toggleRect.bottom < menuRect.height + 8;
+
+            menu.style.position = 'fixed';
+            menu.style.right = 'auto';
+            menu.style.marginTop = '0';
+            menu.style.marginBottom = '0';
+            menu.style.left = `${Math.max(8, toggleRect.right - menuRect.width)}px`;
+            menu.style.top = opensUp
+                ? `${Math.max(8, toggleRect.top - menuRect.height - 4)}px`
+                : `${toggleRect.bottom + 4}px`;
+        };
+
         document.addEventListener('click', (event) => {
             const toggle = event.target.closest('[data-dropdown-toggle]');
 
@@ -515,6 +530,11 @@
                 closeDropdowns(willOpen ? menu : null);
                 menu.classList.toggle('hidden', !willOpen);
                 toggle.setAttribute('aria-expanded', String(willOpen));
+
+                if (willOpen) {
+                    positionDropdown(toggle, menu);
+                }
+
                 return;
             }
 
@@ -522,6 +542,9 @@
                 closeDropdowns();
             }
         });
+
+        window.addEventListener('scroll', () => closeDropdowns(), true);
+        window.addEventListener('resize', () => closeDropdowns());
 
         document.addEventListener('keydown', (event) => {
             if (event.key === 'Escape') {
