@@ -3,45 +3,95 @@
 <div x-data="formBuilder(@js($builderSteps))">
     <input type="hidden" name="steps_json" :value="stepsJson">
 
+    <div class="flex flex-wrap items-center justify-between gap-3 px-1 pb-4">
+        <p class="text-sm text-gray-500 dark:text-gray-400">
+            <span x-text="steps.length"></span> {{ 'seção' }}<span x-show="steps.length !== 1">s</span>
+            &middot;
+            <span x-text="totalFields()"></span> {{ 'pergunta' }}<span x-show="totalFields() !== 1">s</span>
+        </p>
+
+        <div class="flex items-center gap-1">
+            <button type="button" @click="collapseAll(true)" class="inline-flex items-center gap-1.5 rounded-md px-2 py-1.5 text-sm font-medium text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-gray-200">
+                <x-icon name="chevron-up-down" class="h-4 w-4" />
+                Recolher tudo
+            </button>
+            <button type="button" @click="collapseAll(false)" class="inline-flex items-center gap-1.5 rounded-md px-2 py-1.5 text-sm font-medium text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-gray-200">
+                <x-icon name="chevron-down" class="h-4 w-4" />
+                Expandir tudo
+            </button>
+        </div>
+    </div>
+
     <div class="space-y-4">
-            <template x-for="(step, si) in steps" :key="step.id">
-                <div class="rounded-xl border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900">
-                    <div class="flex flex-wrap items-center gap-2 border-b border-gray-100 px-4 py-3 dark:border-gray-800">
-                        <x-icon name="squares-2x2" class="h-5 w-5 shrink-0 text-gray-400 dark:text-gray-500" />
+        <template x-for="(step, si) in steps" :key="step.id">
+            <div class="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900">
+                <div class="flex flex-wrap items-center gap-2 border-b border-gray-100 px-4 py-3 dark:border-gray-800">
+                    <button
+                        type="button"
+                        @click="toggleCollapsed(si)"
+                        :aria-expanded="isCollapsed(step) ? 'false' : 'true'"
+                        :title="isCollapsed(step) ? 'Expandir seção' : 'Recolher seção'"
+                        class="rounded-md p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800 dark:hover:text-gray-300"
+                    >
+                        <span class="block transition-transform duration-150" :class="isCollapsed(step) ? '-rotate-90' : ''">
+                            <x-icon name="chevron-down" class="h-4 w-4" />
+                        </span>
+                    </button>
 
-                        <input
-                            type="text"
-                            x-model="step.title"
-                            placeholder="Título da seção"
-                            class="min-w-0 flex-1 border-0 border-b-2 border-transparent bg-transparent px-1 py-1 text-sm font-semibold text-gray-900 focus:border-indigo-500 focus:outline-none dark:text-gray-100"
-                        >
+                    <span
+                        class="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-gray-100 text-xs font-semibold text-gray-500 dark:bg-gray-800 dark:text-gray-400"
+                        x-text="si + 1"
+                    ></span>
 
-                        <div class="flex items-center gap-0.5">
-                            <button type="button" @click="moveStep(si, -1)" :disabled="si === 0" class="rounded-md p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600 disabled:cursor-not-allowed disabled:opacity-40 dark:hover:bg-gray-800 dark:hover:text-gray-300" title="Mover para cima">
-                                <x-icon name="chevron-up" class="h-4 w-4" />
-                            </button>
-                            <button type="button" @click="moveStep(si, 1)" :disabled="si === steps.length - 1" class="rounded-md p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600 disabled:cursor-not-allowed disabled:opacity-40 dark:hover:bg-gray-800 dark:hover:text-gray-300" title="Mover para baixo">
-                                <x-icon name="chevron-down" class="h-4 w-4" />
-                            </button>
-                            <button type="button" @click="duplicateStep(si)" class="rounded-md p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800 dark:hover:text-gray-300" title="Duplicar seção">
-                                <x-icon name="document-duplicate" class="h-4 w-4" />
-                            </button>
-                            <button type="button" @click="removeStep(si)" class="rounded-md p-1.5 text-gray-400 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/40 dark:hover:text-red-400" title="Excluir seção">
-                                <x-icon name="trash" class="h-4 w-4" />
-                            </button>
-                        </div>
+                    <input
+                        type="text"
+                        x-model="step.title"
+                        placeholder="Título da seção"
+                        class="min-w-0 flex-1 border-b-2 border-transparent bg-transparent px-1 py-1 text-sm font-semibold text-gray-900 focus:border-indigo-500 focus:outline-none dark:text-gray-100 dark:focus:border-indigo-400"
+                    >
+
+                    <span class="inline-flex shrink-0 items-center gap-1 rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-500 dark:bg-gray-800 dark:text-gray-400">
+                        <x-icon name="squares-2x2" class="h-3.5 w-3.5" />
+                        <span x-text="(step.fields || []).length"></span>
+                    </span>
+
+                    <div x-show="confirmRemoveStep === si" style="display: none;" class="flex shrink-0 items-center gap-1.5">
+                        <span class="text-xs font-medium text-gray-600 dark:text-gray-300">Excluir seção?</span>
+                        <button type="button" @click="removeStep(si)" class="rounded-md bg-red-600 px-2 py-1 text-xs font-medium text-white hover:bg-red-500">Excluir</button>
+                        <button type="button" @click="cancelRemoveStep()" class="rounded-md border border-gray-300 px-2 py-1 text-xs font-medium text-gray-700 hover:bg-gray-100 dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-800">Cancelar</button>
                     </div>
 
-                    <div class="space-y-3 px-4 py-4">
-                        <template x-for="(field, fi) in step.fields" :key="field.id">
-                            <div class="rounded-lg border border-gray-200 p-3 dark:border-gray-800">
-                                <div class="flex flex-col gap-2 sm:flex-row sm:items-center">
-                                    <input
-                                        type="text"
-                                        x-model="field.label"
-                                        placeholder="Pergunta"
-                                        class="min-w-0 flex-1 rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500 dark:border-gray-700 dark:bg-gray-900"
-                                    >
+                    <div x-show="confirmRemoveStep !== si" style="display: none;" class="flex items-center gap-0.5">
+                        <button type="button" @click="moveStep(si, -1)" :disabled="si === 0" class="rounded-md p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600 disabled:cursor-not-allowed disabled:opacity-40 dark:hover:bg-gray-800 dark:hover:text-gray-300" title="Mover para cima">
+                            <x-icon name="chevron-up" class="h-4 w-4" />
+                        </button>
+                        <button type="button" @click="moveStep(si, 1)" :disabled="si === steps.length - 1" class="rounded-md p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600 disabled:cursor-not-allowed disabled:opacity-40 dark:hover:bg-gray-800 dark:hover:text-gray-300" title="Mover para baixo">
+                            <x-icon name="chevron-down" class="h-4 w-4" />
+                        </button>
+                        <button type="button" @click="duplicateStep(si)" class="rounded-md p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800 dark:hover:text-gray-300" title="Duplicar seção">
+                            <x-icon name="document-duplicate" class="h-4 w-4" />
+                        </button>
+                        <button type="button" @click="(step.fields || []).length > 0 ? requestRemoveStep(si) : removeStep(si)" class="rounded-md p-1.5 text-gray-400 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/40 dark:hover:text-red-400" title="Excluir seção">
+                            <x-icon name="trash" class="h-4 w-4" />
+                        </button>
+                    </div>
+                </div>
+
+                <div x-show="!isCollapsed(step)" class="space-y-3 px-4 py-4">
+                    <template x-for="(field, fi) in step.fields" :key="field.id">
+                        <div class="rounded-lg border border-gray-200 p-3 dark:border-gray-800">
+                            <div class="flex flex-col gap-2 sm:flex-row sm:items-center">
+                                <span class="hidden w-6 shrink-0 text-center text-xs font-semibold text-gray-400 dark:text-gray-500 sm:block" x-text="(fi + 1) + '.'"></span>
+
+                                <input
+                                    type="text"
+                                    x-model="field.label"
+                                    placeholder="Pergunta"
+                                    class="min-w-0 flex-1 rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500 dark:border-gray-700 dark:bg-gray-900"
+                                >
+
+                                <div class="flex shrink-0 items-center gap-2">
+                                    <span class="rounded-md bg-gray-100 px-2 py-1 text-xs font-medium text-gray-500 dark:bg-gray-800 dark:text-gray-400" x-text="typeBadge(field.type)"></span>
 
                                     <select
                                         x-model="field.type"
@@ -53,103 +103,113 @@
                                         </template>
                                     </select>
                                 </div>
+                            </div>
 
-                                <input
-                                    type="text"
-                                    x-model="field.help"
-                                    placeholder="Texto de ajuda (opcional)"
-                                    class="mt-2 block w-full rounded-md border border-gray-200 px-3 py-1.5 text-xs text-gray-600 shadow-sm focus:border-indigo-500 focus:outline-none dark:border-gray-800 dark:bg-gray-900 dark:text-gray-300"
-                                >
+                            <input
+                                type="text"
+                                x-model="field.help"
+                                placeholder="Texto de ajuda (opcional)"
+                                class="mt-2 block w-full rounded-md border border-gray-200 px-3 py-1.5 text-xs text-gray-600 shadow-sm focus:border-indigo-500 focus:outline-none dark:border-gray-800 dark:bg-gray-900 dark:text-gray-300"
+                            >
 
-                                <div x-show="isChoice(field.type)" style="display: none;" class="mt-3 space-y-2">
-                                    <template x-for="(option, oi) in (field.options || [])" :key="oi">
-                                        <div class="flex items-center gap-2">
-                                            <span class="w-4 shrink-0 text-center text-sm text-gray-400 dark:text-gray-500" x-text="choiceGlyph(field.type)"></span>
-                                            <input
-                                                type="text"
-                                                x-model="field.options[oi]"
-                                                placeholder="Opção"
-                                                class="min-w-0 flex-1 rounded-md border border-gray-200 px-3 py-1.5 text-sm focus:border-indigo-500 focus:outline-none dark:border-gray-800 dark:bg-gray-900"
-                                            >
-                                            <button type="button" @click="removeOption(field, oi)" class="rounded-md p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800 dark:hover:text-gray-300" title="Remover opção">
-                                                <x-icon name="x-mark" class="h-4 w-4" />
-                                            </button>
-                                        </div>
-                                    </template>
+                            <div x-show="isChoice(field.type)" style="display: none;" class="mt-3 space-y-2">
+                                <template x-for="(option, oi) in (field.options || [])" :key="oi">
+                                    <div class="flex items-center gap-2">
+                                        <span class="w-4 shrink-0 text-center text-sm text-gray-400 dark:text-gray-500" x-text="choiceGlyph(field.type)"></span>
+                                        <input
+                                            type="text"
+                                            x-model="field.options[oi]"
+                                            placeholder="Opção"
+                                            class="min-w-0 flex-1 rounded-md border border-gray-200 px-3 py-1.5 text-sm focus:border-indigo-500 focus:outline-none dark:border-gray-800 dark:bg-gray-900"
+                                        >
+                                        <button type="button" @click="removeOption(field, oi)" class="rounded-md p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800 dark:hover:text-gray-300" title="Remover opção">
+                                            <x-icon name="x-mark" class="h-4 w-4" />
+                                        </button>
+                                    </div>
+                                </template>
 
-                                    <button type="button" @click="addOption(field)" class="inline-flex items-center gap-1.5 text-sm font-medium text-indigo-600 hover:text-indigo-500 dark:text-indigo-400">
-                                        <x-icon name="plus" class="h-4 w-4" />
-                                        Adicionar opção
-                                    </button>
-                                </div>
+                                <button type="button" @click="addOption(field)" class="inline-flex items-center gap-1.5 text-sm font-medium text-indigo-600 hover:text-indigo-500 dark:text-indigo-400">
+                                    <x-icon name="plus" class="h-4 w-4" />
+                                    Adicionar opção
+                                </button>
+                            </div>
 
-                                <div x-show="field.type === 'scale'" style="display: none;" class="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
-                                    <label class="block">
-                                        <span class="text-xs font-medium text-gray-500 dark:text-gray-400">Mínimo</span>
-                                        <select x-model.number="field.scaleMin" class="mt-1 block w-full rounded-md border border-gray-200 px-2 py-1.5 text-sm dark:border-gray-800 dark:bg-gray-900 dark:text-gray-200">
-                                            <option value="0">0</option>
-                                            <option value="1">1</option>
-                                        </select>
-                                    </label>
-                                    <label class="block">
-                                        <span class="text-xs font-medium text-gray-500 dark:text-gray-400">Máximo</span>
-                                        <select x-model.number="field.scaleMax" class="mt-1 block w-full rounded-md border border-gray-200 px-2 py-1.5 text-sm dark:border-gray-800 dark:bg-gray-900 dark:text-gray-200">
-                                            <template x-for="value in [2,3,4,5,6,7,8,9,10]" :key="value">
-                                                <option :value="value" x-text="value"></option>
-                                            </template>
-                                        </select>
-                                    </label>
-                                    <label class="block">
-                                        <span class="text-xs font-medium text-gray-500 dark:text-gray-400">Rótulo mínimo</span>
-                                        <input type="text" x-model="field.scaleMinLabel" placeholder="Ex.: Discordo" class="mt-1 block w-full rounded-md border border-gray-200 px-2 py-1.5 text-sm focus:border-indigo-500 focus:outline-none dark:border-gray-800 dark:bg-gray-900">
-                                    </label>
-                                    <label class="block">
-                                        <span class="text-xs font-medium text-gray-500 dark:text-gray-400">Rótulo máximo</span>
-                                        <input type="text" x-model="field.scaleMaxLabel" placeholder="Ex.: Concordo" class="mt-1 block w-full rounded-md border border-gray-200 px-2 py-1.5 text-sm focus:border-indigo-500 focus:outline-none dark:border-gray-800 dark:bg-gray-900">
-                                    </label>
-                                </div>
+                            <div x-show="field.type === 'scale'" style="display: none;" class="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
+                                <label class="block">
+                                    <span class="text-xs font-medium text-gray-500 dark:text-gray-400">Mínimo</span>
+                                    <select x-model.number="field.scaleMin" class="mt-1 block w-full rounded-md border border-gray-200 px-2 py-1.5 text-sm dark:border-gray-800 dark:bg-gray-900 dark:text-gray-200">
+                                        <option value="0">0</option>
+                                        <option value="1">1</option>
+                                    </select>
+                                </label>
+                                <label class="block">
+                                    <span class="text-xs font-medium text-gray-500 dark:text-gray-400">Máximo</span>
+                                    <select x-model.number="field.scaleMax" class="mt-1 block w-full rounded-md border border-gray-200 px-2 py-1.5 text-sm dark:border-gray-800 dark:bg-gray-900 dark:text-gray-200">
+                                        <template x-for="value in [2,3,4,5,6,7,8,9,10]" :key="value">
+                                            <option :value="value" x-text="value"></option>
+                                        </template>
+                                    </select>
+                                </label>
+                                <label class="block">
+                                    <span class="text-xs font-medium text-gray-500 dark:text-gray-400">Rótulo mínimo</span>
+                                    <input type="text" x-model="field.scaleMinLabel" placeholder="Ex.: Discordo" class="mt-1 block w-full rounded-md border border-gray-200 px-2 py-1.5 text-sm focus:border-indigo-500 focus:outline-none dark:border-gray-800 dark:bg-gray-900">
+                                </label>
+                                <label class="block">
+                                    <span class="text-xs font-medium text-gray-500 dark:text-gray-400">Rótulo máximo</span>
+                                    <input type="text" x-model="field.scaleMaxLabel" placeholder="Ex.: Concordo" class="mt-1 block w-full rounded-md border border-gray-200 px-2 py-1.5 text-sm focus:border-indigo-500 focus:outline-none dark:border-gray-800 dark:bg-gray-900">
+                                </label>
+                            </div>
 
-                                <div class="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-gray-100 pt-3 dark:border-gray-800">
+                            <div class="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-gray-100 pt-3 dark:border-gray-800">
+                                <div class="flex flex-wrap items-center gap-2">
                                     <label class="inline-flex items-center gap-2 text-sm text-gray-700 dark:text-gray-200">
                                         <input type="checkbox" x-model="field.required" class="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 dark:border-gray-700 dark:bg-gray-900">
                                         Obrigatória
                                     </label>
+                                    <span
+                                        x-show="field.required"
+                                        style="display: none;"
+                                        class="inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700 dark:bg-amber-500/15 dark:text-amber-300"
+                                    >
+                                        Obrigatória
+                                    </span>
+                                </div>
 
-                                    <div class="flex items-center gap-0.5">
-                                        <button type="button" @click="moveField(si, fi, -1)" :disabled="fi === 0" class="rounded-md p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600 disabled:cursor-not-allowed disabled:opacity-40 dark:hover:bg-gray-800 dark:hover:text-gray-300" title="Mover para cima">
-                                            <x-icon name="chevron-up" class="h-4 w-4" />
-                                        </button>
-                                        <button type="button" @click="moveField(si, fi, 1)" :disabled="fi === step.fields.length - 1" class="rounded-md p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600 disabled:cursor-not-allowed disabled:opacity-40 dark:hover:bg-gray-800 dark:hover:text-gray-300" title="Mover para baixo">
-                                            <x-icon name="chevron-down" class="h-4 w-4" />
-                                        </button>
-                                        <button type="button" @click="duplicateField(si, fi)" class="rounded-md p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800 dark:hover:text-gray-300" title="Duplicar pergunta">
-                                            <x-icon name="document-duplicate" class="h-4 w-4" />
-                                        </button>
-                                        <button type="button" @click="removeField(si, fi)" class="rounded-md p-1.5 text-gray-400 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/40 dark:hover:text-red-400" title="Excluir pergunta">
-                                            <x-icon name="trash" class="h-4 w-4" />
-                                        </button>
-                                    </div>
+                                <div class="flex items-center gap-0.5">
+                                    <button type="button" @click="moveField(si, fi, -1)" :disabled="fi === 0" class="rounded-md p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600 disabled:cursor-not-allowed disabled:opacity-40 dark:hover:bg-gray-800 dark:hover:text-gray-300" title="Mover para cima">
+                                        <x-icon name="chevron-up" class="h-4 w-4" />
+                                    </button>
+                                    <button type="button" @click="moveField(si, fi, 1)" :disabled="fi === step.fields.length - 1" class="rounded-md p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600 disabled:cursor-not-allowed disabled:opacity-40 dark:hover:bg-gray-800 dark:hover:text-gray-300" title="Mover para baixo">
+                                        <x-icon name="chevron-down" class="h-4 w-4" />
+                                    </button>
+                                    <button type="button" @click="duplicateField(si, fi)" class="rounded-md p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800 dark:hover:text-gray-300" title="Duplicar pergunta">
+                                        <x-icon name="document-duplicate" class="h-4 w-4" />
+                                    </button>
+                                    <button type="button" @click="removeField(si, fi)" class="rounded-md p-1.5 text-gray-400 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/40 dark:hover:text-red-400" title="Excluir pergunta">
+                                        <x-icon name="trash" class="h-4 w-4" />
+                                    </button>
                                 </div>
                             </div>
-                        </template>
+                        </div>
+                    </template>
 
-                        <button type="button" @click="addField(si)" class="inline-flex items-center gap-1.5 rounded-md border border-dashed border-gray-300 px-3 py-2 text-sm font-medium text-gray-600 hover:border-indigo-400 hover:text-indigo-600 dark:border-gray-700 dark:text-gray-300 dark:hover:border-indigo-500 dark:hover:text-indigo-400">
-                            <x-icon name="plus" class="h-4 w-4" />
-                            Adicionar pergunta
-                        </button>
-                    </div>
+                    <button type="button" @click="addField(si)" class="inline-flex items-center gap-1.5 rounded-md border border-dashed border-gray-300 px-3 py-2 text-sm font-medium text-gray-600 hover:border-indigo-400 hover:text-indigo-600 dark:border-gray-700 dark:text-gray-300 dark:hover:border-indigo-500 dark:hover:text-indigo-400">
+                        <x-icon name="plus" class="h-4 w-4" />
+                        Adicionar pergunta
+                    </button>
                 </div>
-            </template>
+            </div>
+        </template>
 
-            <p x-show="steps.length === 0" style="display: none;" class="flex items-center gap-2 rounded-xl border border-dashed border-gray-300 px-5 py-8 text-sm text-gray-500 dark:border-gray-700 dark:text-gray-400">
-                <x-icon name="squares-2x2" class="h-4 w-4" />
-                Nenhuma seção ainda. Adicione a primeira seção para começar.
-            </p>
+        <p x-show="steps.length === 0" style="display: none;" class="flex items-center gap-2 rounded-xl border border-dashed border-gray-300 px-5 py-8 text-sm text-gray-500 dark:border-gray-700 dark:text-gray-400">
+            <x-icon name="squares-2x2" class="h-4 w-4" />
+            Nenhuma seção ainda. Adicione a primeira seção para começar.
+        </p>
 
-            <button type="button" @click="addStep()" class="inline-flex items-center gap-1.5 rounded-md border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200 dark:hover:bg-gray-800">
-                <x-icon name="plus" class="h-4 w-4" />
-                Adicionar seção
-            </button>
+        <button type="button" @click="addStep()" class="inline-flex w-full items-center justify-center gap-1.5 rounded-xl border-2 border-dashed border-gray-300 px-3 py-3 text-sm font-medium text-gray-500 hover:border-indigo-400 hover:text-indigo-600 dark:border-gray-700 dark:text-gray-400 dark:hover:border-indigo-500 dark:hover:text-indigo-400">
+            <x-icon name="plus" class="h-4 w-4" />
+            Adicionar seção
+        </button>
     </div>
 </div>
 
@@ -157,6 +217,8 @@
     window.formBuilder = window.formBuilder || function (initialSteps) {
         return {
             steps: [],
+            collapsed: {},
+            confirmRemoveStep: null,
             types: [
                 { value: 'text', label: 'Texto curto' },
                 { value: 'textarea', label: 'Parágrafo' },
@@ -170,6 +232,19 @@
                 { value: 'image', label: 'Imagem / foto' },
             ],
 
+            typeBadges: {
+                text: 'Texto',
+                textarea: 'Parágrafo',
+                number: 'Número',
+                date: 'Data',
+                time: 'Hora',
+                radio: 'Múltipla',
+                checkbox: 'Caixas',
+                dropdown: 'Lista',
+                scale: 'Escala',
+                image: 'Foto',
+            },
+
             init() {
                 this.steps = (initialSteps || []).map((step, index) => ({
                     id: step.id || 'S' + (index + 1),
@@ -180,6 +255,37 @@
 
             get stepsJson() {
                 return JSON.stringify(this.steps);
+            },
+
+            totalFields() {
+                return this.steps.reduce((sum, step) => sum + (step.fields || []).length, 0);
+            },
+
+            isCollapsed(step) {
+                return !!this.collapsed[step.id];
+            },
+
+            toggleCollapsed(stepIndex) {
+                const step = this.steps[stepIndex];
+                this.collapsed[step.id] = !this.collapsed[step.id];
+            },
+
+            collapseAll(collapsed) {
+                this.steps.forEach((step) => {
+                    this.collapsed[step.id] = collapsed;
+                });
+            },
+
+            requestRemoveStep(stepIndex) {
+                this.confirmRemoveStep = stepIndex;
+            },
+
+            cancelRemoveStep() {
+                this.confirmRemoveStep = null;
+            },
+
+            typeBadge(type) {
+                return this.typeBadges[type] || 'Texto';
             },
 
             hydrateField(field) {
@@ -248,6 +354,7 @@
 
             removeStep(index) {
                 this.steps.splice(index, 1);
+                this.confirmRemoveStep = null;
             },
 
             duplicateStep(index) {
