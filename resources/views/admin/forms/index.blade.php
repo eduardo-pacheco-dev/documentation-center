@@ -100,7 +100,7 @@
                         <tr>
                             <td class="px-5 py-3">
                                 <a
-                                    href="{{ route('admin.forms.show', $form) }}"
+                                    href="{{ route('admin.forms.edit', $form) }}"
                                     class="flex items-center gap-2 font-medium text-gray-900 hover:text-indigo-600 dark:text-gray-100 dark:hover:text-indigo-400"
                                 >
                                     <x-icon name="clipboard-document-list" class="h-4 w-4 text-gray-400 dark:text-gray-500" />
@@ -141,10 +141,6 @@
                                         data-dropdown-menu
                                         class="absolute right-0 z-10 mt-1 hidden w-40 rounded-md border border-gray-200 bg-white py-1 shadow-lg dark:border-gray-800 dark:bg-gray-900 dark:shadow-gray-950"
                                     >
-                                        <a href="{{ route('admin.forms.show', $form) }}" class="flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-800">
-                                            <x-icon name="eye" class="h-4 w-4" />
-                                            Visualizar
-                                        </a>
                                         <a href="{{ route('admin.forms.evaluate', $form) }}" class="flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-800">
                                             <x-icon name="document-check" class="h-4 w-4" />
                                             Avaliar
@@ -279,13 +275,42 @@
 
     <script>
         (function () {
+            const resetDropdown = (menu) => {
+                menu.classList.add('hidden');
+                menu.style.position = '';
+                menu.style.top = '';
+                menu.style.right = '';
+                menu.style.left = '';
+                menu.style.marginTop = '';
+                menu.previousElementSibling.setAttribute('aria-expanded', 'false');
+            };
+
             const closeDropdowns = (except) => {
                 document.querySelectorAll('[data-dropdown-menu]:not(.hidden)').forEach((menu) => {
                     if (menu !== except) {
-                        menu.classList.add('hidden');
-                        menu.previousElementSibling.setAttribute('aria-expanded', 'false');
+                        resetDropdown(menu);
                     }
                 });
+            };
+
+            const positionDropdown = (menu, toggle) => {
+                const rect = toggle.getBoundingClientRect();
+                const gap = 4;
+
+                menu.style.position = 'fixed';
+                menu.style.marginTop = '0';
+                menu.style.left = 'auto';
+
+                const height = menu.offsetHeight;
+
+                let top = rect.bottom + gap;
+
+                if (top + height > window.innerHeight - 8) {
+                    top = Math.max(8, rect.top - height - gap);
+                }
+
+                menu.style.right = Math.max(8, window.innerWidth - rect.right) + 'px';
+                menu.style.top = top + 'px';
             };
 
             document.addEventListener('click', (event) => {
@@ -295,7 +320,14 @@
                     const menu = toggle.nextElementSibling;
                     const willOpen = menu.classList.contains('hidden');
                     closeDropdowns(willOpen ? menu : null);
-                    menu.classList.toggle('hidden', !willOpen);
+
+                    if (willOpen) {
+                        menu.classList.remove('hidden');
+                        positionDropdown(menu, toggle);
+                    } else {
+                        resetDropdown(menu);
+                    }
+
                     toggle.setAttribute('aria-expanded', String(willOpen));
                     return;
                 }
@@ -304,6 +336,9 @@
                     closeDropdowns();
                 }
             });
+
+            window.addEventListener('scroll', () => closeDropdowns(), true);
+            window.addEventListener('resize', () => closeDropdowns());
 
             const openModal = (modal) => {
                 modal.classList.remove('hidden');

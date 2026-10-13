@@ -45,7 +45,7 @@
         <div class="flex flex-wrap items-center gap-2">
             @can('view', $form)
                 <a
-                    href="{{ route('admin.forms.show', $form) }}"
+                    href="{{ route('admin.forms.edit', $form) }}"
                     class="inline-flex items-center gap-1.5 rounded-md border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200 dark:hover:bg-gray-800"
                 >
                     <x-icon name="eye" class="h-4 w-4" />

@@ -236,7 +236,7 @@ it('links to the evaluation page from the form detail', function () {
     $form = Form::factory()->create(['user_id' => $user->getKey()]);
 
     $this->actingAs($user)
-        ->get(route('admin.forms.show', $form))
+        ->get(route('admin.forms.edit', $form))
         ->assertOk()
         ->assertSee(route('admin.forms.evaluate', $form), false);
 });

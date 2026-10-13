@@ -104,7 +104,7 @@ class FormController extends Controller
         ]);
 
         return redirect()
-            ->route('admin.forms.show', $form)
+            ->route('admin.forms.edit', $form)
             ->with('status', 'Formulário criado com sucesso.');
     }
 
@@ -123,32 +123,20 @@ class FormController extends Controller
     }
 
     /**
-     * Show the form details.
-     */
-    public function show(Form $form): View
-    {
-        $this->authorize('view', $form);
-
-        $form->load('project:id,code,name', 'user');
-
-        return view('admin.forms.show', [
-            'form' => $form,
-            'steps' => $form->steps ?? [],
-        ]);
-    }
-
-    /**
-     * Show the form to edit the form details.
+     * Show the form details and allow editing them.
      */
     public function edit(Request $request, Form $form): View
     {
         $this->authorize('update', $form);
+
+        $form->load('project:id,code,name');
 
         return view('admin.forms.edit', [
             'form' => $form,
             'projects' => $request->user()->projects()->orderBy('name')->get(['id', 'code', 'name']),
             'types' => ['Registro Fotográfico', 'Checklist', 'Vistoria', 'Inspeção', 'Laudo Técnico'],
             'statuses' => ['Pendente', 'Em preenchimento', 'Preenchido', 'Aprovado', 'Reprovado'],
+            'steps' => $form->steps ?? [],
         ]);
     }
 
@@ -179,7 +167,7 @@ class FormController extends Controller
         $form->update(['steps' => $request->input('steps', [])]);
 
         return redirect()
-            ->route('admin.forms.show', $form)
+            ->route('admin.forms.edit', $form)
             ->with('status', 'Formulário atualizado com sucesso.');
     }
 

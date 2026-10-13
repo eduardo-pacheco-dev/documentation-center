@@ -99,7 +99,7 @@ it('creates a form owned by the authenticated user with its steps', function () 
     expect($form->code)->not->toBeEmpty();
     expect($form->steps)->toBe($steps);
 
-    $this->get(route('admin.forms.show', $form))->assertOk()->assertSee('Registro Fotográfico Completo');
+    $this->get(route('admin.forms.edit', $form))->assertOk()->assertSee('Registro Fotográfico Completo');
 });
 
 it('updates a form and its steps', function () {
@@ -127,7 +127,7 @@ it('renders the structure builder on the form detail page', function () {
     $form = Form::factory()->create(['user_id' => $user->getKey()]);
 
     $this->actingAs($user)
-        ->get(route('admin.forms.show', $form))
+        ->get(route('admin.forms.edit', $form))
         ->assertOk()
         ->assertSee('Estrutura do formulário')
         ->assertSee('Salvar estrutura')
@@ -152,7 +152,7 @@ it('saves the form structure from the builder', function () {
 
     $this->actingAs($user)
         ->patch(route('admin.forms.steps.update', $form), ['steps_json' => json_encode($steps)])
-        ->assertRedirect(route('admin.forms.show', $form));
+        ->assertRedirect(route('admin.forms.edit', $form));
 
     expect($form->fresh()->steps)->toBe($steps);
 });
@@ -217,7 +217,7 @@ it('shows the application answers in read only mode', function () {
     ]);
 
     $this->actingAs($user)
-        ->get(route('admin.forms.show', $form))
+        ->get(route('admin.forms.edit', $form))
         ->assertOk()
         ->assertSee('Respostas do aplicativo')
         ->assertSee('Galpão A');
