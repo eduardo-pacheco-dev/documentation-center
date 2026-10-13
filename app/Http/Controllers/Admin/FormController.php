@@ -26,8 +26,6 @@ class FormController extends Controller
 
         $status = (string) $request->query('status', '');
 
-        $projectId = $request->integer('project_id') ?: null;
-
         if (in_array($request->query('sort'), ['name', 'code', 'type', 'status', 'created_at', 'updated_at'], true)) {
             $sort = $request->query('sort');
             $direction = in_array($request->query('direction'), ['asc', 'desc'], true)
@@ -49,18 +47,21 @@ class FormController extends Controller
                 ->where('name', 'like', "%{$search}%")
                 ->orWhere('code', 'like', "%{$search}%")))
             ->when($status !== '', fn (Builder $query) => $query->where('status', $status))
-            ->when($projectId !== null, fn (Builder $query) => $query->where('project_id', $projectId))
             ->orderBy($sort, $direction)
             ->orderBy('id', $direction)
             ->paginate($perPage)
             ->withQueryString();
+
+        $view = in_array($request->query('view'), ['table', 'cards', 'compact'], true)
+            ? $request->query('view')
+            : 'table';
 
         return view('admin.forms.index', [
             'forms' => $forms,
             'projects' => $request->user()->projects()->orderBy('name')->get(['id', 'code', 'name']),
             'search' => $search,
             'status' => $status,
-            'projectId' => $projectId,
+            'view' => $view,
             'perPage' => $perPage,
             'types' => ['Registro Fotográfico', 'Checklist', 'Vistoria', 'Inspeção', 'Laudo Técnico'],
             'statuses' => ['Pendente', 'Em preenchimento', 'Preenchido', 'Aprovado', 'Reprovado'],

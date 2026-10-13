@@ -37,6 +37,15 @@ it('filters the forms list by search term', function () {
         ->assertDontSee('FRM-0002');
 });
 
+it('renders the form list in the alternate view modes', function () {
+    $owner = User::factory()->create();
+
+    Form::factory()->create(['user_id' => $owner->getKey(), 'code' => 'FRM-0001', 'name' => 'Registro Fotográfico']);
+
+    $this->actingAs($owner)->get('/admin/forms?view=cards')->assertOk()->assertSee('FRM-0001');
+    $this->actingAs($owner)->get('/admin/forms?view=compact')->assertOk()->assertSee('FRM-0001');
+});
+
 it('opens the create modal from the forms list', function () {
     $user = User::factory()->create();
 
