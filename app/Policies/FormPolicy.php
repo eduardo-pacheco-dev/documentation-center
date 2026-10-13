@@ -40,6 +40,14 @@ class FormPolicy
     }
 
     /**
+     * Determine whether the user can evaluate a form response.
+     */
+    public function evaluate(User $user, Form $form): bool
+    {
+        return true;
+    }
+
+    /**
      * Determine whether the user can delete the model.
      */
     public function delete(User $user, Form $form): bool

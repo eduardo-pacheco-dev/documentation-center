@@ -145,6 +145,10 @@
                                             <x-icon name="eye" class="h-4 w-4" />
                                             Visualizar
                                         </a>
+                                        <a href="{{ route('admin.forms.evaluate', $form) }}" class="flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-800">
+                                            <x-icon name="document-check" class="h-4 w-4" />
+                                            Avaliar
+                                        </a>
                                         <a href="{{ route('admin.forms.edit', $form) }}" class="flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-800">
                                             <x-icon name="pencil-square" class="h-4 w-4" />
                                             Editar

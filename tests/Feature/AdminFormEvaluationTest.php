@@ -1,0 +1,171 @@
+<?php
+
+use App\Models\Form;
+use App\Models\FormEvaluation;
+use App\Models\User;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+
+uses(RefreshDatabase::class);
+
+/**
+ * @return array<int, array<string, mixed>>
+ */
+function evaluationSteps(): array
+{
+    return [
+        [
+            'id' => 'S1',
+            'title' => 'Identificação',
+            'fields' => [
+                ['id' => 'F1-1', 'type' => 'text', 'label' => 'Área registrada', 'required' => true, 'value' => 'Galpão A', 'status' => 'envio_pendente'],
+                ['id' => 'F1-2', 'type' => 'image', 'label' => 'Foto', 'required' => false, 'images' => ['https://example.com/foto.jpg'], 'status' => 'enviado'],
+            ],
+        ],
+    ];
+}
+
+it('requires an authenticated user to open the evaluation page', function () {
+    $form = Form::factory()->create();
+
+    $this->get(route('admin.forms.evaluate', $form))->assertRedirect('/login');
+});
+
+it('shows the evaluation page with answers and per-field controls', function () {
+    $form = Form::factory()->create(['steps' => evaluationSteps()]);
+
+    $this->actingAs(User::factory()->create())
+        ->get(route('admin.forms.evaluate', $form))
+        ->assertOk()
+        ->assertSee('Avaliação da resposta')
+        ->assertSee('Área registrada')
+        ->assertSee('Galpão A')
+        ->assertSee('name="decisions[F1-1]"', false)
+        ->assertSee('Registrar avaliação');
+});
+
+it('lets any authenticated user evaluate a form they do not own', function () {
+    $form = Form::factory()->create(['steps' => evaluationSteps()]);
+
+    $this->actingAs(User::factory()->create())
+        ->get(route('admin.forms.evaluate', $form))
+        ->assertOk();
+});
+
+it('records an evaluation and applies the per-field decisions', function () {
+    $user = User::factory()->create();
+    $form = Form::factory()->create(['status' => 'Preenchido', 'steps' => evaluationSteps()]);
+
+    $this->actingAs($user)
+        ->post(route('admin.forms.evaluate', $form), [
+            'status' => 'Aprovado',
+            'notes' => 'Tudo conforme.',
+            'decisions' => [
+                'F1-1' => 'aprovado',
+                'F1-2' => 'reprovado',
+            ],
+        ])
+        ->assertRedirect(route('admin.forms.evaluate', $form));
+
+    $form->refresh();
+
+    expect($form->status)->toBe('Aprovado');
+    expect($form->steps[0]['fields'][0]['status'])->toBe('aprovado');
+    expect($form->steps[0]['fields'][1]['status'])->toBe('reprovado');
+
+    $this->assertDatabaseHas('form_evaluations', [
+        'form_id' => $form->getKey(),
+        'user_id' => $user->getKey(),
+        'status' => 'Aprovado',
+        'notes' => 'Tudo conforme.',
+    ]);
+});
+
+it('keeps the answers when applying the evaluation', function () {
+    $form = Form::factory()->create(['steps' => evaluationSteps()]);
+
+    $this->actingAs(User::factory()->create())
+        ->post(route('admin.forms.evaluate', $form), [
+            'status' => 'Aprovado',
+            'decisions' => ['F1-1' => 'aprovado'],
+        ])
+        ->assertRedirect();
+
+    $field = $form->fresh()->steps[0]['fields'][0];
+
+    expect($field['value'])->toBe('Galpão A');
+    expect($field['label'])->toBe('Área registrada');
+
+    expect($form->fresh()->steps[0]['fields'][1]['status'])->toBe('enviado');
+});
+
+it('requires an overall status to record an evaluation', function () {
+    $form = Form::factory()->create(['steps' => evaluationSteps()]);
+
+    $this->actingAs(User::factory()->create())
+        ->post(route('admin.forms.evaluate', $form), [
+            'notes' => 'Sem status.',
+        ])
+        ->assertSessionHasErrors('status');
+
+    $this->assertDatabaseCount('form_evaluations', 0);
+});
+
+it('rejects an invalid overall status', function () {
+    $form = Form::factory()->create(['steps' => evaluationSteps()]);
+
+    $this->actingAs(User::factory()->create())
+        ->post(route('admin.forms.evaluate', $form), ['status' => 'Talvez'])
+        ->assertSessionHasErrors('status');
+});
+
+it('rejects an invalid per-field decision', function () {
+    $form = Form::factory()->create(['steps' => evaluationSteps()]);
+
+    $this->actingAs(User::factory()->create())
+        ->post(route('admin.forms.evaluate', $form), [
+            'status' => 'Aprovado',
+            'decisions' => ['F1-1' => 'talvez'],
+        ])
+        ->assertSessionHasErrors('decisions.F1-1');
+});
+
+it('ignores decisions for fields that are not part of the form', function () {
+    $form = Form::factory()->create(['steps' => evaluationSteps()]);
+
+    $this->actingAs(User::factory()->create())
+        ->post(route('admin.forms.evaluate', $form), [
+            'status' => 'Aprovado',
+            'decisions' => ['ZZ-99' => 'aprovado'],
+        ])
+        ->assertRedirect();
+
+    expect($form->fresh()->steps)->toBe(evaluationSteps());
+});
+
+it('shows the evaluation history', function () {
+    $evaluator = User::factory()->create(['name' => 'Avaliador Chefe']);
+    $form = Form::factory()->create(['steps' => evaluationSteps()]);
+
+    FormEvaluation::factory()->for($form)->create([
+        'user_id' => $evaluator->getKey(),
+        'status' => 'Reprovado',
+        'notes' => 'Foto ilegível.',
+    ]);
+
+    $this->actingAs(User::factory()->create())
+        ->get(route('admin.forms.evaluate', $form))
+        ->assertOk()
+        ->assertSee('Histórico de avaliações')
+        ->assertSee('Avaliador Chefe')
+        ->assertSee('Foto ilegível.');
+});
+
+it('links to the evaluation page from the form detail', function () {
+    $user = User::factory()->create();
+    $form = Form::factory()->create(['user_id' => $user->getKey()]);
+
+    $this->actingAs($user)
+        ->get(route('admin.forms.show', $form))
+        ->assertOk()
+        ->assertSee(route('admin.forms.evaluate', $form), false);
+});
