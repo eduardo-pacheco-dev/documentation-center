@@ -134,7 +134,7 @@
             >
                 <option value="">Todas as UFs</option>
                 @foreach (\App\Enums\Uf::cases() as $ufOption)
-                    <option value="{{ $ufOption->value }}" @selected($uf === $ufOption->value)>{{ $ufOption->value }} - {{ $ufOption->label() }}</option>
+                    <option value="{{ $ufOption->value }}" @selected($uf === $ufOption->value)>{{ $ufOption->value }}</option>
                 @endforeach
             </select>
         </form>
