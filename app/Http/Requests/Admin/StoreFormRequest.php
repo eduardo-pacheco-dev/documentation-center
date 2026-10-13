@@ -35,6 +35,7 @@ class StoreFormRequest extends FormRequest
             'name' => ['required', 'string', 'max:255'],
             'type' => ['required', 'string', 'max:255'],
             'status' => ['required', 'string', 'max:40'],
+            'template_id' => ['sometimes', 'nullable', 'integer', Rule::exists('form_templates', 'id')],
             'steps_json' => ['sometimes', 'nullable', 'json'],
             'fields_json' => ['sometimes', 'nullable', 'json'],
         ];

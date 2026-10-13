@@ -2,30 +2,14 @@
 
 namespace App\Http\Requests\Admin;
 
+use App\Http\Requests\Admin\Concerns\ValidatesFormSteps;
 use App\Models\Form;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Validation\Rule;
 
 class UpdateFormStepsRequest extends FormRequest
 {
-    /**
-     * The field types the builder supports.
-     *
-     * @var list<string>
-     */
-    public const TYPES = [
-        'text',
-        'textarea',
-        'number',
-        'date',
-        'time',
-        'radio',
-        'checkbox',
-        'dropdown',
-        'scale',
-        'image',
-    ];
+    use ValidatesFormSteps;
 
     /**
      * The form the request acts on.
@@ -48,9 +32,7 @@ class UpdateFormStepsRequest extends FormRequest
      */
     protected function prepareForValidation(): void
     {
-        $decoded = json_decode((string) $this->input('steps_json', ''), true);
-
-        $this->merge(['steps' => is_array($decoded) ? $decoded : []]);
+        $this->decodeStepsJson();
     }
 
     /**
@@ -60,22 +42,6 @@ class UpdateFormStepsRequest extends FormRequest
      */
     public function rules(): array
     {
-        return [
-            'steps' => ['present', 'array', 'max:50'],
-            'steps.*.id' => ['required', 'string', 'max:100'],
-            'steps.*.title' => ['nullable', 'string', 'max:255'],
-            'steps.*.fields' => ['present', 'array', 'max:100'],
-            'steps.*.fields.*.id' => ['required', 'string', 'max:100'],
-            'steps.*.fields.*.type' => ['required', Rule::in(self::TYPES)],
-            'steps.*.fields.*.label' => ['nullable', 'string', 'max:255'],
-            'steps.*.fields.*.required' => ['sometimes', 'boolean'],
-            'steps.*.fields.*.help' => ['nullable', 'string', 'max:1000'],
-            'steps.*.fields.*.options' => ['sometimes', 'array', 'max:50'],
-            'steps.*.fields.*.options.*' => ['nullable', 'string', 'max:255'],
-            'steps.*.fields.*.scaleMin' => ['sometimes', 'integer', 'between:0,1'],
-            'steps.*.fields.*.scaleMax' => ['sometimes', 'integer', 'between:2,10'],
-            'steps.*.fields.*.scaleMinLabel' => ['nullable', 'string', 'max:255'],
-            'steps.*.fields.*.scaleMaxLabel' => ['nullable', 'string', 'max:255'],
-        ];
+        return $this->stepsValidationRules();
     }
 }

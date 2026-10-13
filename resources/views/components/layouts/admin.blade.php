@@ -47,6 +47,7 @@
                                 ['url' => route('admin.work-orders.index'), 'active' => 'admin.work-orders.*', 'icon' => 'clipboard-document-list', 'label' => 'Ordens de serviço'],
 
                                 ['url' => route('admin.forms.index'), 'active' => 'admin.forms.*', 'icon' => 'document-check', 'label' => 'Formulários'],
+                                ['url' => route('admin.form-templates.index'), 'active' => 'admin.form-templates.*', 'icon' => 'document-duplicate', 'label' => 'Templates'],
                                 ['url' => route('admin.colaboradores.index'), 'active' => 'admin.colaboradores.*', 'icon' => 'user', 'label' => 'Colaboradores'],
                             ];
 

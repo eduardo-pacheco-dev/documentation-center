@@ -7,6 +7,7 @@ use App\Http\Requests\Admin\StoreFormRequest;
 use App\Http\Requests\Admin\UpdateFormRequest;
 use App\Http\Requests\Admin\UpdateFormStepsRequest;
 use App\Models\Form;
+use App\Models\FormTemplate;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -63,6 +64,7 @@ class FormController extends Controller
             'perPage' => $perPage,
             'types' => ['Registro Fotográfico', 'Checklist', 'Vistoria', 'Inspeção', 'Laudo Técnico'],
             'statuses' => ['Pendente', 'Em preenchimento', 'Preenchido', 'Aprovado', 'Reprovado'],
+            'templates' => FormTemplate::query()->orderBy('name')->get(['id', 'name', 'type']),
         ]);
     }
 
@@ -77,6 +79,7 @@ class FormController extends Controller
             'projects' => $request->user()->projects()->orderBy('name')->get(['id', 'code', 'name']),
             'types' => ['Registro Fotográfico', 'Checklist', 'Vistoria', 'Inspeção', 'Laudo Técnico'],
             'statuses' => ['Pendente', 'Em preenchimento', 'Preenchido', 'Aprovado', 'Reprovado'],
+            'templates' => FormTemplate::query()->orderBy('name')->get(['id', 'name', 'type']),
         ]);
     }
 
@@ -87,18 +90,36 @@ class FormController extends Controller
     {
         $attributes = $request->validated();
 
+        $steps = $request->filled('steps_json')
+            ? json_decode($request->input('steps_json'), true)
+            : $this->templateSteps($attributes['template_id'] ?? null);
+
         $form = $request->user()->forms()->create([
             'project_id' => $attributes['project_id'],
             'name' => $attributes['name'],
             'type' => $attributes['type'],
             'status' => $attributes['status'],
-            'steps' => $request->filled('steps_json') ? json_decode($request->input('steps_json'), true) : [],
+            'steps' => $steps,
             'fields' => $request->filled('fields_json') ? json_decode($request->input('fields_json'), true) : [],
         ]);
 
         return redirect()
             ->route('admin.forms.show', $form)
             ->with('status', 'Formulário criado com sucesso.');
+    }
+
+    /**
+     * Resolve the starting structure from an optional template.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    private function templateSteps(?int $templateId): array
+    {
+        if ($templateId === null) {
+            return [];
+        }
+
+        return FormTemplate::query()->find($templateId)?->steps ?? [];
     }
 
     /**
@@ -110,7 +131,10 @@ class FormController extends Controller
 
         $form->load('project:id,code,name', 'user');
 
-        return view('admin.forms.show', ['form' => $form]);
+        return view('admin.forms.show', [
+            'form' => $form,
+            'steps' => $form->steps ?? [],
+        ]);
     }
 
     /**

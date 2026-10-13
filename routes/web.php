@@ -16,6 +16,7 @@ use App\Http\Controllers\Admin\ErbDocumentController;
 use App\Http\Controllers\Admin\ErbImportController;
 use App\Http\Controllers\Admin\FolderController;
 use App\Http\Controllers\Admin\FormController;
+use App\Http\Controllers\Admin\FormTemplateController;
 use App\Http\Controllers\Admin\ProjectAssignmentController;
 use App\Http\Controllers\Admin\ProjectBaselineController;
 use App\Http\Controllers\Admin\ProjectController;
@@ -149,6 +150,12 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
     Route::put('forms/{form}', [FormController::class, 'update'])->name('forms.update');
     Route::patch('forms/{form}/steps', [FormController::class, 'updateSteps'])->name('forms.steps.update');
     Route::delete('forms/{form}', [FormController::class, 'destroy'])->name('forms.destroy');
+
+    Route::get('form-templates', [FormTemplateController::class, 'index'])->name('form-templates.index');
+    Route::post('form-templates', [FormTemplateController::class, 'store'])->name('form-templates.store');
+    Route::get('form-templates/{formTemplate}/edit', [FormTemplateController::class, 'edit'])->name('form-templates.edit');
+    Route::put('form-templates/{formTemplate}', [FormTemplateController::class, 'update'])->name('form-templates.update');
+    Route::delete('form-templates/{formTemplate}', [FormTemplateController::class, 'destroy'])->name('form-templates.destroy');
 
     Route::get('radio-links', [RadioLinkController::class, 'index'])->name('radio-links.index');
     Route::post('radio-links', [RadioLinkController::class, 'store'])->name('radio-links.store');

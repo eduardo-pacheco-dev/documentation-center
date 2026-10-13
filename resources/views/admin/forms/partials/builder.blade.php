@@ -1,13 +1,9 @@
-@php($builderSteps = $form->steps ?? [])
+@php($builderSteps = $steps ?? [])
 
 <div x-data="formBuilder(@js($builderSteps))">
-    <form method="POST" action="{{ route('admin.forms.steps.update', $form) }}">
-        @csrf
-        @method('PATCH')
+    <input type="hidden" name="steps_json" :value="stepsJson">
 
-        <input type="hidden" name="steps_json" :value="stepsJson">
-
-        <div class="space-y-4">
+    <div class="space-y-4">
             <template x-for="(step, si) in steps" :key="step.id">
                 <div class="rounded-xl border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900">
                     <div class="flex flex-wrap items-center gap-2 border-b border-gray-100 px-4 py-3 dark:border-gray-800">
@@ -154,22 +150,11 @@
                 <x-icon name="plus" class="h-4 w-4" />
                 Adicionar seção
             </button>
-        </div>
-
-        <div class="mt-6 flex justify-end">
-            <button
-                type="submit"
-                class="inline-flex items-center gap-1.5 rounded-md bg-gray-900 dark:bg-white px-4 py-2 text-sm font-medium text-white dark:text-gray-900 hover:bg-gray-700 dark:hover:bg-gray-200"
-            >
-                <x-icon name="check" class="h-4 w-4" />
-                Salvar estrutura
-            </button>
-        </div>
-    </form>
+    </div>
 </div>
 
 <script>
-    window.formBuilder = function (initialSteps) {
+    window.formBuilder = window.formBuilder || function (initialSteps) {
         return {
             steps: [],
             types: [
