@@ -46,8 +46,60 @@
         </div>
     @endif
 
-    <form method="POST" action="{{ route('admin.forms.evaluations.store', $form) }}" class="mt-6 space-y-6">
+    @php
+        $imageDecisionsSeed = collect($steps)
+            ->flatMap(fn (array $step) => $step['fields'] ?? [])
+            ->filter(fn (array $field) => ! empty($field['images']) && ! empty($field['imageDecisions']))
+            ->mapWithKeys(fn (array $field) => [$field['id'] => $field['imageDecisions']])
+            ->all();
+    @endphp
+
+    <form
+        method="POST"
+        action="{{ route('admin.forms.evaluations.store', $form) }}"
+        class="mt-6 space-y-6"
+        x-data="{
+            lightbox: null,
+            imageDecisions: @js((object) $imageDecisionsSeed),
+            touchStartX: 0,
+            openImage(fieldId, images, index) { this.lightbox = { fieldId: fieldId, images: images, index: index }; },
+            close() { this.lightbox = null; },
+            go(step) {
+                if (this.lightbox) {
+                    const next = this.lightbox.index + step;
+                    if (next >= 0 && next <= this.lightbox.images.length - 1) {
+                        this.lightbox.index = next;
+                    }
+                }
+            },
+            imageStatus(fieldId, index) {
+                return (this.imageDecisions[fieldId] && this.imageDecisions[fieldId][index]) || null;
+            },
+            setImage(fieldId, index, status) {
+                if (! this.imageDecisions[fieldId]) {
+                    this.imageDecisions[fieldId] = {};
+                }
+                this.imageDecisions[fieldId][index] = status;
+            },
+            decide(status) {
+                if (this.lightbox) {
+                    this.setImage(this.lightbox.fieldId, this.lightbox.index, status);
+                }
+            },
+            swipe(event) {
+                const delta = event.changedTouches[0].clientX - this.touchStartX;
+                if (Math.abs(delta) >= 40) {
+                    this.go(delta <= -1 ? 1 : -1);
+                }
+            },
+        }"
+        @keydown.escape.window="close()"
+        @keydown.arrow-right.window="go(1)"
+        @keydown.arrow-left.window="go(-1)"
+    >
         @csrf
+
+        <input type="hidden" name="image_decisions_json" :value="JSON.stringify(imageDecisions)">
 
         <div class="space-y-4">
             @forelse ($steps as $step)
@@ -76,22 +128,55 @@
                                     <div class="mt-2 text-sm text-gray-700 dark:text-gray-300">
                                         @if (($field['type'] ?? null) === 'image')
                                             @if (!empty($field['images']))
-                                                <div class="flex flex-wrap gap-2">
+                                                <div class="flex flex-wrap gap-3">
                                                     @foreach ($field['images'] as $image)
-                                                        <a
-                                                            href="{{ $image }}"
-                                                            target="_blank"
-                                                            rel="noopener"
-                                                            title="Abrir imagem"
-                                                            class="group block overflow-hidden rounded-lg border border-gray-200 dark:border-gray-700"
-                                                        >
-                                                            <img
-                                                                src="{{ $image }}"
-                                                                alt="{{ $field['label'] ?? 'Foto' }}"
-                                                                loading="lazy"
-                                                                class="h-24 w-24 object-cover transition group-hover:opacity-80"
+                                                        <div class="flex flex-col items-center gap-1">
+                                                            <button
+                                                                type="button"
+                                                                title="Visualizar imagem"
+                                                                class="group relative block cursor-zoom-in overflow-hidden rounded-lg border border-gray-200 dark:border-gray-700"
+                                                                @click="openImage(@js($fieldId), @js($field['images']), {{ $loop->index }})"
                                                             >
-                                                        </a>
+                                                                <img
+                                                                    src="{{ $image }}"
+                                                                    alt="{{ $field['label'] ?? 'Foto' }}"
+                                                                    loading="lazy"
+                                                                    class="h-24 w-24 object-cover transition group-hover:opacity-80"
+                                                                >
+                                                                <span
+                                                                    x-show="imageStatus(@js($fieldId), {{ $loop->index }})"
+                                                                    :class="imageStatus(@js($fieldId), {{ $loop->index }}) === 'aprovado' ? 'bg-green-600' : 'bg-red-600'"
+                                                                    x-text="imageStatus(@js($fieldId), {{ $loop->index }}) === 'aprovado' ? 'Aprovada' : 'Reprovada'"
+                                                                    class="absolute left-1 top-1 rounded-full px-2 py-0.5 text-xs font-medium text-white shadow"
+                                                                ></span>
+                                                            </button>
+
+                                                            <div class="flex w-full flex-col gap-1">
+                                                                <button
+                                                                    type="button"
+                                                                    title="Aprovar imagem"
+                                                                    aria-label="Aprovar imagem"
+                                                                    @click="setImage(@js($fieldId), {{ $loop->index }}, 'aprovado')"
+                                                                    :class="imageStatus(@js($fieldId), {{ $loop->index }}) === 'aprovado' ? 'border-green-600 bg-green-600 text-white' : 'border-gray-300 text-gray-500 hover:bg-green-50 hover:text-green-700 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-green-950/40'"
+                                                                    class="inline-flex items-center justify-center gap-1 rounded-md border px-2 py-1 text-xs font-medium"
+                                                                >
+                                                                    <x-icon name="check-circle" class="h-4 w-4" />
+                                                                    Aprovado
+                                                                </button>
+
+                                                                <button
+                                                                    type="button"
+                                                                    title="Reprovar imagem"
+                                                                    aria-label="Reprovar imagem"
+                                                                    @click="setImage(@js($fieldId), {{ $loop->index }}, 'reprovado')"
+                                                                    :class="imageStatus(@js($fieldId), {{ $loop->index }}) === 'reprovado' ? 'border-red-600 bg-red-600 text-white' : 'border-gray-300 text-gray-500 hover:bg-red-50 hover:text-red-700 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-red-950/40'"
+                                                                    class="inline-flex items-center justify-center gap-1 rounded-md border px-2 py-1 text-xs font-medium"
+                                                                >
+                                                                    <x-icon name="x-circle" class="h-4 w-4" />
+                                                                    Reprovado
+                                                                </button>
+                                                            </div>
+                                                        </div>
                                                     @endforeach
                                                 </div>
                                             @else
@@ -186,6 +271,85 @@
                 <x-icon name="check" class="h-4 w-4" />
                 Registrar avaliação
             </button>
+        </div>
+
+        <div
+            x-show="lightbox"
+            x-transition.opacity
+            style="display: none;"
+            class="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/80 p-4"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Pré-visualização da imagem"
+            @click.self="close()"
+            @touchstart="touchStartX = $event.changedTouches[0].clientX"
+            @touchend="swipe($event)"
+        >
+            <button
+                type="button"
+                class="absolute right-4 top-4 z-10 rounded-md bg-white/10 p-2 text-white hover:bg-white/20"
+                aria-label="Fechar pré-visualização"
+                @click="close()"
+            >
+                <x-icon name="x-mark" class="h-5 w-5" />
+            </button>
+
+            <button
+                type="button"
+                x-show="lightbox && lightbox.index !== 0"
+                class="absolute left-4 top-1/2 z-10 -translate-y-1/2 rounded-full bg-white/10 p-3 text-white hover:bg-white/20"
+                aria-label="Imagem anterior"
+                @click="go(-1)"
+            >
+                <x-icon name="chevron-left" class="h-6 w-6" />
+            </button>
+
+            <button
+                type="button"
+                x-show="lightbox && lightbox.index !== lightbox.images.length - 1"
+                class="absolute right-4 top-1/2 z-10 -translate-y-1/2 rounded-full bg-white/10 p-3 text-white hover:bg-white/20"
+                aria-label="Próxima imagem"
+                @click="go(1)"
+            >
+                <x-icon name="chevron-right" class="h-6 w-6" />
+            </button>
+
+            <img
+                :src="lightbox ? lightbox.images[lightbox.index] : null"
+                alt="Pré-visualização da imagem"
+                class="max-h-[90vh] max-w-[90vw] rounded-lg shadow-2xl"
+                @click.stop
+            >
+
+            <div class="absolute bottom-4 left-1/2 z-10 flex -translate-x-1/2 items-center gap-2 rounded-full bg-black/50 px-2 py-1.5 backdrop-blur">
+                <button
+                    type="button"
+                    @click="decide('aprovado')"
+                    :class="lightbox && imageStatus(lightbox.fieldId, lightbox.index) === 'aprovado' ? 'bg-green-600 text-white' : 'bg-white/10 text-white hover:bg-white/20'"
+                    class="inline-flex items-center justify-center rounded-full p-2.5"
+                    title="Aprovar imagem"
+                    aria-label="Aprovar imagem"
+                >
+                    <x-icon name="check-circle" class="h-5 w-5" />
+                </button>
+
+                <button
+                    type="button"
+                    @click="decide('reprovado')"
+                    :class="lightbox && imageStatus(lightbox.fieldId, lightbox.index) === 'reprovado' ? 'bg-red-600 text-white' : 'bg-white/10 text-white hover:bg-white/20'"
+                    class="inline-flex items-center justify-center rounded-full p-2.5"
+                    title="Reprovar imagem"
+                    aria-label="Reprovar imagem"
+                >
+                    <x-icon name="x-circle" class="h-5 w-5" />
+                </button>
+
+                <span
+                    x-show="lightbox && lightbox.images.length > 1"
+                    x-text="lightbox ? (lightbox.index + 1) + ' / ' + lightbox.images.length : ''"
+                    class="px-1 text-sm font-medium text-white"
+                ></span>
+            </div>
         </div>
     </form>
 

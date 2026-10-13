@@ -37,6 +37,7 @@ class StoreFormEvaluationRequest extends FormRequest
             'notes' => ['nullable', 'string', 'max:2000'],
             'decisions' => ['sometimes', 'array'],
             'decisions.*' => ['sometimes', 'nullable', Rule::in(['aprovado', 'reprovado', 'pendente', 'nao_aplicavel'])],
+            'image_decisions_json' => ['nullable', 'string', 'json'],
         ];
     }
 }

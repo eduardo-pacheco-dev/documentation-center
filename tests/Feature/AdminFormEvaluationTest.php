@@ -40,6 +40,7 @@ it('shows the evaluation page with answers and per-field controls', function () 
         ->assertSee('Área registrada')
         ->assertSee('Galpão A')
         ->assertSee('name="decisions[F1-1]"', false)
+        ->assertSee('name="image_decisions_json"', false)
         ->assertSee('Registrar avaliação');
 });
 
@@ -78,6 +79,47 @@ it('records an evaluation and applies the per-field decisions', function () {
         'status' => 'Aprovado',
         'notes' => 'Tudo conforme.',
     ]);
+});
+
+it('records per-image approval decisions', function () {
+    $user = User::factory()->create();
+    $form = Form::factory()->create(['status' => 'Preenchido', 'steps' => evaluationSteps()]);
+
+    $this->actingAs($user)
+        ->post(route('admin.forms.evaluate', $form), [
+            'status' => 'Aprovado',
+            'image_decisions_json' => json_encode(['F1-2' => ['0' => 'reprovado']]),
+        ])
+        ->assertRedirect(route('admin.forms.evaluate', $form));
+
+    expect($form->fresh()->steps[0]['fields'][1]['imageDecisions'])->toBe([0 => 'reprovado']);
+});
+
+it('ignores image decisions for unknown fields or images', function () {
+    $form = Form::factory()->create(['steps' => evaluationSteps()]);
+
+    $this->actingAs(User::factory()->create())
+        ->post(route('admin.forms.evaluate', $form), [
+            'status' => 'Aprovado',
+            'image_decisions_json' => json_encode([
+                'ZZ-99' => ['0' => 'aprovado'],
+                'F1-2' => ['5' => 'aprovado'],
+            ]),
+        ])
+        ->assertRedirect();
+
+    expect($form->fresh()->steps)->toBe(evaluationSteps());
+});
+
+it('rejects a malformed image decisions payload', function () {
+    $form = Form::factory()->create(['steps' => evaluationSteps()]);
+
+    $this->actingAs(User::factory()->create())
+        ->post(route('admin.forms.evaluate', $form), [
+            'status' => 'Aprovado',
+            'image_decisions_json' => 'not-json',
+        ])
+        ->assertSessionHasErrors('image_decisions_json');
 });
 
 it('keeps the answers when applying the evaluation', function () {
