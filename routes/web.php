@@ -9,6 +9,7 @@ use App\Http\Controllers\Admin\ColaboradorController;
 use App\Http\Controllers\Admin\ColaboradorImportController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\DocumentController;
+use App\Http\Controllers\Admin\ErbAddressLookupController;
 use App\Http\Controllers\Admin\ErbCommentController;
 use App\Http\Controllers\Admin\ErbController;
 use App\Http\Controllers\Admin\ErbDocumentController;
@@ -127,6 +128,8 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
     Route::post('erbs', [ErbController::class, 'store'])->name('erbs.store');
     Route::post('erbs/import', [ErbImportController::class, 'store'])->name('erbs.import');
     Route::get('erbs/import/template', [ErbImportController::class, 'template'])->name('erbs.import.template');
+    Route::get('erbs/lookup/zip', [ErbAddressLookupController::class, 'zip'])->name('erbs.lookup.zip');
+    Route::get('erbs/lookup/coordinates', [ErbAddressLookupController::class, 'coordinates'])->name('erbs.lookup.coordinates');
     Route::get('erbs/{erb}', [ErbController::class, 'show'])->name('erbs.show');
     Route::get('erbs/{erb}/edit', [ErbController::class, 'edit'])->name('erbs.edit');
     Route::put('erbs/{erb}', [ErbController::class, 'update'])->name('erbs.update');

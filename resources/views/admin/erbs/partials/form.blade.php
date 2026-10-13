@@ -100,6 +100,13 @@
         <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Endereço e coordenadas da estação.</p>
     </div>
 
+    <p
+        data-erb-address-status
+        class="sm:col-span-2 hidden text-xs text-gray-500 dark:text-gray-400"
+        role="status"
+        aria-live="polite"
+    ></p>
+
     <div class="sm:col-span-2">
         <label for="street" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Logradouro</label>
         <input
@@ -246,3 +253,173 @@
         @enderror
     </div>
 </div>
+
+<script>
+    (function () {
+        const script = document.currentScript;
+        const form = script ? script.closest('form') : null;
+
+        if (!form || form.dataset.addressLookupReady === 'true') {
+            return;
+        }
+
+        form.dataset.addressLookupReady = 'true';
+
+        const zipUrl = @json(route('admin.erbs.lookup.zip'));
+        const coordinatesUrl = @json(route('admin.erbs.lookup.coordinates'));
+        const digits = (value) => (value || '').replace(/\D/g, '');
+        const field = (name) => form.querySelector('[name="' + name + '"]');
+        const status = form.querySelector('[data-erb-address-status]');
+        const fields = ['zip', 'street', 'number', 'complement', 'neighborhood', 'city', 'state'];
+        let statusTimer = null;
+        let coordinatesTimer = null;
+        let lastZip = null;
+        let lastCoordinates = null;
+
+        const setStatus = (message, tone) => {
+            if (!status) {
+                return;
+            }
+
+            window.clearTimeout(statusTimer);
+            status.textContent = message || '';
+            status.classList.toggle('hidden', !message);
+            status.classList.toggle('text-red-600', tone === 'error');
+            status.classList.toggle('dark:text-red-400', tone === 'error');
+            status.classList.toggle('text-gray-500', tone !== 'error');
+            status.classList.toggle('dark:text-gray-400', tone !== 'error');
+
+            if (message && tone === 'success') {
+                statusTimer = window.setTimeout(() => setStatus(''), 4000);
+            }
+        };
+
+        const fill = (data) => {
+            fields.forEach((name) => {
+                const input = field(name);
+                const value = data[name];
+
+                if (input && value !== undefined && value !== null && value !== '') {
+                    input.value = value;
+                }
+            });
+        };
+
+        const request = async (url, params) => {
+            const response = await fetch(url + '?' + new URLSearchParams(params).toString(), {
+                headers: { Accept: 'application/json' },
+            });
+
+            if (!response.ok) {
+                return null;
+            }
+
+            return response.json();
+        };
+
+        const lookupZip = async () => {
+            const zipInput = field('zip');
+
+            if (!zipInput) {
+                return;
+            }
+
+            const value = digits(zipInput.value);
+
+            if (value.length !== 8) {
+                lastZip = null;
+
+                return;
+            }
+
+            if (value === lastZip) {
+                return;
+            }
+
+            lastZip = value;
+            setStatus('Buscando endereço...', 'info');
+
+            try {
+                const data = await request(zipUrl, { zip: value });
+
+                if (!data) {
+                    lastZip = null;
+                    setStatus('CEP não encontrado.', 'error');
+
+                    return;
+                }
+
+                fill(data);
+                setStatus('Endereço preenchido a partir do CEP.', 'success');
+            } catch (error) {
+                lastZip = null;
+                setStatus('Não foi possível buscar o CEP.', 'error');
+            }
+        };
+
+        const lookupCoordinates = async () => {
+            const latitudeInput = field('latitude');
+            const longitudeInput = field('longitude');
+
+            if (!latitudeInput || !longitudeInput) {
+                return;
+            }
+
+            const latitude = latitudeInput.value.trim();
+            const longitude = longitudeInput.value.trim();
+
+            if (latitude === '' || longitude === '' || Number.isNaN(Number(latitude)) || Number.isNaN(Number(longitude))) {
+                lastCoordinates = null;
+
+                return;
+            }
+
+            const key = latitude + ',' + longitude;
+
+            if (key === lastCoordinates) {
+                return;
+            }
+
+            lastCoordinates = key;
+            setStatus('Buscando endereço...', 'info');
+
+            try {
+                const data = await request(coordinatesUrl, { latitude: latitude, longitude: longitude });
+
+                if (!data) {
+                    lastCoordinates = null;
+                    setStatus('Não foi possível localizar o endereço para as coordenadas.', 'error');
+
+                    return;
+                }
+
+                fill(data);
+                setStatus('Endereço preenchido a partir das coordenadas.', 'success');
+            } catch (error) {
+                lastCoordinates = null;
+                setStatus('Não foi possível buscar o endereço.', 'error');
+            }
+        };
+
+        const scheduleCoordinates = () => {
+            window.clearTimeout(coordinatesTimer);
+            coordinatesTimer = window.setTimeout(lookupCoordinates, 600);
+        };
+
+        const zipInput = field('zip');
+
+        if (zipInput) {
+            zipInput.addEventListener('blur', lookupZip);
+            zipInput.addEventListener('change', lookupZip);
+        }
+
+        ['latitude', 'longitude'].forEach((name) => {
+            const input = field(name);
+
+            if (input) {
+                input.addEventListener('blur', scheduleCoordinates);
+                input.addEventListener('change', scheduleCoordinates);
+            }
+        });
+    })();
+</script>
