@@ -24,6 +24,18 @@ class ShortLinkController extends Controller
     {
         $search = $request->string('search')->trim()->toString();
 
+        $type = in_array($request->query('type'), array_column(ShortLinkType::cases(), 'value'), true)
+            ? $request->query('type')
+            : null;
+
+        $status = in_array($request->query('status'), ['active', 'inactive', 'expired', 'limit'], true)
+            ? $request->query('status')
+            : null;
+
+        $perPage = in_array($request->integer('per_page'), [10, 25, 50], true)
+            ? $request->integer('per_page')
+            : 10;
+
         $sortableColumns = ['code', 'title', 'type', 'used_count', 'documents', 'created_at'];
 
         if (in_array($request->query('sort'), $sortableColumns, true)) {
@@ -58,6 +70,27 @@ class ShortLinkController extends Controller
             });
         }
 
+        if ($type !== null) {
+            $query->where('type', $type);
+        }
+
+        if ($status === 'inactive') {
+            $query->where('is_active', false);
+        } elseif ($status === 'expired') {
+            $query->where('is_active', true)
+                ->whereNotNull('expires_at')
+                ->where('expires_at', '<', now());
+        } elseif ($status === 'limit') {
+            $query->where('is_active', true)
+                ->where(fn (Builder $builder): Builder => $builder->whereNull('expires_at')->orWhere('expires_at', '>=', now()))
+                ->whereNotNull('max_uses')
+                ->whereColumn('used_count', '>=', 'max_uses');
+        } elseif ($status === 'active') {
+            $query->where('is_active', true)
+                ->where(fn (Builder $builder): Builder => $builder->whereNull('expires_at')->orWhere('expires_at', '>=', now()))
+                ->where(fn (Builder $builder): Builder => $builder->whereNull('max_uses')->orWhereColumn('used_count', '<', 'max_uses'));
+        }
+
         if ($sort === 'documents') {
             $query->orderByRaw("(documents_count + received_documents_count) {$direction}");
         } else {
@@ -71,10 +104,13 @@ class ShortLinkController extends Controller
             : 'table';
 
         return view('admin.links.index', [
-            'shortLinks' => $query->paginate(10)->withQueryString(),
+            'shortLinks' => $query->paginate($perPage)->withQueryString(),
             'search' => $search,
+            'type' => $type,
+            'status' => $status,
             'document' => $document,
             'view' => $view,
+            'perPage' => $perPage,
         ]);
     }
 

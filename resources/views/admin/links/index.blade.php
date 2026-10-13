@@ -2,6 +2,8 @@
     @php
         $viewQuery = request()->query();
         unset($viewQuery['page']);
+
+        $hasFilters = $search !== '' || $type !== null || $status !== null || $document !== null;
     @endphp
 
     <div class="flex items-center justify-between">
@@ -30,18 +32,11 @@
             class="flex flex-wrap items-center gap-2"
             data-search-form
         >
-            @if (request('view'))
-                <input type="hidden" name="view" value="{{ request('view') }}">
-            @endif
-            @if (request('sort'))
-                <input type="hidden" name="sort" value="{{ request('sort') }}">
-            @endif
-            @if (request('direction'))
-                <input type="hidden" name="direction" value="{{ request('direction') }}">
-            @endif
-            @if (request('document'))
-                <input type="hidden" name="document" value="{{ request('document') }}">
-            @endif
+            @foreach (['view', 'sort', 'direction', 'document', 'type', 'status', 'per_page'] as $param)
+                @if (request($param))
+                    <input type="hidden" name="{{ $param }}" value="{{ request($param) }}">
+                @endif
+            @endforeach
 
             <div class="relative w-full max-w-sm sm:w-80 sm:max-w-none">
                 <x-icon name="magnifying-glass" class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400 dark:text-gray-500" />
@@ -62,14 +57,38 @@
                 Buscar
             </button>
 
-            @if ($search !== '')
+            @if ($hasFilters)
                 <a
-                    href="{{ route('admin.links.index', array_filter(['document' => request('document')])) }}"
+                    href="{{ route('admin.links.index', array_filter(['view' => $view])) }}"
                     class="text-sm text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100"
                 >
                     Limpar
                 </a>
             @endif
+
+            <label for="type-filter" class="sr-only">Filtrar por tipo</label>
+            <select
+                id="type-filter"
+                name="type"
+                onchange="this.form.submit()"
+                class="rounded-md border border-gray-300 dark:border-gray-700 dark:bg-gray-900 py-2 pl-3 pr-8 text-sm text-gray-700 dark:text-gray-200 focus:border-indigo-500 focus:outline-none focus:ring-indigo-500"
+            >
+                @foreach (['' => 'Todos os tipos', 'upload' => 'Upload', 'download' => 'Download', 'redirect' => 'Redirect'] as $value => $label)
+                    <option value="{{ $value }}" @selected($type === ($value ?: null))>{{ $label }}</option>
+                @endforeach
+            </select>
+
+            <label for="status-filter" class="sr-only">Filtrar por status</label>
+            <select
+                id="status-filter"
+                name="status"
+                onchange="this.form.submit()"
+                class="rounded-md border border-gray-300 dark:border-gray-700 dark:bg-gray-900 py-2 pl-3 pr-8 text-sm text-gray-700 dark:text-gray-200 focus:border-indigo-500 focus:outline-none focus:ring-indigo-500"
+            >
+                @foreach (['' => 'Todos os status', 'active' => 'Ativos', 'inactive' => 'Desativados', 'expired' => 'Expirados', 'limit' => 'Limite atingido'] as $value => $label)
+                    <option value="{{ $value }}" @selected($status === ($value ?: null))>{{ $label }}</option>
+                @endforeach
+            </select>
 
             @if ($document)
                 <span class="inline-flex items-center gap-1.5 rounded-full bg-indigo-100 dark:bg-indigo-500/15 px-3 py-1.5 text-xs font-medium text-indigo-700 dark:text-indigo-300">
@@ -157,8 +176,8 @@
                 </tbody>
             </table>
 
-            <div class="px-5 py-4">
-                {{ $shortLinks->links() }}
+            <div class="border-t border-gray-100 px-5 py-4 dark:border-gray-800">
+                @include('admin.links.partials.pagination')
             </div>
         </div>
     @elseif ($view === 'cards')
@@ -200,7 +219,7 @@
         </div>
 
         <div class="pt-4">
-            {{ $shortLinks->links() }}
+            @include('admin.links.partials.pagination')
         </div>
     @else
         <div class="mt-4 divide-y divide-gray-100 rounded-xl border border-gray-200 bg-white shadow-sm dark:divide-gray-800 dark:border-gray-800 dark:bg-gray-900">
@@ -234,7 +253,7 @@
         </div>
 
         <div class="pt-4">
-            {{ $shortLinks->links() }}
+            @include('admin.links.partials.pagination')
         </div>
     @endif
 

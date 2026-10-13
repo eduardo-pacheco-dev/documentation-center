@@ -162,6 +162,67 @@ test('links fall back to newest first when the sort is invalid', function () {
         ->assertSeeInOrder(['Recente', 'Antigo']);
 });
 
+test('links can be filtered by type', function () {
+    $user = User::factory()->create();
+    $upload = ShortLink::factory()->for($user)->create(['title' => 'Envio de arquivos']);
+    $download = ShortLink::factory()->for($user)->download()->create(['title' => 'Baixar arquivos']);
+
+    $this->actingAs($user)
+        ->get('/admin/links?type=download')
+        ->assertOk()
+        ->assertSee($download->title)
+        ->assertDontSee($upload->title);
+});
+
+test('links can be filtered by status', function () {
+    $user = User::factory()->create();
+    $active = ShortLink::factory()->for($user)->create(['title' => 'Contrato vigente']);
+    $inactive = ShortLink::factory()->for($user)->inactive()->create(['title' => 'Proposta arquivada']);
+    $expired = ShortLink::factory()->for($user)->expired()->create(['title' => 'Relatorio antigo']);
+    $limited = ShortLink::factory()->for($user)->limited(1)->create(['title' => 'Convite esgotado', 'used_count' => 1]);
+
+    $this->actingAs($user)
+        ->get('/admin/links?status=inactive')
+        ->assertOk()
+        ->assertSee($inactive->title)
+        ->assertDontSee($active->title)
+        ->assertDontSee($expired->title);
+
+    $this->actingAs($user)
+        ->get('/admin/links?status=expired')
+        ->assertOk()
+        ->assertSee($expired->title)
+        ->assertDontSee($active->title)
+        ->assertDontSee($inactive->title);
+
+    $this->actingAs($user)
+        ->get('/admin/links?status=limit')
+        ->assertOk()
+        ->assertSee($limited->title)
+        ->assertDontSee($active->title)
+        ->assertDontSee($expired->title);
+
+    $this->actingAs($user)
+        ->get('/admin/links?status=active')
+        ->assertOk()
+        ->assertSee($active->title)
+        ->assertDontSee($inactive->title)
+        ->assertDontSee($expired->title)
+        ->assertDontSee($limited->title);
+});
+
+test('links can be paginated with a custom page size', function () {
+    $user = User::factory()->create();
+    $links = ShortLink::factory()->count(12)->for($user)->create(['title' => 'Fatura mensal']);
+
+    $this->actingAs($user)
+        ->get('/admin/links?per_page=25')
+        ->assertOk()
+        ->assertSee($links->first()->code)
+        ->assertSee($links->last()->code)
+        ->assertSee('25 por página');
+});
+
 test('links are paginated ten per page keeping the current filters', function () {
     $user = User::factory()->create();
     $links = ShortLink::factory()->count(11)->for($user)->create(['title' => 'Fatura mensal']);
