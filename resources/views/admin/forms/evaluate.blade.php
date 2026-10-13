@@ -76,19 +76,24 @@
                                     <div class="mt-2 text-sm text-gray-700 dark:text-gray-300">
                                         @if (($field['type'] ?? null) === 'image')
                                             @if (!empty($field['images']))
-                                                <span class="flex flex-wrap items-center gap-1">
+                                                <div class="flex flex-wrap gap-2">
                                                     @foreach ($field['images'] as $image)
                                                         <a
                                                             href="{{ $image }}"
                                                             target="_blank"
                                                             rel="noopener"
-                                                            class="inline-flex items-center gap-0.5 rounded-md bg-gray-100 px-2 py-1 text-xs font-medium text-indigo-600 hover:bg-gray-200 dark:bg-gray-800 dark:text-indigo-400 dark:hover:bg-gray-700"
+                                                            title="Abrir imagem"
+                                                            class="group block overflow-hidden rounded-lg border border-gray-200 dark:border-gray-700"
                                                         >
-                                                            <x-icon name="photo" class="h-3.5 w-3.5" />
-                                                            foto
+                                                            <img
+                                                                src="{{ $image }}"
+                                                                alt="{{ $field['label'] ?? 'Foto' }}"
+                                                                loading="lazy"
+                                                                class="h-24 w-24 object-cover transition group-hover:opacity-80"
+                                                            >
                                                         </a>
                                                     @endforeach
-                                                </span>
+                                                </div>
                                             @else
                                                 <span class="text-gray-500 dark:text-gray-400">Nenhuma foto enviada.</span>
                                             @endif
