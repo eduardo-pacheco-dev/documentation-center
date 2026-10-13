@@ -2,8 +2,12 @@
 
 namespace App\Services\Erbs;
 
+use App\Enums\ErbOperator;
 use App\Enums\ErbStatus;
+use App\Enums\ErbTechnology;
+use App\Models\Erb;
 use App\Models\User;
+use BackedEnum;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
@@ -12,20 +16,24 @@ use Illuminate\Validation\ValidationException;
 class ErbBulkImporter
 {
     /**
-     * Import the given rows as ERBs for the user.
+     * Import the given rows as ERBs for the user, updating the ERB that already
+     * owns a given site ID instead of rejecting it.
      *
      * @param  array<int, array<string, mixed>>  $rows
-     * @return int The number of ERBs created.
+     * @return int The number of ERBs created or updated.
      *
      * @throws ValidationException
      */
     public function import(User $user, array $rows): int
     {
-        $existingCodes = $user->erbs()
-            ->pluck('code')
-            ->mapWithKeys(fn ($code): array => [mb_strtoupper(trim((string) $code)) => true]);
+        $existingErbs = $user->erbs()
+            ->whereNotNull('site_id')
+            ->get()
+            ->keyBy(fn (Erb $erb): string => mb_strtoupper((string) $erb->site_id));
 
-        $prepared = [];
+        /** @var array<int, array{erb: Erb|null, attributes: array<string, mixed>}> $operations */
+        $operations = [];
+        $operationIndexBySiteId = [];
         $errors = [];
 
         foreach (array_values($rows) as $index => $row) {
@@ -45,13 +53,7 @@ class ErbBulkImporter
 
             $data = $validator->validated();
 
-            $code = mb_strtoupper(trim((string) $data['codigo']));
-
-            if (isset($existingCodes[$code])) {
-                $errors[] = "Linha {$line}: o código \"{$code}\" já está em uso.";
-
-                continue;
-            }
+            $siteId = $data['site_id'] ?? null;
 
             $status = $this->parseStatus($data['status'] ?? null);
 
@@ -61,13 +63,37 @@ class ErbBulkImporter
                 continue;
             }
 
-            $existingCodes[$code] = true;
+            $operator = $data['operadora'] ?? null;
+            $technology = $data['tecnologia'] ?? null;
+            $invalid = false;
 
-            $prepared[] = [
-                'code' => $code,
-                'name' => $data['nome'],
-                'operator' => $data['operadora'] ?? null,
-                'technology' => $data['tecnologia'] ?? null,
+            if ($operator !== null) {
+                $operator = $this->matchEnumValue($operator, ErbOperator::cases());
+
+                if ($operator === null) {
+                    $errors[] = "Linha {$line}: operadora inválida (use {$this->options(ErbOperator::cases())}).";
+                    $invalid = true;
+                }
+            }
+
+            if ($technology !== null) {
+                $technology = $this->matchEnumValue($technology, ErbTechnology::cases());
+
+                if ($technology === null) {
+                    $errors[] = "Linha {$line}: tecnologia inválida (use {$this->options(ErbTechnology::cases())}).";
+                    $invalid = true;
+                }
+            }
+
+            if ($invalid) {
+                continue;
+            }
+
+            $attributes = [
+                'site_id' => $siteId,
+                'end_id' => $data['end_id'] ?? null,
+                'operator' => $operator,
+                'technology' => $technology,
                 'status' => $status->value,
                 'street' => $data['logradouro'] ?? null,
                 'number' => $data['numero'] ?? null,
@@ -80,18 +106,48 @@ class ErbBulkImporter
                 'longitude' => $data['longitude'] ?? null,
                 'notes' => $data['observacoes'] ?? null,
             ];
+
+            if ($siteId !== null) {
+                $siteIdKey = mb_strtoupper($siteId);
+
+                if (isset($operationIndexBySiteId[$siteIdKey])) {
+                    $operations[$operationIndexBySiteId[$siteIdKey]]['attributes'] = $attributes;
+
+                    continue;
+                }
+
+                if ($existingErbs->has($siteIdKey)) {
+                    $operations[] = ['erb' => $existingErbs->get($siteIdKey), 'attributes' => $attributes];
+                    $operationIndexBySiteId[$siteIdKey] = array_key_last($operations);
+
+                    continue;
+                }
+
+                $operations[] = ['erb' => null, 'attributes' => $attributes];
+                $operationIndexBySiteId[$siteIdKey] = array_key_last($operations);
+
+                continue;
+            }
+
+            $operations[] = ['erb' => null, 'attributes' => $attributes];
         }
 
         if ($errors !== []) {
             throw ValidationException::withMessages(['import' => $errors]);
         }
 
-        return DB::transaction(function () use ($user, $prepared): int {
-            foreach ($prepared as $attributes) {
-                $user->erbs()->create($attributes);
+        return DB::transaction(function () use ($user, $operations): int {
+            foreach ($operations as $operation) {
+                $erb = $operation['erb'];
+
+                if ($erb instanceof Erb) {
+                    $erb->fill($operation['attributes'])->save();
+                } else {
+                    $user->erbs()->create($operation['attributes']);
+                }
             }
 
-            return count($prepared);
+            return count($operations);
         });
     }
 
@@ -103,8 +159,8 @@ class ErbBulkImporter
     private function rules(): array
     {
         return [
-            'codigo' => ['required', 'string', 'max:60'],
-            'nome' => ['required', 'string', 'max:255'],
+            'site_id' => ['nullable', 'string', 'max:255', 'required_without:end_id'],
+            'end_id' => ['nullable', 'string', 'max:60', 'required_without:site_id'],
             'operadora' => ['nullable', 'string', 'max:80'],
             'tecnologia' => ['nullable', 'string', 'max:40'],
             'status' => ['nullable', 'string'],
@@ -157,5 +213,33 @@ class ErbBulkImporter
             'desativada', 'desativado', 'inactive' => ErbStatus::Inactive,
             default => null,
         };
+    }
+
+    /**
+     * Resolve the canonical enum value from a spreadsheet cell, ignoring case.
+     *
+     * @param  array<int, BackedEnum>  $cases
+     */
+    private function matchEnumValue(string $value, array $cases): ?string
+    {
+        $needle = mb_strtolower($value);
+
+        foreach ($cases as $case) {
+            if (mb_strtolower((string) $case->value) === $needle) {
+                return (string) $case->value;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Build a comma-separated list of the allowed enum values.
+     *
+     * @param  array<int, BackedEnum>  $cases
+     */
+    private function options(array $cases): string
+    {
+        return implode(', ', array_map(static fn (BackedEnum $case): string => (string) $case->value, $cases));
     }
 }

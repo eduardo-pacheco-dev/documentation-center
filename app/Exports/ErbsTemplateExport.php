@@ -15,8 +15,8 @@ class ErbsTemplateExport implements FromArray, WithHeadings
     public function headings(): array
     {
         return [
-            'Código',
-            'Nome',
+            'Site ID',
+            'End ID',
             'Operadora',
             'Tecnologia',
             'Status',
@@ -42,8 +42,8 @@ class ErbsTemplateExport implements FromArray, WithHeadings
     {
         return [
             [
-                'TORRE-001',
-                'ERB Centro',
+                'SITE-00001',
+                'PABLM_0001',
                 'Vivo',
                 '5G',
                 'ativa',

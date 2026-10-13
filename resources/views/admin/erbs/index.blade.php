@@ -375,8 +375,10 @@
             @endif
 
             <div class="mt-4 rounded-md border border-gray-200 bg-gray-50 p-3 text-sm text-gray-600 dark:border-gray-800 dark:bg-gray-800/50 dark:text-gray-300">
-                <p>Colunas: <span class="font-medium">Código, Nome, Operadora, Tecnologia, Status, Logradouro, Número, Complemento, Bairro, Cidade, Estado, CEP, Latitude, Longitude, Observações</span>.</p>
-                <p class="mt-1">Código e nome são obrigatórios. Status: ativa, em manutenção ou desativada.</p>
+                <p>Colunas: <span class="font-medium">Site ID, End ID, Operadora, Tecnologia, Status, Logradouro, Número, Complemento, Bairro, Cidade, Estado, CEP, Latitude, Longitude, Observações</span>.</p>
+                <p class="mt-1">Informe ao menos o Site ID ou o End ID; código e nome são gerados automaticamente.</p>
+                <p class="mt-1">Se o Site ID já existir, a ERB correspondente é atualizada com os dados da planilha.</p>
+                <p class="mt-1">Operadora: {{ collect(\App\Enums\ErbOperator::cases())->map->value->implode(', ') }}. Tecnologia: {{ collect(\App\Enums\ErbTechnology::cases())->map->value->implode(', ') }}. Status: ativa, em manutenção ou desativada.</p>
                 <a
                     href="{{ route('admin.erbs.import.template') }}"
                     class="mt-2 inline-flex items-center gap-1 font-medium text-indigo-600 hover:text-indigo-500 dark:text-indigo-400 dark:hover:text-indigo-300"
