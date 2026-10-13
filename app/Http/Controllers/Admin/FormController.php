@@ -129,7 +129,7 @@ class FormController extends Controller
     {
         $this->authorize('update', $form);
 
-        $form->load('project:id,code,name');
+        $form->load('project:id,code,name', 'user:id,name');
 
         return view('admin.forms.edit', [
             'form' => $form,
