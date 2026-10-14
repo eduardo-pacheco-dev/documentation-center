@@ -82,6 +82,23 @@ it('renders the work order list in the alternate view modes', function () {
     $this->actingAs($owner)->get('/admin/work-orders?view=compact')->assertOk()->assertSee('OS-7000');
 });
 
+it('shows the linked erb site id in the list', function () {
+    $owner = User::factory()->create();
+    $client = ownedClient($owner);
+    $erb = Erb::factory()->create(['user_id' => $owner->getKey(), 'site_id' => 'SITE-ABC-123']);
+
+    WorkOrder::factory()->create([
+        'user_id' => $owner->getKey(),
+        'client_id' => $client->getKey(),
+        'erb_id' => $erb->getKey(),
+    ]);
+
+    $this->actingAs($owner)
+        ->get('/admin/work-orders')
+        ->assertOk()
+        ->assertSee('SITE-ABC-123');
+});
+
 it('renders the create form inside a modal on the work orders list', function () {
     $owner = User::factory()->create();
     ownedClient($owner);

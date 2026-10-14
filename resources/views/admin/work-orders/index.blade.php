@@ -105,26 +105,23 @@
     </div>
 
     @if ($view === 'table')
-        <div class="mt-4 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 shadow-sm">
+        <div class="mt-4 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900">
             <div class="overflow-x-auto">
                 <table class="min-w-full divide-y divide-gray-200 text-sm dark:divide-gray-800">
-                    <thead class="rounded-t-xl bg-gray-50 text-left text-xs uppercase text-gray-500 dark:bg-gray-800 dark:text-gray-400">
+                    <thead class="bg-gray-50 text-left text-xs uppercase tracking-wide text-gray-500 dark:bg-gray-800 dark:text-gray-400">
                         <tr>
-                            <x-sort-header column="number" label="Número" icon="clipboard-document-list" class="px-5 py-3" />
-                            <th class="px-5 py-3 font-medium">Cliente</th>
+                            <x-sort-header column="number" label="Número" icon="clipboard-document-list" class="w-32 px-5 py-3" />
+                            <th class="px-5 py-3 font-medium">Site ID</th>
                             <x-sort-header column="priority" label="Prioridade" class="px-5 py-3" />
                             <x-sort-header column="status" label="Status" icon="flag" class="px-5 py-3" />
-                            <x-sort-header column="opened_at" label="Abertura" class="px-5 py-3" />
-                            <x-sort-header column="due_at" label="Previsão" class="px-5 py-3" />
-                            <x-sort-header column="total" label="Total" class="px-5 py-3" />
-                            <x-sort-header column="updated_at" label="Atualizado" default="updated_at" class="px-5 py-3" />
-                            <th class="px-5 py-3 text-right font-medium">Ações</th>
+                            <x-sort-header column="updated_at" label="Atualizado" default="updated_at" class="w-40 px-5 py-3" />
+                            <th class="w-16 px-5 py-3 text-right font-medium">Ações</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
                         @forelse ($workOrders as $workOrder)
-                            <tr>
-                                <td class="whitespace-nowrap px-5 py-3">
+                            <tr class="align-middle transition hover:bg-gray-50 dark:hover:bg-gray-800/40">
+                                <td class="whitespace-nowrap px-5 py-4">
                                     <a
                                         href="{{ route('admin.work-orders.show', $workOrder) }}"
                                         class="font-medium text-gray-900 hover:text-indigo-600 dark:text-gray-100 dark:hover:text-indigo-400"
@@ -132,33 +129,37 @@
                                         {{ $workOrder->number }}
                                     </a>
                                 </td>
-                                <td class="px-5 py-3">
-                                    <span class="flex items-center gap-1.5 text-gray-700 dark:text-gray-300">
-                                        <x-icon name="building-office" class="h-3.5 w-3.5 text-gray-400 dark:text-gray-500" />
-                                        {{ $workOrder->client->name }}
+                                <td class="px-5 py-4">
+                                    <span class="flex min-w-0 items-center gap-1.5 text-gray-700 dark:text-gray-300">
+                                        @if ($workOrder->erb)
+                                            <x-icon name="signal" class="h-3.5 w-3.5 shrink-0 text-gray-400 dark:text-gray-500" />
+                                            <span class="truncate">{{ $workOrder->erb->site_id ?: $workOrder->erb->code }}</span>
+                                        @elseif ($workOrder->radioLink)
+                                            <x-icon name="arrows-right-left" class="h-3.5 w-3.5 shrink-0 text-gray-400 dark:text-gray-500" />
+                                            <span class="truncate">{{ $workOrder->radioLink->code }}</span>
+                                        @else
+                                            <span class="text-gray-400 dark:text-gray-500">—</span>
+                                        @endif
                                     </span>
                                 </td>
-                                <td class="whitespace-nowrap px-5 py-3">
+                                <td class="whitespace-nowrap px-5 py-4">
                                     <x-work-order-priority :work-order="$workOrder" />
                                 </td>
-                                <td class="whitespace-nowrap px-5 py-3">
+                                <td class="whitespace-nowrap px-5 py-4">
                                     <x-work-order-status :work-order="$workOrder" />
                                 </td>
-                                <td class="whitespace-nowrap px-5 py-3 text-gray-500 dark:text-gray-400">{{ $workOrder->opened_at->format('d/m/Y') }}</td>
-                                <td class="whitespace-nowrap px-5 py-3 text-gray-500 dark:text-gray-400">{{ $workOrder->due_at?->format('d/m/Y') ?? '—' }}</td>
-                                <td class="whitespace-nowrap px-5 py-3 text-gray-500 dark:text-gray-400">{{ $money((float) $workOrder->total) }}</td>
-                                <td class="px-5 py-3">
+                                <td class="whitespace-nowrap px-5 py-4">
                                     <x-relative-time :value="$workOrder->updated_at" class="text-gray-500 dark:text-gray-400" />
                                 </td>
-                                <td class="px-5 py-3 text-right">
+                                <td class="px-5 py-4 text-right">
                                     <x-work-order-actions-dropdown :work-order="$workOrder" />
                                 </td>
                             </tr>
                         @empty
                             <tr>
-                                <td class="px-5 py-6 text-gray-500 dark:text-gray-400" colspan="9">
-                                    <span class="inline-flex items-center gap-2">
-                                        <x-icon name="clipboard-document-list" class="h-4 w-4" />
+                                <td class="px-5 py-12 text-center text-gray-500 dark:text-gray-400" colspan="6">
+                                    <span class="inline-flex flex-col items-center gap-2">
+                                        <x-icon name="clipboard-document-list" class="h-6 w-6 text-gray-300 dark:text-gray-600" />
                                         @if ($search !== '')
                                             Nenhuma ordem de serviço encontrada para "{{ $search }}".
                                         @else
