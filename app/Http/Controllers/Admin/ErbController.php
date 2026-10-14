@@ -127,13 +127,13 @@ class ErbController extends Controller
     }
 
     /**
-     * Show the form to edit the ERB details.
+     * Redirect to the ERB detail page with the edit modal open.
      */
-    public function edit(Erb $erb): View
+    public function edit(Erb $erb): RedirectResponse
     {
         $this->authorize('update', $erb);
 
-        return view('admin.erbs.edit', ['erb' => $erb]);
+        return redirect(route('admin.erbs.show', $erb).'#edit');
     }
 
     /**

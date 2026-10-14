@@ -1,3 +1,17 @@
+@php
+    $projectTexts = $projectOptions
+        ->map(fn ($project) => trim($project->name.' '.$project->code))
+        ->values();
+
+    $workOrderTexts = $workOrderOptions
+        ->map(fn ($workOrder) => trim((string) $workOrder->number))
+        ->values();
+
+    $radioLinkTexts = $radioLinkOptions
+        ->map(fn ($radioLink) => trim($radioLink->code.' '.($radioLink->erbA?->code ?? '').' '.($radioLink->erbB?->code ?? '')))
+        ->values();
+@endphp
+
 {{-- Projects --}}
 <div
     id="erb-projects-modal"
@@ -32,6 +46,19 @@
             data-confirm="Projetos desmarcados serão excluídos. Deseja salvar os vínculos?"
             data-confirm-title="Confirmar projetos da ERB"
             data-confirm-label="Salvar"
+            x-data="{
+                search: '',
+                texts: @js($projectTexts),
+                get term() {
+                    return this.search.trim().toLowerCase();
+                },
+                matches(text) {
+                    return this.term === '' || text.toLowerCase().includes(this.term);
+                },
+                get hasResults() {
+                    return this.term === '' || this.texts.some((text) => text.toLowerCase().includes(this.term));
+                },
+            }"
         >
             @csrf
             @method('PUT')
@@ -41,13 +68,30 @@
                 <p class="px-5 pt-4 text-xs text-red-600 dark:text-red-400" data-modal-error>{{ $message }}</p>
             @enderror
 
+            <div class="shrink-0 border-b border-gray-100 px-5 py-3 dark:border-gray-800">
+                <div class="relative">
+                    <x-icon name="magnifying-glass" class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400 dark:text-gray-500" />
+                    <input
+                        type="text"
+                        x-model="search"
+                        data-modal-search
+                        placeholder="Buscar por nome ou código..."
+                        autocomplete="off"
+                        class="block w-full rounded-xl border border-gray-300 py-2 pl-9 pr-3 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
+                    >
+                </div>
+            </div>
+
             <div class="min-h-0 flex-1 overflow-y-auto p-5">
                 @if ($projectOptions->isEmpty())
                     <p class="py-8 text-center text-sm text-gray-500 dark:text-gray-400">Nenhum projeto disponível.</p>
                 @else
                     <div class="divide-y divide-gray-100 dark:divide-gray-800">
                         @foreach ($projectOptions as $project)
-                            <label class="flex cursor-pointer items-center gap-3 py-2.5">
+                            <label
+                                x-show="matches(@js(trim($project->name.' '.$project->code)))"
+                                class="flex cursor-pointer items-center gap-3 py-2.5"
+                            >
                                 <input
                                     type="checkbox"
                                     name="projects[]"
@@ -62,6 +106,8 @@
                             </label>
                         @endforeach
                     </div>
+
+                    <p x-show="! hasResults" x-cloak class="py-8 text-center text-sm text-gray-500 dark:text-gray-400">Nenhum projeto encontrado.</p>
                 @endif
             </div>
 
@@ -112,6 +158,19 @@
             data-confirm="Ordens de serviço desmarcadas serão excluídas. Deseja salvar os vínculos?"
             data-confirm-title="Confirmar ordens de serviço da ERB"
             data-confirm-label="Salvar"
+            x-data="{
+                search: '',
+                texts: @js($workOrderTexts),
+                get term() {
+                    return this.search.trim().toLowerCase();
+                },
+                matches(text) {
+                    return this.term === '' || text.toLowerCase().includes(this.term);
+                },
+                get hasResults() {
+                    return this.term === '' || this.texts.some((text) => text.toLowerCase().includes(this.term));
+                },
+            }"
         >
             @csrf
             @method('PUT')
@@ -121,13 +180,30 @@
                 <p class="px-5 pt-4 text-xs text-red-600 dark:text-red-400" data-modal-error>{{ $message }}</p>
             @enderror
 
+            <div class="shrink-0 border-b border-gray-100 px-5 py-3 dark:border-gray-800">
+                <div class="relative">
+                    <x-icon name="magnifying-glass" class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400 dark:text-gray-500" />
+                    <input
+                        type="text"
+                        x-model="search"
+                        data-modal-search
+                        placeholder="Buscar por número..."
+                        autocomplete="off"
+                        class="block w-full rounded-xl border border-gray-300 py-2 pl-9 pr-3 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
+                    >
+                </div>
+            </div>
+
             <div class="min-h-0 flex-1 overflow-y-auto p-5">
                 @if ($workOrderOptions->isEmpty())
                     <p class="py-8 text-center text-sm text-gray-500 dark:text-gray-400">Nenhuma ordem de serviço disponível.</p>
                 @else
                     <div class="divide-y divide-gray-100 dark:divide-gray-800">
                         @foreach ($workOrderOptions as $workOrder)
-                            <label class="flex cursor-pointer items-center gap-3 py-2.5">
+                            <label
+                                x-show="matches(@js((string) $workOrder->number))"
+                                class="flex cursor-pointer items-center gap-3 py-2.5"
+                            >
                                 <input
                                     type="checkbox"
                                     name="work_orders[]"
@@ -139,6 +215,8 @@
                             </label>
                         @endforeach
                     </div>
+
+                    <p x-show="! hasResults" x-cloak class="py-8 text-center text-sm text-gray-500 dark:text-gray-400">Nenhuma ordem de serviço encontrada.</p>
                 @endif
             </div>
 
@@ -189,6 +267,19 @@
             data-confirm="Radio links marcados como &quot;Não vincular&quot; serão excluídos. Deseja salvar os vínculos?"
             data-confirm-title="Confirmar radio links da ERB"
             data-confirm-label="Salvar"
+            x-data="{
+                search: '',
+                texts: @js($radioLinkTexts),
+                get term() {
+                    return this.search.trim().toLowerCase();
+                },
+                matches(text) {
+                    return this.term === '' || text.toLowerCase().includes(this.term);
+                },
+                get hasResults() {
+                    return this.term === '' || this.texts.some((text) => text.toLowerCase().includes(this.term));
+                },
+            }"
         >
             @csrf
             @method('PUT')
@@ -197,6 +288,20 @@
             @error('radio_links')
                 <p class="px-5 pt-4 text-xs text-red-600 dark:text-red-400" data-modal-error>{{ $message }}</p>
             @enderror
+
+            <div class="shrink-0 border-b border-gray-100 px-5 py-3 dark:border-gray-800">
+                <div class="relative">
+                    <x-icon name="magnifying-glass" class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400 dark:text-gray-500" />
+                    <input
+                        type="text"
+                        x-model="search"
+                        data-modal-search
+                        placeholder="Buscar por código ou ERB..."
+                        autocomplete="off"
+                        class="block w-full rounded-xl border border-gray-300 py-2 pl-9 pr-3 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
+                    >
+                </div>
+            </div>
 
             <div class="min-h-0 flex-1 overflow-y-auto p-5">
                 @if ($radioLinkOptions->isEmpty())
@@ -210,7 +315,10 @@
                                     : ((int) $radioLink->erb_b_id === (int) $erb->getKey() ? 'b' : '');
                             @endphp
 
-                            <div class="flex flex-wrap items-center justify-between gap-3 py-3">
+                            <div
+                                x-show="matches(@js(trim($radioLink->code.' '.($radioLink->erbA?->code ?? '').' '.($radioLink->erbB?->code ?? ''))))"
+                                class="flex flex-wrap items-center justify-between gap-3 py-3"
+                            >
                                 <div class="min-w-0">
                                     <p class="text-sm font-medium text-gray-900 dark:text-gray-100">{{ $radioLink->code }}</p>
                                     <p class="text-xs text-gray-500 dark:text-gray-400">
@@ -231,6 +339,8 @@
                             </div>
                         @endforeach
                     </div>
+
+                    <p x-show="! hasResults" x-cloak class="py-8 text-center text-sm text-gray-500 dark:text-gray-400">Nenhum radio link encontrado.</p>
                 @endif
             </div>
 
@@ -256,6 +366,11 @@
             const error = modal.querySelector('[data-modal-error]');
             if (error) {
                 error.scrollIntoView({ block: 'center' });
+            }
+
+            const search = modal.querySelector('[data-modal-search]');
+            if (search) {
+                search.focus();
             }
         };
 
@@ -291,5 +406,15 @@
         });
 
         document.querySelectorAll('[role="dialog"][data-open]').forEach(openModal);
+
+        const hash = window.location.hash.replace('#', '');
+
+        if (hash) {
+            const hashModal = document.querySelector('[role="dialog"][data-modal-hash="' + hash + '"]');
+
+            if (hashModal) {
+                openModal(hashModal);
+            }
+        }
     })();
 </script>

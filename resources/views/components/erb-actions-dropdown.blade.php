@@ -27,7 +27,7 @@
         </a>
 
         <a
-            href="{{ route('admin.erbs.edit', $erb) }}"
+            href="{{ route('admin.erbs.show', $erb).'#edit' }}"
             class="flex items-center gap-2 px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800"
             role="menuitem"
         >

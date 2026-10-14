@@ -351,7 +351,7 @@ it('updates the ERB details', function () {
     $user = User::factory()->create();
     $erb = Erb::factory()->create(['user_id' => $user->getKey(), 'code' => 'ERB-00042']);
 
-    $this->actingAs($user)->get("/admin/erbs/{$erb->getKey()}/edit")->assertOk();
+    $this->actingAs($user)->get("/admin/erbs/{$erb->getKey()}/edit")->assertRedirect(route('admin.erbs.show', $erb).'#edit');
 
     $this->actingAs($user)
         ->put("/admin/erbs/{$erb->getKey()}", [
@@ -440,10 +440,49 @@ it('shows the relation editors for projects, work orders and radio links', funct
         ->assertSee('data-modal-open="erb-projects-modal"', false)
         ->assertSee('data-modal-open="erb-work-orders-modal"', false)
         ->assertSee('data-modal-open="erb-radio-links-modal"', false)
+        ->assertSee('data-modal-search', false)
+        ->assertSee('x-model="search"', false)
         ->assertSee(route('admin.erbs.relations.projects', $erb), false)
         ->assertSee(route('admin.erbs.relations.work-orders', $erb), false)
         ->assertSee(route('admin.erbs.relations.radio-links', $erb), false)
-        ->assertSeeInOrder(['Observações', route('admin.erbs.edit', $erb)]);
+        ->assertSeeInOrder(['Observações', 'data-modal-open="erb-edit-modal"'], false);
+});
+
+it('renders the ERB edit form as a modal on the detail page', function () {
+    $user = User::factory()->create();
+    $erb = Erb::factory()->create(['user_id' => $user->getKey()]);
+
+    $this->actingAs($user)
+        ->get(route('admin.erbs.show', $erb))
+        ->assertOk()
+        ->assertSee('data-modal-open="erb-edit-modal"', false)
+        ->assertSee('id="erb-edit-modal"', false)
+        ->assertSee('data-modal-hash="edit"', false)
+        ->assertSee('data-wizard-steps', false)
+        ->assertSee('data-wizard-submit', false)
+        ->assertSee(route('admin.erbs.update', $erb), false);
+});
+
+it('redirects the ERB edit route to the detail page modal', function () {
+    $user = User::factory()->create();
+    $erb = Erb::factory()->create(['user_id' => $user->getKey()]);
+
+    $this->actingAs($user)
+        ->get(route('admin.erbs.edit', $erb))
+        ->assertRedirect(route('admin.erbs.show', $erb).'#edit');
+});
+
+it('reopens the edit ERB modal when validation fails', function () {
+    $user = User::factory()->create();
+    $erb = Erb::factory()->create(['user_id' => $user->getKey()]);
+
+    $this->actingAs($user)
+        ->from(route('admin.erbs.show', $erb))
+        ->followingRedirects()
+        ->put(route('admin.erbs.update', $erb), ['modal' => 'edit', 'state' => 'XX'])
+        ->assertOk()
+        ->assertSee('id="erb-edit-modal"', false)
+        ->assertSee('data-open', false);
 });
 
 it('links the selected projects to the ERB and deletes the unselected ones', function () {

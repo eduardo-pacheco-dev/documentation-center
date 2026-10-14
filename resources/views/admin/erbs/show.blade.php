@@ -51,13 +51,14 @@
                 Voltar
             </a>
 
-            <a
-                href="{{ route('admin.erbs.edit', $erb) }}"
+            <button
+                type="button"
+                data-modal-open="erb-edit-modal"
                 class="inline-flex items-center gap-1.5 rounded-2xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-500"
             >
                 <x-icon name="pencil-square" class="h-4 w-4" />
                 Editar
-            </a>
+            </button>
         </div>
     </div>
 
@@ -200,13 +201,14 @@
                     </span>
                     <h2 class="text-sm font-semibold text-gray-900 dark:text-gray-100">Observações</h2>
                 </div>
-                <a
-                    href="{{ route('admin.erbs.edit', $erb) }}"
+                <button
+                    type="button"
+                    data-modal-open="erb-edit-modal"
                     class="inline-flex items-center gap-1.5 rounded-xl border border-gray-200/70 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 shadow-sm transition hover:border-indigo-200 hover:text-indigo-600 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-200 dark:hover:border-indigo-500/40"
                 >
                     <x-icon name="pencil-square" class="h-3.5 w-3.5" />
                     Editar
-                </a>
+                </button>
             </div>
             <p class="mt-4 text-sm text-gray-700 dark:text-gray-300">
                 {{ $erb->notes ?? 'Nenhuma observação registrada.' }}
@@ -217,6 +219,9 @@
     @if ($erb->latitude !== null && $erb->longitude !== null)
         <style>
             #erb-map {
+                position: relative;
+                z-index: 0;
+                isolation: isolate;
                 height: 420px;
             }
 
@@ -554,6 +559,8 @@
             </div>
         @endif
     </div>
+
+    @include('admin.erbs.partials.edit-modal', ['erb' => $erb])
 
     @include('admin.erbs.partials.relations', [
         'erb' => $erb,
