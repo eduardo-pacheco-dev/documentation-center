@@ -475,12 +475,77 @@
         </div>
     @endcan
 
-    <div class="mt-4 rounded-xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-800 dark:bg-gray-900">
-        <h2 class="text-xs font-semibold uppercase text-gray-500 dark:text-gray-400">Observações</h2>
-        <p class="mt-3 text-sm text-gray-700 dark:text-gray-300">
-            {{ $workOrder->notes ?? 'Nenhuma observação registrada.' }}
-        </p>
-    </div>
+    @can('update', $workOrder)
+        <div
+            class="mt-4 rounded-xl border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900"
+            x-data="{ editing: @js($errors->has('notes')) }"
+        >
+            <div class="flex flex-wrap items-center justify-between gap-3 border-b border-gray-100 px-5 py-3 dark:border-gray-800">
+                <h2 class="text-xs font-semibold uppercase text-gray-500 dark:text-gray-400">Observações</h2>
+                <button
+                    type="button"
+                    x-show="! editing"
+                    @click="editing = true"
+                    class="inline-flex items-center gap-1.5 rounded-md border border-gray-300 dark:border-gray-700 dark:bg-gray-900 px-3 py-1.5 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800"
+                >
+                    <x-icon name="pencil-square" class="h-4 w-4" />
+                    Editar
+                </button>
+            </div>
+
+            <div x-show="! editing" class="p-5">
+                <p class="text-sm text-gray-700 dark:text-gray-300">
+                    {{ $workOrder->notes ?? 'Nenhuma observação registrada.' }}
+                </p>
+            </div>
+
+            <form
+                method="POST"
+                action="{{ route('admin.work-orders.notes.update', $workOrder) }}"
+                x-show="editing"
+                x-cloak
+                class="p-5"
+            >
+                @csrf
+                @method('PUT')
+
+                <label for="work-order-notes" class="sr-only">Observações</label>
+                <textarea
+                    name="notes"
+                    id="work-order-notes"
+                    rows="4"
+                    class="block w-full rounded-md border border-gray-300 dark:border-gray-700 dark:bg-gray-900 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500"
+                >{{ old('notes', $workOrder->notes) }}</textarea>
+                @error('notes')
+                    <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p>
+                @enderror
+
+                <div class="mt-3 flex justify-end gap-2">
+                    <button
+                        type="button"
+                        @click="editing = false"
+                        class="rounded-md border border-gray-300 dark:border-gray-700 dark:bg-gray-900 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800"
+                    >
+                        Cancelar
+                    </button>
+                    <button
+                        type="submit"
+                        class="inline-flex items-center gap-1.5 rounded-md bg-gray-900 dark:bg-white px-4 py-2 text-sm font-medium text-white dark:text-gray-900 hover:bg-gray-700 dark:hover:bg-gray-200"
+                    >
+                        <x-icon name="check" class="h-4 w-4" />
+                        Salvar
+                    </button>
+                </div>
+            </form>
+        </div>
+    @else
+        <div class="mt-4 rounded-xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-800 dark:bg-gray-900">
+            <h2 class="text-xs font-semibold uppercase text-gray-500 dark:text-gray-400">Observações</h2>
+            <p class="mt-3 text-sm text-gray-700 dark:text-gray-300">
+                {{ $workOrder->notes ?? 'Nenhuma observação registrada.' }}
+            </p>
+        </div>
+    @endcan
 
     <div class="mt-4 rounded-xl border border-gray-200 bg-white px-5 py-4 text-xs text-gray-500 shadow-sm dark:border-gray-800 dark:bg-gray-900 dark:text-gray-400">
         Criado em {{ $workOrder->created_at->format('d/m/Y H:i') }}

@@ -6,6 +6,7 @@ use App\Enums\WorkOrderStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\StoreWorkOrderRequest;
 use App\Http\Requests\Admin\UpdateWorkOrderItemsRequest;
+use App\Http\Requests\Admin\UpdateWorkOrderNotesRequest;
 use App\Http\Requests\Admin\UpdateWorkOrderRequest;
 use App\Models\CatalogItem;
 use App\Models\User;
@@ -195,6 +196,18 @@ class WorkOrderController extends Controller
         return redirect()
             ->route('admin.work-orders.show', $workOrder)
             ->with('status', 'Itens da ordem de serviço atualizados com sucesso.');
+    }
+
+    /**
+     * Update only the notes of the work order.
+     */
+    public function updateNotes(UpdateWorkOrderNotesRequest $request, WorkOrder $workOrder): RedirectResponse
+    {
+        $workOrder->update(['notes' => $request->validated('notes')]);
+
+        return redirect()
+            ->route('admin.work-orders.show', $workOrder)
+            ->with('status', 'Observações atualizadas com sucesso.');
     }
 
     /**

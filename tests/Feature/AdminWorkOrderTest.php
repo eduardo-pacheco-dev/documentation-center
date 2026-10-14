@@ -287,6 +287,27 @@ it('forbids a stranger from updating the work order items inline', function () {
         ->assertForbidden();
 });
 
+it('updates the work order notes inline from the details page', function () {
+    $user = User::factory()->create();
+    $workOrder = WorkOrder::factory()->create(['user_id' => $user->getKey()]);
+
+    $this->actingAs($user)
+        ->put(route('admin.work-orders.notes.update', $workOrder), ['notes' => 'Acesso liberado pela portaria.'])
+        ->assertRedirect(route('admin.work-orders.show', $workOrder))
+        ->assertSessionHas('status');
+
+    expect($workOrder->refresh()->notes)->toBe('Acesso liberado pela portaria.');
+});
+
+it('forbids a stranger from updating the work order notes inline', function () {
+    $stranger = User::factory()->create();
+    $workOrder = WorkOrder::factory()->create();
+
+    $this->actingAs($stranger)
+        ->put(route('admin.work-orders.notes.update', $workOrder), ['notes' => 'Tentativa'])
+        ->assertForbidden();
+});
+
 it('soft deletes the work order', function () {
     $user = User::factory()->create();
     $client = ownedClient($user);
