@@ -351,7 +351,6 @@ it('links an ERB to the work orders the user owns', function () {
     $this->actingAs($owner)->post('/admin/work-orders', [
         'client_id' => $client->getKey(),
         'erb_id' => $erb->getKey(),
-        'title' => 'Manutenção na torre',
         'priority' => 'normal',
         'status' => 'open',
         'opened_at' => '2026-01-10',
@@ -371,7 +370,6 @@ it('rejects an ERB that belongs to another user on a work order', function () {
     $this->actingAs($owner)->post('/admin/work-orders', [
         'client_id' => $client->getKey(),
         'erb_id' => $foreignErb->getKey(),
-        'title' => 'Manutenção na torre',
         'priority' => 'normal',
         'opened_at' => '2026-01-10',
         'items' => [

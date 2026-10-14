@@ -64,11 +64,6 @@ class WorkOrderSeeder extends Seeder
             'client_id' => $clients->get($position % $clients->count())->getKey(),
             'erb_id' => $erbs->isEmpty() ? null : $erbs->get($position % $erbs->count())->getKey(),
             'number' => 'OS-'.str_pad((string) $index, 4, '0', STR_PAD_LEFT),
-            'title' => fake()->randomElement([
-                'Manutenção elétrica', 'Instalação hidráulica', 'Reforma de escritório',
-                'Pintura predial', 'Inspeção técnica', 'Montagem de mobiliário',
-                'Consultoria de conformidade', 'Terreno e acabamento',
-            ]),
             'description' => ucfirst(fake('pt_BR')->sentence(14)),
             'priority' => WorkOrderPriority::cases()[$position % count(WorkOrderPriority::cases())],
             'status' => $status,

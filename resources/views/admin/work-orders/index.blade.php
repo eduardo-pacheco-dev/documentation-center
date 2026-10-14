@@ -111,7 +111,7 @@
                     <thead class="rounded-t-xl bg-gray-50 text-left text-xs uppercase text-gray-500 dark:bg-gray-800 dark:text-gray-400">
                         <tr>
                             <x-sort-header column="number" label="Número" icon="clipboard-document-list" class="px-5 py-3" />
-                            <x-sort-header column="title" label="Título / Cliente" class="px-5 py-3" />
+                            <th class="px-5 py-3 font-medium">Cliente</th>
                             <x-sort-header column="priority" label="Prioridade" class="px-5 py-3" />
                             <x-sort-header column="status" label="Status" icon="flag" class="px-5 py-3" />
                             <x-sort-header column="opened_at" label="Abertura" class="px-5 py-3" />
@@ -133,8 +133,10 @@
                                     </a>
                                 </td>
                                 <td class="px-5 py-3">
-                                    <p class="max-w-[18rem] truncate font-medium text-gray-900 dark:text-gray-100">{{ $workOrder->title }}</p>
-                                    <p class="truncate text-xs text-gray-500 dark:text-gray-400">{{ $workOrder->client->name }}</p>
+                                    <span class="flex items-center gap-1.5 text-gray-700 dark:text-gray-300">
+                                        <x-icon name="building-office" class="h-3.5 w-3.5 text-gray-400 dark:text-gray-500" />
+                                        {{ $workOrder->client->name }}
+                                    </span>
                                 </td>
                                 <td class="whitespace-nowrap px-5 py-3">
                                     <x-work-order-priority :work-order="$workOrder" />
@@ -202,7 +204,6 @@
                             <a href="{{ route('admin.work-orders.show', $workOrder) }}" class="block truncate text-sm font-semibold text-gray-900 hover:text-indigo-600 dark:text-gray-100 dark:hover:text-indigo-400">
                                 {{ $workOrder->number }}
                             </a>
-                            <p class="truncate text-sm text-gray-700 dark:text-gray-300">{{ $workOrder->title }}</p>
                         </div>
 
                         <x-work-order-actions-dropdown :work-order="$workOrder" />
@@ -270,7 +271,7 @@
 
                     <div class="min-w-0 flex-1">
                         <a href="{{ route('admin.work-orders.show', $workOrder) }}" class="truncate text-sm font-medium text-gray-900 hover:text-indigo-600 dark:text-gray-100 dark:hover:text-indigo-400">
-                            {{ $workOrder->number }} &middot; {{ $workOrder->title }}
+                            {{ $workOrder->number }}
                         </a>
                         <p class="truncate text-xs text-gray-500 dark:text-gray-400">{{ $workOrder->client->name }}</p>
                     </div>
@@ -447,7 +448,7 @@
             @endif
 
             <div class="mt-4 rounded-md border border-gray-200 bg-gray-50 p-3 text-sm text-gray-600 dark:border-gray-800 dark:bg-gray-800/50 dark:text-gray-300">
-                <p>Colunas: <span class="font-medium">Cliente, Título, Descrição, Prioridade, Status, Abertura, Previsão, Observações</span>.</p>
+                <p>Colunas: <span class="font-medium">Cliente, Descrição, Prioridade, Status, Abertura, Previsão, Observações</span>.</p>
                 <p class="mt-1">O cliente precisa já existir. Prioridade: baixa, normal, alta ou urgente. Status: aberta, em andamento, concluída ou cancelada. Datas em dd/mm/aaaa.</p>
                 <a
                     href="{{ route('admin.work-orders.import.template') }}"

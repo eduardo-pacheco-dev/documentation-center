@@ -300,19 +300,20 @@ test('the dashboard only surfaces the signed in user work orders', function () {
     $user = User::factory()->create();
 
     WorkOrder::factory()->for($user)->create([
-        'title' => 'Troca de bomba hidráulica',
+        'number' => 'OS-8001',
         'status' => WorkOrderStatus::Open,
     ]);
-    WorkOrder::factory()->for($user)->completed()->create();
+    WorkOrder::factory()->for($user)->completed()->create(['number' => 'OS-8002']);
 
     WorkOrder::factory()->create([
-        'title' => 'Ordem de outro usuário',
+        'number' => 'OS-8003',
         'status' => WorkOrderStatus::Open,
     ]);
 
     $this->actingAs($user)
         ->get('/admin')
         ->assertOk()
-        ->assertSee('Troca de bomba hidráulica')
-        ->assertDontSee('Ordem de outro usuário');
+        ->assertSee('OS-8001')
+        ->assertSee('OS-8002')
+        ->assertDontSee('OS-8003');
 });

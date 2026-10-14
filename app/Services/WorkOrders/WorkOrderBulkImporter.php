@@ -39,7 +39,6 @@ class WorkOrderBulkImporter
 
             $validator = Validator::make($row, [
                 'cliente' => ['required', 'string', 'max:255'],
-                'titulo' => ['required', 'string', 'max:255'],
                 'descricao' => ['nullable', 'string', 'max:2000'],
                 'prioridade' => ['nullable', 'string'],
                 'status' => ['nullable', 'string'],
@@ -98,7 +97,6 @@ class WorkOrderBulkImporter
 
             $prepared[] = [
                 'client_id' => $clientId,
-                'title' => $data['titulo'],
                 'description' => $data['descricao'] ?? null,
                 'priority' => $priority->value,
                 'status' => $status->value,

@@ -14,7 +14,7 @@ class WorkOrdersTemplateExport implements FromArray, WithHeadings
      */
     public function headings(): array
     {
-        return ['Cliente', 'Título', 'Descrição', 'Prioridade', 'Status', 'Abertura', 'Previsão', 'Observações'];
+        return ['Cliente', 'Descrição', 'Prioridade', 'Status', 'Abertura', 'Previsão', 'Observações'];
     }
 
     /**
@@ -27,7 +27,6 @@ class WorkOrdersTemplateExport implements FromArray, WithHeadings
         return [
             [
                 'Construtora Exemplo',
-                'Manutenção elétrica do galpão',
                 'Revisão completa do quadro de distribuição.',
                 'alta',
                 'aberta',

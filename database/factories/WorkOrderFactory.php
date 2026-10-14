@@ -25,7 +25,6 @@ class WorkOrderFactory extends Factory
             'user_id' => User::factory(),
             'client_id' => Client::factory(),
             'number' => 'OS-'.fake()->unique()->numerify('#####'),
-            'title' => ucfirst(fake()->words(4, true)),
             'description' => fake()->sentence(12),
             'priority' => fake()->randomElement(WorkOrderPriority::cases()),
             'status' => WorkOrderStatus::Open,

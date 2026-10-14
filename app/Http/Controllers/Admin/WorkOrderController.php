@@ -33,7 +33,7 @@ class WorkOrderController extends Controller
             ? $request->query('status')
             : null;
 
-        $sortableColumns = ['number', 'title', 'priority', 'status', 'opened_at', 'due_at', 'total', 'updated_at'];
+        $sortableColumns = ['number', 'priority', 'status', 'opened_at', 'due_at', 'total', 'updated_at'];
 
         if (in_array($request->query('sort'), $sortableColumns, true)) {
             $sort = $request->query('sort');
@@ -55,7 +55,7 @@ class WorkOrderController extends Controller
             ->withCount('items')
             ->when($search !== '', fn (Builder $query) => $query->where(fn (Builder $inner) => $inner
                 ->where('number', 'like', "%{$search}%")
-                ->orWhere('title', 'like', "%{$search}%")
+                ->orWhere('description', 'like', "%{$search}%")
                 ->orWhereHas('client', fn (Builder $client) => $client->where('name', 'like', "%{$search}%"))))
             ->when($status !== null, fn (Builder $query) => $query->where('status', $status))
             ->orderBy($sort, $direction)

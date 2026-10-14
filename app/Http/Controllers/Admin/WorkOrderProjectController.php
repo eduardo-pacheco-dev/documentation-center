@@ -32,7 +32,7 @@ class WorkOrderProjectController extends Controller
 
         $project = $request->user()->projects()->create([
             'work_order_id' => $workOrder->getKey(),
-            'name' => $workOrder->title,
+            'name' => $workOrder->number,
             'status' => ProjectStatus::Active,
             'start_date' => $workOrder->opened_at,
             'finish_date' => $workOrder->due_at,

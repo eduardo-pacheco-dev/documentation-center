@@ -10,7 +10,6 @@
                 <x-icon name="clipboard-document-list" class="h-5 w-5 text-gray-400 dark:text-gray-500" />
                 {{ $workOrder->number }}
             </h1>
-            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">{{ $workOrder->title }}</p>
             <div class="mt-2 flex flex-wrap items-center gap-3">
                 <x-work-order-status :work-order="$workOrder" />
                 <x-work-order-priority :work-order="$workOrder" />

@@ -17,7 +17,7 @@ uses(RefreshDatabase::class);
  */
 function workOrderWorkbook(array $rows): UploadedFile
 {
-    $headings = ['Cliente', 'Título', 'Descrição', 'Prioridade', 'Status', 'Abertura', 'Previsão', 'Observações'];
+    $headings = ['Cliente', 'Descrição', 'Prioridade', 'Status', 'Abertura', 'Previsão', 'Observações'];
 
     $spreadsheet = new Spreadsheet;
     $spreadsheet->getActiveSheet()->fromArray([$headings, ...$rows]);
@@ -40,8 +40,8 @@ it('imports work orders from an excel spreadsheet', function () {
     Client::factory()->create(['user_id' => $user->getKey(), 'name' => 'Construtora Alfa']);
 
     $file = workOrderWorkbook([
-        ['Construtora Alfa', 'Manutenção elétrica', 'Revisão do quadro', 'alta', 'aberta', '10/01/2026', '24/01/2026', 'Portaria liberada'],
-        ['Construtora Alfa', 'Troca de luminárias', '', 'urgente', 'em andamento', '12/01/2026', '', ''],
+        ['Construtora Alfa', 'Revisão do quadro', 'alta', 'aberta', '10/01/2026', '24/01/2026', 'Portaria liberada'],
+        ['Construtora Alfa', '', 'urgente', 'em andamento', '12/01/2026', '', ''],
     ]);
 
     $response = $this->actingAs($user)->post(route('admin.work-orders.import'), ['file' => $file]);
@@ -55,7 +55,7 @@ it('imports work orders from an excel spreadsheet', function () {
         ->and($workOrders[0]->number)->toBe('OS-0001')
         ->and($workOrders[1]->number)->toBe('OS-0002')
         ->and($workOrders[0]->user_id)->toBe($user->getKey())
-        ->and($workOrders[0]->title)->toBe('Manutenção elétrica')
+        ->and($workOrders[0]->description)->toBe('Revisão do quadro')
         ->and($workOrders[0]->priority->value)->toBe('high')
         ->and($workOrders[0]->status->value)->toBe('open')
         ->and($workOrders[0]->opened_at->toDateString())->toBe('2026-01-10')
@@ -71,8 +71,8 @@ it('creates no work order when any row is invalid', function () {
     Client::factory()->create(['user_id' => $user->getKey(), 'name' => 'Construtora Alfa']);
 
     $file = workOrderWorkbook([
-        ['Construtora Alfa', 'OS válida', '', 'normal', 'aberta', '10/01/2026', '', ''],
-        ['Cliente Inexistente', 'OS inválida', '', 'normal', 'aberta', '10/01/2026', '', ''],
+        ['Construtora Alfa', '', 'normal', 'aberta', '10/01/2026', '', ''],
+        ['Cliente Inexistente', '', 'normal', 'aberta', '10/01/2026', '', ''],
     ]);
 
     $this->actingAs($user)

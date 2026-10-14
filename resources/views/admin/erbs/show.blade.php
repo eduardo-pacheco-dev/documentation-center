@@ -150,7 +150,6 @@
                     <thead class="bg-gray-50 text-left text-xs uppercase text-gray-500 dark:bg-gray-800 dark:text-gray-400">
                         <tr>
                             <th class="px-5 py-3 font-medium">Número</th>
-                            <th class="px-5 py-3 font-medium">Título</th>
                             <th class="px-5 py-3 font-medium">Cliente</th>
                             <th class="px-5 py-3 font-medium">Status</th>
                         </tr>
@@ -163,7 +162,6 @@
                                         {{ $workOrder->number }}
                                     </a>
                                 </td>
-                                <td class="px-5 py-3 text-gray-500 dark:text-gray-400">{{ $workOrder->title }}</td>
                                 <td class="px-5 py-3 text-gray-500 dark:text-gray-400">{{ $workOrder->client?->name ?? '—' }}</td>
                                 <td class="px-5 py-3"><x-work-order-status :work-order="$workOrder" /></td>
                             </tr>

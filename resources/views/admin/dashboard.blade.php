@@ -208,7 +208,7 @@
                         <x-icon name="clipboard-document-list" class="h-4 w-4" />
                     </span>
                     <div class="min-w-0 flex-1">
-                        <p class="truncate text-sm font-medium text-gray-900 dark:text-gray-100">{{ $workOrder->number }} · {{ $workOrder->title }}</p>
+                        <p class="truncate text-sm font-medium text-gray-900 dark:text-gray-100">{{ $workOrder->number }}</p>
                         <p class="truncate text-xs text-gray-500 dark:text-gray-400">{{ $workOrder->client?->name ?? 'Sem cliente' }}</p>
                     </div>
                     <x-work-order-status :work-order="$workOrder" />

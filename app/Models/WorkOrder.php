@@ -19,7 +19,6 @@ use Illuminate\Database\Eloquent\SoftDeletes;
     'client_id',
     'erb_id',
     'number',
-    'title',
     'description',
     'priority',
     'status',

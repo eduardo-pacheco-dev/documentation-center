@@ -81,21 +81,6 @@
         @enderror
         <p class="mt-1 text-xs text-gray-400 dark:text-gray-500">Opcional. Deixe em branco se a OS não estiver vinculada a uma ERB.</p>
     </div>
-
-    <div class="sm:col-span-2">
-        <label for="title" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Título</label>        <input
-            type="text"
-            name="title"
-            id="title"
-            value="{{ old('title', $workOrder?->title) }}"
-            required
-            placeholder="Ex.: Manutenção elétrica do galpão"
-            class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-700 dark:bg-gray-900 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500"
-        >
-        @error('title')
-            <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p>
-        @enderror
-    </div>
     </div>
 
     <div data-wizard-panel data-wizard-title="Planejamento" class="{{ $panelClass(1) }}">

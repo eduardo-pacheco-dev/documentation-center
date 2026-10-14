@@ -24,14 +24,14 @@ it('lists only the work orders the user owns', function () {
     $owner = User::factory()->create();
     $client = ownedClient($owner);
 
-    WorkOrder::factory()->create(['user_id' => $owner->getKey(), 'client_id' => $client->getKey(), 'title' => 'OS do Titular']);
-    WorkOrder::factory()->create(['title' => 'OS Alheia']);
+    WorkOrder::factory()->create(['user_id' => $owner->getKey(), 'client_id' => $client->getKey(), 'number' => 'OS-9001']);
+    WorkOrder::factory()->create(['number' => 'OS-9002']);
 
     $this->actingAs($owner)
         ->get('/admin/work-orders')
         ->assertOk()
-        ->assertSee('OS do Titular')
-        ->assertDontSee('OS Alheia');
+        ->assertSee('OS-9001')
+        ->assertDontSee('OS-9002');
 });
 
 it('filters the work order list by search term and status', function () {
@@ -41,35 +41,35 @@ it('filters the work order list by search term and status', function () {
     WorkOrder::factory()->inProgress()->create([
         'user_id' => $owner->getKey(),
         'client_id' => $client->getKey(),
-        'title' => 'Alpha Manutenção',
+        'number' => 'OS-5001',
     ]);
     WorkOrder::factory()->cancelled()->create([
         'user_id' => $owner->getKey(),
         'client_id' => $client->getKey(),
-        'title' => 'Beta Reforma',
+        'number' => 'OS-5002',
     ]);
 
     $this->actingAs($owner)
-        ->get('/admin/work-orders?search=Alpha')
+        ->get('/admin/work-orders?search=OS-5001')
         ->assertOk()
-        ->assertSee('Alpha Manutenção')
-        ->assertDontSee('Beta Reforma');
+        ->assertSee('OS-5001')
+        ->assertDontSee('OS-5002');
 
     $this->actingAs($owner)
         ->get('/admin/work-orders?status=in_progress')
         ->assertOk()
-        ->assertSee('Alpha Manutenção')
-        ->assertDontSee('Beta Reforma');
+        ->assertSee('OS-5001')
+        ->assertDontSee('OS-5002');
 });
 
 it('renders the work order list in the alternate view modes', function () {
     $owner = User::factory()->create();
     $client = ownedClient($owner);
 
-    WorkOrder::factory()->create(['user_id' => $owner->getKey(), 'client_id' => $client->getKey(), 'title' => 'Alpha Manutenção']);
+    WorkOrder::factory()->create(['user_id' => $owner->getKey(), 'client_id' => $client->getKey(), 'number' => 'OS-7000']);
 
-    $this->actingAs($owner)->get('/admin/work-orders?view=cards')->assertOk()->assertSee('Alpha Manutenção');
-    $this->actingAs($owner)->get('/admin/work-orders?view=compact')->assertOk()->assertSee('Alpha Manutenção');
+    $this->actingAs($owner)->get('/admin/work-orders?view=cards')->assertOk()->assertSee('OS-7000');
+    $this->actingAs($owner)->get('/admin/work-orders?view=compact')->assertOk()->assertSee('OS-7000');
 });
 
 it('renders the create form inside a modal on the work orders list', function () {
@@ -93,7 +93,6 @@ it('creates a work order with items and computes the totals', function () {
 
     $response = $this->actingAs($user)->post('/admin/work-orders', [
         'client_id' => $client->getKey(),
-        'title' => 'Manutenção elétrica do galpão',
         'description' => 'Revisão completa do quadro de distribuição.',
         'priority' => 'high',
         'status' => 'open',
@@ -144,7 +143,6 @@ it('marks the completion date when the status is completed', function () {
 
     $this->actingAs($user)->post('/admin/work-orders', [
         'client_id' => $client->getKey(),
-        'title' => 'OS concluída',
         'priority' => 'normal',
         'status' => 'completed',
         'opened_at' => '2026-01-01',
@@ -156,12 +154,12 @@ it('marks the completion date when the status is completed', function () {
     expect(WorkOrder::query()->firstOrFail()->completed_at)->not->toBeNull();
 });
 
-it('rejects a work order without a client, title or items', function () {
+it('rejects a work order without a client or items', function () {
     $user = User::factory()->create();
 
     $this->actingAs($user)
         ->post('/admin/work-orders', [])
-        ->assertSessionHasErrors(['client_id', 'title', 'items']);
+        ->assertSessionHasErrors(['client_id', 'items']);
 
     expect(WorkOrder::query()->count())->toBe(0);
 });
@@ -174,7 +172,6 @@ it('rejects a client that belongs to another user', function () {
     $this->actingAs($user)
         ->post('/admin/work-orders', [
             'client_id' => $foreignClient->getKey(),
-            'title' => 'OS inválida',
             'priority' => 'normal',
             'opened_at' => '2026-01-01',
             'items' => [
@@ -191,7 +188,6 @@ it('rejects an item without a description or a valid quantity', function () {
     $this->actingAs($user)
         ->post('/admin/work-orders', [
             'client_id' => $client->getKey(),
-            'title' => 'OS com item inválido',
             'priority' => 'normal',
             'opened_at' => '2026-01-01',
             'items' => [
@@ -224,7 +220,6 @@ it('updates the work order, replaces the items and clears the completion date', 
     $this->actingAs($user)
         ->put("/admin/work-orders/{$workOrder->getKey()}", [
             'client_id' => $client->getKey(),
-            'title' => 'Título atualizado',
             'priority' => 'urgent',
             'status' => 'open',
             'opened_at' => '2026-02-01',
@@ -236,8 +231,7 @@ it('updates the work order, replaces the items and clears the completion date', 
 
     $workOrder->refresh();
 
-    expect($workOrder->title)->toBe('Título atualizado')
-        ->and($workOrder->priority->value)->toBe('urgent')
+    expect($workOrder->priority->value)->toBe('urgent')
         ->and($workOrder->completed_at)->toBeNull()
         ->and((float) $workOrder->total)->toBe(100.0)
         ->and($workOrder->items)->toHaveCount(1)
@@ -255,5 +249,5 @@ it('soft deletes the work order', function () {
 
     expect($workOrder->refresh()->trashed())->toBeTrue();
 
-    $this->actingAs($user)->get('/admin/work-orders')->assertOk()->assertDontSee($workOrder->title);
+    $this->actingAs($user)->get('/admin/work-orders')->assertOk()->assertDontSee($workOrder->number);
 });

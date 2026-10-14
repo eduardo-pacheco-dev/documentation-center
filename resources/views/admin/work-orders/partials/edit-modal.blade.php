@@ -20,7 +20,7 @@
                     <x-icon name="pencil-square" class="h-5 w-5 text-gray-400 dark:text-gray-500" />
                     Editar ordem de serviço
                 </h2>
-                <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">{{ $workOrder->number }} &middot; {{ $workOrder->title }}</p>
+                <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">{{ $workOrder->number }}</p>
             </div>
 
             <button

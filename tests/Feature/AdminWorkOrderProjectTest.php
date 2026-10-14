@@ -11,7 +11,6 @@ it('creates a project from the work order with prefilled data', function () {
     $user = User::factory()->create();
     $workOrder = WorkOrder::factory()->create([
         'user_id' => $user->getKey(),
-        'title' => 'Manutenção elétrica do galpão',
         'opened_at' => '2026-01-10',
         'due_at' => '2026-01-24',
         'total' => 1250.50,
@@ -25,7 +24,7 @@ it('creates a project from the work order with prefilled data', function () {
 
     expect($project->user_id)->toBe($user->getKey())
         ->and($project->work_order_id)->toBe($workOrder->getKey())
-        ->and($project->name)->toBe('Manutenção elétrica do galpão')
+        ->and($project->name)->toBe($workOrder->number)
         ->and((float) $project->budget)->toBe(1250.50)
         ->and($project->start_date->toDateString())->toBe('2026-01-10')
         ->and($project->finish_date->toDateString())->toBe('2026-01-24')
