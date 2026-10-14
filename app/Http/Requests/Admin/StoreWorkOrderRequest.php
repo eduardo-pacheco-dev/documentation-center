@@ -55,14 +55,11 @@ class StoreWorkOrderRequest extends FormRequest
             'notes' => ['nullable', 'string', 'max:2000'],
             'items' => ['required', 'array', 'min:1'],
             'items.*.catalog_item_id' => [
-                'nullable',
+                'required',
                 'integer',
                 Rule::exists('catalog_items', 'id')->where(fn ($query) => $query->where('user_id', $userId)),
             ],
-            'items.*.description' => ['required', 'string', 'max:255'],
-            'items.*.unit' => ['nullable', 'string', 'max:20'],
             'items.*.quantity' => ['required', 'numeric', 'min:0.01', 'max:99999999.99'],
-            'items.*.unit_price' => ['required', 'numeric', 'min:0', 'max:99999999.99'],
         ];
     }
 }

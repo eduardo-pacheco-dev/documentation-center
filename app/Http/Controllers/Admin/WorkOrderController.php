@@ -107,7 +107,7 @@ class WorkOrderController extends Controller
             $attributes['number'] = WorkOrder::generateNumber($request->user());
 
             $workOrder = $request->user()->workOrders()->create($attributes);
-            $workOrder->items()->createMany($this->normalizeItems($items));
+            $workOrder->items()->createMany($this->normalizeItems($request->user(), $items));
             $workOrder->update(['total' => $workOrder->items()->sum('total')]);
 
             return $workOrder;
@@ -165,11 +165,11 @@ class WorkOrderController extends Controller
         $attributes['status'] = $status->value;
         $attributes['completed_at'] = $this->resolveCompletedAt($status, $workOrder->completed_at);
 
-        DB::transaction(function () use ($workOrder, $attributes, $items): void {
+        DB::transaction(function () use ($request, $workOrder, $attributes, $items): void {
             $workOrder->update($attributes);
 
             $workOrder->items()->delete();
-            $workOrder->items()->createMany($this->normalizeItems($items));
+            $workOrder->items()->createMany($this->normalizeItems($request->user(), $items));
             $workOrder->update(['total' => $workOrder->items()->sum('total')]);
         });
 
@@ -230,16 +230,19 @@ class WorkOrderController extends Controller
      * @param  array<int, array<string, mixed>>  $items
      * @return array<int, array<string, mixed>>
      */
-    private function normalizeItems(array $items): array
+    private function normalizeItems(User $user, array $items): array
     {
-        return array_map(function (array $item): array {
+        $catalog = $user->catalogItems()->get(['id', 'name', 'unit', 'price'])->keyBy('id');
+
+        return array_map(function (array $item) use ($catalog): array {
+            $catalogItem = $catalog->get($item['catalog_item_id']);
             $quantity = (float) $item['quantity'];
-            $unitPrice = (float) $item['unit_price'];
+            $unitPrice = (float) ($catalogItem?->price ?? 0);
 
             return [
-                'catalog_item_id' => $item['catalog_item_id'] ?? null,
-                'description' => $item['description'],
-                'unit' => $item['unit'] ?? null,
+                'catalog_item_id' => $catalogItem?->getKey(),
+                'description' => $catalogItem?->name ?? 'Item',
+                'unit' => $catalogItem?->unit,
                 'quantity' => $quantity,
                 'unit_price' => $unitPrice,
                 'total' => round($quantity * $unitPrice, 2),

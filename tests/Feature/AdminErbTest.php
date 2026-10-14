@@ -2,6 +2,7 @@
 
 use App\Enums\ErbOperator;
 use App\Enums\ErbTechnology;
+use App\Models\CatalogItem;
 use App\Models\Client;
 use App\Models\Erb;
 use App\Models\Project;
@@ -347,6 +348,7 @@ it('links an ERB to the work orders the user owns', function () {
     $owner = User::factory()->create();
     $client = Client::factory()->create(['user_id' => $owner->getKey()]);
     $erb = Erb::factory()->create(['user_id' => $owner->getKey()]);
+    $catalogItem = CatalogItem::factory()->create(['user_id' => $owner->getKey()]);
 
     $this->actingAs($owner)->post('/admin/work-orders', [
         'client_id' => $client->getKey(),
@@ -355,7 +357,7 @@ it('links an ERB to the work orders the user owns', function () {
         'status' => 'open',
         'opened_at' => '2026-01-10',
         'items' => [
-            ['description' => 'Mão de obra', 'unit' => 'h', 'quantity' => 1, 'unit_price' => 100],
+            ['catalog_item_id' => $catalogItem->getKey(), 'quantity' => 1],
         ],
     ])->assertRedirect();
 
@@ -366,6 +368,7 @@ it('rejects an ERB that belongs to another user on a work order', function () {
     $owner = User::factory()->create();
     $client = Client::factory()->create(['user_id' => $owner->getKey()]);
     $foreignErb = Erb::factory()->create();
+    $catalogItem = CatalogItem::factory()->create(['user_id' => $owner->getKey()]);
 
     $this->actingAs($owner)->post('/admin/work-orders', [
         'client_id' => $client->getKey(),
@@ -373,7 +376,7 @@ it('rejects an ERB that belongs to another user on a work order', function () {
         'priority' => 'normal',
         'opened_at' => '2026-01-10',
         'items' => [
-            ['description' => 'Mão de obra', 'unit' => 'h', 'quantity' => 1, 'unit_price' => 100],
+            ['catalog_item_id' => $catalogItem->getKey(), 'quantity' => 1],
         ],
     ])->assertSessionHasErrors('erb_id');
 });

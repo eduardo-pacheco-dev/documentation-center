@@ -18,6 +18,14 @@ function ownedClient(User $user): Client
     return Client::factory()->create(['user_id' => $user->getKey()]);
 }
 
+/**
+ * Create a catalog item owned by the given user.
+ */
+function ownedCatalogItem(User $user, array $attributes = []): CatalogItem
+{
+    return CatalogItem::factory()->create(['user_id' => $user->getKey(), ...$attributes]);
+}
+
 it('requires an authenticated user to open the work orders area', function () {
     $this->get('/admin/work-orders')->assertRedirect('/login');
 });
@@ -89,7 +97,8 @@ it('renders the create form inside a modal on the work orders list', function ()
 it('creates a work order with items and computes the totals', function () {
     $user = User::factory()->create();
     $client = ownedClient($user);
-    $catalogItem = CatalogItem::factory()->create(['user_id' => $user->getKey(), 'name' => 'Cimento CP-II']);
+    $cimento = ownedCatalogItem($user, ['name' => 'Cimento CP-II', 'unit' => 'un', 'price' => 39.90]);
+    $maoDeObra = ownedCatalogItem($user, ['name' => 'Mão de obra', 'unit' => 'h', 'price' => 100]);
 
     $this->actingAs($user)->get('/admin/work-orders/create')->assertOk();
 
@@ -103,18 +112,12 @@ it('creates a work order with items and computes the totals', function () {
         'notes' => 'Acesso liberado pela portaria.',
         'items' => [
             [
-                'catalog_item_id' => $catalogItem->getKey(),
-                'description' => 'Cimento CP-II',
-                'unit' => 'un',
+                'catalog_item_id' => $cimento->getKey(),
                 'quantity' => 2,
-                'unit_price' => 39.90,
             ],
             [
-                'catalog_item_id' => null,
-                'description' => 'Mão de obra',
-                'unit' => 'h',
+                'catalog_item_id' => $maoDeObra->getKey(),
                 'quantity' => 3,
-                'unit_price' => 100,
             ],
         ],
     ]);
@@ -130,6 +133,7 @@ it('creates a work order with items and computes the totals', function () {
         ->and($workOrder->items)->toHaveCount(2)
         ->and((float) $workOrder->total)->toBe(379.8)
         ->and((float) $workOrder->items->first()->total)->toBe(79.8)
+        ->and($workOrder->items->first()->description)->toBe('Cimento CP-II')
         ->and($workOrder->completed_at)->toBeNull();
 
     $this->actingAs($user)
@@ -142,6 +146,7 @@ it('creates a work order with items and computes the totals', function () {
 it('marks the completion date when the status is completed', function () {
     $user = User::factory()->create();
     $client = ownedClient($user);
+    $catalogItem = ownedCatalogItem($user);
 
     $this->actingAs($user)->post('/admin/work-orders', [
         'client_id' => $client->getKey(),
@@ -149,7 +154,7 @@ it('marks the completion date when the status is completed', function () {
         'status' => 'completed',
         'opened_at' => '2026-01-01',
         'items' => [
-            ['description' => 'Serviço', 'quantity' => 1, 'unit_price' => 200],
+            ['catalog_item_id' => $catalogItem->getKey(), 'quantity' => 1],
         ],
     ])->assertRedirect();
 
@@ -170,6 +175,7 @@ it('rejects a client that belongs to another user', function () {
     $user = User::factory()->create();
     $stranger = User::factory()->create();
     $foreignClient = ownedClient($stranger);
+    $catalogItem = ownedCatalogItem($user);
 
     $this->actingAs($user)
         ->post('/admin/work-orders', [
@@ -177,13 +183,13 @@ it('rejects a client that belongs to another user', function () {
             'priority' => 'normal',
             'opened_at' => '2026-01-01',
             'items' => [
-                ['description' => 'Serviço', 'quantity' => 1, 'unit_price' => 100],
+                ['catalog_item_id' => $catalogItem->getKey(), 'quantity' => 1],
             ],
         ])
         ->assertSessionHasErrors('client_id');
 });
 
-it('rejects an item without a description or a valid quantity', function () {
+it('rejects an item without a catalog item or a valid quantity', function () {
     $user = User::factory()->create();
     $client = ownedClient($user);
 
@@ -193,10 +199,10 @@ it('rejects an item without a description or a valid quantity', function () {
             'priority' => 'normal',
             'opened_at' => '2026-01-01',
             'items' => [
-                ['description' => '', 'quantity' => 0, 'unit_price' => -5],
+                ['quantity' => 0],
             ],
         ])
-        ->assertSessionHasErrors(['items.0.description', 'items.0.quantity', 'items.0.unit_price']);
+        ->assertSessionHasErrors(['items.0.catalog_item_id', 'items.0.quantity']);
 });
 
 it('forbids a stranger from managing the work order', function () {
@@ -211,6 +217,7 @@ it('forbids a stranger from managing the work order', function () {
 it('updates the work order, replaces the items and clears the completion date', function () {
     $user = User::factory()->create();
     $client = ownedClient($user);
+    $catalogItem = ownedCatalogItem($user, ['name' => 'Item novo', 'price' => 25]);
     $workOrder = WorkOrder::factory()->completed()->create([
         'user_id' => $user->getKey(),
         'client_id' => $client->getKey(),
@@ -226,7 +233,7 @@ it('updates the work order, replaces the items and clears the completion date', 
             'status' => 'open',
             'opened_at' => '2026-02-01',
             'items' => [
-                ['description' => 'Item novo', 'quantity' => 4, 'unit_price' => 25],
+                ['catalog_item_id' => $catalogItem->getKey(), 'quantity' => 4],
             ],
         ])
         ->assertSessionHas('status');
@@ -257,6 +264,7 @@ it('soft deletes the work order', function () {
 it('links a work order to a radio link', function () {
     $user = User::factory()->create();
     $client = ownedClient($user);
+    $catalogItem = ownedCatalogItem($user);
     $radioLink = RadioLink::factory()->create(['user_id' => $user->getKey()]);
 
     $this->actingAs($user)->post('/admin/work-orders', [
@@ -265,7 +273,7 @@ it('links a work order to a radio link', function () {
         'priority' => 'normal',
         'opened_at' => '2026-01-10',
         'items' => [
-            ['description' => 'Serviço', 'quantity' => 1, 'unit_price' => 100],
+            ['catalog_item_id' => $catalogItem->getKey(), 'quantity' => 1],
         ],
     ])->assertRedirect();
 
@@ -278,6 +286,7 @@ it('links a work order to a radio link', function () {
 it('rejects a work order linked to both an erb and a radio link', function () {
     $user = User::factory()->create();
     $client = ownedClient($user);
+    $catalogItem = ownedCatalogItem($user);
     $erb = Erb::factory()->create(['user_id' => $user->getKey()]);
     $radioLink = RadioLink::factory()->create(['user_id' => $user->getKey()]);
 
@@ -288,7 +297,7 @@ it('rejects a work order linked to both an erb and a radio link', function () {
         'priority' => 'normal',
         'opened_at' => '2026-01-10',
         'items' => [
-            ['description' => 'Serviço', 'quantity' => 1, 'unit_price' => 100],
+            ['catalog_item_id' => $catalogItem->getKey(), 'quantity' => 1],
         ],
     ])->assertSessionHasErrors(['erb_id', 'radio_link_id']);
 
@@ -298,6 +307,7 @@ it('rejects a work order linked to both an erb and a radio link', function () {
 it('clears the erb when the work order is switched to a radio link', function () {
     $user = User::factory()->create();
     $client = ownedClient($user);
+    $catalogItem = ownedCatalogItem($user);
     $erb = Erb::factory()->create(['user_id' => $user->getKey()]);
     $radioLink = RadioLink::factory()->create(['user_id' => $user->getKey()]);
     $workOrder = WorkOrder::factory()->create([
@@ -312,7 +322,7 @@ it('clears the erb when the work order is switched to a radio link', function ()
         'priority' => 'normal',
         'opened_at' => '2026-01-10',
         'items' => [
-            ['description' => 'Serviço', 'quantity' => 1, 'unit_price' => 100],
+            ['catalog_item_id' => $catalogItem->getKey(), 'quantity' => 1],
         ],
     ])->assertSessionHas('status');
 

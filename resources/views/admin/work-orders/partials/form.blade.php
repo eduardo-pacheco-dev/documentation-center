@@ -4,26 +4,16 @@
 
     if (is_array($oldItems)) {
         $initialItems = array_values(array_map(fn ($item) => [
-            'catalog_item_id' => $item['catalog_item_id'] ?? '',
-            'description' => $item['description'] ?? '',
-            'unit' => $item['unit'] ?? '',
+            'catalog_item_id' => (string) ($item['catalog_item_id'] ?? ''),
             'quantity' => $item['quantity'] ?? 1,
-            'unit_price' => $item['unit_price'] ?? 0,
         ], $oldItems));
     } elseif ($workOrder) {
         $initialItems = $workOrder->items->map(fn ($item) => [
-            'catalog_item_id' => $item->catalog_item_id ?? '',
-            'description' => $item->description,
-            'unit' => $item->unit,
+            'catalog_item_id' => (string) ($item->catalog_item_id ?? ''),
             'quantity' => (float) $item->quantity,
-            'unit_price' => (float) $item->unit_price,
         ])->values()->all();
     } else {
         $initialItems = [];
-    }
-
-    if ($initialItems === []) {
-        $initialItems = [['catalog_item_id' => '', 'description' => '', 'unit' => '', 'quantity' => 1, 'unit_price' => 0]];
     }
 
     $itemErrors = collect($errors->keys())
@@ -240,45 +230,101 @@
         x-data="{
             catalog: JSON.parse(document.getElementById('work-order-catalog-data').textContent),
             items: JSON.parse(document.getElementById('work-order-initial-items').textContent),
-            addItem() {
-                this.items.push({ catalog_item_id: '', description: '', unit: '', quantity: 1, unit_price: 0 });
+            search: '',
+            openResults: false,
+            get results() {
+                const term = this.search.trim().toLowerCase();
+                const matches = term === ''
+                    ? this.catalog
+                    : this.catalog.filter((entry) => entry.name.toLowerCase().includes(term));
+                return matches.slice(0, 20);
             },
-            removeItem(index) {
-                this.items.splice(index, 1);
-                if (this.items.length === 0) {
-                    this.addItem();
-                }
+            entry(item) {
+                return this.catalog.find((option) => String(option.id) === String(item.catalog_item_id)) ?? null;
             },
-            applyCatalog(index) {
-                const item = this.items[index];
-                const selected = this.catalog.find((entry) => String(entry.id) === String(item.catalog_item_id));
-                if (selected) {
-                    item.description = selected.name;
-                    item.unit = selected.unit ?? '';
-                    item.unit_price = selected.price;
-                }
+            name(item) {
+                const found = this.entry(item);
+                return found ? found.name : 'Selecione um item do catálogo';
+            },
+            unit(item) {
+                const found = this.entry(item);
+                return found ? (found.unit ?? '') : '';
+            },
+            price(item) {
+                const found = this.entry(item);
+                return found ? Number(found.price) : 0;
             },
             lineTotal(item) {
-                return (Number(item.quantity) || 0) * (Number(item.unit_price) || 0);
+                return (Number(item.quantity) || 0) * this.price(item);
             },
             get total() {
                 return this.items.reduce((sum, item) => sum + this.lineTotal(item), 0);
+            },
+            get hasItems() {
+                return this.items.length > 0;
+            },
+            addFromCatalog(option) {
+                const existing = this.items.find((item) => String(item.catalog_item_id) === String(option.id));
+                if (existing) {
+                    existing.quantity = (Number(existing.quantity) || 0) + 1;
+                } else {
+                    this.items.push({ catalog_item_id: String(option.id), quantity: 1 });
+                }
+                this.search = '';
+                this.openResults = false;
+            },
+            removeItem(index) {
+                this.items.splice(index, 1);
             },
             money(value) {
                 return 'R$ ' + (Number(value) || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
             },
         }"
     >
-        <div class="flex items-center justify-between">
-            <span class="block text-sm font-medium text-gray-700 dark:text-gray-300">Itens</span>
-            <button
-                type="button"
-                @click="addItem()"
-                class="inline-flex items-center gap-1 rounded-md border border-gray-300 dark:border-gray-700 px-2.5 py-1.5 text-xs font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800"
+        <label for="work-order-item-search" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Adicionar item do catálogo</label>
+
+        <div class="relative" @click.away="openResults = false">
+            <div class="relative mt-1">
+                <x-icon name="magnifying-glass" class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400 dark:text-gray-500" />
+                <input
+                    type="text"
+                    id="work-order-item-search"
+                    x-model="search"
+                    @focus="openResults = true"
+                    @click="openResults = true"
+                    placeholder="Busque pelo nome do item..."
+                    autocomplete="off"
+                    class="block w-full rounded-md border border-gray-300 dark:border-gray-700 dark:bg-gray-900 pl-9 pr-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500"
+                >
+            </div>
+
+            <div
+                x-show="openResults"
+                x-cloak
+                class="mt-1 max-h-64 w-full overflow-auto rounded-md border border-gray-200 bg-white py-1 shadow-sm dark:border-gray-700 dark:bg-gray-900"
             >
-                <x-icon name="plus" class="h-3.5 w-3.5" />
-                Adicionar item
-            </button>
+                <template x-for="option in results" :key="option.id">
+                    <button
+                        type="button"
+                        @click="addFromCatalog(option)"
+                        class="flex w-full items-center gap-3 px-3 py-2 text-left hover:bg-gray-50 dark:hover:bg-gray-800"
+                    >
+                        <span class="min-w-0 flex-1 truncate text-sm text-gray-700 dark:text-gray-200" x-text="option.name"></span>
+                        <span class="text-xs text-gray-400 dark:text-gray-500" x-text="option.unit ?? ''"></span>
+                        <span class="text-sm font-medium text-gray-900 dark:text-gray-100" x-text="money(option.price)"></span>
+                        <x-icon name="plus" class="h-4 w-4 shrink-0 text-indigo-500" />
+                    </button>
+                </template>
+
+                <p x-show="results.length === 0" class="px-3 py-2 text-sm text-gray-500 dark:text-gray-400">
+                    @if ($catalogItems->isEmpty())
+                        Você ainda não tem itens no catálogo.
+                        <a href="{{ route('admin.catalog.index') }}" class="underline">Cadastre um item</a>.
+                    @else
+                        Nenhum item encontrado.
+                    @endif
+                </p>
+            </div>
         </div>
 
         @if (! empty($itemErrors))
@@ -291,50 +337,31 @@
             </div>
         @endif
 
-        <div class="mt-2 space-y-3">
-            <template x-for="(item, index) in items" :key="index">
-                <div class="rounded-lg border border-gray-200 p-3 dark:border-gray-800">
-                    <div class="grid gap-3 sm:grid-cols-12">
-                        <div class="sm:col-span-4">
-                            <label class="block text-xs text-gray-500 dark:text-gray-400" x-bind:for="'item-catalog-' + index">Item do catálogo</label>
-                            <select
-                                x-bind:id="'item-catalog-' + index"
-                                x-bind:name="'items[' + index + '][catalog_item_id]'"
-                                x-model="item.catalog_item_id"
-                                @change="applyCatalog(index)"
-                                class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-700 dark:bg-gray-900 px-2 py-1.5 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500"
-                            >
-                                <option value="">— Item livre —</option>
-                                @foreach ($catalogItems as $catalogItem)
-                                    <option value="{{ $catalogItem->getKey() }}">{{ $catalogItem->name }}</option>
-                                @endforeach
-                            </select>
+        <div class="mt-4">
+            <span class="block text-sm font-medium text-gray-700 dark:text-gray-300">Itens da OS</span>
+
+            <template x-if="! hasItems">
+                <p class="mt-2 rounded-lg border border-dashed border-gray-200 px-3 py-4 text-center text-sm text-gray-500 dark:border-gray-800 dark:text-gray-400">
+                    Nenhum item adicionado. Busque um item do catálogo acima.
+                </p>
+            </template>
+
+            <div class="mt-2 space-y-2">
+                <template x-for="(item, index) in items" :key="index">
+                    <div class="flex flex-wrap items-center gap-3 rounded-lg border border-gray-200 p-3 dark:border-gray-800 sm:flex-nowrap">
+                        <input type="hidden" :name="'items[' + index + '][catalog_item_id]'" :value="item.catalog_item_id">
+
+                        <div class="min-w-0 flex-1">
+                            <p class="truncate text-sm font-medium text-gray-900 dark:text-gray-100" x-text="name(item)"></p>
+                            <p class="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
+                                <span x-text="unit(item)"></span>
+                                <span x-show="unit(item) !== ''"> &middot; </span>
+                                <span x-text="money(price(item))"></span>
+                            </p>
                         </div>
 
-                        <div class="sm:col-span-5">
-                            <label class="block text-xs text-gray-500 dark:text-gray-400" x-bind:for="'item-description-' + index">Descrição</label>
-                            <input
-                                type="text"
-                                x-bind:id="'item-description-' + index"
-                                x-bind:name="'items[' + index + '][description]'"
-                                x-model="item.description"
-                                class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-700 dark:bg-gray-900 px-2 py-1.5 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500"
-                            >
-                        </div>
-
-                        <div class="sm:col-span-3">
-                            <label class="block text-xs text-gray-500 dark:text-gray-400" x-bind:for="'item-unit-' + index">Unidade</label>
-                            <input
-                                type="text"
-                                x-bind:id="'item-unit-' + index"
-                                x-bind:name="'items[' + index + '][unit]'"
-                                x-model="item.unit"
-                                class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-700 dark:bg-gray-900 px-2 py-1.5 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500"
-                            >
-                        </div>
-
-                        <div class="sm:col-span-3">
-                            <label class="block text-xs text-gray-500 dark:text-gray-400" x-bind:for="'item-quantity-' + index">Quantidade</label>
+                        <div>
+                            <label class="sr-only" x-bind:for="'item-quantity-' + index">Quantidade</label>
                             <input
                                 type="number"
                                 step="0.01"
@@ -342,41 +369,23 @@
                                 x-bind:id="'item-quantity-' + index"
                                 x-bind:name="'items[' + index + '][quantity]'"
                                 x-model.number="item.quantity"
-                                class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-700 dark:bg-gray-900 px-2 py-1.5 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500"
+                                class="w-24 rounded-md border border-gray-300 dark:border-gray-700 dark:bg-gray-900 px-2 py-1.5 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500"
                             >
                         </div>
 
-                        <div class="sm:col-span-4">
-                            <label class="block text-xs text-gray-500 dark:text-gray-400" x-bind:for="'item-price-' + index">Valor unitário (R$)</label>
-                            <input
-                                type="number"
-                                step="0.01"
-                                min="0"
-                                x-bind:id="'item-price-' + index"
-                                x-bind:name="'items[' + index + '][unit_price]'"
-                                x-model.number="item.unit_price"
-                                class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-700 dark:bg-gray-900 px-2 py-1.5 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500"
-                            >
-                        </div>
+                        <span class="w-24 text-right text-sm font-semibold text-gray-900 dark:text-gray-100" x-text="money(lineTotal(item))"></span>
 
-                        <div class="flex items-end justify-between gap-2 sm:col-span-5">
-                            <div>
-                                <span class="block text-xs text-gray-500 dark:text-gray-400">Subtotal</span>
-                                <span class="mt-1 block text-sm font-medium text-gray-900 dark:text-gray-100" x-text="money(lineTotal(item))"></span>
-                            </div>
-
-                            <button
-                                type="button"
-                                @click="removeItem(index)"
-                                class="rounded-md p-1.5 text-gray-400 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-500/15 dark:hover:text-red-400"
-                                aria-label="Remover item"
-                            >
-                                <x-icon name="trash" class="h-4 w-4" />
-                            </button>
-                        </div>
+                        <button
+                            type="button"
+                            @click="removeItem(index)"
+                            class="rounded-md p-1.5 text-gray-400 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-500/15 dark:hover:text-red-400"
+                            aria-label="Remover item"
+                        >
+                            <x-icon name="trash" class="h-4 w-4" />
+                        </button>
                     </div>
-                </div>
-            </template>
+                </template>
+            </div>
         </div>
 
         <div class="mt-3 flex items-center justify-end gap-2 border-t border-gray-100 pt-3 dark:border-gray-800">
