@@ -14,28 +14,70 @@
         $km = fn (?float $value): string => $value === null
             ? '—'
             : number_format($value, 2, ',', '.').' km';
+
+        $linksOnPage = $radioLinks->getCollection();
+        $activeOnPage = $linksOnPage->filter(fn ($link) => $link->status?->value === 'active')->count();
+        $maintenanceOnPage = $linksOnPage->filter(fn ($link) => $link->status?->value === 'maintenance')->count();
+        $plannedOnPage = $linksOnPage->filter(fn ($link) => $link->status?->value === 'planned')->count();
+        $hasFilters = $search !== '' || $status !== null;
     @endphp
 
-    <div class="flex items-center justify-between">
+    <div class="flex flex-wrap items-end justify-between gap-4">
         <div>
-            <h1 class="flex items-center gap-2 text-xl font-semibold">
-                <x-icon name="arrows-right-left" class="h-5 w-5 text-gray-400 dark:text-gray-500" />
+            <p class="text-xs font-semibold uppercase tracking-wide text-indigo-600 dark:text-indigo-400">
+                Rede
+            </p>
+            <h1 class="mt-1 flex items-center gap-2 text-2xl font-semibold tracking-tight text-gray-900 dark:text-gray-100">
+                <x-icon name="arrows-right-left" class="h-6 w-6 text-gray-400 dark:text-gray-500" />
                 Radio links
             </h1>
-            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Enlaces ponto a ponto entre duas ERBs.</p>
+            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Gerencie os enlaces ponto a ponto entre duas ERBs.</p>
         </div>
 
-        <button
-            type="button"
-            data-create-modal-open
-            class="inline-flex items-center gap-1.5 rounded-md bg-gray-900 dark:bg-white px-4 py-2 text-sm font-medium text-white dark:text-gray-900 hover:bg-gray-700 dark:hover:bg-gray-200"
-        >
-            <x-icon name="plus" class="h-4 w-4" />
-            Novo radio link
-        </button>
+        <div class="flex flex-wrap items-center gap-2">
+            <button
+                type="button"
+                data-modal-open="radio-link-create-modal"
+                class="inline-flex items-center gap-1.5 rounded-2xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-500"
+            >
+                <x-icon name="plus" class="h-4 w-4" />
+                Novo radio link
+            </button>
+        </div>
     </div>
 
-    <div class="mt-6 flex flex-wrap items-center justify-between gap-4">
+    <div class="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <div class="group relative overflow-hidden rounded-2xl border border-gray-200/70 bg-white p-5 shadow-sm transition duration-200 hover:-translate-y-0.5 hover:border-indigo-200 hover:shadow-lg hover:shadow-indigo-600/5 dark:border-gray-800 dark:bg-gray-900 dark:hover:border-indigo-500/40">
+            <span class="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-400">
+                <x-icon name="arrows-right-left" class="h-5 w-5" />
+            </span>
+            <p class="mt-4 text-3xl font-semibold tracking-tight text-gray-900 dark:text-gray-100">{{ $radioLinks->total() }}</p>
+            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Radio links encontrados</p>
+        </div>
+        <div class="group relative overflow-hidden rounded-2xl border border-gray-200/70 bg-white p-5 shadow-sm transition duration-200 hover:-translate-y-0.5 hover:border-emerald-200 hover:shadow-lg hover:shadow-emerald-600/5 dark:border-gray-800 dark:bg-gray-900 dark:hover:border-emerald-500/40">
+            <span class="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400">
+                <x-icon name="check-circle" class="h-5 w-5" />
+            </span>
+            <p class="mt-4 text-3xl font-semibold tracking-tight text-gray-900 dark:text-gray-100">{{ $activeOnPage }}</p>
+            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Ativos nesta página</p>
+        </div>
+        <div class="group relative overflow-hidden rounded-2xl border border-gray-200/70 bg-white p-5 shadow-sm transition duration-200 hover:-translate-y-0.5 hover:border-amber-200 hover:shadow-lg hover:shadow-amber-600/5 dark:border-gray-800 dark:bg-gray-900 dark:hover:border-amber-500/40">
+            <span class="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-amber-50 text-amber-600 dark:bg-amber-500/10 dark:text-amber-400">
+                <x-icon name="wrench-screwdriver" class="h-5 w-5" />
+            </span>
+            <p class="mt-4 text-3xl font-semibold tracking-tight text-gray-900 dark:text-gray-100">{{ $maintenanceOnPage }}</p>
+            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Em manutenção nesta página</p>
+        </div>
+        <div class="group relative overflow-hidden rounded-2xl border border-gray-200/70 bg-white p-5 shadow-sm transition duration-200 hover:-translate-y-0.5 hover:border-sky-200 hover:shadow-lg hover:shadow-sky-600/5 dark:border-gray-800 dark:bg-gray-900 dark:hover:border-sky-500/40">
+            <span class="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-sky-50 text-sky-600 dark:bg-sky-500/10 dark:text-sky-400">
+                <x-icon name="clock" class="h-5 w-5" />
+            </span>
+            <p class="mt-4 text-3xl font-semibold tracking-tight text-gray-900 dark:text-gray-100">{{ $plannedOnPage }}</p>
+            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Planejados nesta página</p>
+        </div>
+    </div>
+
+    <section class="mt-6 rounded-2xl border border-gray-200/70 bg-white p-4 shadow-sm dark:border-gray-800 dark:bg-gray-900">
         <form
             method="GET"
             action="{{ route('admin.radio-links.index') }}"
@@ -55,22 +97,23 @@
                     name="search"
                     value="{{ $search }}"
                     placeholder="Buscar por código, ERB, frequência ou equipamento..."
-                    class="block w-full rounded-md border border-gray-300 dark:border-gray-700 dark:bg-gray-900 py-2 pl-9 pr-3 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500"
+                    class="block w-full rounded-xl border border-gray-300 bg-white py-2 pl-9 pr-3 text-sm shadow-sm transition focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
                     data-search-input
                 >
             </div>
 
             <button
                 type="submit"
-                class="rounded-md border border-gray-300 dark:border-gray-700 dark:bg-gray-900 px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800"
+                class="inline-flex items-center gap-1.5 rounded-xl border border-gray-200/70 bg-white px-4 py-2 text-sm font-semibold text-gray-700 shadow-sm transition hover:border-indigo-200 hover:text-indigo-600 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-200 dark:hover:border-indigo-500/40"
             >
+                <x-icon name="magnifying-glass" class="h-4 w-4" />
                 Buscar
             </button>
 
             @if ($search !== '')
                 <a
                     href="{{ route('admin.radio-links.index', array_filter(['status' => $status, 'view' => $view])) }}"
-                    class="text-sm text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100"
+                    class="rounded-xl px-3 py-2 text-sm font-medium text-gray-500 transition hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100"
                 >
                     Limpar
                 </a>
@@ -81,20 +124,30 @@
                 id="status-filter"
                 name="status"
                 onchange="this.form.submit()"
-                class="rounded-md border border-gray-300 dark:border-gray-700 dark:bg-gray-900 py-2 pl-3 pr-8 text-sm text-gray-700 dark:text-gray-200 focus:border-indigo-500 focus:outline-none focus:ring-indigo-500"
+                class="rounded-xl border border-gray-300 bg-white py-2 pl-3 pr-8 text-sm text-gray-700 transition focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200"
             >
                 @foreach (['' => 'Todos os status', 'active' => 'Ativos', 'maintenance' => 'Em manutenção', 'planned' => 'Planejados', 'inactive' => 'Desativados'] as $value => $label)
                     <option value="{{ $value }}" @selected($status === ($value ?: null))>{{ $label }}</option>
                 @endforeach
             </select>
         </form>
+    </section>
 
-        <div class="inline-flex rounded-lg border border-gray-300 dark:border-gray-700 p-0.5" role="group" aria-label="Modo de visualização">
+    <div class="mt-4 flex flex-wrap items-center justify-between gap-3">
+        <p class="text-sm text-gray-500 dark:text-gray-400">
+            Exibindo
+            <span class="font-medium text-gray-900 dark:text-gray-100">{{ $radioLinks->count() }}</span>
+            de
+            <span class="font-medium text-gray-900 dark:text-gray-100">{{ $radioLinks->total() }}</span>
+            {{ $radioLinks->total() === 1 ? 'radio link' : 'radio links' }}
+        </p>
+
+        <div class="inline-flex rounded-2xl border border-gray-200 bg-white p-1 dark:border-gray-800 dark:bg-gray-900" role="group" aria-label="Modo de visualização">
             @foreach (['table' => 'Tabela', 'cards' => 'Cards', 'compact' => 'Lista'] as $mode => $label)
                 <a
                     href="{{ route('admin.radio-links.index', array_merge($viewQuery, ['view' => $mode])) }}"
                     data-view-toggle="{{ $mode }}"
-                    class="inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm {{ $view === $mode ? 'bg-gray-900 text-white dark:bg-white dark:text-gray-900' : 'text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800' }}"
+                    class="inline-flex items-center gap-1.5 rounded-xl px-2.5 py-1.5 text-sm font-medium transition {{ $view === $mode ? 'bg-indigo-600 text-white shadow-sm' : 'text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800' }}"
                 >
                     <x-icon :name="$mode === 'table' ? 'table-cells' : ($mode === 'cards' ? 'squares-2x2' : 'bars-3')" class="h-4 w-4" />
                     {{ $label }}
@@ -104,76 +157,84 @@
     </div>
 
     @if ($view === 'table')
-        <div class="mt-4 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 shadow-sm">
+        <div class="mt-4 overflow-hidden rounded-2xl border border-gray-200/70 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900">
             <div class="overflow-x-auto lg:overflow-x-visible">
                 <table class="min-w-full divide-y divide-gray-200 text-sm dark:divide-gray-800">
-                    <thead class="rounded-t-xl bg-gray-50 text-left text-xs uppercase text-gray-500 dark:bg-gray-800 dark:text-gray-400">
+                    <thead class="bg-gray-50/80 text-left text-xs font-medium uppercase tracking-wide text-gray-500 dark:bg-gray-800/60 dark:text-gray-400">
                         <tr>
-                            <x-sort-header column="code" label="Código" icon="arrows-right-left" default="updated_at" class="px-5 py-3" />
-                            <th class="px-5 py-3 font-medium">Ponta A</th>
-                            <th class="px-5 py-3 font-medium">Ponta B</th>
-                            <x-sort-header column="frequency" label="Frequência" class="px-5 py-3" />
-                            <x-sort-header column="capacity" label="Capacidade" class="px-5 py-3" />
-                            <th class="px-5 py-3 font-medium">Distância</th>
-                            <x-sort-header column="status" label="Status" icon="flag" class="px-5 py-3" />
-                            <x-sort-header column="updated_at" label="Atualizado" default="updated_at" class="px-5 py-3" />
-                            <th class="px-5 py-3 text-right font-medium">Ações</th>
+                            <x-sort-header column="code" label="Radio link" icon="arrows-right-left" default="updated_at" class="px-5 py-3.5" />
+                            <x-sort-header column="frequency" label="Frequência" class="px-5 py-3.5" />
+                            <x-sort-header column="capacity" label="Capacidade" class="px-5 py-3.5" />
+                            <th class="px-5 py-3.5 font-medium">Distância</th>
+                            <x-sort-header column="status" label="Status" icon="flag" class="px-5 py-3.5" />
+                            <x-sort-header column="updated_at" label="Atualizado" default="updated_at" class="px-5 py-3.5" />
+                            <th class="px-5 py-3.5 text-right font-medium">Ações</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
                         @forelse ($radioLinks as $radioLink)
-                            <tr>
-                                <td class="px-5 py-3">
-                                    <a
-                                        href="{{ route('admin.radio-links.show', $radioLink) }}"
-                                        class="flex items-center gap-2 font-medium text-gray-900 hover:text-indigo-600 dark:text-gray-100 dark:hover:text-indigo-400"
-                                    >
-                                        <x-icon name="arrows-right-left" class="h-4 w-4 text-gray-400 dark:text-gray-500" />
-                                        {{ $radioLink->code }}
-                                    </a>
+                            <tr class="transition hover:bg-gray-50/70 dark:hover:bg-gray-800/40">
+                                <td class="px-5 py-4">
+                                    <div class="flex items-center gap-3">
+                                        <span class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-400">
+                                            <x-icon name="arrows-right-left" class="h-4 w-4" />
+                                        </span>
+                                        <div class="min-w-0">
+                                            <a
+                                                href="{{ route('admin.radio-links.show', $radioLink) }}"
+                                                class="block truncate font-semibold text-gray-900 hover:text-indigo-600 dark:text-gray-100 dark:hover:text-indigo-400"
+                                            >
+                                                {{ $radioLink->code }}
+                                            </a>
+                                            <p class="mt-0.5 flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
+                                                @if ($radioLink->erbA)
+                                                    <a href="{{ route('admin.erbs.show', $radioLink->erbA) }}" class="truncate hover:text-indigo-600 dark:hover:text-indigo-400">{{ $radioLink->erbA->code }}</a>
+                                                @else
+                                                    <span class="truncate">—</span>
+                                                @endif
+                                                <x-icon name="arrows-right-left" class="h-3 w-3 shrink-0 text-gray-300 dark:text-gray-600" />
+                                                @if ($radioLink->erbB)
+                                                    <a href="{{ route('admin.erbs.show', $radioLink->erbB) }}" class="truncate hover:text-indigo-600 dark:hover:text-indigo-400">{{ $radioLink->erbB->code }}</a>
+                                                @else
+                                                    <span class="truncate">—</span>
+                                                @endif
+                                            </p>
+                                        </div>
+                                    </div>
                                 </td>
-                                <td class="whitespace-nowrap px-5 py-3 text-gray-500 dark:text-gray-400">
-                                    @if ($radioLink->erbA)
-                                        <a href="{{ route('admin.erbs.show', $radioLink->erbA) }}" class="font-medium text-gray-900 hover:text-indigo-600 dark:text-gray-100 dark:hover:text-indigo-400">
-                                            {{ $radioLink->erbA->code }}
-                                        </a>
-                                    @else
-                                        —
-                                    @endif
-                                </td>
-                                <td class="whitespace-nowrap px-5 py-3 text-gray-500 dark:text-gray-400">
-                                    @if ($radioLink->erbB)
-                                        <a href="{{ route('admin.erbs.show', $radioLink->erbB) }}" class="font-medium text-gray-900 hover:text-indigo-600 dark:text-gray-100 dark:hover:text-indigo-400">
-                                            {{ $radioLink->erbB->code }}
-                                        </a>
-                                    @else
-                                        —
-                                    @endif
-                                </td>
-                                <td class="whitespace-nowrap px-5 py-3 text-gray-500 dark:text-gray-400">{{ $ghz($radioLink->frequency) }}</td>
-                                <td class="whitespace-nowrap px-5 py-3 text-gray-500 dark:text-gray-400">{{ $mbps($radioLink->capacity) }}</td>
-                                <td class="whitespace-nowrap px-5 py-3 text-gray-500 dark:text-gray-400">{{ $km($radioLink->distanceKm()) }}</td>
-                                <td class="px-5 py-3">
+                                <td class="whitespace-nowrap px-5 py-4 text-gray-500 dark:text-gray-400">{{ $ghz($radioLink->frequency) }}</td>
+                                <td class="whitespace-nowrap px-5 py-4 text-gray-500 dark:text-gray-400">{{ $mbps($radioLink->capacity) }}</td>
+                                <td class="whitespace-nowrap px-5 py-4 text-gray-500 dark:text-gray-400">{{ $km($radioLink->distanceKm()) }}</td>
+                                <td class="px-5 py-4">
                                     <x-radio-link-status :radio-link="$radioLink" />
                                 </td>
-                                <td class="px-5 py-3">
+                                <td class="whitespace-nowrap px-5 py-4">
                                     <x-relative-time :value="$radioLink->updated_at" class="text-gray-500 dark:text-gray-400" />
                                 </td>
-                                <td class="px-5 py-3 text-right">
+                                <td class="px-5 py-4 text-right">
                                     <x-radio-link-actions-dropdown :radio-link="$radioLink" />
                                 </td>
                             </tr>
                         @empty
                             <tr>
-                                <td class="px-5 py-6 text-gray-500 dark:text-gray-400" colspan="9">
-                                    <span class="inline-flex items-center gap-2">
-                                        <x-icon name="arrows-right-left" class="h-4 w-4" />
-                                        @if ($search !== '' || $status !== null)
-                                            Nenhum radio link encontrado para os filtros informados.
-                                        @else
-                                            Nenhum radio link cadastrado até o momento.
-                                        @endif
+                                <td class="px-5 py-16 text-center" colspan="7">
+                                    <span class="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-gray-100 text-gray-400 dark:bg-gray-800 dark:text-gray-500">
+                                        <x-icon name="arrows-right-left" class="h-6 w-6" />
                                     </span>
+                                    <p class="mt-3 text-sm font-medium text-gray-900 dark:text-gray-100">
+                                        @if ($hasFilters)
+                                            Nenhum radio link encontrado
+                                        @else
+                                            Nenhum radio link cadastrado
+                                        @endif
+                                    </p>
+                                    <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                                        @if ($hasFilters)
+                                            Ajuste a busca ou os filtros para ver mais resultados.
+                                        @else
+                                            Cadastre o primeiro enlace ponto a ponto para começar.
+                                        @endif
+                                    </p>
                                 </td>
                             </tr>
                         @endforelse
@@ -181,7 +242,7 @@
                 </table>
             </div>
 
-            <div class="flex flex-wrap items-center justify-between gap-3 px-5 py-4">
+            <div class="flex flex-wrap items-center justify-between gap-3 border-t border-gray-100 px-5 py-4 dark:border-gray-800">
                 <form method="GET" action="{{ route('admin.radio-links.index') }}" class="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
                     @foreach (['search', 'view', 'sort', 'direction', 'status'] as $param)
                         @if (request($param))
@@ -193,7 +254,7 @@
                         id="per-page"
                         name="per_page"
                         onchange="this.form.submit()"
-                        class="rounded-md border border-gray-300 dark:border-gray-700 dark:bg-gray-900 py-1.5 pl-2 pr-8 text-sm text-gray-700 dark:text-gray-200 focus:border-indigo-500 focus:outline-none focus:ring-indigo-500"
+                        class="rounded-xl border border-gray-300 bg-white py-1.5 pl-2 pr-8 text-sm text-gray-700 transition focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200"
                     >
                         @foreach ([12, 24, 36] as $option)
                             <option value="{{ $option }}" @selected($perPage === $option)>{{ $option }} por página</option>
@@ -207,14 +268,14 @@
     @elseif ($view === 'cards')
         <div class="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             @forelse ($radioLinks as $radioLink)
-                <div class="rounded-xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-800 dark:bg-gray-900">
+                <div class="group relative flex flex-col overflow-hidden rounded-2xl border border-gray-200/70 bg-white p-5 shadow-sm transition duration-200 hover:-translate-y-0.5 hover:border-indigo-200 hover:shadow-lg hover:shadow-indigo-600/5 dark:border-gray-800 dark:bg-gray-900 dark:hover:border-indigo-500/40">
                     <div class="flex items-start justify-between gap-3">
                         <div class="flex min-w-0 items-center gap-3">
-                            <span class="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400">
+                            <span class="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-400">
                                 <x-icon name="arrows-right-left" class="h-5 w-5" />
                             </span>
                             <div class="min-w-0">
-                                <a href="{{ route('admin.radio-links.show', $radioLink) }}" class="block truncate text-sm font-medium text-gray-900 hover:text-indigo-600 dark:text-gray-100 dark:hover:text-indigo-400">
+                                <a href="{{ route('admin.radio-links.show', $radioLink) }}" class="block truncate font-semibold text-gray-900 hover:text-indigo-600 dark:text-gray-100 dark:hover:text-indigo-400">
                                     {{ $radioLink->code }}
                                 </a>
                                 <p class="truncate text-xs text-gray-500 dark:text-gray-400">
@@ -226,28 +287,53 @@
                         <x-radio-link-actions-dropdown :radio-link="$radioLink" />
                     </div>
 
-                    <div class="mt-4 flex flex-wrap items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
-                        <span>{{ $ghz($radioLink->frequency) }}</span>
+                    <div class="mt-4 flex flex-wrap items-center gap-1.5 text-xs">
+                        <span class="inline-flex items-center gap-1 rounded-lg bg-gray-100 px-2 py-1 font-medium text-gray-600 dark:bg-gray-800 dark:text-gray-300">
+                            <x-icon name="signal" class="h-3.5 w-3.5" />
+                            {{ $ghz($radioLink->frequency) }}
+                        </span>
+                        <span class="inline-flex items-center rounded-lg bg-gray-100 px-2 py-1 font-medium text-gray-600 dark:bg-gray-800 dark:text-gray-300">
+                            {{ $mbps($radioLink->capacity) }}
+                        </span>
                         @if ($radioLink->bandwidth !== null)
-                            <span>&middot; {{ $mhz($radioLink->bandwidth) }}</span>
+                            <span class="inline-flex items-center rounded-lg bg-gray-100 px-2 py-1 font-medium text-gray-600 dark:bg-gray-800 dark:text-gray-300">
+                                {{ $mhz($radioLink->bandwidth) }}
+                            </span>
                         @endif
-                        <span>&middot; {{ $km($radioLink->distanceKm()) }}</span>
                     </div>
 
-                    <div class="mt-4 flex flex-wrap items-center justify-between gap-2 border-t border-gray-100 pt-3 text-xs text-gray-500 dark:border-gray-800 dark:text-gray-400">
+                    <p class="mt-3 flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
+                        <x-icon name="map-pin" class="h-3.5 w-3.5 shrink-0" />
+                        Distância de {{ $km($radioLink->distanceKm()) }} entre as pontas
+                    </p>
+
+                    <div class="mt-auto flex flex-wrap items-center justify-between gap-2 border-t border-gray-100 pt-3.5 text-xs text-gray-500 dark:border-gray-800 dark:text-gray-400">
                         <x-radio-link-status :radio-link="$radioLink" />
-                        <span>{{ $radioLink->erbA?->name ?? '—' }} · {{ $radioLink->erbB?->name ?? '—' }}</span>
+                        @if ($radioLink->polarization)
+                            <span>{{ $radioLink->polarization->label() }}</span>
+                        @endif
                     </div>
                 </div>
             @empty
-                <p class="col-span-full flex items-center gap-2 py-8 text-sm text-gray-500 dark:text-gray-400">
-                    <x-icon name="arrows-right-left" class="h-4 w-4 text-gray-400 dark:text-gray-500" />
-                    @if ($search !== '' || $status !== null)
-                        Nenhum radio link encontrado para os filtros informados.
-                    @else
-                        Nenhum radio link cadastrado até o momento.
-                    @endif
-                </p>
+                <div class="col-span-full rounded-2xl border border-dashed border-gray-300 bg-white py-16 text-center dark:border-gray-700 dark:bg-gray-900">
+                    <span class="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-gray-100 text-gray-400 dark:bg-gray-800 dark:text-gray-500">
+                        <x-icon name="arrows-right-left" class="h-6 w-6" />
+                    </span>
+                    <p class="mt-3 text-sm font-medium text-gray-900 dark:text-gray-100">
+                        @if ($hasFilters)
+                            Nenhum radio link encontrado
+                        @else
+                            Nenhum radio link cadastrado
+                        @endif
+                    </p>
+                    <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                        @if ($hasFilters)
+                            Ajuste a busca ou os filtros para ver mais resultados.
+                        @else
+                            Cadastre o primeiro enlace ponto a ponto para começar.
+                        @endif
+                    </p>
+                </div>
             @endforelse
         </div>
 
@@ -263,7 +349,7 @@
                     id="per-page"
                     name="per_page"
                     onchange="this.form.submit()"
-                    class="rounded-md border border-gray-300 dark:border-gray-700 dark:bg-gray-900 py-1.5 pl-2 pr-8 text-sm text-gray-700 dark:text-gray-200 focus:border-indigo-500 focus:outline-none focus:ring-indigo-500"
+                    class="rounded-xl border border-gray-300 bg-white py-1.5 pl-2 pr-8 text-sm text-gray-700 transition focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200"
                 >
                     @foreach ([12, 24, 36] as $option)
                         <option value="{{ $option }}" @selected($perPage === $option)>{{ $option }} por página</option>
@@ -274,15 +360,15 @@
             <x-pagination :paginator="$radioLinks" />
         </div>
     @else
-        <div class="mt-4 divide-y divide-gray-100 rounded-xl border border-gray-200 bg-white shadow-sm dark:divide-gray-800 dark:border-gray-800 dark:bg-gray-900">
+        <div class="mt-4 overflow-hidden rounded-2xl border border-gray-200/70 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900">
             @forelse ($radioLinks as $radioLink)
-                <div class="flex items-center gap-4 px-5 py-3">
-                    <span class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400">
+                <div class="flex items-center gap-4 border-b border-gray-100 px-5 py-3.5 transition last:border-b-0 hover:bg-gray-50/70 dark:border-gray-800 dark:hover:bg-gray-800/40">
+                    <span class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-400">
                         <x-icon name="arrows-right-left" class="h-4 w-4" />
                     </span>
 
                     <div class="min-w-0 flex-1">
-                        <a href="{{ route('admin.radio-links.show', $radioLink) }}" class="truncate text-sm font-medium text-gray-900 hover:text-indigo-600 dark:text-gray-100 dark:hover:text-indigo-400">
+                        <a href="{{ route('admin.radio-links.show', $radioLink) }}" class="truncate font-semibold text-gray-900 hover:text-indigo-600 dark:text-gray-100 dark:hover:text-indigo-400">
                             {{ $radioLink->code }}
                         </a>
                         <p class="truncate text-xs text-gray-500 dark:text-gray-400">
@@ -301,14 +387,25 @@
                     <x-radio-link-actions-dropdown :radio-link="$radioLink" />
                 </div>
             @empty
-                <p class="flex items-center gap-2 px-5 py-8 text-sm text-gray-500 dark:text-gray-400">
-                    <x-icon name="arrows-right-left" class="h-4 w-4 text-gray-400 dark:text-gray-500" />
-                    @if ($search !== '' || $status !== null)
-                        Nenhum radio link encontrado para os filtros informados.
-                    @else
-                        Nenhum radio link cadastrado até o momento.
-                    @endif
-                </p>
+                <div class="px-5 py-16 text-center">
+                    <span class="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-gray-100 text-gray-400 dark:bg-gray-800 dark:text-gray-500">
+                        <x-icon name="arrows-right-left" class="h-6 w-6" />
+                    </span>
+                    <p class="mt-3 text-sm font-medium text-gray-900 dark:text-gray-100">
+                        @if ($hasFilters)
+                            Nenhum radio link encontrado
+                        @else
+                            Nenhum radio link cadastrado
+                        @endif
+                    </p>
+                    <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                        @if ($hasFilters)
+                            Ajuste a busca ou os filtros para ver mais resultados.
+                        @else
+                            Cadastre o primeiro enlace ponto a ponto para começar.
+                        @endif
+                    </p>
+                </div>
             @endforelse
         </div>
 
@@ -324,7 +421,7 @@
                     id="per-page"
                     name="per_page"
                     onchange="this.form.submit()"
-                    class="rounded-md border border-gray-300 dark:border-gray-700 dark:bg-gray-900 py-1.5 pl-2 pr-8 text-sm text-gray-700 dark:text-gray-200 focus:border-indigo-500 focus:outline-none focus:ring-indigo-500"
+                    class="rounded-xl border border-gray-300 bg-white py-1.5 pl-2 pr-8 text-sm text-gray-700 transition focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200"
                 >
                     @foreach ([12, 24, 36] as $option)
                         <option value="{{ $option }}" @selected($perPage === $option)>{{ $option }} por página</option>
@@ -388,12 +485,58 @@
             }
         });
 
+        const openModal = (modal) => {
+            if (!modal) {
+                return;
+            }
+
+            modal.classList.remove('hidden');
+            document.body.classList.add('overflow-hidden');
+
+            const error = modal.querySelector('[data-modal-error]');
+            if (error) {
+                error.scrollIntoView({ block: 'center' });
+            }
+
+            const search = modal.querySelector('[data-modal-search]');
+            if (search) {
+                search.focus();
+            }
+        };
+
+        const closeModal = (modal) => {
+            if (!modal) {
+                return;
+            }
+
+            modal.classList.add('hidden');
+            document.body.classList.remove('overflow-hidden');
+        };
+
+        document.addEventListener('click', (event) => {
+            const opener = event.target.closest('[data-modal-open]');
+
+            if (opener) {
+                event.preventDefault();
+                closeDropdowns();
+                openModal(document.getElementById(opener.dataset.modalOpen));
+                return;
+            }
+
+            const closer = event.target.closest('[data-modal-close]');
+            if (closer) {
+                closeModal(closer.closest('[role="dialog"]'));
+            }
+        });
+
         document.addEventListener('keydown', (event) => {
             if (event.key === 'Escape') {
                 closeDropdowns();
-                closeCreateModal();
+                document.querySelectorAll('[role="dialog"]:not(.hidden)').forEach(closeModal);
             }
         });
+
+        document.querySelectorAll('[role="dialog"][data-open]').forEach(openModal);
 
         const searchForm = document.querySelector('[data-search-form]');
         const searchInput = document.querySelector('[data-search-input]');
@@ -418,30 +561,98 @@
             }
         }
 
-        const createModal = document.querySelector('[data-create-modal]');
+        const wizard = document.querySelector('[data-wizard]');
 
-        const openCreateModal = () => {
-            createModal.classList.remove('hidden');
-            document.body.style.overflow = 'hidden';
-        };
+        if (wizard) {
+            const panels = Array.from(wizard.querySelectorAll('[data-wizard-panel]'));
+            const stepsList = wizard.querySelector('[data-wizard-steps]');
+            const prevButton = wizard.querySelector('[data-wizard-prev]');
+            const nextButton = wizard.querySelector('[data-wizard-next]');
+            const submitButton = wizard.querySelector('[data-wizard-submit]');
+            const scroller = wizard.closest('.overflow-y-auto');
+            const baseIndicator = 'inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-medium transition';
+            const inactiveIndicator = baseIndicator + ' border-gray-200 bg-white text-gray-600 hover:border-indigo-200 hover:text-indigo-600 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 dark:hover:border-indigo-500/40';
+            const activeIndicator = baseIndicator + ' border-indigo-600 bg-indigo-600 text-white shadow-sm';
+            const doneIndicator = baseIndicator + ' border-emerald-500 text-emerald-600 dark:text-emerald-400';
+            let current = 0;
 
-        const closeCreateModal = () => {
-            createModal.classList.add('hidden');
-            document.body.style.overflow = '';
-        };
-
-        if (createModal) {
-            document.querySelectorAll('[data-create-modal-open]').forEach((button) => {
-                button.addEventListener('click', openCreateModal);
-            });
-
-            document.querySelectorAll('[data-create-modal-close]').forEach((button) => {
-                button.addEventListener('click', closeCreateModal);
-            });
-
-            if (createModal.hasAttribute('data-open-on-load')) {
-                openCreateModal();
+            if (stepsList) {
+                stepsList.innerHTML = panels.map((panel, index) => `
+                    <li>
+                        <button type="button" data-wizard-indicator="${index}" class="${inactiveIndicator}">
+                            <span class="inline-flex h-5 w-5 items-center justify-center rounded-full bg-gray-200 text-[0.65rem] font-semibold text-gray-700 dark:bg-gray-700 dark:text-gray-200">${index + 1}</span>
+                            <span>${panel.dataset.wizardTitle ?? ''}</span>
+                        </button>
+                    </li>
+                `).join('');
             }
+
+            const indicators = stepsList ? Array.from(stepsList.querySelectorAll('[data-wizard-indicator]')) : [];
+
+            const firstInvalid = (panel) => Array.from(panel.querySelectorAll('input, select, textarea'))
+                .find((field) => !field.checkValidity());
+
+            const render = () => {
+                panels.forEach((panel, index) => panel.classList.toggle('hidden', index !== current));
+
+                indicators.forEach((indicator, index) => {
+                    indicator.className = index === current
+                        ? activeIndicator
+                        : (index < current ? doneIndicator : inactiveIndicator);
+                });
+
+                prevButton.classList.toggle('hidden', current === 0);
+                nextButton.classList.toggle('hidden', current === panels.length - 1);
+                submitButton.classList.toggle('hidden', current !== panels.length - 1);
+                submitButton.classList.toggle('inline-flex', current === panels.length - 1);
+            };
+
+            const goTo = (index) => {
+                current = Math.max(0, Math.min(index, panels.length - 1));
+                render();
+
+                if (scroller) {
+                    scroller.scrollTop = 0;
+                }
+            };
+
+            nextButton.addEventListener('click', () => {
+                const invalid = firstInvalid(panels[current]);
+
+                if (invalid) {
+                    invalid.reportValidity();
+                    return;
+                }
+
+                goTo(current + 1);
+            });
+
+            prevButton.addEventListener('click', () => goTo(current - 1));
+
+            indicators.forEach((indicator) => {
+                indicator.addEventListener('click', () => goTo(Number(indicator.dataset.wizardIndicator)));
+            });
+
+            wizard.addEventListener('submit', (event) => {
+                for (let index = 0; index < panels.length; index++) {
+                    const invalid = firstInvalid(panels[index]);
+
+                    if (invalid) {
+                        event.preventDefault();
+                        goTo(index);
+                        invalid.reportValidity();
+                        return;
+                    }
+                }
+            });
+
+            document.querySelectorAll('[data-modal-open="radio-link-create-modal"]').forEach((opener) => {
+                opener.addEventListener('click', () => goTo(0));
+            });
+
+            const errorPanel = panels.findIndex((panel) => panel.querySelector('.text-red-600'));
+
+            goTo(errorPanel > -1 ? errorPanel : 0);
         }
     </script>
 </x-layouts.admin>

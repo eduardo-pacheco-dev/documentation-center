@@ -172,6 +172,22 @@ it('rejects a radio link without a code or endpoints', function () {
     expect(RadioLink::query()->count())->toBe(0);
 });
 
+it('reopens the create modal with the wizard when creation fails validation', function () {
+    $user = User::factory()->create();
+
+    $this->actingAs($user)
+        ->from('/admin/radio-links')
+        ->post('/admin/radio-links', ['modal' => 'create'])
+        ->assertSessionHasErrors(['code', 'erb_a_id', 'erb_b_id']);
+
+    $this->actingAs($user)
+        ->get('/admin/radio-links')
+        ->assertOk()
+        ->assertSee('id="radio-link-create-modal"', false)
+        ->assertSee('data-open', false)
+        ->assertSee('data-wizard-steps', false);
+});
+
 it('rejects a duplicate code owned by the same user', function () {
     $user = User::factory()->create();
     $endpoints = radioLinkEndpoints($user);

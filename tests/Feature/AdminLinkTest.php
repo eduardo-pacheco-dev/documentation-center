@@ -146,7 +146,7 @@ test('the link list view mode can be switched', function () {
     $this->actingAs($user)
         ->get('/admin/links?view=compact')
         ->assertDontSee('sort=code')
-        ->assertSee('divide-y divide-gray-100 rounded-xl');
+        ->assertSee('divide-y divide-gray-100 rounded-2xl');
 });
 
 test('links fall back to newest first when the sort is invalid', function () {
