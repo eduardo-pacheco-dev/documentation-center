@@ -66,6 +66,44 @@ it('lists only the radio links the user owns', function () {
         ->assertDontSee('RL-09999');
 });
 
+it('shows the site id of each erb in the radio link list', function () {
+    $owner = User::factory()->create();
+    $endA = Erb::factory()->create(['user_id' => $owner->getKey(), 'site_id' => 'SITE-ALPHA']);
+    $endB = Erb::factory()->create(['user_id' => $owner->getKey(), 'site_id' => 'SITE-BETA']);
+
+    RadioLink::factory()->create([
+        'user_id' => $owner->getKey(),
+        'erb_a_id' => $endA->getKey(),
+        'erb_b_id' => $endB->getKey(),
+        'code' => 'RL-00001',
+    ]);
+
+    $this->actingAs($owner)
+        ->get('/admin/radio-links')
+        ->assertOk()
+        ->assertSee('RL-00001')
+        ->assertSee('SITE-ALPHA')
+        ->assertSee('SITE-BETA');
+});
+
+it('filters the radio link list by erb site id', function () {
+    $owner = User::factory()->create();
+    $endA = Erb::factory()->create(['user_id' => $owner->getKey(), 'site_id' => 'SITE-FIND-ME']);
+    $endB = Erb::factory()->create(['user_id' => $owner->getKey()]);
+
+    RadioLink::factory()->create([
+        'user_id' => $owner->getKey(),
+        'erb_a_id' => $endA->getKey(),
+        'erb_b_id' => $endB->getKey(),
+        'code' => 'RL-00001',
+    ]);
+
+    $this->actingAs($owner)
+        ->get('/admin/radio-links?search=SITE-FIND-ME')
+        ->assertOk()
+        ->assertSee('RL-00001');
+});
+
 it('filters the radio link list by search term and status', function () {
     $owner = User::factory()->create();
     $endpoints = radioLinkEndpoints($owner);

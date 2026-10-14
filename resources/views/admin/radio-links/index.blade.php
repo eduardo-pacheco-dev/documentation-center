@@ -188,13 +188,13 @@
                                             </a>
                                             <p class="mt-0.5 flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
                                                 @if ($radioLink->erbA)
-                                                    <a href="{{ route('admin.erbs.show', $radioLink->erbA) }}" class="truncate hover:text-indigo-600 dark:hover:text-indigo-400">{{ $radioLink->erbA->code }}</a>
+                                                    <a href="{{ route('admin.erbs.show', $radioLink->erbA) }}" class="truncate hover:text-indigo-600 dark:hover:text-indigo-400">{{ $radioLink->erbA->site_id ?: $radioLink->erbA->code }}</a>
                                                 @else
                                                     <span class="truncate">—</span>
                                                 @endif
                                                 <x-icon name="arrows-right-left" class="h-3 w-3 shrink-0 text-gray-300 dark:text-gray-600" />
                                                 @if ($radioLink->erbB)
-                                                    <a href="{{ route('admin.erbs.show', $radioLink->erbB) }}" class="truncate hover:text-indigo-600 dark:hover:text-indigo-400">{{ $radioLink->erbB->code }}</a>
+                                                    <a href="{{ route('admin.erbs.show', $radioLink->erbB) }}" class="truncate hover:text-indigo-600 dark:hover:text-indigo-400">{{ $radioLink->erbB->site_id ?: $radioLink->erbB->code }}</a>
                                                 @else
                                                     <span class="truncate">—</span>
                                                 @endif

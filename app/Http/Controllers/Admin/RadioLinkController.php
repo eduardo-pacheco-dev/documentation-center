@@ -49,7 +49,7 @@ class RadioLinkController extends Controller
 
         $radioLinks = RadioLink::query()
             ->ownedBy($request->user())
-            ->with(['erbA:id,code,name', 'erbB:id,code,name'])
+            ->with(['erbA:id,code,name,site_id', 'erbB:id,code,name,site_id'])
             ->when($search !== '', fn (Builder $query) => $query->where(fn (Builder $inner) => $inner
                 ->where('code', 'like', "%{$search}%")
                 ->orWhere('frequency', 'like', "%{$search}%")
@@ -58,10 +58,12 @@ class RadioLinkController extends Controller
                 ->orWhereHas('erbA', fn (Builder $endpoint) => $endpoint
                     ->where(fn (Builder $innerEndpoint) => $innerEndpoint
                         ->where('code', 'like', "%{$search}%")
+                        ->orWhere('site_id', 'like', "%{$search}%")
                         ->orWhere('name', 'like', "%{$search}%")))
                 ->orWhereHas('erbB', fn (Builder $endpoint) => $endpoint
                     ->where(fn (Builder $innerEndpoint) => $innerEndpoint
                         ->where('code', 'like', "%{$search}%")
+                        ->orWhere('site_id', 'like', "%{$search}%")
                         ->orWhere('name', 'like', "%{$search}%")))))
             ->when($status !== null, fn (Builder $query) => $query->where('status', $status))
             ->orderBy($sort, $direction)
