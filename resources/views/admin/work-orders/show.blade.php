@@ -80,7 +80,7 @@
                             class="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1 text-xs font-medium text-white/90 backdrop-blur transition hover:bg-white/20"
                         >
                             <x-icon name="signal" class="h-3.5 w-3.5" />
-                            {{ $workOrder->erb->code }}
+                            {{ $workOrder->erb->site_id ?: $workOrder->erb->code }}
                         </a>
                     @endif
                     @if ($workOrder->radioLink)

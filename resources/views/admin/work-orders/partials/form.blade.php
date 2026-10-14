@@ -103,7 +103,7 @@
                     :selected="$selectedErb"
                     placeholder="Busque pelo código ou nome da ERB..."
                     empty-message="Nenhuma ERB encontrada."
-                    :options="$erbs->map(fn ($erb) => ['value' => $erb->getKey(), 'label' => trim(($erb->code ? $erb->code.' — ' : '').$erb->name)])->all()"
+                    :options="$erbs->map(fn ($erb) => ['value' => $erb->getKey(), 'label' => trim((($erb->site_id ?: $erb->code) ? ($erb->site_id ?: $erb->code).' — ' : '').$erb->name)])->all()"
                 />
                 @error('erb_id')
                     <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p>
