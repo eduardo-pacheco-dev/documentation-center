@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Enums\WorkOrderStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\StoreWorkOrderRequest;
+use App\Http\Requests\Admin\UpdateWorkOrderDatesRequest;
 use App\Http\Requests\Admin\UpdateWorkOrderDescriptionRequest;
 use App\Http\Requests\Admin\UpdateWorkOrderItemsRequest;
 use App\Http\Requests\Admin\UpdateWorkOrderNotesRequest;
@@ -197,6 +198,21 @@ class WorkOrderController extends Controller
         return redirect()
             ->route('admin.work-orders.show', $workOrder)
             ->with('status', 'Itens da ordem de serviço atualizados com sucesso.');
+    }
+
+    /**
+     * Update only the dates of the work order.
+     */
+    public function updateDates(UpdateWorkOrderDatesRequest $request, WorkOrder $workOrder): RedirectResponse
+    {
+        $workOrder->update([
+            'opened_at' => $request->validated('opened_at'),
+            'due_at' => $request->validated('due_at'),
+        ]);
+
+        return redirect()
+            ->route('admin.work-orders.show', $workOrder)
+            ->with('status', 'Datas atualizadas com sucesso.');
     }
 
     /**

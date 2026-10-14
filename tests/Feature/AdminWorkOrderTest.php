@@ -329,6 +329,46 @@ it('forbids a stranger from updating the work order description inline', functio
         ->assertForbidden();
 });
 
+it('updates the work order dates inline from the details page', function () {
+    $user = User::factory()->create();
+    $workOrder = WorkOrder::factory()->create(['user_id' => $user->getKey(), 'opened_at' => '2026-01-01']);
+
+    $this->actingAs($user)
+        ->put(route('admin.work-orders.dates.update', $workOrder), [
+            'opened_at' => '2026-02-01',
+            'due_at' => '2026-02-15',
+        ])
+        ->assertRedirect(route('admin.work-orders.show', $workOrder))
+        ->assertSessionHas('status');
+
+    $workOrder->refresh();
+
+    expect($workOrder->opened_at->toDateString())->toBe('2026-02-01')
+        ->and($workOrder->due_at->toDateString())->toBe('2026-02-15');
+});
+
+it('rejects a due date before the opening date', function () {
+    $user = User::factory()->create();
+    $workOrder = WorkOrder::factory()->create(['user_id' => $user->getKey()]);
+
+    $this->actingAs($user)
+        ->from(route('admin.work-orders.show', $workOrder))
+        ->put(route('admin.work-orders.dates.update', $workOrder), [
+            'opened_at' => '2026-02-10',
+            'due_at' => '2026-02-01',
+        ])
+        ->assertSessionHasErrors('due_at');
+});
+
+it('forbids a stranger from updating the work order dates inline', function () {
+    $stranger = User::factory()->create();
+    $workOrder = WorkOrder::factory()->create();
+
+    $this->actingAs($stranger)
+        ->put(route('admin.work-orders.dates.update', $workOrder), ['opened_at' => '2026-01-01'])
+        ->assertForbidden();
+});
+
 it('soft deletes the work order', function () {
     $user = User::factory()->create();
     $client = ownedClient($user);
