@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Enums\WorkOrderStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\StoreWorkOrderRequest;
+use App\Http\Requests\Admin\UpdateWorkOrderDescriptionRequest;
 use App\Http\Requests\Admin\UpdateWorkOrderItemsRequest;
 use App\Http\Requests\Admin\UpdateWorkOrderNotesRequest;
 use App\Http\Requests\Admin\UpdateWorkOrderRequest;
@@ -196,6 +197,18 @@ class WorkOrderController extends Controller
         return redirect()
             ->route('admin.work-orders.show', $workOrder)
             ->with('status', 'Itens da ordem de serviço atualizados com sucesso.');
+    }
+
+    /**
+     * Update only the description of the work order.
+     */
+    public function updateDescription(UpdateWorkOrderDescriptionRequest $request, WorkOrder $workOrder): RedirectResponse
+    {
+        $workOrder->update(['description' => $request->validated('description')]);
+
+        return redirect()
+            ->route('admin.work-orders.show', $workOrder)
+            ->with('status', 'Descrição atualizada com sucesso.');
     }
 
     /**
