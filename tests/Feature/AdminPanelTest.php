@@ -269,7 +269,7 @@ test('the dashboard shows the signed in user summaries', function () {
         ->assertOk()
         ->assertSee('Clientes')
         ->assertSee('Ordens de serviço')
-        ->assertSee('Projetos em andamento')
+        ->assertSee('Módulos')
         ->assertSee('Arquivos recentes');
 });
 
@@ -277,24 +277,23 @@ test('the dashboard surfaces every system module', function () {
     $this->actingAs(User::factory()->create())
         ->get('/admin')
         ->assertOk()
-        ->assertSee('ERBs')
-        ->assertSee('Radio links')
-        ->assertSee('Catálogo recente')
-        ->assertSee('Formulários recentes')
-        ->assertSee('Colaboradores recentes');
+        ->assertSee('data-module="erbs"', false)
+        ->assertSee('data-module="radio-links"', false)
+        ->assertSee('data-module="catalogo"', false)
+        ->assertSee('data-module="formularios"', false)
+        ->assertSee('data-module="colaboradores"', false);
 });
 
-test('the dashboard only surfaces the signed in user erbs', function () {
+test('the dashboard only counts the signed in user records', function () {
     $user = User::factory()->create();
 
-    Erb::factory()->for($user)->create(['name' => 'ERB do usuario']);
-    Erb::factory()->create(['name' => 'ERB de outro usuario']);
+    Erb::factory()->count(3)->for($user)->create();
+    Erb::factory()->count(2)->create();
 
     $this->actingAs($user)
         ->get('/admin')
         ->assertOk()
-        ->assertSee('ERB do usuario')
-        ->assertDontSee('ERB de outro usuario');
+        ->assertViewHas('counts', fn (array $counts): bool => $counts['erbs'] === 3);
 });
 
 test('the dashboard only surfaces the signed in user work orders', function () {
