@@ -352,6 +352,86 @@ it('updates the radio link details', function () {
         ->and($radioLink->frequency)->toBe('23.500');
 });
 
+it('shows the site id of each erb on the radio link page', function () {
+    $owner = User::factory()->create();
+    $endA = Erb::factory()->create(['user_id' => $owner->getKey(), 'site_id' => 'SITE-ALPHA']);
+    $endB = Erb::factory()->create(['user_id' => $owner->getKey(), 'site_id' => 'SITE-BETA']);
+
+    $radioLink = RadioLink::factory()->create([
+        'user_id' => $owner->getKey(),
+        'erb_a_id' => $endA->getKey(),
+        'erb_b_id' => $endB->getKey(),
+        'code' => 'RL-00001',
+    ]);
+
+    $this->actingAs($owner)
+        ->get(route('admin.radio-links.show', $radioLink))
+        ->assertOk()
+        ->assertSee('SITE-ALPHA')
+        ->assertSee('SITE-BETA');
+});
+
+it('opens the edit wizard modal from the radio link page', function () {
+    $owner = User::factory()->create();
+    $endpoints = radioLinkEndpoints($owner);
+    $radioLink = RadioLink::factory()->create([
+        'user_id' => $owner->getKey(),
+        'erb_a_id' => $endpoints['endA']->getKey(),
+        'erb_b_id' => $endpoints['endB']->getKey(),
+        'code' => 'RL-00001',
+    ]);
+
+    $this->actingAs($owner)
+        ->get(route('admin.radio-links.show', $radioLink))
+        ->assertOk()
+        ->assertSee('data-radio-link-edit-modal', false)
+        ->assertSee('data-modal-open="radio-link-edit-modal"', false)
+        ->assertSee('id="radio-link-edit-modal"', false)
+        ->assertSee('data-wizard-step', false)
+        ->assertSee('data-wizard-progress', false)
+        ->assertSee(route('admin.radio-links.update', $radioLink), false);
+});
+
+it('opens the edit wizard modal on the edit route', function () {
+    $owner = User::factory()->create();
+    $endpoints = radioLinkEndpoints($owner);
+    $radioLink = RadioLink::factory()->create([
+        'user_id' => $owner->getKey(),
+        'erb_a_id' => $endpoints['endA']->getKey(),
+        'erb_b_id' => $endpoints['endB']->getKey(),
+        'code' => 'RL-00001',
+    ]);
+
+    $this->actingAs($owner)
+        ->get(route('admin.radio-links.edit', $radioLink))
+        ->assertOk()
+        ->assertSee('data-radio-link-edit-modal', false)
+        ->assertSee('data-open', false);
+});
+
+it('reopens the edit modal with the wizard when update fails validation', function () {
+    $user = User::factory()->create();
+    $endpoints = radioLinkEndpoints($user);
+    $radioLink = RadioLink::factory()->create([
+        'user_id' => $user->getKey(),
+        'erb_a_id' => $endpoints['endA']->getKey(),
+        'erb_b_id' => $endpoints['endB']->getKey(),
+        'code' => 'RL-00042',
+    ]);
+
+    $this->actingAs($user)
+        ->from(route('admin.radio-links.show', $radioLink))
+        ->put(route('admin.radio-links.update', $radioLink), ['modal' => 'edit', 'code' => ''])
+        ->assertSessionHasErrors(['code', 'erb_a_id', 'erb_b_id']);
+
+    $this->actingAs($user)
+        ->get(route('admin.radio-links.show', $radioLink))
+        ->assertOk()
+        ->assertSee('data-radio-link-edit-modal', false)
+        ->assertSee('data-open', false)
+        ->assertSee('data-wizard-step', false);
+});
+
 it('soft deletes the radio link', function () {
     $user = User::factory()->create();
     $endpoints = radioLinkEndpoints($user);

@@ -103,25 +103,37 @@ class RadioLinkController extends Controller
     /**
      * Show the radio link details.
      */
-    public function show(RadioLink $radioLink): View
+    public function show(Request $request, RadioLink $radioLink): View
     {
         $this->authorize('view', $radioLink);
 
-        $radioLink->load(['erbA:id,code,name,latitude,longitude', 'erbB:id,code,name,latitude,longitude']);
-
-        return view('admin.radio-links.show', ['radioLink' => $radioLink]);
+        return $this->detail($request, $radioLink);
     }
 
     /**
-     * Show the form to edit the radio link details.
+     * Show the radio link details with the edit modal open.
      */
     public function edit(Request $request, RadioLink $radioLink): View
     {
         $this->authorize('update', $radioLink);
 
-        return view('admin.radio-links.edit', [
+        return $this->detail($request, $radioLink, openEditModal: true);
+    }
+
+    /**
+     * Render the radio link detail page.
+     */
+    private function detail(Request $request, RadioLink $radioLink, bool $openEditModal = false): View
+    {
+        $radioLink->load([
+            'erbA:id,code,name,site_id,latitude,longitude',
+            'erbB:id,code,name,site_id,latitude,longitude',
+        ]);
+
+        return view('admin.radio-links.show', [
             'radioLink' => $radioLink,
             'erbs' => $this->endpoints($request),
+            'openEditModal' => $openEditModal,
         ]);
     }
 
