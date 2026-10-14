@@ -150,6 +150,22 @@ it('generates a code automatically when none is given', function () {
     expect(CatalogItem::query()->firstOrFail()->code)->toBe('COD-0001');
 });
 
+it('defaults the catalog price and cost to zero when they are left blank', function () {
+    $user = User::factory()->create();
+
+    $this->actingAs($user)->post('/admin/catalog', [
+        'type' => 'service',
+        'name' => 'Serviço sem preço',
+        'price' => '',
+        'cost' => '',
+    ])->assertRedirect();
+
+    $item = CatalogItem::query()->firstOrFail();
+
+    expect((float) $item->price)->toBe(0.0)
+        ->and((float) $item->cost)->toBe(0.0);
+});
+
 it('rejects a catalog item without a name or a type', function () {
     $user = User::factory()->create();
 

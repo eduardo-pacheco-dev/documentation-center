@@ -87,6 +87,8 @@ class CatalogItemController extends Controller
     {
         $attributes = $request->validated();
         $attributes['status'] ??= 'active';
+        $attributes['price'] ??= 0;
+        $attributes['cost'] ??= 0;
 
         if ($attributes['type'] === CatalogItemType::Service->value) {
             $attributes['stock_quantity'] = null;
@@ -128,6 +130,14 @@ class CatalogItemController extends Controller
     public function update(UpdateCatalogItemRequest $request, CatalogItem $catalogItem): RedirectResponse
     {
         $attributes = $request->validated();
+
+        if (array_key_exists('price', $attributes) && $attributes['price'] === null) {
+            $attributes['price'] = 0;
+        }
+
+        if (array_key_exists('cost', $attributes) && $attributes['cost'] === null) {
+            $attributes['cost'] = 0;
+        }
 
         if (($attributes['type'] ?? $catalogItem->type->value) === CatalogItemType::Service->value) {
             $attributes['stock_quantity'] = null;
