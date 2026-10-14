@@ -6,21 +6,22 @@
         $hasFilters = $search !== '' || $status !== null || $contractRegime !== null || $regional !== null || $uf !== null;
     @endphp
 
-    <div class="flex items-center justify-between">
+    <div class="flex flex-wrap items-end justify-between gap-4">
         <div>
-            <h1 class="flex items-center gap-2 text-xl font-semibold">
-                <x-icon name="user" class="h-5 w-5 text-gray-400 dark:text-gray-500" />
+            <p class="text-xs font-semibold uppercase tracking-wide text-indigo-600 dark:text-indigo-400">Equipe</p>
+            <h1 class="mt-1 flex items-center gap-2 text-2xl font-semibold tracking-tight text-gray-900 dark:text-gray-100">
+                <x-icon name="user" class="h-6 w-6 text-gray-400 dark:text-gray-500" />
                 Colaboradores
             </h1>
             <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Gerencie a equipe técnica e demais colaboradores.</p>
         </div>
 
-        <div class="flex items-center gap-2">
+        <div class="flex flex-wrap items-center gap-2">
             <a
                 href="{{ route('admin.colaboradores.export', array_filter(['search' => $search, 'status' => $status, 'contract_regime' => $contractRegime, 'regional' => $regional, 'uf' => $uf])) }}"
                 data-export-link
                 data-export-filename="colaboradores.xlsx"
-                class="inline-flex items-center gap-1.5 rounded-md border border-gray-300 dark:border-gray-700 dark:bg-gray-900 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800"
+                class="inline-flex items-center gap-1.5 rounded-xl border border-gray-300 dark:border-gray-700 dark:bg-gray-900 px-4 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-200 transition hover:bg-gray-100 dark:hover:bg-gray-800"
             >
                 <x-icon name="arrow-down-tray" class="h-4 w-4" />
                 Exportar
@@ -29,16 +30,16 @@
             <button
                 type="button"
                 data-modal-open="colaborador-import-modal"
-                class="inline-flex items-center gap-1.5 rounded-md border border-gray-300 dark:border-gray-700 dark:bg-gray-900 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800"
+                class="inline-flex items-center gap-1.5 rounded-xl border border-gray-300 dark:border-gray-700 dark:bg-gray-900 px-4 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-200 transition hover:bg-gray-100 dark:hover:bg-gray-800"
             >
                 <x-icon name="arrow-up-tray" class="h-4 w-4" />
-                Importar em massa
+                Importar
             </button>
 
             <button
                 type="button"
                 data-create-modal-open
-                class="inline-flex items-center gap-1.5 rounded-md bg-gray-900 dark:bg-white px-4 py-2 text-sm font-medium text-white dark:text-gray-900 hover:bg-gray-700 dark:hover:bg-gray-200"
+                class="inline-flex items-center gap-1.5 rounded-xl bg-gray-900 dark:bg-white px-4 py-2.5 text-sm font-semibold text-white dark:text-gray-900 shadow-sm transition hover:bg-gray-700 dark:hover:bg-gray-200"
             >
                 <x-icon name="plus" class="h-4 w-4" />
                 Novo colaborador
@@ -66,33 +67,17 @@
                     name="search"
                     value="{{ $search }}"
                     placeholder="Buscar por nome, função, e-mail ou CPF..."
-                    class="block w-full rounded-md border border-gray-300 dark:border-gray-700 dark:bg-gray-900 py-2 pl-9 pr-3 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500"
+                    class="block w-full rounded-lg border border-gray-300 dark:border-gray-700 dark:bg-gray-900 py-2 pl-9 pr-3 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500"
                     data-search-input
                 >
             </div>
-
-            <button
-                type="submit"
-                class="rounded-md border border-gray-300 dark:border-gray-700 dark:bg-gray-900 px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800"
-            >
-                Buscar
-            </button>
-
-            @if ($hasFilters)
-                <a
-                    href="{{ route('admin.colaboradores.index', array_filter(['view' => $view])) }}"
-                    class="text-sm text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100"
-                >
-                    Limpar
-                </a>
-            @endif
 
             <label for="status-filter" class="sr-only">Filtrar por status</label>
             <select
                 id="status-filter"
                 name="status"
                 onchange="this.form.submit()"
-                class="rounded-md border border-gray-300 dark:border-gray-700 dark:bg-gray-900 py-2 pl-3 pr-8 text-sm text-gray-700 dark:text-gray-200 focus:border-indigo-500 focus:outline-none focus:ring-indigo-500"
+                class="rounded-lg border border-gray-300 dark:border-gray-700 dark:bg-gray-900 py-2 pl-3 pr-8 text-sm text-gray-700 dark:text-gray-200 focus:border-indigo-500 focus:outline-none focus:ring-indigo-500"
             >
                 @foreach (['' => 'Todos os status', 'active' => 'Ativos', 'inactive' => 'Inativos'] as $value => $label)
                     <option value="{{ $value }}" @selected($status === ($value ?: null))>{{ $label }}</option>
@@ -104,7 +89,7 @@
                 id="regime-filter"
                 name="contract_regime"
                 onchange="this.form.submit()"
-                class="rounded-md border border-gray-300 dark:border-gray-700 dark:bg-gray-900 py-2 pl-3 pr-8 text-sm text-gray-700 dark:text-gray-200 focus:border-indigo-500 focus:outline-none focus:ring-indigo-500"
+                class="rounded-lg border border-gray-300 dark:border-gray-700 dark:bg-gray-900 py-2 pl-3 pr-8 text-sm text-gray-700 dark:text-gray-200 focus:border-indigo-500 focus:outline-none focus:ring-indigo-500"
             >
                 <option value="">Todos os regimes</option>
                 @foreach (\App\Enums\ContractRegime::cases() as $regimeOption)
@@ -117,7 +102,7 @@
                 id="regional-filter"
                 name="regional"
                 onchange="this.form.submit()"
-                class="rounded-md border border-gray-300 dark:border-gray-700 dark:bg-gray-900 py-2 pl-3 pr-8 text-sm text-gray-700 dark:text-gray-200 focus:border-indigo-500 focus:outline-none focus:ring-indigo-500"
+                class="rounded-lg border border-gray-300 dark:border-gray-700 dark:bg-gray-900 py-2 pl-3 pr-8 text-sm text-gray-700 dark:text-gray-200 focus:border-indigo-500 focus:outline-none focus:ring-indigo-500"
             >
                 <option value="">Todas as regionais</option>
                 @foreach ($regionals as $regionalOption)
@@ -130,13 +115,22 @@
                 id="uf-filter"
                 name="uf"
                 onchange="this.form.submit()"
-                class="rounded-md border border-gray-300 dark:border-gray-700 dark:bg-gray-900 py-2 pl-3 pr-8 text-sm text-gray-700 dark:text-gray-200 focus:border-indigo-500 focus:outline-none focus:ring-indigo-500"
+                class="rounded-lg border border-gray-300 dark:border-gray-700 dark:bg-gray-900 py-2 pl-3 pr-8 text-sm text-gray-700 dark:text-gray-200 focus:border-indigo-500 focus:outline-none focus:ring-indigo-500"
             >
                 <option value="">Todas as UFs</option>
                 @foreach (\App\Enums\Uf::cases() as $ufOption)
                     <option value="{{ $ufOption->value }}" @selected($uf === $ufOption->value)>{{ $ufOption->value }}</option>
                 @endforeach
             </select>
+
+            @if ($hasFilters)
+                <a
+                    href="{{ route('admin.colaboradores.index', array_filter(['view' => $view])) }}"
+                    class="text-sm font-medium text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100"
+                >
+                    Limpar
+                </a>
+            @endif
         </form>
 
         <div class="inline-flex rounded-lg border border-gray-300 dark:border-gray-700 p-0.5" role="group" aria-label="Modo de visualização">
@@ -144,7 +138,7 @@
                 <a
                     href="{{ route('admin.colaboradores.index', array_merge($viewQuery, ['view' => $mode])) }}"
                     data-view-toggle="{{ $mode }}"
-                    class="inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm {{ $view === $mode ? 'bg-gray-900 text-white dark:bg-white dark:text-gray-900' : 'text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800' }}"
+                    class="inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm transition {{ $view === $mode ? 'bg-gray-900 text-white dark:bg-white dark:text-gray-900' : 'text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800' }}"
                 >
                     <x-icon :name="$mode === 'table' ? 'table-cells' : ($mode === 'cards' ? 'squares-2x2' : 'bars-3')" class="h-4 w-4" />
                     {{ $label }}
@@ -154,40 +148,43 @@
     </div>
 
     @if ($view === 'table')
-        <div class="mt-4 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 shadow-sm">
+        <div class="mt-4 overflow-hidden rounded-2xl border border-gray-200/70 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900">
             <div class="overflow-x-auto">
                 <table class="min-w-full divide-y divide-gray-200 text-sm dark:divide-gray-800">
-                    <thead class="rounded-t-xl bg-gray-50 text-left text-xs uppercase text-gray-500 dark:bg-gray-800 dark:text-gray-400">
+                    <thead class="bg-gray-50 text-left text-xs uppercase tracking-wide text-gray-500 dark:bg-gray-800 dark:text-gray-400">
                         <tr>
                             <x-sort-header column="name" label="Colaborador" icon="user" class="px-5 py-3" />
                             <x-sort-header column="role" label="Função" class="px-5 py-3" />
-                            <x-sort-header column="document" label="CPF" class="px-5 py-3" />
                             <x-sort-header column="contract_regime" label="Regime" class="px-5 py-3" />
                             <x-sort-header column="regional" label="Regional" class="px-5 py-3" />
                             <x-sort-header column="uf" label="UF" class="px-5 py-3" />
                             <x-sort-header column="status" label="Status" icon="flag" class="px-5 py-3" />
-                            <x-sort-header column="updated_at" label="Atualizado" default="updated_at" class="px-5 py-3" />
                             <th class="px-5 py-3 text-right font-medium">Ações</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
                         @forelse ($colaboradores as $colaborador)
-                            <tr class="transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/50">
-                                <td class="px-5 py-3">
-                                    <a
-                                        href="{{ route('admin.colaboradores.show', $colaborador) }}"
-                                        class="flex items-center gap-2 font-medium text-gray-900 hover:text-indigo-600 dark:text-gray-100 dark:hover:text-indigo-400"
-                                    >
-                                        <x-icon name="user" class="h-4 w-4 shrink-0 text-gray-400 dark:text-gray-500" />
-                                        <span class="truncate">{{ $colaborador->name }}</span>
-                                    </a>
-                                    @if ($colaborador->email)
-                                        <p class="mt-0.5 max-w-[18rem] truncate pl-6 text-xs text-gray-500 dark:text-gray-400">{{ $colaborador->email }}</p>
-                                    @endif
+                            <tr class="align-middle transition hover:bg-gray-50 dark:hover:bg-gray-800/40">
+                                <td class="px-5 py-4">
+                                    <div class="flex items-center gap-3">
+                                        <span class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-indigo-50 text-xs font-semibold text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-400">
+                                            {{ strtoupper(substr($colaborador->name, 0, 1)) }}
+                                        </span>
+                                        <div class="min-w-0">
+                                            <a
+                                                href="{{ route('admin.colaboradores.show', $colaborador) }}"
+                                                class="block truncate font-medium text-gray-900 hover:text-indigo-600 dark:text-gray-100 dark:hover:text-indigo-400"
+                                            >
+                                                {{ $colaborador->name }}
+                                            </a>
+                                            @if ($colaborador->email)
+                                                <p class="truncate text-xs text-gray-500 dark:text-gray-400">{{ $colaborador->email }}</p>
+                                            @endif
+                                        </div>
+                                    </div>
                                 </td>
-                                <td class="whitespace-nowrap px-5 py-3 text-gray-500 dark:text-gray-400">{{ $colaborador->role ?? '—' }}</td>
-                                <td class="whitespace-nowrap px-5 py-3 text-gray-500 dark:text-gray-400">{{ $colaborador->document ?? '—' }}</td>
-                                <td class="whitespace-nowrap px-5 py-3">
+                                <td class="whitespace-nowrap px-5 py-4 text-gray-500 dark:text-gray-400">{{ $colaborador->role ?? '—' }}</td>
+                                <td class="whitespace-nowrap px-5 py-4">
                                     @if ($colaborador->contract_regime)
                                         <span class="inline-flex rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600 dark:bg-gray-800 dark:text-gray-300">
                                             {{ $colaborador->contract_regime->label() }}
@@ -196,23 +193,20 @@
                                         <span class="text-gray-500 dark:text-gray-400">—</span>
                                     @endif
                                 </td>
-                                <td class="whitespace-nowrap px-5 py-3 text-gray-500 dark:text-gray-400">{{ $colaborador->regional ?? '—' }}</td>
-                                <td class="whitespace-nowrap px-5 py-3 text-gray-500 dark:text-gray-400">{{ $colaborador->uf?->value ?? '—' }}</td>
-                                <td class="px-5 py-3">
+                                <td class="whitespace-nowrap px-5 py-4 text-gray-500 dark:text-gray-400">{{ $colaborador->regional ?? '—' }}</td>
+                                <td class="whitespace-nowrap px-5 py-4 text-gray-500 dark:text-gray-400">{{ $colaborador->uf?->value ?? '—' }}</td>
+                                <td class="px-5 py-4">
                                     <x-colaborador-status :colaborador="$colaborador" />
                                 </td>
-                                <td class="px-5 py-3">
-                                    <x-relative-time :value="$colaborador->updated_at" class="text-gray-500 dark:text-gray-400" />
-                                </td>
-                                <td class="px-5 py-3 text-right">
+                                <td class="px-5 py-4 text-right">
                                     <x-colaborador-actions-dropdown :colaborador="$colaborador" />
                                 </td>
                             </tr>
                         @empty
                             <tr>
-                                <td class="px-5 py-6 text-gray-500 dark:text-gray-400" colspan="9">
-                                    <span class="inline-flex items-center gap-2">
-                                        <x-icon name="user" class="h-4 w-4" />
+                                <td class="px-5 py-12 text-center text-gray-500 dark:text-gray-400" colspan="7">
+                                    <span class="inline-flex flex-col items-center gap-2">
+                                        <x-icon name="user" class="h-6 w-6 text-gray-300 dark:text-gray-600" />
                                         @if ($hasFilters)
                                             Nenhum colaborador encontrado para os filtros informados.
                                         @else
@@ -225,41 +219,18 @@
                     </tbody>
                 </table>
             </div>
-
-            <div class="flex flex-wrap items-center justify-between gap-3 px-5 py-4">
-                <form method="GET" action="{{ route('admin.colaboradores.index') }}" class="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
-                    @foreach (['search', 'view', 'sort', 'direction', 'status', 'contract_regime', 'regional', 'uf'] as $param)
-                        @if (request($param))
-                            <input type="hidden" name="{{ $param }}" value="{{ request($param) }}">
-                        @endif
-                    @endforeach
-                    <label for="per-page" class="sr-only">Itens por página</label>
-                    <select
-                        id="per-page"
-                        name="per_page"
-                        onchange="this.form.submit()"
-                        class="rounded-md border border-gray-300 dark:border-gray-700 dark:bg-gray-900 py-1.5 pl-2 pr-8 text-sm text-gray-700 dark:text-gray-200 focus:border-indigo-500 focus:outline-none focus:ring-indigo-500"
-                    >
-                        @foreach ([12, 24, 36] as $option)
-                            <option value="{{ $option }}" @selected($perPage === $option)>{{ $option }} por página</option>
-                        @endforeach
-                    </select>
-                </form>
-
-                <x-pagination :paginator="$colaboradores" />
-            </div>
         </div>
     @elseif ($view === 'cards')
         <div class="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             @forelse ($colaboradores as $colaborador)
-                <div class="rounded-xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-800 dark:bg-gray-900">
+                <div class="rounded-2xl border border-gray-200/70 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md dark:border-gray-800 dark:bg-gray-900">
                     <div class="flex items-start justify-between gap-3">
                         <div class="flex min-w-0 items-center gap-3">
-                            <span class="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400">
-                                <x-icon name="user" class="h-5 w-5" />
+                            <span class="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-indigo-50 text-sm font-semibold text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-400">
+                                {{ strtoupper(substr($colaborador->name, 0, 1)) }}
                             </span>
                             <div class="min-w-0">
-                                <a href="{{ route('admin.colaboradores.show', $colaborador) }}" class="block truncate text-sm font-medium text-gray-900 hover:text-indigo-600 dark:text-gray-100 dark:hover:text-indigo-400">
+                                <a href="{{ route('admin.colaboradores.show', $colaborador) }}" class="block truncate text-sm font-semibold text-gray-900 hover:text-indigo-600 dark:text-gray-100 dark:hover:text-indigo-400">
                                     {{ $colaborador->name }}
                                 </a>
                                 <p class="truncate text-xs text-gray-500 dark:text-gray-400">{{ $colaborador->role ?? 'Função não informada' }}</p>
@@ -271,67 +242,46 @@
 
                     <div class="mt-4 space-y-1 text-xs text-gray-500 dark:text-gray-400">
                         @if ($colaborador->phone)
-                            <p class="flex items-center gap-1">
+                            <p class="flex items-center gap-1.5">
                                 <x-icon name="phone" class="h-3.5 w-3.5" />
                                 {{ $colaborador->phone }}
                             </p>
                         @endif
                         @if ($colaborador->email)
-                            <p class="flex items-center gap-1">
+                            <p class="flex items-center gap-1.5">
                                 <x-icon name="envelope" class="h-3.5 w-3.5" />
                                 {{ $colaborador->email }}
                             </p>
                         @endif
-                        @if ($colaborador->document)
-                            <p class="font-medium tracking-tight text-gray-600 dark:text-gray-300">{{ $colaborador->document }}</p>
-                        @endif
+                        <p class="flex items-center gap-1.5">
+                            <x-icon name="map-pin" class="h-3.5 w-3.5" />
+                            {{ $colaborador->regional ? $colaborador->regional.' · ' : '' }}{{ $colaborador->uf?->value ?? 'Sem UF' }}
+                        </p>
                     </div>
 
                     <div class="mt-4 flex items-center justify-between border-t border-gray-100 pt-3 dark:border-gray-800">
                         <x-colaborador-status :colaborador="$colaborador" />
-                        <x-relative-time :value="$colaborador->updated_at" class="text-xs text-gray-500 dark:text-gray-400" />
+                        @if ($colaborador->contract_regime)
+                            <span class="text-xs font-medium text-gray-500 dark:text-gray-400">{{ $colaborador->contract_regime->label() }}</span>
+                        @endif
                     </div>
                 </div>
             @empty
-                <p class="col-span-full flex items-center gap-2 py-8 text-sm text-gray-500 dark:text-gray-400">
-                    <x-icon name="user" class="h-4 w-4 text-gray-400 dark:text-gray-500" />
+                <div class="col-span-full rounded-2xl border border-dashed border-gray-300 px-5 py-10 text-center text-sm text-gray-500 dark:border-gray-700 dark:text-gray-400">
                     @if ($hasFilters)
                         Nenhum colaborador encontrado para os filtros informados.
                     @else
                         Nenhum colaborador cadastrado até o momento.
                     @endif
-                </p>
+                </div>
             @endforelse
-        </div>
-
-        <div class="flex flex-wrap items-center justify-between gap-3 pt-4">
-            <form method="GET" action="{{ route('admin.colaboradores.index') }}" class="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
-                @foreach (['search', 'view', 'sort', 'direction', 'status', 'contract_regime', 'regional', 'uf'] as $param)
-                    @if (request($param))
-                        <input type="hidden" name="{{ $param }}" value="{{ request($param) }}">
-                    @endif
-                @endforeach
-                <label for="per-page" class="sr-only">Itens por página</label>
-                <select
-                    id="per-page"
-                    name="per_page"
-                    onchange="this.form.submit()"
-                    class="rounded-md border border-gray-300 dark:border-gray-700 dark:bg-gray-900 py-1.5 pl-2 pr-8 text-sm text-gray-700 dark:text-gray-200 focus:border-indigo-500 focus:outline-none focus:ring-indigo-500"
-                >
-                    @foreach ([12, 24, 36] as $option)
-                        <option value="{{ $option }}" @selected($perPage === $option)>{{ $option }} por página</option>
-                    @endforeach
-                </select>
-            </form>
-
-            <x-pagination :paginator="$colaboradores" />
         </div>
     @else
         <div class="mt-4 divide-y divide-gray-100 rounded-xl border border-gray-200 bg-white shadow-sm dark:divide-gray-800 dark:border-gray-800 dark:bg-gray-900">
             @forelse ($colaboradores as $colaborador)
-                <div class="flex items-center gap-4 px-5 py-3">
-                    <span class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400">
-                        <x-icon name="user" class="h-4 w-4" />
+                <div class="flex items-center gap-4 px-5 py-3 transition hover:bg-gray-50 dark:hover:bg-gray-800/40">
+                    <span class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-indigo-50 text-xs font-semibold text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-400">
+                        {{ strtoupper(substr($colaborador->name, 0, 1)) }}
                     </span>
 
                     <div class="min-w-0 flex-1">
@@ -343,8 +293,8 @@
                         </p>
                     </div>
 
-                    <span class="hidden whitespace-nowrap text-sm text-gray-500 md:inline dark:text-gray-400">
-                        {{ $colaborador->document ?? '—' }}
+                    <span class="hidden whitespace-nowrap text-xs text-gray-500 md:inline dark:text-gray-400">
+                        {{ $colaborador->regional ? $colaborador->regional.' · ' : '' }}{{ $colaborador->uf?->value ?? '—' }}
                     </span>
 
                     <div class="hidden sm:block">
@@ -354,8 +304,7 @@
                     <x-colaborador-actions-dropdown :colaborador="$colaborador" />
                 </div>
             @empty
-                <p class="flex items-center gap-2 px-5 py-8 text-sm text-gray-500 dark:text-gray-400">
-                    <x-icon name="user" class="h-4 w-4 text-gray-400 dark:text-gray-500" />
+                <p class="px-5 py-10 text-center text-sm text-gray-500 dark:text-gray-400">
                     @if ($hasFilters)
                         Nenhum colaborador encontrado para os filtros informados.
                     @else
@@ -364,30 +313,30 @@
                 </p>
             @endforelse
         </div>
-
-        <div class="flex flex-wrap items-center justify-between gap-3 pt-4">
-            <form method="GET" action="{{ route('admin.colaboradores.index') }}" class="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
-                @foreach (['search', 'view', 'sort', 'direction', 'status', 'contract_regime', 'regional', 'uf'] as $param)
-                    @if (request($param))
-                        <input type="hidden" name="{{ $param }}" value="{{ request($param) }}">
-                    @endif
-                @endforeach
-                <label for="per-page" class="sr-only">Itens por página</label>
-                <select
-                    id="per-page"
-                    name="per_page"
-                    onchange="this.form.submit()"
-                    class="rounded-md border border-gray-300 dark:border-gray-700 dark:bg-gray-900 py-1.5 pl-2 pr-8 text-sm text-gray-700 dark:text-gray-200 focus:border-indigo-500 focus:outline-none focus:ring-indigo-500"
-                >
-                    @foreach ([12, 24, 36] as $option)
-                        <option value="{{ $option }}" @selected($perPage === $option)>{{ $option }} por página</option>
-                    @endforeach
-                </select>
-            </form>
-
-            <x-pagination :paginator="$colaboradores" />
-        </div>
     @endif
+
+    <div class="mt-4 flex flex-wrap items-center justify-between gap-3">
+        <form method="GET" action="{{ route('admin.colaboradores.index') }}" class="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
+            @foreach (['search', 'view', 'sort', 'direction', 'status', 'contract_regime', 'regional', 'uf'] as $param)
+                @if (request($param))
+                    <input type="hidden" name="{{ $param }}" value="{{ request($param) }}">
+                @endif
+            @endforeach
+            <label for="per-page" class="sr-only">Itens por página</label>
+            <select
+                id="per-page"
+                name="per_page"
+                onchange="this.form.submit()"
+                class="rounded-lg border border-gray-300 dark:border-gray-700 dark:bg-gray-900 py-1.5 pl-2 pr-8 text-sm text-gray-700 dark:text-gray-200 focus:border-indigo-500 focus:outline-none focus:ring-indigo-500"
+            >
+                @foreach ([12, 24, 36] as $option)
+                    <option value="{{ $option }}" @selected($perPage === $option)>{{ $option }} por página</option>
+                @endforeach
+            </select>
+        </form>
+
+        <x-pagination :paginator="$colaboradores" />
+    </div>
 
     @include('admin.colaboradores.partials.create-modal')
 
@@ -401,7 +350,7 @@
     >
         <div class="absolute inset-0 bg-gray-900/50" data-modal-close></div>
 
-        <div class="absolute left-1/2 top-1/2 max-h-[90vh] w-full max-w-xl -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-xl bg-white p-5 shadow-xl dark:bg-gray-900">
+        <div class="absolute left-1/2 top-1/2 max-h-[90vh] w-full max-w-xl -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-2xl bg-white p-6 shadow-xl dark:bg-gray-900">
             <div class="flex items-start justify-between gap-4">
                 <div>
                     <h2 id="colaborador-import-modal-title" class="flex items-center gap-2 text-base font-semibold text-gray-900 dark:text-gray-100">
@@ -424,7 +373,7 @@
             @if ($errors->any() && old('modal') === 'import')
                 <div
                     data-modal-error
-                    class="mt-4 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300"
+                    class="mt-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300"
                 >
                     <p class="font-medium">Nenhum colaborador foi criado. Corrija os itens abaixo e tente novamente:</p>
 
@@ -438,7 +387,7 @@
                 </div>
             @endif
 
-            <div class="mt-4 rounded-md border border-gray-200 bg-gray-50 p-3 text-sm text-gray-600 dark:border-gray-800 dark:bg-gray-800/50 dark:text-gray-300">
+            <div class="mt-4 rounded-lg border border-gray-200 bg-gray-50 p-3 text-sm text-gray-600 dark:border-gray-800 dark:bg-gray-800/50 dark:text-gray-300">
                 <p>Colunas: <span class="font-medium">Nome, Regime de Contrato, Regional, UF, PIS, Função, CPF, CNPJ, RG, Órgão Emissor, Data de Nascimento, Nome da Mãe, Contato, E-mail, Status, Observações</span>.</p>
                 <p class="mt-1">Nome é obrigatório. Status: ativo ou inativo. Regime: CLT, PJ, Estágio, Aprendiz ou Temporário. UF: sigla com 2 letras. Data de Nascimento: dd/mm/aaaa.</p>
                 <a
@@ -462,7 +411,7 @@
                     accept=".xlsx,.xls"
                     required
                     data-import-file
-                    class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-700 dark:bg-gray-900 px-3 py-2 text-sm text-gray-700 dark:text-gray-200 file:mr-3 file:rounded-md file:border-0 file:bg-gray-900 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-white dark:file:bg-white dark:file:text-gray-900"
+                    class="mt-1 block w-full rounded-lg border border-gray-300 dark:border-gray-700 dark:bg-gray-900 px-3 py-2 text-sm text-gray-700 dark:text-gray-200 file:mr-3 file:rounded-md file:border-0 file:bg-gray-900 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-white dark:file:bg-white dark:file:text-gray-900"
                 >
                 @error('file')
                     <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p>
@@ -475,7 +424,7 @@
                     <p data-import-progress-label class="mt-1 text-xs text-gray-500 dark:text-gray-400">Enviando planilha...</p>
                 </div>
 
-                <div data-import-errors hidden class="mt-4 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300">
+                <div data-import-errors hidden class="mt-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300">
                     <p class="font-medium">Nenhum colaborador foi criado. Corrija os itens abaixo e tente novamente:</p>
 
                     <ul data-import-errors-list class="mt-2 list-disc space-y-1 pl-5"></ul>
@@ -484,7 +433,7 @@
                 <div class="mt-6 flex justify-end gap-2">
                     <button
                         type="button"
-                        class="rounded-md border border-gray-300 dark:border-gray-700 dark:bg-gray-900 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800"
+                        class="rounded-lg border border-gray-300 dark:border-gray-700 dark:bg-gray-900 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800"
                         data-modal-close
                     >
                         Cancelar
@@ -492,7 +441,7 @@
                     <button
                         type="submit"
                         data-import-submit
-                        class="inline-flex items-center gap-1.5 rounded-md bg-gray-900 dark:bg-white px-4 py-2 text-sm font-medium text-white dark:text-gray-900 hover:bg-gray-700 dark:hover:bg-gray-200 disabled:cursor-not-allowed disabled:opacity-60"
+                        class="inline-flex items-center gap-1.5 rounded-lg bg-gray-900 dark:bg-white px-4 py-2 text-sm font-medium text-white dark:text-gray-900 hover:bg-gray-700 dark:hover:bg-gray-200 disabled:cursor-not-allowed disabled:opacity-60"
                     >
                         <x-icon name="arrow-up-tray" class="h-4 w-4" />
                         Importar
