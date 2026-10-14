@@ -29,7 +29,7 @@ class ErbController extends Controller
             ? $request->query('status')
             : null;
 
-        $sortableColumns = ['code', 'name', 'operator', 'technology', 'city', 'state', 'status', 'updated_at'];
+        $sortableColumns = ['code', 'name', 'site_id', 'operator', 'technology', 'city', 'state', 'status', 'updated_at'];
 
         if (in_array($request->query('sort'), $sortableColumns, true)) {
             $sort = $request->query('sort');

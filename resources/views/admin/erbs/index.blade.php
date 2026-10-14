@@ -166,7 +166,7 @@
                 <table class="min-w-full divide-y divide-gray-200 text-sm dark:divide-gray-800">
                     <thead class="bg-gray-50/80 text-left text-xs font-medium uppercase tracking-wide text-gray-500 dark:bg-gray-800/60 dark:text-gray-400">
                         <tr>
-                            <x-sort-header column="code" label="ERB" icon="signal" class="px-5 py-3.5" />
+                            <x-sort-header column="site_id" label="ERB" icon="signal" class="px-5 py-3.5" />
                             <x-sort-header column="operator" label="Operadora" class="px-5 py-3.5" />
                             <x-sort-header column="technology" label="Tecnologia" class="px-5 py-3.5" />
                             <x-sort-header column="city" label="Cidade" class="px-5 py-3.5" />
@@ -190,7 +190,7 @@
                                                 href="{{ route('admin.erbs.show', $erb) }}"
                                                 class="block truncate font-semibold text-gray-900 hover:text-indigo-600 dark:text-gray-100 dark:hover:text-indigo-400"
                                             >
-                                                {{ $erb->code }}
+                                                {{ $erb->site_id ?: $erb->code }}
                                             </a>
                                             <p class="mt-0.5 max-w-[20rem] truncate text-xs text-gray-500 dark:text-gray-400">{{ $erb->end_id ?? '—' }}</p>
                                         </div>
@@ -278,9 +278,9 @@
                             </span>
                             <div class="min-w-0">
                                 <a href="{{ route('admin.erbs.show', $erb) }}" class="block truncate font-semibold text-gray-900 hover:text-indigo-600 dark:text-gray-100 dark:hover:text-indigo-400">
-                                    {{ $erb->code }}
+                                    {{ $erb->site_id ?: $erb->code }}
                                 </a>
-                                <p class="truncate text-xs text-gray-500 dark:text-gray-400">{{ $erb->name }}</p>
+                                <p class="truncate text-xs text-gray-500 dark:text-gray-400">{{ $erb->end_id ?? '—' }}</p>
                             </div>
                         </div>
 
@@ -367,10 +367,10 @@
 
                     <div class="min-w-0 flex-1">
                         <a href="{{ route('admin.erbs.show', $erb) }}" class="truncate font-semibold text-gray-900 hover:text-indigo-600 dark:text-gray-100 dark:hover:text-indigo-400">
-                            {{ $erb->code }}
+                            {{ $erb->site_id ?: $erb->code }}
                         </a>
                         <p class="truncate text-xs text-gray-500 dark:text-gray-400">
-                            {{ $erb->name }}{{ $erb->operator ? ' · '.$erb->operator : '' }}
+                            {{ $erb->end_id ?? '—' }}{{ $erb->operator ? ' · '.$erb->operator : '' }}
                         </p>
                     </div>
 

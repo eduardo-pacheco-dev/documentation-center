@@ -17,17 +17,19 @@ it('requires an authenticated user to open the ERBs area', function () {
     $this->get('/admin/erbs')->assertRedirect('/login');
 });
 
-it('lists only the ERBs the user owns and shows the end identifier instead of the name', function () {
+it('lists only the ERBs the user owns and shows the site and end identifiers instead of the code', function () {
     $owner = User::factory()->create();
 
     Erb::factory()->create([
         'user_id' => $owner->getKey(),
         'code' => 'ERB-00001',
+        'site_id' => 'SITE-ALFA-01',
         'name' => 'ERB do Titular',
         'end_id' => 'EST-ALFA-01',
     ]);
     Erb::factory()->create([
         'code' => 'ERB-09999',
+        'site_id' => 'SITE-BETA-99',
         'name' => 'ERB Alheia',
         'end_id' => 'EST-BETA-99',
     ]);
@@ -35,10 +37,11 @@ it('lists only the ERBs the user owns and shows the end identifier instead of th
     $this->actingAs($owner)
         ->get('/admin/erbs')
         ->assertOk()
-        ->assertSee('ERB-00001')
+        ->assertSee('SITE-ALFA-01')
         ->assertSee('EST-ALFA-01')
+        ->assertDontSee('ERB-00001')
         ->assertDontSee('ERB do Titular')
-        ->assertDontSee('ERB-09999')
+        ->assertDontSee('SITE-BETA-99')
         ->assertDontSee('EST-BETA-99');
 });
 
@@ -109,14 +112,14 @@ it('stores the site and end identifiers when creating an ERB', function () {
 it('filters the ERB list by site and end identifiers', function () {
     $owner = User::factory()->create();
 
-    Erb::factory()->create([
+    $alpha = Erb::factory()->create([
         'user_id' => $owner->getKey(),
         'code' => 'ERB-00001',
         'name' => 'Alpha Norte',
         'site_id' => 'PABLM',
         'end_id' => 'PABLM_0001',
     ]);
-    Erb::factory()->create([
+    $beta = Erb::factory()->create([
         'user_id' => $owner->getKey(),
         'code' => 'ERB-00002',
         'name' => 'Beta Sul',
@@ -127,23 +130,28 @@ it('filters the ERB list by site and end identifiers', function () {
     $this->actingAs($owner)
         ->get('/admin/erbs?search=PABLM_0001')
         ->assertOk()
-        ->assertSee('ERB-00001')
-        ->assertDontSee('ERB-00002');
+        ->assertSee(route('admin.erbs.show', $alpha), false)
+        ->assertDontSee(route('admin.erbs.show', $beta), false);
 
     $this->actingAs($owner)
         ->get('/admin/erbs?search=PABXA')
         ->assertOk()
-        ->assertSee('ERB-00002')
-        ->assertDontSee('ERB-00001');
+        ->assertSee(route('admin.erbs.show', $beta), false)
+        ->assertDontSee(route('admin.erbs.show', $alpha), false);
 });
 
 it('renders the ERB list in the alternate view modes', function () {
     $owner = User::factory()->create();
 
-    Erb::factory()->create(['user_id' => $owner->getKey(), 'code' => 'ERB-00001', 'name' => 'Alpha Norte']);
+    Erb::factory()->create([
+        'user_id' => $owner->getKey(),
+        'code' => 'ERB-00001',
+        'site_id' => 'SITE-VIEW-1',
+        'name' => 'Alpha Norte',
+    ]);
 
-    $this->actingAs($owner)->get('/admin/erbs?view=cards')->assertOk()->assertSee('ERB-00001');
-    $this->actingAs($owner)->get('/admin/erbs?view=compact')->assertOk()->assertSee('ERB-00001');
+    $this->actingAs($owner)->get('/admin/erbs?view=cards')->assertOk()->assertSee('SITE-VIEW-1');
+    $this->actingAs($owner)->get('/admin/erbs?view=compact')->assertOk()->assertSee('SITE-VIEW-1');
 });
 
 it('creates an ERB owned by the authenticated user', function () {
@@ -377,7 +385,7 @@ it('soft deletes the ERB', function () {
 
     expect($erb->refresh()->trashed())->toBeTrue();
 
-    $this->actingAs($user)->get('/admin/erbs')->assertOk()->assertDontSee($erb->code);
+    $this->actingAs($user)->get('/admin/erbs')->assertOk()->assertDontSee($erb->site_id);
 });
 
 it('links an ERB to the work orders the user owns', function () {

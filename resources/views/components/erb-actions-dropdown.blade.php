@@ -38,7 +38,7 @@
         <form
             method="POST"
             action="{{ route('admin.erbs.destroy', $erb) }}"
-            data-confirm="Excluir a ERB {{ $erb->code }}?"
+            data-confirm="Excluir a ERB {{ $erb->site_id ?: $erb->code }}?"
             data-confirm-title="Excluir ERB"
             data-confirm-label="Excluir"
         >
