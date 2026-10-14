@@ -164,73 +164,101 @@
     @can('update', $workOrder)
         <script type="application/json" id="work-order-items-editor-data">@json(['catalog' => $catalogData, 'items' => $editorItems], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT)</script>
 
-        <div class="mt-4 rounded-xl border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900">
+        <div
+            class="mt-4 rounded-xl border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900"
+            x-data="{
+                catalog: [],
+                items: [],
+                initial: [],
+                search: '',
+                openResults: false,
+                editing: @js(! empty($itemsErrors)),
+                init() {
+                    const data = JSON.parse(document.getElementById('work-order-items-editor-data').textContent);
+                    this.catalog = data.catalog;
+                    this.items = data.items;
+                    this.initial = JSON.parse(JSON.stringify(data.items));
+                },
+                startEditing() {
+                    this.items = JSON.parse(JSON.stringify(this.initial));
+                    this.search = '';
+                    this.openResults = false;
+                    this.editing = true;
+                },
+                cancelEditing() {
+                    this.editing = false;
+                    this.search = '';
+                    this.openResults = false;
+                    this.items = JSON.parse(JSON.stringify(this.initial));
+                },
+                get results() {
+                    const term = this.search.trim().toLowerCase();
+                    const matches = term === ''
+                        ? this.catalog
+                        : this.catalog.filter((entry) => entry.name.toLowerCase().includes(term));
+                    return matches.slice(0, 20);
+                },
+                entry(item) {
+                    return this.catalog.find((option) => String(option.id) === String(item.catalog_item_id)) ?? null;
+                },
+                name(item) {
+                    const found = this.entry(item);
+                    return found ? found.name : 'Escolha um item do catálogo';
+                },
+                unit(item) {
+                    const found = this.entry(item);
+                    return found ? (found.unit ?? '') : '';
+                },
+                price(item) {
+                    const found = this.entry(item);
+                    return found ? Number(found.price) : 0;
+                },
+                lineTotal(item) {
+                    return (Number(item.quantity) || 0) * this.price(item);
+                },
+                get total() {
+                    return this.items.reduce((sum, item) => sum + this.lineTotal(item), 0);
+                },
+                addFromCatalog(option) {
+                    const existing = this.items.find((item) => String(item.catalog_item_id) === String(option.id));
+                    if (existing) {
+                        existing.quantity = (Number(existing.quantity) || 0) + 1;
+                    } else {
+                        this.items.push({ catalog_item_id: String(option.id), quantity: 1 });
+                    }
+                    this.search = '';
+                    this.openResults = false;
+                },
+                removeItem(index) {
+                    this.items.splice(index, 1);
+                },
+                money(value) {
+                    return 'R$ ' + (Number(value) || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                },
+            }"
+        >
             <div class="flex flex-wrap items-center justify-between gap-3 border-b border-gray-100 px-5 py-3 dark:border-gray-800">
                 <div class="flex items-center gap-2">
                     <x-icon name="cube" class="h-4 w-4 text-gray-400 dark:text-gray-500" />
                     <h2 class="text-xs font-semibold uppercase text-gray-500 dark:text-gray-400">Itens da OS</h2>
                 </div>
-                <p class="text-xs text-gray-400 dark:text-gray-500">Edite os itens e salve sem sair da página.</p>
+                <button
+                    type="button"
+                    x-show="! editing"
+                    @click="startEditing()"
+                    class="inline-flex items-center gap-1.5 rounded-md border border-gray-300 dark:border-gray-700 dark:bg-gray-900 px-3 py-1.5 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800"
+                >
+                    <x-icon name="pencil-square" class="h-4 w-4" />
+                    Editar itens
+                </button>
+                <p x-show="editing" x-cloak class="text-xs text-gray-400 dark:text-gray-500">Edite os itens e salve sem sair da página.</p>
             </div>
 
             <form
                 method="POST"
                 action="{{ route('admin.work-orders.items.update', $workOrder) }}"
-                x-data="{
-                    catalog: [],
-                    items: [],
-                    search: '',
-                    openResults: false,
-                    init() {
-                        const data = JSON.parse(document.getElementById('work-order-items-editor-data').textContent);
-                        this.catalog = data.catalog;
-                        this.items = data.items;
-                    },
-                    get results() {
-                        const term = this.search.trim().toLowerCase();
-                        const matches = term === ''
-                            ? this.catalog
-                            : this.catalog.filter((entry) => entry.name.toLowerCase().includes(term));
-                        return matches.slice(0, 20);
-                    },
-                    entry(item) {
-                        return this.catalog.find((option) => String(option.id) === String(item.catalog_item_id)) ?? null;
-                    },
-                    name(item) {
-                        const found = this.entry(item);
-                        return found ? found.name : 'Escolha um item do catálogo';
-                    },
-                    unit(item) {
-                        const found = this.entry(item);
-                        return found ? (found.unit ?? '') : '';
-                    },
-                    price(item) {
-                        const found = this.entry(item);
-                        return found ? Number(found.price) : 0;
-                    },
-                    lineTotal(item) {
-                        return (Number(item.quantity) || 0) * this.price(item);
-                    },
-                    get total() {
-                        return this.items.reduce((sum, item) => sum + this.lineTotal(item), 0);
-                    },
-                    addFromCatalog(option) {
-                        const existing = this.items.find((item) => String(item.catalog_item_id) === String(option.id));
-                        if (existing) {
-                            existing.quantity = (Number(existing.quantity) || 0) + 1;
-                        } else {
-                            this.items.push({ catalog_item_id: String(option.id), quantity: 1 });
-                        }
-                        this.search = '';
-                        this.openResults = false;
-                    },
-                    removeItem(index) {
-                        this.items.splice(index, 1);
-                    },
-                    money(value) {
-                        return 'R$ ' + (Number(value) || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-                    },
-                }"
+                x-show="editing"
+                x-cloak
             >
                 @csrf
                 @method('PUT')
@@ -341,12 +369,13 @@
                     </div>
 
                     <div class="flex items-center gap-2">
-                        <a
-                            href="{{ route('admin.work-orders.show', $workOrder) }}"
+                        <button
+                            type="button"
+                            @click="cancelEditing()"
                             class="rounded-md border border-gray-300 dark:border-gray-700 dark:bg-gray-900 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800"
                         >
-                            Descartar
-                        </a>
+                            Cancelar
+                        </button>
                         <button
                             type="submit"
                             class="inline-flex items-center gap-1.5 rounded-md bg-gray-900 dark:bg-white px-4 py-2 text-sm font-medium text-white dark:text-gray-900 hover:bg-gray-700 dark:hover:bg-gray-200"
@@ -357,6 +386,46 @@
                     </div>
                 </div>
             </form>
+
+            <div x-show="! editing" class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200 text-sm dark:divide-gray-800">
+                    <thead class="bg-gray-50 text-left text-xs uppercase text-gray-500 dark:bg-gray-800 dark:text-gray-400">
+                        <tr>
+                            <th class="px-5 py-3 font-medium">Descrição</th>
+                            <th class="px-5 py-3 font-medium">Unidade</th>
+                            <th class="px-5 py-3 text-right font-medium">Quantidade</th>
+                            <th class="px-5 py-3 text-right font-medium">Valor unitário</th>
+                            <th class="px-5 py-3 text-right font-medium">Subtotal</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
+                        @forelse ($workOrder->items as $item)
+                            <tr>
+                                <td class="px-5 py-3 font-medium text-gray-900 dark:text-gray-100">
+                                    {{ $item->description }}
+                                    @if ($item->catalogItem)
+                                        <span class="mt-0.5 block text-xs text-gray-400 dark:text-gray-500">{{ $item->catalogItem->name }}</span>
+                                    @endif
+                                </td>
+                                <td class="whitespace-nowrap px-5 py-3 text-gray-500 dark:text-gray-400">{{ $item->unit ?? '—' }}</td>
+                                <td class="whitespace-nowrap px-5 py-3 text-right text-gray-500 dark:text-gray-400">{{ $quantity($item->quantity) }}</td>
+                                <td class="whitespace-nowrap px-5 py-3 text-right text-gray-500 dark:text-gray-400">{{ $money((float) $item->unit_price) }}</td>
+                                <td class="whitespace-nowrap px-5 py-3 text-right font-medium text-gray-900 dark:text-gray-100">{{ $money((float) $item->total) }}</td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td class="px-5 py-6 text-gray-500 dark:text-gray-400" colspan="5">Nenhum item registrado.</td>
+                            </tr>
+                        @endforelse
+                    </tbody>
+                    <tfoot class="bg-gray-50 dark:bg-gray-800">
+                        <tr>
+                            <td class="px-5 py-3 text-right text-sm font-semibold text-gray-700 dark:text-gray-200" colspan="4">Total</td>
+                            <td class="whitespace-nowrap px-5 py-3 text-right text-sm font-semibold text-gray-900 dark:text-gray-100">{{ $money((float) $workOrder->total) }}</td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
         </div>
     @else
         <div class="mt-4 rounded-xl border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900">
