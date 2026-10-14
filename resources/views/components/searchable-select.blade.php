@@ -29,8 +29,35 @@
         value: @js($selectedValue),
         options: @js($normalizedOptions),
         active: 0,
+        panelId: @js($id.'-listbox'),
+        panelStyle: '',
         init() {
             this.search = this.selectedLabel;
+
+            this.onDocumentClick = (event) => {
+                const panel = document.getElementById(this.panelId);
+
+                if (this.$el.contains(event.target) || (panel && panel.contains(event.target))) {
+                    return;
+                }
+
+                this.closeList();
+            };
+
+            this.onReposition = () => {
+                if (this.open) {
+                    this.position();
+                }
+            };
+
+            document.addEventListener('click', this.onDocumentClick);
+            window.addEventListener('scroll', this.onReposition, true);
+            window.addEventListener('resize', this.onReposition);
+        },
+        destroy() {
+            document.removeEventListener('click', this.onDocumentClick);
+            window.removeEventListener('scroll', this.onReposition, true);
+            window.removeEventListener('resize', this.onReposition);
         },
         get selected() {
             return this.options.find((option) => option.value === this.value) ?? null;
@@ -47,9 +74,31 @@
 
             return this.options.filter((option) => option.label.toLowerCase().includes(term));
         },
+        position() {
+            const input = this.$refs.input;
+            const panel = document.getElementById(this.panelId);
+
+            if (! input || ! panel) {
+                return;
+            }
+
+            const rect = input.getBoundingClientRect();
+            const listHeight = Math.min(panel.scrollHeight || 224, 224);
+            const spaceBelow = window.innerHeight - rect.bottom;
+            const openUp = spaceBelow < listHeight && rect.top > spaceBelow;
+            const top = openUp ? Math.max(8, rect.top - listHeight - 4) : rect.bottom + 4;
+
+            this.panelStyle = 'top: ' + top + 'px; left: ' + rect.left + 'px; width: ' + rect.width + 'px;';
+        },
         openList() {
             this.open = true;
             this.active = 0;
+            this.$nextTick(() => this.position());
+        },
+        onInput() {
+            this.open = true;
+            this.active = 0;
+            this.$nextTick(() => this.position());
         },
         closeList() {
             this.open = false;
@@ -64,11 +113,14 @@
             this.value = '';
             this.search = '';
             this.open = true;
-            this.$nextTick(() => this.$refs.input.focus());
+            this.$nextTick(() => {
+                this.$refs.input.focus();
+                this.position();
+            });
         },
         move(step) {
             if (! this.open) {
-                this.open = true;
+                this.openList();
                 return;
             }
 
@@ -82,7 +134,6 @@
             }
         },
     }"
-    @click.away="closeList()"
     @keydown.escape.stop="closeList()"
     {{ $attributes->merge(['class' => 'relative']) }}
 >
@@ -97,7 +148,7 @@
             id="{{ $id }}"
             x-model="search"
             @focus="openList()"
-            @input="open = true; active = 0"
+            @input="onInput()"
             @keydown.arrow-down.prevent="move(1)"
             @keydown.arrow-up.prevent="move(-1)"
             @keydown.enter.prevent="chooseActive()"
@@ -129,28 +180,31 @@
         />
     </div>
 
-    <div
-        id="{{ $id }}-listbox"
-        x-show="open"
-        x-cloak
-        role="listbox"
-        class="absolute z-50 mt-1 max-h-56 w-full overflow-auto rounded-md border border-gray-200 bg-white py-1 shadow-lg dark:border-gray-700 dark:bg-gray-900"
-    >
-        <template x-for="(option, index) in filtered" :key="option.value">
-            <button
-                type="button"
-                role="option"
-                @click="choose(option)"
-                @mouseenter="active = index"
-                :aria-selected="option.value === value"
-                :class="active === index ? 'bg-indigo-50 dark:bg-indigo-500/10' : ''"
-                class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 dark:text-gray-200 dark:hover:bg-gray-800"
-            >
-                <span class="min-w-0 flex-1 truncate" x-text="option.label"></span>
-                <x-icon x-show="option.value === value" name="check" class="h-4 w-4 shrink-0 text-indigo-600 dark:text-indigo-400" />
-            </button>
-        </template>
+    <template x-teleport="body">
+        <div
+            id="{{ $id }}-listbox"
+            x-show="open"
+            x-cloak
+            :style="panelStyle"
+            role="listbox"
+            class="fixed z-[60] max-h-56 overflow-auto rounded-md border border-gray-200 bg-white py-1 shadow-lg dark:border-gray-700 dark:bg-gray-900"
+        >
+            <template x-for="(option, index) in filtered" :key="option.value">
+                <button
+                    type="button"
+                    role="option"
+                    @click="choose(option)"
+                    @mouseenter="active = index"
+                    :aria-selected="option.value === value"
+                    :class="active === index ? 'bg-indigo-50 dark:bg-indigo-500/10' : ''"
+                    class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 dark:text-gray-200 dark:hover:bg-gray-800"
+                >
+                    <span class="min-w-0 flex-1 truncate" x-text="option.label"></span>
+                    <x-icon x-show="option.value === value" name="check" class="h-4 w-4 shrink-0 text-indigo-600 dark:text-indigo-400" />
+                </button>
+            </template>
 
-        <p x-show="filtered.length === 0" class="px-3 py-2 text-sm text-gray-500 dark:text-gray-400">{{ $emptyMessage }}</p>
-    </div>
+            <p x-show="filtered.length === 0" class="px-3 py-2 text-sm text-gray-500 dark:text-gray-400">{{ $emptyMessage }}</p>
+        </div>
+    </template>
 </div>
