@@ -152,6 +152,29 @@ test('administrators can create users', function () {
     ]);
 });
 
+test('administrators can create a user with a surname', function () {
+    $admin = User::factory()->admin()->create();
+
+    $this->actingAs($admin)->post('/admin/users', [
+        'name' => 'Maria',
+        'surname' => 'Souza',
+        'email' => 'maria.souza@example.com',
+        'password' => 'password',
+        'password_confirmation' => 'password',
+    ])->assertRedirect('/admin/users');
+
+    $this->assertDatabaseHas('users', [
+        'email' => 'maria.souza@example.com',
+        'name' => 'Maria',
+        'surname' => 'Souza',
+    ]);
+
+    $this->actingAs($admin)
+        ->get('/admin/users')
+        ->assertOk()
+        ->assertSee('Maria Souza');
+});
+
 test('administrators can delete other users', function () {
     $admin = User::factory()->admin()->create();
     $user = User::factory()->create();

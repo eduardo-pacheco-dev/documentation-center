@@ -16,6 +16,7 @@ class StoreUserRequest extends RegisterRequest
     {
         return [
             ...parent::rules(),
+            'surname' => ['nullable', 'string', 'max:255'],
             'is_admin' => ['sometimes', 'boolean'],
         ];
     }

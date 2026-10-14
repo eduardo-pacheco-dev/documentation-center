@@ -25,6 +25,7 @@
             data-user-edit
             data-user-id="{{ $user->getKey() }}"
             data-user-name="{{ $user->name }}"
+            data-user-surname="{{ $user->surname }}"
             data-user-email="{{ $user->email }}"
             data-user-admin="{{ $user->is_admin ? '1' : '0' }}"
         >
@@ -36,7 +37,7 @@
             method="POST"
             action="{{ route('admin.users.toggle', $user) }}"
             @if ($user->is_active)
-                data-confirm="Desativar o usuário {{ $user->name }}?"
+                data-confirm="Desativar o usuário {{ $user->full_name }}?"
                 data-confirm-title="Desativar usuário"
                 data-confirm-label="Desativar"
             @endif
@@ -61,7 +62,7 @@
         <form
             method="POST"
             action="{{ route('admin.users.destroy', $user) }}"
-            data-confirm="Excluir o usuário {{ $user->name }}?"
+            data-confirm="Excluir o usuário {{ $user->full_name }}?"
             data-confirm-title="Excluir usuário"
             data-confirm-label="Excluir"
         >

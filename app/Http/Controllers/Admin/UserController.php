@@ -50,6 +50,7 @@ class UserController extends Controller
             $query->where(function (Builder $builder) use ($search): void {
                 $builder
                     ->where('name', 'like', "%{$search}%")
+                    ->orWhere('surname', 'like', "%{$search}%")
                     ->orWhere('email', 'like', "%{$search}%");
             });
         }
@@ -83,7 +84,7 @@ class UserController extends Controller
      */
     public function store(StoreUserRequest $request): RedirectResponse
     {
-        $user = new User($request->safe()->only(['name', 'email', 'password']));
+        $user = new User($request->safe()->only(['name', 'surname', 'email', 'password']));
         $user->is_admin = $request->boolean('is_admin');
         $user->save();
 
@@ -96,6 +97,7 @@ class UserController extends Controller
     public function update(UpdateUserRequest $request, User $user): RedirectResponse
     {
         $user->name = $request->validated('name');
+        $user->surname = $request->validated('surname');
         $user->email = $request->validated('email');
         $user->is_admin = $request->boolean('is_admin');
 
