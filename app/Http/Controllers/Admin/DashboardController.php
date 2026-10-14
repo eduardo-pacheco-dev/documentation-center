@@ -5,9 +5,15 @@ namespace App\Http\Controllers\Admin;
 use App\Enums\ProjectStatus;
 use App\Enums\WorkOrderStatus;
 use App\Http\Controllers\Controller;
+use App\Models\CatalogItem;
 use App\Models\Client;
+use App\Models\Colaborador;
 use App\Models\Document;
+use App\Models\Erb;
+use App\Models\Form;
+use App\Models\FormTemplate;
 use App\Models\Project;
+use App\Models\RadioLink;
 use App\Models\ShortLink;
 use App\Models\User;
 use App\Models\WorkOrder;
@@ -27,16 +33,26 @@ class DashboardController extends Controller
 
         return view('admin.dashboard', [
             'greeting' => $this->greeting($user),
-            'totalClients' => Client::query()->ownedBy($user)->count(),
-            'openWorkOrders' => $statusCounts[WorkOrderStatus::Open->value]
-                + $statusCounts[WorkOrderStatus::InProgress->value],
-            'activeProjectsCount' => Project::query()
-                ->accessibleBy($user)
-                ->where('status', ProjectStatus::Active)
-                ->count(),
-            'totalDocuments' => Document::query()->whereBelongsTo($user)->count(),
             'statusCounts' => $statusCounts,
             'workOrdersTotal' => array_sum($statusCounts),
+            'counts' => [
+                'clients' => Client::query()->ownedBy($user)->count(),
+                'openWorkOrders' => $statusCounts[WorkOrderStatus::Open->value]
+                    + $statusCounts[WorkOrderStatus::InProgress->value],
+                'projects' => Project::query()
+                    ->accessibleBy($user)
+                    ->where('status', ProjectStatus::Active)
+                    ->count(),
+                'erbs' => Erb::query()->ownedBy($user)->count(),
+                'radioLinks' => RadioLink::query()->ownedBy($user)->count(),
+                'catalogItems' => CatalogItem::query()->ownedBy($user)->count(),
+                'forms' => Form::query()->ownedBy($user)->count(),
+                'formTemplates' => FormTemplate::query()->count(),
+                'colaboradores' => Colaborador::query()->ownedBy($user)->count(),
+                'documents' => Document::query()->whereBelongsTo($user)->count(),
+                'links' => ShortLink::query()->whereBelongsTo($user)->count(),
+                'users' => $user->is_admin ? User::query()->count() : null,
+            ],
             'recentWorkOrders' => WorkOrder::query()
                 ->ownedBy($user)
                 ->with('client:id,name')
@@ -48,6 +64,33 @@ class DashboardController extends Controller
                 ->where('status', ProjectStatus::Active)
                 ->withCount('tasks')
                 ->orderByDesc('updated_at')
+                ->take(5)
+                ->get(),
+            'recentForms' => Form::query()
+                ->ownedBy($user)
+                ->with('project:id,code,name')
+                ->latest('created_at')
+                ->take(5)
+                ->get(),
+            'recentErbs' => Erb::query()
+                ->ownedBy($user)
+                ->latest('created_at')
+                ->take(5)
+                ->get(),
+            'recentRadioLinks' => RadioLink::query()
+                ->ownedBy($user)
+                ->with(['erbA:id,code,name', 'erbB:id,code,name'])
+                ->latest('created_at')
+                ->take(5)
+                ->get(),
+            'recentCatalogItems' => CatalogItem::query()
+                ->ownedBy($user)
+                ->latest('created_at')
+                ->take(5)
+                ->get(),
+            'recentColaboradores' => Colaborador::query()
+                ->ownedBy($user)
+                ->latest('created_at')
                 ->take(5)
                 ->get(),
             'recentDocuments' => Document::query()

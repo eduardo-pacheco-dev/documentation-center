@@ -1,6 +1,7 @@
 <?php
 
 use App\Enums\WorkOrderStatus;
+use App\Models\Erb;
 use App\Models\User;
 use App\Models\WorkOrder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -270,6 +271,30 @@ test('the dashboard shows the signed in user summaries', function () {
         ->assertSee('Ordens de serviço')
         ->assertSee('Projetos em andamento')
         ->assertSee('Arquivos recentes');
+});
+
+test('the dashboard surfaces every system module', function () {
+    $this->actingAs(User::factory()->create())
+        ->get('/admin')
+        ->assertOk()
+        ->assertSee('ERBs')
+        ->assertSee('Radio links')
+        ->assertSee('Catálogo recente')
+        ->assertSee('Formulários recentes')
+        ->assertSee('Colaboradores recentes');
+});
+
+test('the dashboard only surfaces the signed in user erbs', function () {
+    $user = User::factory()->create();
+
+    Erb::factory()->for($user)->create(['name' => 'ERB do usuario']);
+    Erb::factory()->create(['name' => 'ERB de outro usuario']);
+
+    $this->actingAs($user)
+        ->get('/admin')
+        ->assertOk()
+        ->assertSee('ERB do usuario')
+        ->assertDontSee('ERB de outro usuario');
 });
 
 test('the dashboard only surfaces the signed in user work orders', function () {
