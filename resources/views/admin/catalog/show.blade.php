@@ -44,13 +44,14 @@
                 Voltar
             </a>
 
-            <a
-                href="{{ route('admin.catalog.edit', $catalogItem) }}"
+            <button
+                type="button"
+                data-modal-open="catalog-item-edit-modal-{{ $catalogItem->getKey() }}"
                 class="inline-flex items-center gap-1.5 rounded-2xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-500"
             >
                 <x-icon name="pencil-square" class="h-4 w-4" />
                 Editar
-            </a>
+            </button>
         </div>
     </div>
 
@@ -157,4 +158,11 @@
         <span class="text-gray-300 dark:text-gray-600">&middot;</span>
         <span>Atualizado em {{ $catalogItem->updated_at->format('d/m/Y H:i') }}</span>
     </div>
+
+    @include('admin.catalog.partials.edit-modal', [
+        'catalogItem' => $catalogItem,
+        'forceOpen' => $openEditModal ?? false,
+    ])
+
+    @include('admin.catalog.partials.modal-script')
 </x-layouts.admin>

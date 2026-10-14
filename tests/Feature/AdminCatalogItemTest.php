@@ -234,3 +234,29 @@ it('soft deletes the catalog item', function () {
 
     $this->actingAs($user)->get('/admin/catalog')->assertOk()->assertDontSee($item->name);
 });
+
+it('opens the edit wizard modal from the catalog item page', function () {
+    $user = User::factory()->create();
+    $item = CatalogItem::factory()->product()->create(['user_id' => $user->getKey()]);
+
+    $this->actingAs($user)
+        ->get(route('admin.catalog.show', $item))
+        ->assertOk()
+        ->assertSee('data-catalog-edit-modal', false)
+        ->assertSee('data-modal-open="catalog-item-edit-modal-'.$item->getKey().'"', false)
+        ->assertSee('data-wizard-label', false)
+        ->assertSee('data-wizard-step', false);
+});
+
+it('opens the edit wizard modal on the edit route', function () {
+    $user = User::factory()->create();
+    $item = CatalogItem::factory()->product()->create(['user_id' => $user->getKey()]);
+
+    $this->actingAs($user)
+        ->get(route('admin.catalog.edit', $item))
+        ->assertOk()
+        ->assertSee('data-catalog-edit-modal', false)
+        ->assertSee('data-open', false)
+        ->assertSee('data-wizard-step', false)
+        ->assertSee(route('admin.catalog.update', $item), false);
+});

@@ -112,15 +112,15 @@ class CatalogItemController extends Controller
     }
 
     /**
-     * Show the form to edit the catalog item details.
+     * Show the catalog item details with the edit modal open.
      */
     public function edit(CatalogItem $catalogItem): View
     {
         $this->authorize('update', $catalogItem);
 
-        return view('admin.catalog.edit', [
+        return view('admin.catalog.show', [
             'catalogItem' => $catalogItem,
-            'types' => CatalogItemType::cases(),
+            'openEditModal' => true,
         ]);
     }
 

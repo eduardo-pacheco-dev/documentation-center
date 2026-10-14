@@ -1,7 +1,9 @@
 @php
-    $editModalOpen = $errors->any()
+    $forceOpen = $forceOpen ?? false;
+    $hasErrors = $errors->any()
         && old('modal') === 'edit'
         && (string) old('editing_item') === (string) $catalogItem->getKey();
+    $editModalOpen = $forceOpen || $hasErrors;
 @endphp
 
 <div
@@ -35,7 +37,7 @@
             </button>
         </div>
 
-        @if ($editModalOpen)
+        @if ($hasErrors)
             <div
                 data-modal-error
                 class="mt-4 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300"
