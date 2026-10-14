@@ -22,535 +22,633 @@
             ->flatMap(fn ($key) => $errors->get($key))
             ->values()
             ->all();
+
+        $isClosed = $workOrder->status->isClosed();
+        $dueDays = ($workOrder->due_at !== null && ! $isClosed)
+            ? (int) now()->startOfDay()->diffInDays($workOrder->due_at->copy()->startOfDay(), false)
+            : null;
     @endphp
 
-    <div class="flex flex-wrap items-start justify-between gap-4">
-        <div>
-            <h1 class="flex items-center gap-2 text-xl font-semibold">
-                <x-icon name="clipboard-document-list" class="h-5 w-5 text-gray-400 dark:text-gray-500" />
-                {{ $workOrder->number }}
-            </h1>
-            <div class="mt-2 flex flex-wrap items-center gap-3">
-                <x-work-order-status :work-order="$workOrder" />
-                <x-work-order-priority :work-order="$workOrder" />
+    <section class="relative overflow-hidden rounded-3xl bg-gradient-to-br from-indigo-600 via-indigo-600 to-violet-700 p-6 text-white shadow-xl shadow-indigo-600/10 sm:p-8">
+        <div class="pointer-events-none absolute -right-16 -top-24 h-64 w-64 rounded-full bg-white/10 blur-3xl"></div>
+        <div class="pointer-events-none absolute -bottom-24 left-1/3 h-56 w-56 rounded-full bg-violet-400/20 blur-3xl"></div>
+
+        <div class="relative flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
+            <div class="min-w-0">
                 <a
-                    href="{{ route('admin.clients.show', $workOrder->client) }}"
-                    class="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-indigo-600 dark:text-gray-400 dark:hover:text-indigo-400"
+                    href="{{ route('admin.work-orders.index') }}"
+                    class="inline-flex items-center gap-1.5 text-xs font-medium text-indigo-100/90 transition hover:text-white"
                 >
-                    <x-icon name="building-office" class="h-4 w-4" />
-                    {{ $workOrder->client->name }}
+                    <x-icon name="chevron-left" class="h-3.5 w-3.5" />
+                    Ordens de serviço
                 </a>
-                @if ($workOrder->erb)
-                    <a
-                        href="{{ route('admin.erbs.show', $workOrder->erb) }}"
-                        class="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-indigo-600 dark:text-gray-400 dark:hover:text-indigo-400"
-                    >
-                        <x-icon name="signal" class="h-4 w-4" />
-                        {{ $workOrder->erb->code }}
-                    </a>
-                @endif
-                @if ($workOrder->radioLink)
-                    <a
-                        href="{{ route('admin.radio-links.show', $workOrder->radioLink) }}"
-                        class="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-indigo-600 dark:text-gray-400 dark:hover:text-indigo-400"
-                    >
-                        <x-icon name="arrows-right-left" class="h-4 w-4" />
-                        {{ $workOrder->radioLink->code }}
-                    </a>
-                @endif
-            </div>
-        </div>
 
-        <div class="flex items-center gap-2">
-            @can('update', $workOrder)
-                <button
-                    type="button"
-                    data-modal-open="work-order-edit-modal"
-                    class="inline-flex items-center gap-1.5 rounded-md bg-gray-900 dark:bg-white px-4 py-2 text-sm font-medium text-white dark:text-gray-900 hover:bg-gray-700 dark:hover:bg-gray-200"
-                >
-                    <x-icon name="pencil-square" class="h-4 w-4" />
-                    Editar
-                </button>
-            @endcan
+                <h1 class="mt-2 flex items-center gap-2.5 text-2xl font-semibold tracking-tight sm:text-3xl">
+                    <x-icon name="clipboard-document-list" class="h-6 w-6 text-white/80" />
+                    {{ $workOrder->number }}
+                </h1>
 
-            <a
-                href="{{ route('admin.work-orders.index') }}"
-                class="rounded-md px-3 py-2 text-sm font-medium text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100"
-            >
-                Voltar
-            </a>
-        </div>
-    </div>
+                <div class="mt-4 flex flex-wrap items-center gap-2">
+                    <x-work-order-status :work-order="$workOrder" />
+                    <x-work-order-priority :work-order="$workOrder" />
 
-    <div class="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        <div class="rounded-xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-800 dark:bg-gray-900">
-            <h2 class="text-xs font-semibold uppercase text-gray-500 dark:text-gray-400">Datas</h2>
-            <dl class="mt-3 space-y-2 text-sm">
-                <div class="flex items-center justify-between gap-4">
-                    <dt class="text-gray-500 dark:text-gray-400">Abertura</dt>
-                    <dd class="font-medium text-gray-900 dark:text-gray-100">{{ $workOrder->opened_at->format('d/m/Y') }}</dd>
-                </div>
-                <div class="flex items-center justify-between gap-4">
-                    <dt class="text-gray-500 dark:text-gray-400">Previsão de entrega</dt>
-                    <dd class="font-medium text-gray-900 dark:text-gray-100">{{ $workOrder->due_at?->format('d/m/Y') ?? '—' }}</dd>
-                </div>
-                <div class="flex items-center justify-between gap-4">
-                    <dt class="text-gray-500 dark:text-gray-400">Conclusão</dt>
-                    <dd class="font-medium text-gray-900 dark:text-gray-100">{{ $workOrder->completed_at?->format('d/m/Y') ?? '—' }}</dd>
-                </div>
-            </dl>
-        </div>
-
-        <div class="rounded-xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-800 dark:bg-gray-900">
-            <h2 class="text-xs font-semibold uppercase text-gray-500 dark:text-gray-400">Resumo</h2>
-            <dl class="mt-3 space-y-2 text-sm">
-                <div class="flex items-center justify-between gap-4">
-                    <dt class="text-gray-500 dark:text-gray-400">Itens</dt>
-                    <dd class="font-medium text-gray-900 dark:text-gray-100">{{ $workOrder->items->count() }}</dd>
-                </div>
-                <div class="flex items-center justify-between gap-4">
-                    <dt class="text-gray-500 dark:text-gray-400">Total</dt>
-                    <dd class="text-lg font-semibold text-gray-900 dark:text-gray-100">{{ $money((float) $workOrder->total) }}</dd>
-                </div>
-            </dl>
-        </div>
-
-        <div class="rounded-xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-800 dark:bg-gray-900 sm:col-span-2 lg:col-span-1">
-            <h2 class="text-xs font-semibold uppercase text-gray-500 dark:text-gray-400">Descrição</h2>
-            <p class="mt-3 text-sm text-gray-700 dark:text-gray-300">
-                {{ $workOrder->description ?? 'Nenhuma descrição registrada.' }}
-            </p>
-        </div>
-    </div>
-
-    <div class="mt-4 rounded-xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-800 dark:bg-gray-900">
-        <div class="flex flex-wrap items-center justify-between gap-3">
-            <div class="flex items-center gap-2">
-                <x-icon name="briefcase" class="h-5 w-5 text-gray-400 dark:text-gray-500" />
-                <h2 class="text-xs font-semibold uppercase text-gray-500 dark:text-gray-400">Projeto</h2>
-            </div>
-
-            @if ($workOrder->project === null)
-                <form method="POST" action="{{ route('admin.work-orders.project.store', $workOrder) }}">
-                    @csrf
-                    <button
-                        type="submit"
-                        class="inline-flex items-center gap-1.5 rounded-md bg-gray-900 dark:bg-white px-3 py-1.5 text-sm font-medium text-white dark:text-gray-900 hover:bg-gray-700 dark:hover:bg-gray-200"
-                    >
-                        <x-icon name="plus" class="h-4 w-4" />
-                        Criar projeto
-                    </button>
-                </form>
-            @endif
-        </div>
-
-        @if ($workOrder->project !== null)
-            <div class="mt-3">
-                <a
-                    href="{{ route('admin.projects.show', $workOrder->project) }}"
-                    class="text-sm font-medium text-indigo-600 hover:text-indigo-500 dark:text-indigo-400 dark:hover:text-indigo-300"
-                >
-                    {{ $workOrder->project->name }}
-                </a>
-                <p class="mt-0.5 text-xs text-gray-400 dark:text-gray-500">{{ $workOrder->project->status->label() }}</p>
-            </div>
-        @else
-            <p class="mt-3 text-sm text-gray-500 dark:text-gray-400">
-                Nenhum projeto vinculado. Crie um projeto a partir desta OS para iniciar o planejamento.
-            </p>
-        @endif
-    </div>
-
-    @can('update', $workOrder)
-        <script type="application/json" id="work-order-items-editor-data">@json(['catalog' => $catalogData, 'items' => $editorItems], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT)</script>
-
-        <div
-            class="mt-4 rounded-xl border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900"
-            x-data="{
-                catalog: [],
-                items: [],
-                initial: [],
-                search: '',
-                openResults: false,
-                editing: @js(! empty($itemsErrors)),
-                init() {
-                    const data = JSON.parse(document.getElementById('work-order-items-editor-data').textContent);
-                    this.catalog = data.catalog;
-                    this.items = data.items;
-                    this.initial = JSON.parse(JSON.stringify(data.items));
-                },
-                startEditing() {
-                    this.items = JSON.parse(JSON.stringify(this.initial));
-                    this.search = '';
-                    this.openResults = false;
-                    this.editing = true;
-                },
-                cancelEditing() {
-                    this.editing = false;
-                    this.search = '';
-                    this.openResults = false;
-                    this.items = JSON.parse(JSON.stringify(this.initial));
-                },
-                get results() {
-                    const term = this.search.trim().toLowerCase();
-                    const matches = term === ''
-                        ? this.catalog
-                        : this.catalog.filter((entry) => entry.name.toLowerCase().includes(term));
-                    return matches.slice(0, 20);
-                },
-                entry(item) {
-                    return this.catalog.find((option) => String(option.id) === String(item.catalog_item_id)) ?? null;
-                },
-                name(item) {
-                    const found = this.entry(item);
-                    return found ? found.name : 'Escolha um item do catálogo';
-                },
-                unit(item) {
-                    const found = this.entry(item);
-                    return found ? (found.unit ?? '') : '';
-                },
-                price(item) {
-                    const found = this.entry(item);
-                    return found ? Number(found.price) : 0;
-                },
-                lineTotal(item) {
-                    return (Number(item.quantity) || 0) * this.price(item);
-                },
-                get total() {
-                    return this.items.reduce((sum, item) => sum + this.lineTotal(item), 0);
-                },
-                addFromCatalog(option) {
-                    const existing = this.items.find((item) => String(item.catalog_item_id) === String(option.id));
-                    if (existing) {
-                        existing.quantity = (Number(existing.quantity) || 0) + 1;
-                    } else {
-                        this.items.push({ catalog_item_id: String(option.id), quantity: 1 });
-                    }
-                    this.search = '';
-                    this.openResults = false;
-                },
-                removeItem(index) {
-                    this.items.splice(index, 1);
-                },
-                money(value) {
-                    return 'R$ ' + (Number(value) || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-                },
-            }"
-        >
-            <div class="flex flex-wrap items-center justify-between gap-3 border-b border-gray-100 px-5 py-3 dark:border-gray-800">
-                <div class="flex items-center gap-2">
-                    <x-icon name="cube" class="h-4 w-4 text-gray-400 dark:text-gray-500" />
-                    <h2 class="text-xs font-semibold uppercase text-gray-500 dark:text-gray-400">Itens da OS</h2>
-                </div>
-                <button
-                    type="button"
-                    x-show="! editing"
-                    @click="startEditing()"
-                    class="inline-flex items-center gap-1.5 rounded-md border border-gray-300 dark:border-gray-700 dark:bg-gray-900 px-3 py-1.5 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800"
-                >
-                    <x-icon name="pencil-square" class="h-4 w-4" />
-                    Editar itens
-                </button>
-                <p x-show="editing" x-cloak class="text-xs text-gray-400 dark:text-gray-500">Edite os itens e salve sem sair da página.</p>
-            </div>
-
-            <form
-                method="POST"
-                action="{{ route('admin.work-orders.items.update', $workOrder) }}"
-                x-show="editing"
-                x-cloak
-            >
-                @csrf
-                @method('PUT')
-
-                <div class="space-y-4 p-5">
-                    @if (! empty($itemsErrors))
-                        <div class="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-300">
-                            <ul class="list-disc space-y-0.5 pl-4">
-                                @foreach ($itemsErrors as $message)
-                                    <li>{{ $message }}</li>
-                                @endforeach
-                            </ul>
-                        </div>
+                    @if ($dueDays !== null)
+                        <span class="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium {{ $dueDays < 0 ? 'bg-red-500/20 text-red-50' : 'bg-white/15 text-white/90' }}">
+                            <x-icon name="clock" class="h-3.5 w-3.5" />
+                            @if ($dueDays < 0)
+                                Atrasada há {{ abs($dueDays) }} {{ abs($dueDays) === 1 ? 'dia' : 'dias' }}
+                            @elseif ($dueDays === 0)
+                                Entrega hoje
+                            @else
+                                Faltam {{ $dueDays }} {{ $dueDays === 1 ? 'dia' : 'dias' }}
+                            @endif
+                        </span>
                     @endif
-
-                    <div>
-                        <label for="work-order-items-search" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Adicionar item do catálogo</label>
-
-                        <div class="relative" @click.away="openResults = false">
-                            <div class="relative mt-1">
-                                <x-icon name="magnifying-glass" class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400 dark:text-gray-500" />
-                                <input
-                                    type="text"
-                                    id="work-order-items-search"
-                                    x-model="search"
-                                    @focus="openResults = true"
-                                    @click="openResults = true"
-                                    placeholder="Busque pelo nome do item..."
-                                    autocomplete="off"
-                                    class="block w-full rounded-md border border-gray-300 dark:border-gray-700 dark:bg-gray-900 pl-9 pr-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500"
-                                >
-                            </div>
-
-                            <div x-show="openResults" x-cloak class="mt-1 max-h-64 w-full overflow-auto rounded-md border border-gray-200 bg-white py-1 shadow-sm dark:border-gray-700 dark:bg-gray-900">
-                                <template x-for="option in results" :key="option.id">
-                                    <button type="button" @click="addFromCatalog(option)" class="flex w-full items-center gap-3 px-3 py-2 text-left hover:bg-gray-50 dark:hover:bg-gray-800">
-                                        <span class="min-w-0 flex-1 truncate text-sm text-gray-700 dark:text-gray-200" x-text="option.name"></span>
-                                        <span class="text-xs text-gray-400 dark:text-gray-500" x-text="option.unit ?? ''"></span>
-                                        <span class="text-sm font-medium text-gray-900 dark:text-gray-100" x-text="money(option.price)"></span>
-                                        <x-icon name="plus" class="h-4 w-4 shrink-0 text-indigo-500" />
-                                    </button>
-                                </template>
-
-                                <p x-show="results.length === 0" class="px-3 py-2 text-sm text-gray-500 dark:text-gray-400">
-                                    @if ($catalogItems->isEmpty())
-                                        Você ainda não tem itens no catálogo.
-                                        <a href="{{ route('admin.catalog.index') }}" class="underline">Cadastre um item</a>.
-                                    @else
-                                        Nenhum item encontrado.
-                                    @endif
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="space-y-2">
-                        <template x-for="(item, index) in items" :key="index">
-                            <div class="flex flex-wrap items-center gap-3 rounded-lg border border-gray-200 p-3 dark:border-gray-800 sm:flex-nowrap">
-                                <input type="hidden" :name="'items[' + index + '][catalog_item_id]'" :value="item.catalog_item_id">
-
-                                <div class="min-w-0 flex-1">
-                                    <p class="truncate text-sm font-medium text-gray-900 dark:text-gray-100" x-text="name(item)"></p>
-                                    <p class="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
-                                        <span x-text="unit(item)"></span>
-                                        <span x-show="unit(item) !== ''"> &middot; </span>
-                                        <span x-text="money(price(item))"></span>
-                                    </p>
-                                </div>
-
-                                <div>
-                                    <label class="sr-only" x-bind:for="'item-quantity-' + index">Quantidade</label>
-                                    <input
-                                        type="number"
-                                        step="0.01"
-                                        min="0.01"
-                                        x-bind:id="'item-quantity-' + index"
-                                        x-bind:name="'items[' + index + '][quantity]'"
-                                        x-model.number="item.quantity"
-                                        class="w-24 rounded-md border border-gray-300 dark:border-gray-700 dark:bg-gray-900 px-2 py-1.5 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500"
-                                    >
-                                </div>
-
-                                <span class="w-24 text-right text-sm font-semibold text-gray-900 dark:text-gray-100" x-text="money(lineTotal(item))"></span>
-
-                                <button
-                                    type="button"
-                                    @click="removeItem(index)"
-                                    class="rounded-md p-1.5 text-gray-400 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-500/15 dark:hover:text-red-400"
-                                    aria-label="Remover item"
-                                >
-                                    <x-icon name="trash" class="h-4 w-4" />
-                                </button>
-                            </div>
-                        </template>
-
-                        <template x-if="items.length === 0">
-                            <p class="rounded-lg border border-dashed border-gray-200 px-3 py-4 text-center text-sm text-gray-500 dark:border-gray-800 dark:text-gray-400">
-                                Nenhum item adicionado. Busque um item do catálogo acima.
-                            </p>
-                        </template>
-                    </div>
                 </div>
 
-                <div class="flex flex-wrap items-center justify-between gap-3 border-t border-gray-100 px-5 py-3 dark:border-gray-800">
-                    <div class="flex items-center gap-2">
-                        <span class="text-sm text-gray-500 dark:text-gray-400">Total</span>
-                        <span class="text-lg font-semibold text-gray-900 dark:text-gray-100" x-text="money(total)"></span>
-                    </div>
-
-                    <div class="flex items-center gap-2">
-                        <button
-                            type="button"
-                            @click="cancelEditing()"
-                            class="rounded-md border border-gray-300 dark:border-gray-700 dark:bg-gray-900 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800"
+                <div class="mt-4 flex flex-wrap items-center gap-2">
+                    <a
+                        href="{{ route('admin.clients.show', $workOrder->client) }}"
+                        class="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1 text-xs font-medium text-white/90 backdrop-blur transition hover:bg-white/20"
+                    >
+                        <x-icon name="building-office" class="h-3.5 w-3.5" />
+                        {{ $workOrder->client->name }}
+                    </a>
+                    @if ($workOrder->erb)
+                        <a
+                            href="{{ route('admin.erbs.show', $workOrder->erb) }}"
+                            class="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1 text-xs font-medium text-white/90 backdrop-blur transition hover:bg-white/20"
                         >
-                            Cancelar
-                        </button>
-                        <button
-                            type="submit"
-                            class="inline-flex items-center gap-1.5 rounded-md bg-gray-900 dark:bg-white px-4 py-2 text-sm font-medium text-white dark:text-gray-900 hover:bg-gray-700 dark:hover:bg-gray-200"
+                            <x-icon name="signal" class="h-3.5 w-3.5" />
+                            {{ $workOrder->erb->code }}
+                        </a>
+                    @endif
+                    @if ($workOrder->radioLink)
+                        <a
+                            href="{{ route('admin.radio-links.show', $workOrder->radioLink) }}"
+                            class="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1 text-xs font-medium text-white/90 backdrop-blur transition hover:bg-white/20"
                         >
-                            <x-icon name="check" class="h-4 w-4" />
-                            Salvar itens
-                        </button>
-                    </div>
+                            <x-icon name="arrows-right-left" class="h-3.5 w-3.5" />
+                            {{ $workOrder->radioLink->code }}
+                        </a>
+                    @endif
                 </div>
-            </form>
-
-            <div x-show="! editing" class="overflow-x-auto">
-                <table class="min-w-full divide-y divide-gray-200 text-sm dark:divide-gray-800">
-                    <thead class="bg-gray-50 text-left text-xs uppercase text-gray-500 dark:bg-gray-800 dark:text-gray-400">
-                        <tr>
-                            <th class="px-5 py-3 font-medium">Descrição</th>
-                            <th class="px-5 py-3 font-medium">Unidade</th>
-                            <th class="px-5 py-3 text-right font-medium">Quantidade</th>
-                            <th class="px-5 py-3 text-right font-medium">Valor unitário</th>
-                            <th class="px-5 py-3 text-right font-medium">Subtotal</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
-                        @forelse ($workOrder->items as $item)
-                            <tr>
-                                <td class="px-5 py-3 font-medium text-gray-900 dark:text-gray-100">
-                                    {{ $item->description }}
-                                    @if ($item->catalogItem)
-                                        <span class="mt-0.5 block text-xs text-gray-400 dark:text-gray-500">{{ $item->catalogItem->name }}</span>
-                                    @endif
-                                </td>
-                                <td class="whitespace-nowrap px-5 py-3 text-gray-500 dark:text-gray-400">{{ $item->unit ?? '—' }}</td>
-                                <td class="whitespace-nowrap px-5 py-3 text-right text-gray-500 dark:text-gray-400">{{ $quantity($item->quantity) }}</td>
-                                <td class="whitespace-nowrap px-5 py-3 text-right text-gray-500 dark:text-gray-400">{{ $money((float) $item->unit_price) }}</td>
-                                <td class="whitespace-nowrap px-5 py-3 text-right font-medium text-gray-900 dark:text-gray-100">{{ $money((float) $item->total) }}</td>
-                            </tr>
-                        @empty
-                            <tr>
-                                <td class="px-5 py-6 text-gray-500 dark:text-gray-400" colspan="5">Nenhum item registrado.</td>
-                            </tr>
-                        @endforelse
-                    </tbody>
-                    <tfoot class="bg-gray-50 dark:bg-gray-800">
-                        <tr>
-                            <td class="px-5 py-3 text-right text-sm font-semibold text-gray-700 dark:text-gray-200" colspan="4">Total</td>
-                            <td class="whitespace-nowrap px-5 py-3 text-right text-sm font-semibold text-gray-900 dark:text-gray-100">{{ $money((float) $workOrder->total) }}</td>
-                        </tr>
-                    </tfoot>
-                </table>
-            </div>
-        </div>
-    @else
-        <div class="mt-4 rounded-xl border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900">
-            <div class="border-b border-gray-100 px-5 py-3 dark:border-gray-800">
-                <h2 class="text-xs font-semibold uppercase text-gray-500 dark:text-gray-400">Itens da OS</h2>
             </div>
 
-            <div class="overflow-x-auto">
-                <table class="min-w-full divide-y divide-gray-200 text-sm dark:divide-gray-800">
-                    <thead class="bg-gray-50 text-left text-xs uppercase text-gray-500 dark:bg-gray-800 dark:text-gray-400">
-                        <tr>
-                            <th class="px-5 py-3 font-medium">Descrição</th>
-                            <th class="px-5 py-3 font-medium">Unidade</th>
-                            <th class="px-5 py-3 text-right font-medium">Quantidade</th>
-                            <th class="px-5 py-3 text-right font-medium">Valor unitário</th>
-                            <th class="px-5 py-3 text-right font-medium">Subtotal</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
-                        @forelse ($workOrder->items as $item)
-                            <tr>
-                                <td class="px-5 py-3 font-medium text-gray-900 dark:text-gray-100">
-                                    {{ $item->description }}
-                                    @if ($item->catalogItem)
-                                        <span class="mt-0.5 block text-xs text-gray-400 dark:text-gray-500">{{ $item->catalogItem->name }}</span>
-                                    @endif
-                                </td>
-                                <td class="whitespace-nowrap px-5 py-3 text-gray-500 dark:text-gray-400">{{ $item->unit ?? '—' }}</td>
-                                <td class="whitespace-nowrap px-5 py-3 text-right text-gray-500 dark:text-gray-400">{{ $quantity($item->quantity) }}</td>
-                                <td class="whitespace-nowrap px-5 py-3 text-right text-gray-500 dark:text-gray-400">{{ $money((float) $item->unit_price) }}</td>
-                                <td class="whitespace-nowrap px-5 py-3 text-right font-medium text-gray-900 dark:text-gray-100">{{ $money((float) $item->total) }}</td>
-                            </tr>
-                        @empty
-                            <tr>
-                                <td class="px-5 py-6 text-gray-500 dark:text-gray-400" colspan="5">Nenhum item registrado.</td>
-                            </tr>
-                        @endforelse
-                    </tbody>
-                    <tfoot class="bg-gray-50 dark:bg-gray-800">
-                        <tr>
-                            <td class="px-5 py-3 text-right text-sm font-semibold text-gray-700 dark:text-gray-200" colspan="4">Total</td>
-                            <td class="whitespace-nowrap px-5 py-3 text-right text-sm font-semibold text-gray-900 dark:text-gray-100">{{ $money((float) $workOrder->total) }}</td>
-                        </tr>
-                    </tfoot>
-                </table>
-            </div>
-        </div>
-    @endcan
-
-    @can('update', $workOrder)
-        <div
-            class="mt-4 rounded-xl border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900"
-            x-data="{ editing: @js($errors->has('notes')) }"
-        >
-            <div class="flex flex-wrap items-center justify-between gap-3 border-b border-gray-100 px-5 py-3 dark:border-gray-800">
-                <h2 class="text-xs font-semibold uppercase text-gray-500 dark:text-gray-400">Observações</h2>
-                <button
-                    type="button"
-                    x-show="! editing"
-                    @click="editing = true"
-                    class="inline-flex items-center gap-1.5 rounded-md border border-gray-300 dark:border-gray-700 dark:bg-gray-900 px-3 py-1.5 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800"
-                >
-                    <x-icon name="pencil-square" class="h-4 w-4" />
-                    Editar
-                </button>
-            </div>
-
-            <div x-show="! editing" class="p-5">
-                <p class="text-sm text-gray-700 dark:text-gray-300">
-                    {{ $workOrder->notes ?? 'Nenhuma observação registrada.' }}
-                </p>
-            </div>
-
-            <form
-                method="POST"
-                action="{{ route('admin.work-orders.notes.update', $workOrder) }}"
-                x-show="editing"
-                x-cloak
-                class="p-5"
-            >
-                @csrf
-                @method('PUT')
-
-                <label for="work-order-notes" class="sr-only">Observações</label>
-                <textarea
-                    name="notes"
-                    id="work-order-notes"
-                    rows="4"
-                    class="block w-full rounded-md border border-gray-300 dark:border-gray-700 dark:bg-gray-900 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500"
-                >{{ old('notes', $workOrder->notes) }}</textarea>
-                @error('notes')
-                    <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p>
-                @enderror
-
-                <div class="mt-3 flex justify-end gap-2">
+            <div class="flex flex-wrap items-center gap-2">
+                @can('update', $workOrder)
                     <button
                         type="button"
-                        @click="editing = false"
-                        class="rounded-md border border-gray-300 dark:border-gray-700 dark:bg-gray-900 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800"
+                        data-modal-open="work-order-edit-modal"
+                        class="inline-flex items-center gap-1.5 rounded-xl bg-white px-4 py-2.5 text-sm font-semibold text-indigo-700 shadow-sm transition hover:bg-indigo-50"
                     >
-                        Cancelar
+                        <x-icon name="pencil-square" class="h-4 w-4" />
+                        Editar
                     </button>
-                    <button
-                        type="submit"
-                        class="inline-flex items-center gap-1.5 rounded-md bg-gray-900 dark:bg-white px-4 py-2 text-sm font-medium text-white dark:text-gray-900 hover:bg-gray-700 dark:hover:bg-gray-200"
-                    >
-                        <x-icon name="check" class="h-4 w-4" />
-                        Salvar
-                    </button>
-                </div>
-            </form>
+                @endcan
+            </div>
         </div>
-    @else
-        <div class="mt-4 rounded-xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-800 dark:bg-gray-900">
-            <h2 class="text-xs font-semibold uppercase text-gray-500 dark:text-gray-400">Observações</h2>
-            <p class="mt-3 text-sm text-gray-700 dark:text-gray-300">
-                {{ $workOrder->notes ?? 'Nenhuma observação registrada.' }}
-            </p>
-        </div>
-    @endcan
+    </section>
 
-    <div class="mt-4 rounded-xl border border-gray-200 bg-white px-5 py-4 text-xs text-gray-500 shadow-sm dark:border-gray-800 dark:bg-gray-900 dark:text-gray-400">
-        Criado em {{ $workOrder->created_at->format('d/m/Y H:i') }}
-        &middot;
-        Atualizado em {{ $workOrder->updated_at->format('d/m/Y H:i') }}
+    <div class="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <div class="rounded-2xl border border-gray-200/70 bg-white p-5 shadow-sm dark:border-gray-800 dark:bg-gray-900">
+            <span class="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-400">
+                <x-icon name="chart-bar" class="h-5 w-5" />
+            </span>
+            <p class="mt-4 text-2xl font-semibold tracking-tight text-gray-900 dark:text-gray-100">{{ $money((float) $workOrder->total) }}</p>
+            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Valor total</p>
+        </div>
+
+        <div class="rounded-2xl border border-gray-200/70 bg-white p-5 shadow-sm dark:border-gray-800 dark:bg-gray-900">
+            <span class="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-amber-50 text-amber-600 dark:bg-amber-500/10 dark:text-amber-400">
+                <x-icon name="cube" class="h-5 w-5" />
+            </span>
+            <p class="mt-4 text-2xl font-semibold tracking-tight text-gray-900 dark:text-gray-100">{{ $workOrder->items->count() }}</p>
+            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">{{ $workOrder->items->count() === 1 ? 'Item na OS' : 'Itens na OS' }}</p>
+        </div>
+
+        <div class="rounded-2xl border border-gray-200/70 bg-white p-5 shadow-sm dark:border-gray-800 dark:bg-gray-900">
+            <span class="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400">
+                <x-icon name="calendar-days" class="h-5 w-5" />
+            </span>
+            <p class="mt-4 text-2xl font-semibold tracking-tight text-gray-900 dark:text-gray-100">{{ $workOrder->opened_at->format('d/m/Y') }}</p>
+            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Abertura</p>
+        </div>
+
+        <div class="rounded-2xl border border-gray-200/70 bg-white p-5 shadow-sm dark:border-gray-800 dark:bg-gray-900">
+            <span class="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-sky-50 text-sky-600 dark:bg-sky-500/10 dark:text-sky-400">
+                <x-icon name="clock" class="h-5 w-5" />
+            </span>
+            <p class="mt-4 text-2xl font-semibold tracking-tight text-gray-900 dark:text-gray-100">{{ $workOrder->due_at?->format('d/m/Y') ?? '—' }}</p>
+            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Previsão de entrega</p>
+        </div>
+    </div>
+
+    <div class="mt-6 grid gap-6 lg:grid-cols-3">
+        <div class="space-y-6 lg:col-span-2">
+            @can('update', $workOrder)
+                <script type="application/json" id="work-order-items-editor-data">@json(['catalog' => $catalogData, 'items' => $editorItems], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT)</script>
+
+                <section
+                    class="rounded-2xl border border-gray-200/70 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900"
+                    x-data="{
+                        catalog: [],
+                        items: [],
+                        initial: [],
+                        search: '',
+                        openResults: false,
+                        editing: @js(! empty($itemsErrors)),
+                        init() {
+                            const data = JSON.parse(document.getElementById('work-order-items-editor-data').textContent);
+                            this.catalog = data.catalog;
+                            this.items = data.items;
+                            this.initial = JSON.parse(JSON.stringify(data.items));
+                        },
+                        startEditing() {
+                            this.items = JSON.parse(JSON.stringify(this.initial));
+                            this.search = '';
+                            this.openResults = false;
+                            this.editing = true;
+                        },
+                        cancelEditing() {
+                            this.editing = false;
+                            this.search = '';
+                            this.openResults = false;
+                            this.items = JSON.parse(JSON.stringify(this.initial));
+                        },
+                        get results() {
+                            const term = this.search.trim().toLowerCase();
+                            const matches = term === ''
+                                ? this.catalog
+                                : this.catalog.filter((entry) => entry.name.toLowerCase().includes(term));
+                            return matches.slice(0, 20);
+                        },
+                        entry(item) {
+                            return this.catalog.find((option) => String(option.id) === String(item.catalog_item_id)) ?? null;
+                        },
+                        name(item) {
+                            const found = this.entry(item);
+                            return found ? found.name : 'Escolha um item do catálogo';
+                        },
+                        unit(item) {
+                            const found = this.entry(item);
+                            return found ? (found.unit ?? '') : '';
+                        },
+                        price(item) {
+                            const found = this.entry(item);
+                            return found ? Number(found.price) : 0;
+                        },
+                        lineTotal(item) {
+                            return (Number(item.quantity) || 0) * this.price(item);
+                        },
+                        get total() {
+                            return this.items.reduce((sum, item) => sum + this.lineTotal(item), 0);
+                        },
+                        addFromCatalog(option) {
+                            const existing = this.items.find((item) => String(item.catalog_item_id) === String(option.id));
+                            if (existing) {
+                                existing.quantity = (Number(existing.quantity) || 0) + 1;
+                            } else {
+                                this.items.push({ catalog_item_id: String(option.id), quantity: 1 });
+                            }
+                            this.search = '';
+                            this.openResults = false;
+                        },
+                        removeItem(index) {
+                            this.items.splice(index, 1);
+                        },
+                        money(value) {
+                            return 'R$ ' + (Number(value) || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                        },
+                    }"
+                >
+                    <div class="flex flex-wrap items-center justify-between gap-3 border-b border-gray-100 px-6 py-4 dark:border-gray-800">
+                        <div class="flex items-center gap-2">
+                            <span class="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-400">
+                                <x-icon name="cube" class="h-4 w-4" />
+                            </span>
+                            <h2 class="text-sm font-semibold text-gray-900 dark:text-gray-100">Itens da OS</h2>
+                        </div>
+                        <button
+                            type="button"
+                            x-show="! editing"
+                            @click="startEditing()"
+                            class="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 dark:border-gray-700 dark:bg-gray-900 px-3 py-1.5 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800"
+                        >
+                            <x-icon name="pencil-square" class="h-4 w-4" />
+                            Editar itens
+                        </button>
+                        <p x-show="editing" x-cloak class="text-xs text-gray-400 dark:text-gray-500">Adicione itens do catálogo e ajuste as quantidades.</p>
+                    </div>
+
+                    <form
+                        method="POST"
+                        action="{{ route('admin.work-orders.items.update', $workOrder) }}"
+                        x-show="editing"
+                        x-cloak
+                    >
+                        @csrf
+                        @method('PUT')
+
+                        <div class="space-y-4 p-6">
+                            @if (! empty($itemsErrors))
+                                <div class="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-300">
+                                    <ul class="list-disc space-y-0.5 pl-4">
+                                        @foreach ($itemsErrors as $message)
+                                            <li>{{ $message }}</li>
+                                        @endforeach
+                                    </ul>
+                                </div>
+                            @endif
+
+                            <div>
+                                <label for="work-order-items-search" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Adicionar item do catálogo</label>
+
+                                <div class="relative" @click.away="openResults = false">
+                                    <div class="relative mt-1">
+                                        <x-icon name="magnifying-glass" class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400 dark:text-gray-500" />
+                                        <input
+                                            type="text"
+                                            id="work-order-items-search"
+                                            x-model="search"
+                                            @focus="openResults = true"
+                                            @click="openResults = true"
+                                            placeholder="Busque pelo nome do item..."
+                                            autocomplete="off"
+                                            class="block w-full rounded-lg border border-gray-300 dark:border-gray-700 dark:bg-gray-900 pl-9 pr-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500"
+                                        >
+                                    </div>
+
+                                    <div x-show="openResults" x-cloak class="mt-1 max-h-64 w-full overflow-auto rounded-lg border border-gray-200 bg-white py-1 shadow-sm dark:border-gray-700 dark:bg-gray-900">
+                                        <template x-for="option in results" :key="option.id">
+                                            <button type="button" @click="addFromCatalog(option)" class="flex w-full items-center gap-3 px-3 py-2 text-left hover:bg-gray-50 dark:hover:bg-gray-800">
+                                                <span class="min-w-0 flex-1 truncate text-sm text-gray-700 dark:text-gray-200" x-text="option.name"></span>
+                                                <span class="text-xs text-gray-400 dark:text-gray-500" x-text="option.unit ?? ''"></span>
+                                                <span class="text-sm font-medium text-gray-900 dark:text-gray-100" x-text="money(option.price)"></span>
+                                                <x-icon name="plus" class="h-4 w-4 shrink-0 text-indigo-500" />
+                                            </button>
+                                        </template>
+
+                                        <p x-show="results.length === 0" class="px-3 py-2 text-sm text-gray-500 dark:text-gray-400">
+                                            @if ($catalogItems->isEmpty())
+                                                Você ainda não tem itens no catálogo.
+                                                <a href="{{ route('admin.catalog.index') }}" class="underline">Cadastre um item</a>.
+                                            @else
+                                                Nenhum item encontrado.
+                                            @endif
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="space-y-2">
+                                <template x-for="(item, index) in items" :key="index">
+                                    <div class="flex flex-wrap items-center gap-3 rounded-xl border border-gray-200 p-3 dark:border-gray-800 sm:flex-nowrap">
+                                        <input type="hidden" :name="'items[' + index + '][catalog_item_id]'" :value="item.catalog_item_id">
+
+                                        <div class="min-w-0 flex-1">
+                                            <p class="truncate text-sm font-medium text-gray-900 dark:text-gray-100" x-text="name(item)"></p>
+                                            <p class="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
+                                                <span x-text="unit(item)"></span>
+                                                <span x-show="unit(item) !== ''"> &middot; </span>
+                                                <span x-text="money(price(item))"></span>
+                                            </p>
+                                        </div>
+
+                                        <div>
+                                            <label class="sr-only" x-bind:for="'item-quantity-' + index">Quantidade</label>
+                                            <input
+                                                type="number"
+                                                step="0.01"
+                                                min="0.01"
+                                                x-bind:id="'item-quantity-' + index"
+                                                x-bind:name="'items[' + index + '][quantity]'"
+                                                x-model.number="item.quantity"
+                                                class="w-24 rounded-lg border border-gray-300 dark:border-gray-700 dark:bg-gray-900 px-2 py-1.5 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500"
+                                            >
+                                        </div>
+
+                                        <span class="w-24 text-right text-sm font-semibold text-gray-900 dark:text-gray-100" x-text="money(lineTotal(item))"></span>
+
+                                        <button
+                                            type="button"
+                                            @click="removeItem(index)"
+                                            class="rounded-lg p-1.5 text-gray-400 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-500/15 dark:hover:text-red-400"
+                                            aria-label="Remover item"
+                                        >
+                                            <x-icon name="trash" class="h-4 w-4" />
+                                        </button>
+                                    </div>
+                                </template>
+
+                                <template x-if="items.length === 0">
+                                    <p class="rounded-xl border border-dashed border-gray-200 px-3 py-4 text-center text-sm text-gray-500 dark:border-gray-800 dark:text-gray-400">
+                                        Nenhum item adicionado. Busque um item do catálogo acima.
+                                    </p>
+                                </template>
+                            </div>
+                        </div>
+
+                        <div class="flex flex-wrap items-center justify-between gap-3 border-t border-gray-100 px-6 py-4 dark:border-gray-800">
+                            <div class="flex items-center gap-2">
+                                <span class="text-sm text-gray-500 dark:text-gray-400">Total</span>
+                                <span class="text-lg font-semibold text-gray-900 dark:text-gray-100" x-text="money(total)"></span>
+                            </div>
+
+                            <div class="flex items-center gap-2">
+                                <button
+                                    type="button"
+                                    @click="cancelEditing()"
+                                    class="rounded-lg border border-gray-300 dark:border-gray-700 dark:bg-gray-900 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800"
+                                >
+                                    Cancelar
+                                </button>
+                                <button
+                                    type="submit"
+                                    class="inline-flex items-center gap-1.5 rounded-lg bg-gray-900 dark:bg-white px-4 py-2 text-sm font-medium text-white dark:text-gray-900 hover:bg-gray-700 dark:hover:bg-gray-200"
+                                >
+                                    <x-icon name="check" class="h-4 w-4" />
+                                    Salvar itens
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+
+                    <div x-show="! editing" class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200 text-sm dark:divide-gray-800">
+                            <thead class="bg-gray-50 text-left text-xs uppercase text-gray-500 dark:bg-gray-800 dark:text-gray-400">
+                                <tr>
+                                    <th class="px-6 py-3 font-medium">Descrição</th>
+                                    <th class="px-6 py-3 font-medium">Unidade</th>
+                                    <th class="px-6 py-3 text-right font-medium">Quantidade</th>
+                                    <th class="px-6 py-3 text-right font-medium">Valor unitário</th>
+                                    <th class="px-6 py-3 text-right font-medium">Subtotal</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
+                                @forelse ($workOrder->items as $item)
+                                    <tr>
+                                        <td class="px-6 py-3 font-medium text-gray-900 dark:text-gray-100">
+                                            {{ $item->description }}
+                                            @if ($item->catalogItem)
+                                                <span class="mt-0.5 block text-xs text-gray-400 dark:text-gray-500">{{ $item->catalogItem->name }}</span>
+                                            @endif
+                                        </td>
+                                        <td class="whitespace-nowrap px-6 py-3 text-gray-500 dark:text-gray-400">{{ $item->unit ?? '—' }}</td>
+                                        <td class="whitespace-nowrap px-6 py-3 text-right text-gray-500 dark:text-gray-400">{{ $quantity($item->quantity) }}</td>
+                                        <td class="whitespace-nowrap px-6 py-3 text-right text-gray-500 dark:text-gray-400">{{ $money((float) $item->unit_price) }}</td>
+                                        <td class="whitespace-nowrap px-6 py-3 text-right font-medium text-gray-900 dark:text-gray-100">{{ $money((float) $item->total) }}</td>
+                                    </tr>
+                                @empty
+                                    <tr>
+                                        <td class="px-6 py-6 text-gray-500 dark:text-gray-400" colspan="5">Nenhum item registrado.</td>
+                                    </tr>
+                                @endforelse
+                            </tbody>
+                            <tfoot class="bg-gray-50 dark:bg-gray-800">
+                                <tr>
+                                    <td class="px-6 py-3 text-right text-sm font-semibold text-gray-700 dark:text-gray-200" colspan="4">Total</td>
+                                    <td class="whitespace-nowrap px-6 py-3 text-right text-sm font-semibold text-gray-900 dark:text-gray-100">{{ $money((float) $workOrder->total) }}</td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </section>
+            @else
+                <section class="rounded-2xl border border-gray-200/70 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900">
+                    <div class="flex items-center gap-2 border-b border-gray-100 px-6 py-4 dark:border-gray-800">
+                        <span class="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-400">
+                            <x-icon name="cube" class="h-4 w-4" />
+                        </span>
+                        <h2 class="text-sm font-semibold text-gray-900 dark:text-gray-100">Itens da OS</h2>
+                    </div>
+
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200 text-sm dark:divide-gray-800">
+                            <thead class="bg-gray-50 text-left text-xs uppercase text-gray-500 dark:bg-gray-800 dark:text-gray-400">
+                                <tr>
+                                    <th class="px-6 py-3 font-medium">Descrição</th>
+                                    <th class="px-6 py-3 font-medium">Unidade</th>
+                                    <th class="px-6 py-3 text-right font-medium">Quantidade</th>
+                                    <th class="px-6 py-3 text-right font-medium">Valor unitário</th>
+                                    <th class="px-6 py-3 text-right font-medium">Subtotal</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
+                                @forelse ($workOrder->items as $item)
+                                    <tr>
+                                        <td class="px-6 py-3 font-medium text-gray-900 dark:text-gray-100">
+                                            {{ $item->description }}
+                                            @if ($item->catalogItem)
+                                                <span class="mt-0.5 block text-xs text-gray-400 dark:text-gray-500">{{ $item->catalogItem->name }}</span>
+                                            @endif
+                                        </td>
+                                        <td class="whitespace-nowrap px-6 py-3 text-gray-500 dark:text-gray-400">{{ $item->unit ?? '—' }}</td>
+                                        <td class="whitespace-nowrap px-6 py-3 text-right text-gray-500 dark:text-gray-400">{{ $quantity($item->quantity) }}</td>
+                                        <td class="whitespace-nowrap px-6 py-3 text-right text-gray-500 dark:text-gray-400">{{ $money((float) $item->unit_price) }}</td>
+                                        <td class="whitespace-nowrap px-6 py-3 text-right font-medium text-gray-900 dark:text-gray-100">{{ $money((float) $item->total) }}</td>
+                                    </tr>
+                                @empty
+                                    <tr>
+                                        <td class="px-6 py-6 text-gray-500 dark:text-gray-400" colspan="5">Nenhum item registrado.</td>
+                                    </tr>
+                                @endforelse
+                            </tbody>
+                            <tfoot class="bg-gray-50 dark:bg-gray-800">
+                                <tr>
+                                    <td class="px-6 py-3 text-right text-sm font-semibold text-gray-700 dark:text-gray-200" colspan="4">Total</td>
+                                    <td class="whitespace-nowrap px-6 py-3 text-right text-sm font-semibold text-gray-900 dark:text-gray-100">{{ $money((float) $workOrder->total) }}</td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </section>
+            @endcan
+
+            <section class="rounded-2xl border border-gray-200/70 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900">
+                <div class="flex items-center gap-2">
+                    <span class="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-slate-100 text-slate-500 dark:bg-slate-500/10 dark:text-slate-300">
+                        <x-icon name="document-text" class="h-4 w-4" />
+                    </span>
+                    <h2 class="text-sm font-semibold text-gray-900 dark:text-gray-100">Descrição</h2>
+                </div>
+                <p class="mt-4 text-sm leading-relaxed text-gray-700 dark:text-gray-300">
+                    {{ $workOrder->description ?? 'Nenhuma descrição registrada.' }}
+                </p>
+            </section>
+
+            @can('update', $workOrder)
+                <section
+                    class="rounded-2xl border border-gray-200/70 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900"
+                    x-data="{ editing: @js($errors->has('notes')) }"
+                >
+                    <div class="flex flex-wrap items-center justify-between gap-3 border-b border-gray-100 px-6 py-4 dark:border-gray-800">
+                        <div class="flex items-center gap-2">
+                            <span class="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-amber-50 text-amber-600 dark:bg-amber-500/10 dark:text-amber-400">
+                                <x-icon name="chat-bubble-oval-left-ellipsis" class="h-4 w-4" />
+                            </span>
+                            <h2 class="text-sm font-semibold text-gray-900 dark:text-gray-100">Observações</h2>
+                        </div>
+                        <button
+                            type="button"
+                            x-show="! editing"
+                            @click="editing = true"
+                            class="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 dark:border-gray-700 dark:bg-gray-900 px-3 py-1.5 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800"
+                        >
+                            <x-icon name="pencil-square" class="h-4 w-4" />
+                            Editar
+                        </button>
+                    </div>
+
+                    <div x-show="! editing" class="p-6">
+                        <p class="text-sm leading-relaxed text-gray-700 dark:text-gray-300">
+                            {{ $workOrder->notes ?? 'Nenhuma observação registrada.' }}
+                        </p>
+                    </div>
+
+                    <form
+                        method="POST"
+                        action="{{ route('admin.work-orders.notes.update', $workOrder) }}"
+                        x-show="editing"
+                        x-cloak
+                        class="p-6"
+                    >
+                        @csrf
+                        @method('PUT')
+
+                        <label for="work-order-notes" class="sr-only">Observações</label>
+                        <textarea
+                            name="notes"
+                            id="work-order-notes"
+                            rows="4"
+                            class="block w-full rounded-lg border border-gray-300 dark:border-gray-700 dark:bg-gray-900 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500"
+                        >{{ old('notes', $workOrder->notes) }}</textarea>
+                        @error('notes')
+                            <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p>
+                        @enderror
+
+                        <div class="mt-3 flex justify-end gap-2">
+                            <button
+                                type="button"
+                                @click="editing = false"
+                                class="rounded-lg border border-gray-300 dark:border-gray-700 dark:bg-gray-900 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800"
+                            >
+                                Cancelar
+                            </button>
+                            <button
+                                type="submit"
+                                class="inline-flex items-center gap-1.5 rounded-lg bg-gray-900 dark:bg-white px-4 py-2 text-sm font-medium text-white dark:text-gray-900 hover:bg-gray-700 dark:hover:bg-gray-200"
+                            >
+                                <x-icon name="check" class="h-4 w-4" />
+                                Salvar
+                            </button>
+                        </div>
+                    </form>
+                </section>
+            @else
+                <section class="rounded-2xl border border-gray-200/70 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900">
+                    <div class="flex items-center gap-2">
+                        <span class="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-amber-50 text-amber-600 dark:bg-amber-500/10 dark:text-amber-400">
+                            <x-icon name="chat-bubble-oval-left-ellipsis" class="h-4 w-4" />
+                        </span>
+                        <h2 class="text-sm font-semibold text-gray-900 dark:text-gray-100">Observações</h2>
+                    </div>
+                    <p class="mt-4 text-sm leading-relaxed text-gray-700 dark:text-gray-300">
+                        {{ $workOrder->notes ?? 'Nenhuma observação registrada.' }}
+                    </p>
+                </section>
+            @endcan
+        </div>
+
+        <div class="space-y-6">
+            <section class="rounded-2xl border border-gray-200/70 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900">
+                <div class="flex items-center gap-2">
+                    <span class="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-sky-50 text-sky-600 dark:bg-sky-500/10 dark:text-sky-400">
+                        <x-icon name="calendar-days" class="h-4 w-4" />
+                    </span>
+                    <h2 class="text-sm font-semibold text-gray-900 dark:text-gray-100">Datas</h2>
+                </div>
+
+                <dl class="mt-4 space-y-3 text-sm">
+                    <div class="flex items-center justify-between gap-4">
+                        <dt class="text-gray-500 dark:text-gray-400">Abertura</dt>
+                        <dd class="font-medium text-gray-900 dark:text-gray-100">{{ $workOrder->opened_at->format('d/m/Y') }}</dd>
+                    </div>
+                    <div class="flex items-center justify-between gap-4">
+                        <dt class="text-gray-500 dark:text-gray-400">Previsão de entrega</dt>
+                        <dd class="font-medium text-gray-900 dark:text-gray-100">{{ $workOrder->due_at?->format('d/m/Y') ?? '—' }}</dd>
+                    </div>
+                    <div class="flex items-center justify-between gap-4">
+                        <dt class="text-gray-500 dark:text-gray-400">Conclusão</dt>
+                        <dd class="font-medium text-gray-900 dark:text-gray-100">{{ $workOrder->completed_at?->format('d/m/Y') ?? '—' }}</dd>
+                    </div>
+                </dl>
+            </section>
+
+            <section class="rounded-2xl border border-gray-200/70 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900">
+                <div class="flex flex-wrap items-center justify-between gap-3">
+                    <div class="flex items-center gap-2">
+                        <span class="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-violet-50 text-violet-600 dark:bg-violet-500/10 dark:text-violet-400">
+                            <x-icon name="briefcase" class="h-4 w-4" />
+                        </span>
+                        <h2 class="text-sm font-semibold text-gray-900 dark:text-gray-100">Projeto</h2>
+                    </div>
+
+                    @if ($workOrder->project === null)
+                        <form method="POST" action="{{ route('admin.work-orders.project.store', $workOrder) }}">
+                            @csrf
+                            <button
+                                type="submit"
+                                class="inline-flex items-center gap-1.5 rounded-lg bg-gray-900 dark:bg-white px-3 py-1.5 text-sm font-medium text-white dark:text-gray-900 hover:bg-gray-700 dark:hover:bg-gray-200"
+                            >
+                                <x-icon name="plus" class="h-4 w-4" />
+                                Criar projeto
+                            </button>
+                        </form>
+                    @endif
+                </div>
+
+                @if ($workOrder->project !== null)
+                    <a
+                        href="{{ route('admin.projects.show', $workOrder->project) }}"
+                        class="mt-4 flex items-center gap-3 rounded-xl border border-gray-100 p-3 transition hover:border-violet-200 hover:bg-gray-50 dark:border-gray-800 dark:hover:border-violet-500/40 dark:hover:bg-gray-800/50"
+                    >
+                        <span class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-violet-50 text-violet-600 dark:bg-violet-500/10 dark:text-violet-400">
+                            <x-icon name="briefcase" class="h-4 w-4" />
+                        </span>
+                        <span class="min-w-0 flex-1">
+                            <span class="block truncate text-sm font-medium text-gray-900 dark:text-gray-100">{{ $workOrder->project->name }}</span>
+                            <span class="block text-xs text-gray-400 dark:text-gray-500">{{ $workOrder->project->status->label() }}</span>
+                        </span>
+                        <x-icon name="chevron-right" class="h-4 w-4 shrink-0 text-gray-400 dark:text-gray-500" />
+                    </a>
+                @else
+                    <p class="mt-4 text-sm text-gray-500 dark:text-gray-400">
+                        Nenhum projeto vinculado. Crie um projeto a partir desta OS para iniciar o planejamento.
+                    </p>
+                @endif
+            </section>
+
+            <section class="rounded-2xl border border-gray-200/70 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900">
+                <div class="flex items-center gap-2">
+                    <span class="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400">
+                        <x-icon name="clock" class="h-4 w-4" />
+                    </span>
+                    <h2 class="text-sm font-semibold text-gray-900 dark:text-gray-100">Histórico</h2>
+                </div>
+
+                <dl class="mt-4 space-y-3 text-sm">
+                    <div class="flex items-center justify-between gap-4">
+                        <dt class="text-gray-500 dark:text-gray-400">Criado em</dt>
+                        <dd class="text-gray-900 dark:text-gray-100">{{ $workOrder->created_at->format('d/m/Y H:i') }}</dd>
+                    </div>
+                    <div class="flex items-center justify-between gap-4">
+                        <dt class="text-gray-500 dark:text-gray-400">Atualizado em</dt>
+                        <dd class="text-gray-900 dark:text-gray-100">{{ $workOrder->updated_at->format('d/m/Y H:i') }}</dd>
+                    </div>
+                </dl>
+            </section>
+        </div>
     </div>
 
     @can('update', $workOrder)
