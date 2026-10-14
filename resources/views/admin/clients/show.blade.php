@@ -1,44 +1,58 @@
 <x-layouts.admin :title="$client->name">
-    <div class="flex flex-wrap items-start justify-between gap-4">
+    <div class="flex flex-wrap items-end justify-between gap-4">
         <div>
-            <h1 class="flex items-center gap-2 text-xl font-semibold">
-                <x-icon name="building-office" class="h-5 w-5 text-gray-400 dark:text-gray-500" />
+            <p class="text-xs font-semibold uppercase tracking-wide text-indigo-600 dark:text-indigo-400">
+                Cliente
+            </p>
+            <h1 class="mt-1 flex items-center gap-2 text-2xl font-semibold tracking-tight text-gray-900 dark:text-gray-100">
+                <x-icon name="building-office" class="h-6 w-6 text-gray-400 dark:text-gray-500" />
                 {{ $client->name }}
             </h1>
-            <div class="mt-2 flex items-center gap-3">
+            <div class="mt-2 flex flex-wrap items-center gap-3">
                 <x-client-status :client="$client" />
                 @if ($client->document)
                     <span class="text-sm text-gray-500 dark:text-gray-400">{{ $client->document }}</span>
                 @endif
+                @if ($client->city)
+                    <span class="inline-flex items-center gap-1 text-sm text-gray-500 dark:text-gray-400">
+                        <x-icon name="map-pin" class="h-4 w-4" />
+                        {{ $client->city }}@if ($client->state) / {{ $client->state }} @endif
+                    </span>
+                @endif
             </div>
         </div>
 
-        <div class="flex items-center gap-2">
+        <div class="flex flex-wrap items-center gap-2">
+            <a
+                href="{{ route('admin.clients.index') }}"
+                class="inline-flex items-center gap-1.5 rounded-2xl border border-gray-200/70 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 shadow-sm transition hover:border-indigo-200 hover:text-indigo-600 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-200 dark:hover:border-indigo-500/40"
+            >
+                <x-icon name="chevron-left" class="h-4 w-4" />
+                Voltar
+            </a>
             <button
                 type="button"
                 data-modal-open="client-edit-modal"
-                class="inline-flex items-center gap-1.5 rounded-md bg-gray-900 dark:bg-white px-4 py-2 text-sm font-medium text-white dark:text-gray-900 hover:bg-gray-700 dark:hover:bg-gray-200"
+                class="inline-flex items-center gap-1.5 rounded-2xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-500"
             >
                 <x-icon name="pencil-square" class="h-4 w-4" />
                 Editar
             </button>
-
-            <a
-                href="{{ route('admin.clients.index') }}"
-                class="rounded-md px-3 py-2 text-sm font-medium text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100"
-            >
-                Voltar
-            </a>
         </div>
     </div>
 
     <div class="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        <div class="rounded-xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-800 dark:bg-gray-900">
-            <h2 class="text-xs font-semibold uppercase text-gray-500 dark:text-gray-400">Contato</h2>
-            <dl class="mt-3 space-y-2 text-sm">
+        <section class="rounded-2xl border border-gray-200/70 bg-white p-6 shadow-sm transition duration-200 hover:-translate-y-0.5 hover:border-indigo-200 hover:shadow-md dark:border-gray-800 dark:bg-gray-900 dark:hover:border-indigo-500/40">
+            <div class="flex items-center gap-2">
+                <span class="inline-flex h-9 w-9 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-400">
+                    <x-icon name="envelope" class="h-5 w-5" />
+                </span>
+                <h2 class="text-sm font-semibold text-gray-900 dark:text-gray-100">Contato</h2>
+            </div>
+            <dl class="mt-4 space-y-3 text-sm">
                 <div>
-                    <dt class="text-gray-500 dark:text-gray-400">E-mail</dt>
-                    <dd class="font-medium text-gray-900 dark:text-gray-100">
+                    <dt class="text-xs font-medium uppercase text-gray-500 dark:text-gray-400">E-mail</dt>
+                    <dd class="mt-0.5 font-medium text-gray-900 dark:text-gray-100">
                         @if ($client->email)
                             <a href="mailto:{{ $client->email }}" class="hover:text-indigo-600 dark:hover:text-indigo-400">{{ $client->email }}</a>
                         @else
@@ -47,12 +61,12 @@
                     </dd>
                 </div>
                 <div>
-                    <dt class="text-gray-500 dark:text-gray-400">Telefone</dt>
-                    <dd class="font-medium text-gray-900 dark:text-gray-100">{{ $client->phone ?? '—' }}</dd>
+                    <dt class="text-xs font-medium uppercase text-gray-500 dark:text-gray-400">Telefone</dt>
+                    <dd class="mt-0.5 font-medium text-gray-900 dark:text-gray-100">{{ $client->phone ?? '—' }}</dd>
                 </div>
                 <div>
-                    <dt class="text-gray-500 dark:text-gray-400">Site</dt>
-                    <dd class="font-medium text-gray-900 dark:text-gray-100">
+                    <dt class="text-xs font-medium uppercase text-gray-500 dark:text-gray-400">Site</dt>
+                    <dd class="mt-0.5 font-medium text-gray-900 dark:text-gray-100">
                         @if ($client->website)
                             <a href="{{ $client->website }}" target="_blank" rel="noopener" class="hover:text-indigo-600 dark:hover:text-indigo-400">{{ $client->website }}</a>
                         @else
@@ -61,14 +75,19 @@
                     </dd>
                 </div>
             </dl>
-        </div>
+        </section>
 
-        <div class="rounded-xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-800 dark:bg-gray-900">
-            <h2 class="text-xs font-semibold uppercase text-gray-500 dark:text-gray-400">Endereço</h2>
-            <dl class="mt-3 space-y-2 text-sm">
+        <section class="rounded-2xl border border-gray-200/70 bg-white p-6 shadow-sm transition duration-200 hover:-translate-y-0.5 hover:border-indigo-200 hover:shadow-md dark:border-gray-800 dark:bg-gray-900 dark:hover:border-indigo-500/40">
+            <div class="flex items-center gap-2">
+                <span class="inline-flex h-9 w-9 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400">
+                    <x-icon name="map-pin" class="h-5 w-5" />
+                </span>
+                <h2 class="text-sm font-semibold text-gray-900 dark:text-gray-100">Endereço</h2>
+            </div>
+            <dl class="mt-4 space-y-3 text-sm">
                 <div>
-                    <dt class="text-gray-500 dark:text-gray-400">Logradouro</dt>
-                    <dd class="font-medium text-gray-900 dark:text-gray-100">
+                    <dt class="text-xs font-medium uppercase text-gray-500 dark:text-gray-400">Logradouro</dt>
+                    <dd class="mt-0.5 font-medium text-gray-900 dark:text-gray-100">
                         @if ($client->street)
                             {{ $client->street }}, {{ $client->number }}@if ($client->complement) — {{ $client->complement }} @endif
                         @else
@@ -77,38 +96,49 @@
                     </dd>
                 </div>
                 <div>
-                    <dt class="text-gray-500 dark:text-gray-400">Bairro</dt>
-                    <dd class="font-medium text-gray-900 dark:text-gray-100">{{ $client->neighborhood ?? '—' }}</dd>
+                    <dt class="text-xs font-medium uppercase text-gray-500 dark:text-gray-400">Bairro</dt>
+                    <dd class="mt-0.5 font-medium text-gray-900 dark:text-gray-100">{{ $client->neighborhood ?? '—' }}</dd>
                 </div>
                 <div>
-                    <dt class="text-gray-500 dark:text-gray-400">Cidade / UF</dt>
-                    <dd class="font-medium text-gray-900 dark:text-gray-100">
+                    <dt class="text-xs font-medium uppercase text-gray-500 dark:text-gray-400">Cidade / UF</dt>
+                    <dd class="mt-0.5 font-medium text-gray-900 dark:text-gray-100">
                         {{ $client->city ? $client->city.($client->state ? ' / '.$client->state : '') : '—' }}
                     </dd>
                 </div>
                 <div>
-                    <dt class="text-gray-500 dark:text-gray-400">CEP</dt>
-                    <dd class="font-medium text-gray-900 dark:text-gray-100">{{ $client->zip ?? '—' }}</dd>
+                    <dt class="text-xs font-medium uppercase text-gray-500 dark:text-gray-400">CEP</dt>
+                    <dd class="mt-0.5 font-medium text-gray-900 dark:text-gray-100">{{ $client->zip ?? '—' }}</dd>
                 </div>
             </dl>
-        </div>
+        </section>
 
-        <div class="rounded-xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-800 dark:bg-gray-900">
-            <h2 class="text-xs font-semibold uppercase text-gray-500 dark:text-gray-400">Observações</h2>
-            <p class="mt-3 text-sm text-gray-700 dark:text-gray-300">
+        <section class="rounded-2xl border border-gray-200/70 bg-white p-6 shadow-sm transition duration-200 hover:-translate-y-0.5 hover:border-indigo-200 hover:shadow-md dark:border-gray-800 dark:bg-gray-900 dark:hover:border-indigo-500/40">
+            <div class="flex items-center gap-2">
+                <span class="inline-flex h-9 w-9 items-center justify-center rounded-2xl bg-violet-50 text-violet-600 dark:bg-violet-500/10 dark:text-violet-400">
+                    <x-icon name="document-text" class="h-5 w-5" />
+                </span>
+                <h2 class="text-sm font-semibold text-gray-900 dark:text-gray-100">Observações</h2>
+            </div>
+            <p class="mt-4 text-sm text-gray-700 dark:text-gray-300">
                 {{ $client->notes ?? 'Nenhuma observação registrada.' }}
             </p>
-        </div>
+        </section>
     </div>
 
     @include('admin.clients.partials.contacts', ['client' => $client])
 
     @include('admin.clients.partials.documents', ['client' => $client])
 
-    <div class="mt-4 rounded-xl border border-gray-200 bg-white px-5 py-4 text-xs text-gray-500 shadow-sm dark:border-gray-800 dark:bg-gray-900 dark:text-gray-400">
-        Criado em {{ $client->created_at->format('d/m/Y H:i') }}
-        &middot;
-        Atualizado em {{ $client->updated_at->format('d/m/Y H:i') }}
+    <div class="mt-4 rounded-2xl border border-gray-200/70 bg-white px-5 py-4 text-xs text-gray-500 shadow-sm dark:border-gray-800 dark:bg-gray-900 dark:text-gray-400">
+        <span class="inline-flex items-center gap-1.5">
+            <x-icon name="clock" class="h-3.5 w-3.5" />
+            Criado em {{ $client->created_at->format('d/m/Y H:i') }}
+        </span>
+        <span class="mx-2 text-gray-300 dark:text-gray-600">·</span>
+        <span class="inline-flex items-center gap-1.5">
+            <x-icon name="arrow-path" class="h-3.5 w-3.5" />
+            Atualizado em {{ $client->updated_at->format('d/m/Y H:i') }}
+        </span>
     </div>
 
     <div
@@ -121,7 +151,7 @@
     >
         <div class="absolute inset-0 bg-gray-900/50" data-modal-close></div>
 
-        <div class="absolute left-1/2 top-1/2 max-h-[90vh] w-full max-w-2xl -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-xl bg-white p-5 shadow-xl dark:bg-gray-900">
+        <div class="absolute left-1/2 top-1/2 max-h-[90vh] w-full max-w-2xl -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-2xl bg-white p-5 shadow-xl dark:bg-gray-900">
             <div class="flex items-start justify-between gap-4">
                 <div>
                     <h2 id="client-edit-modal-title" class="flex items-center gap-2 text-base font-semibold text-gray-900 dark:text-gray-100">
@@ -151,14 +181,14 @@
                 <div class="mt-6 flex justify-end gap-2">
                     <button
                         type="button"
-                        class="rounded-md border border-gray-300 dark:border-gray-700 dark:bg-gray-900 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800"
+                        class="rounded-2xl border border-gray-300 dark:border-gray-700 dark:bg-gray-900 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800"
                         data-modal-close
                     >
                         Cancelar
                     </button>
                     <button
                         type="submit"
-                        class="inline-flex items-center gap-1.5 rounded-md bg-gray-900 dark:bg-white px-4 py-2 text-sm font-medium text-white dark:text-gray-900 hover:bg-gray-700 dark:hover:bg-gray-200"
+                        class="inline-flex items-center gap-1.5 rounded-2xl bg-gray-900 dark:bg-white px-4 py-2 text-sm font-medium text-white dark:text-gray-900 hover:bg-gray-700 dark:hover:bg-gray-200"
                     >
                         <x-icon name="check" class="h-4 w-4" />
                         Salvar alterações
