@@ -14,6 +14,7 @@ use App\Http\Controllers\Admin\ErbCommentController;
 use App\Http\Controllers\Admin\ErbController;
 use App\Http\Controllers\Admin\ErbDocumentController;
 use App\Http\Controllers\Admin\ErbImportController;
+use App\Http\Controllers\Admin\ErbRelationController;
 use App\Http\Controllers\Admin\FolderController;
 use App\Http\Controllers\Admin\FormController;
 use App\Http\Controllers\Admin\FormEvaluationController;
@@ -142,6 +143,10 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
 
     Route::post('erbs/{erb}/comments', [ErbCommentController::class, 'store'])->name('erbs.comments.store');
     Route::delete('erbs/{erb}/comments/{comment}', [ErbCommentController::class, 'destroy'])->name('erbs.comments.destroy');
+
+    Route::put('erbs/{erb}/relations/projects', [ErbRelationController::class, 'projects'])->name('erbs.relations.projects');
+    Route::put('erbs/{erb}/relations/work-orders', [ErbRelationController::class, 'workOrders'])->name('erbs.relations.work-orders');
+    Route::put('erbs/{erb}/relations/radio-links', [ErbRelationController::class, 'radioLinks'])->name('erbs.relations.radio-links');
 
     Route::get('forms', [FormController::class, 'index'])->name('forms.index');
     Route::get('forms/create', [FormController::class, 'create'])->name('forms.create');

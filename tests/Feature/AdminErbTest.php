@@ -6,6 +6,7 @@ use App\Models\CatalogItem;
 use App\Models\Client;
 use App\Models\Erb;
 use App\Models\Project;
+use App\Models\RadioLink;
 use App\Models\User;
 use App\Models\WorkOrder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -186,6 +187,41 @@ it('creates an ERB owned by the authenticated user', function () {
         ->assertOk()
         ->assertSee('ERB-0001')
         ->assertSee('Vivo');
+});
+
+it('renders the map section with the ERB coordinates', function () {
+    $user = User::factory()->create();
+
+    $erb = Erb::factory()->create([
+        'user_id' => $user->getKey(),
+        'latitude' => '-23.5614140',
+        'longitude' => '-46.6558810',
+    ]);
+
+    $this->actingAs($user)
+        ->get(route('admin.erbs.show', $erb))
+        ->assertOk()
+        ->assertSee('id="erb-map"', false)
+        ->assertSee('leaflet@1.9.4/dist/leaflet.js', false)
+        ->assertSee('https://tile.openstreetmap.org/{z}/{x}/{y}.png', false)
+        ->assertDontSee('basemaps.cartocdn.com', false)
+        ->assertSee('-23,56141', false);
+});
+
+it('shows a map empty state when the ERB has no coordinates', function () {
+    $user = User::factory()->create();
+
+    $erb = Erb::factory()->create([
+        'user_id' => $user->getKey(),
+        'latitude' => null,
+        'longitude' => null,
+    ]);
+
+    $this->actingAs($user)
+        ->get(route('admin.erbs.show', $erb))
+        ->assertOk()
+        ->assertDontSee('id="erb-map"', false)
+        ->assertSee('Coordenadas não informadas');
 });
 
 it('renders the stepped create ERB modal on the list page', function () {
@@ -392,4 +428,135 @@ it('links an ERB to a project', function () {
     ])->assertRedirect();
 
     expect(Project::query()->firstOrFail()->erb_id)->toBe($erb->getKey());
+});
+
+it('shows the relation editors for projects, work orders and radio links', function () {
+    $user = User::factory()->create();
+    $erb = Erb::factory()->create(['user_id' => $user->getKey()]);
+
+    $this->actingAs($user)
+        ->get(route('admin.erbs.show', $erb))
+        ->assertOk()
+        ->assertSee('data-modal-open="erb-projects-modal"', false)
+        ->assertSee('data-modal-open="erb-work-orders-modal"', false)
+        ->assertSee('data-modal-open="erb-radio-links-modal"', false)
+        ->assertSee(route('admin.erbs.relations.projects', $erb), false)
+        ->assertSee(route('admin.erbs.relations.work-orders', $erb), false)
+        ->assertSee(route('admin.erbs.relations.radio-links', $erb), false)
+        ->assertSeeInOrder(['Observações', route('admin.erbs.edit', $erb)]);
+});
+
+it('links the selected projects to the ERB and deletes the unselected ones', function () {
+    $user = User::factory()->create();
+    $erb = Erb::factory()->create(['user_id' => $user->getKey()]);
+
+    $kept = Project::factory()->create(['user_id' => $user->getKey(), 'erb_id' => $erb->getKey()]);
+    $removed = Project::factory()->create(['user_id' => $user->getKey(), 'erb_id' => $erb->getKey()]);
+    $added = Project::factory()->create(['user_id' => $user->getKey(), 'erb_id' => null]);
+
+    $this->actingAs($user)
+        ->put(route('admin.erbs.relations.projects', $erb), [
+            'projects' => [$kept->getKey(), $added->getKey()],
+        ])
+        ->assertRedirect();
+
+    expect($kept->fresh()->erb_id)->toBe($erb->getKey())
+        ->and($added->fresh()->erb_id)->toBe($erb->getKey())
+        ->and(Project::withTrashed()->findOrFail($removed->getKey())->trashed())->toBeTrue();
+});
+
+it('links the selected work orders to the ERB and deletes the unselected ones', function () {
+    $user = User::factory()->create();
+    $erb = Erb::factory()->create(['user_id' => $user->getKey()]);
+
+    $kept = WorkOrder::factory()->create(['user_id' => $user->getKey(), 'erb_id' => $erb->getKey()]);
+    $removed = WorkOrder::factory()->create(['user_id' => $user->getKey(), 'erb_id' => $erb->getKey()]);
+    $added = WorkOrder::factory()->create(['user_id' => $user->getKey(), 'erb_id' => null]);
+
+    $this->actingAs($user)
+        ->put(route('admin.erbs.relations.work-orders', $erb), [
+            'work_orders' => [$kept->getKey(), $added->getKey()],
+        ])
+        ->assertRedirect();
+
+    expect($kept->fresh()->erb_id)->toBe($erb->getKey())
+        ->and($added->fresh()->erb_id)->toBe($erb->getKey())
+        ->and(WorkOrder::withTrashed()->findOrFail($removed->getKey())->trashed())->toBeTrue();
+});
+
+it('links the selected radio links to an ERB end and deletes the unselected ones', function () {
+    $user = User::factory()->create();
+    $erb = Erb::factory()->create(['user_id' => $user->getKey()]);
+    $otherErb = Erb::factory()->create(['user_id' => $user->getKey()]);
+
+    $kept = RadioLink::factory()->create([
+        'user_id' => $user->getKey(),
+        'erb_a_id' => $erb->getKey(),
+        'erb_b_id' => $otherErb->getKey(),
+    ]);
+    $removed = RadioLink::factory()->create([
+        'user_id' => $user->getKey(),
+        'erb_a_id' => $otherErb->getKey(),
+        'erb_b_id' => $erb->getKey(),
+    ]);
+    $added = RadioLink::factory()->create([
+        'user_id' => $user->getKey(),
+        'erb_a_id' => $otherErb->getKey(),
+        'erb_b_id' => Erb::factory()->create(['user_id' => $user->getKey()])->getKey(),
+    ]);
+
+    $this->actingAs($user)
+        ->put(route('admin.erbs.relations.radio-links', $erb), [
+            'radio_links' => [
+                $kept->getKey() => ['end' => 'a'],
+                $added->getKey() => ['end' => 'b'],
+                $removed->getKey() => ['end' => ''],
+            ],
+        ])
+        ->assertRedirect();
+
+    expect($kept->fresh()->erb_a_id)->toBe($erb->getKey())
+        ->and($added->fresh()->erb_b_id)->toBe($erb->getKey())
+        ->and(RadioLink::withTrashed()->findOrFail($removed->getKey())->trashed())->toBeTrue();
+});
+
+it('rejects moving a radio link to the end already used by the ERB', function () {
+    $user = User::factory()->create();
+    $erb = Erb::factory()->create(['user_id' => $user->getKey()]);
+
+    $radioLink = RadioLink::factory()->create([
+        'user_id' => $user->getKey(),
+        'erb_a_id' => $erb->getKey(),
+        'erb_b_id' => Erb::factory()->create(['user_id' => $user->getKey()])->getKey(),
+    ]);
+
+    $this->actingAs($user)
+        ->put(route('admin.erbs.relations.radio-links', $erb), [
+            'radio_links' => [
+                $radioLink->getKey() => ['end' => 'b'],
+            ],
+        ])
+        ->assertSessionHasErrors('radio_links');
+
+    expect($radioLink->fresh()->erb_a_id)->toBe($erb->getKey())
+        ->and($radioLink->fresh()->erb_b_id)->not->toBe($erb->getKey())
+        ->and($radioLink->fresh()->trashed())->toBeFalse();
+});
+
+it('forbids managing the relations of an ERB owned by another user', function () {
+    $owner = User::factory()->create();
+    $intruder = User::factory()->create();
+    $erb = Erb::factory()->create(['user_id' => $owner->getKey()]);
+
+    $this->actingAs($intruder)
+        ->put(route('admin.erbs.relations.projects', $erb), ['projects' => []])
+        ->assertForbidden();
+
+    $this->actingAs($intruder)
+        ->put(route('admin.erbs.relations.work-orders', $erb), ['work_orders' => []])
+        ->assertForbidden();
+
+    $this->actingAs($intruder)
+        ->put(route('admin.erbs.relations.radio-links', $erb), ['radio_links' => []])
+        ->assertForbidden();
 });

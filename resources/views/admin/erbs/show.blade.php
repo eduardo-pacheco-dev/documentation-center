@@ -193,11 +193,20 @@
         </section>
 
         <section class="rounded-2xl border border-gray-200/70 bg-white p-6 shadow-sm transition duration-200 hover:-translate-y-0.5 hover:border-indigo-200 hover:shadow-md sm:col-span-2 lg:col-span-3 dark:border-gray-800 dark:bg-gray-900 dark:hover:border-indigo-500/40">
-            <div class="flex items-center gap-2">
-                <span class="inline-flex h-9 w-9 items-center justify-center rounded-2xl bg-violet-50 text-violet-600 dark:bg-violet-500/10 dark:text-violet-400">
-                    <x-icon name="document-text" class="h-5 w-5" />
-                </span>
-                <h2 class="text-sm font-semibold text-gray-900 dark:text-gray-100">Observações</h2>
+            <div class="flex flex-wrap items-center justify-between gap-2">
+                <div class="flex items-center gap-2">
+                    <span class="inline-flex h-9 w-9 items-center justify-center rounded-2xl bg-violet-50 text-violet-600 dark:bg-violet-500/10 dark:text-violet-400">
+                        <x-icon name="document-text" class="h-5 w-5" />
+                    </span>
+                    <h2 class="text-sm font-semibold text-gray-900 dark:text-gray-100">Observações</h2>
+                </div>
+                <a
+                    href="{{ route('admin.erbs.edit', $erb) }}"
+                    class="inline-flex items-center gap-1.5 rounded-xl border border-gray-200/70 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 shadow-sm transition hover:border-indigo-200 hover:text-indigo-600 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-200 dark:hover:border-indigo-500/40"
+                >
+                    <x-icon name="pencil-square" class="h-3.5 w-3.5" />
+                    Editar
+                </a>
             </div>
             <p class="mt-4 text-sm text-gray-700 dark:text-gray-300">
                 {{ $erb->notes ?? 'Nenhuma observação registrada.' }}
@@ -205,15 +214,213 @@
         </section>
     </div>
 
+    @if ($erb->latitude !== null && $erb->longitude !== null)
+        <style>
+            #erb-map {
+                height: 420px;
+            }
+
+            @media (max-width: 640px) {
+                #erb-map {
+                    height: 320px;
+                }
+            }
+
+            .erb-map-pin {
+                display: block;
+                width: 20px;
+                height: 20px;
+                border: 3px solid #ffffff;
+                border-radius: 9999px;
+                background: #4f46e5;
+                box-shadow: 0 1px 3px rgba(15, 23, 42, 0.4), 0 0 0 6px rgba(79, 70, 229, 0.25);
+            }
+
+            .erb-map-popup {
+                min-width: 190px;
+                font-size: 12px;
+                line-height: 1.5;
+                color: #4b5563;
+            }
+
+            .erb-map-popup-title {
+                font-size: 13px;
+                font-weight: 600;
+                color: #111827;
+            }
+
+            .erb-map-popup-coords {
+                font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+                font-size: 11px;
+                color: #6b7280;
+            }
+
+            .erb-map-popup-link {
+                display: inline-flex;
+                align-items: center;
+                margin-top: 6px;
+                font-weight: 600;
+                color: #4f46e5;
+                text-decoration: none;
+            }
+
+            .erb-map-popup-link:hover {
+                text-decoration: underline;
+            }
+
+            .dark .erb-map-popup {
+                color: #9ca3af;
+            }
+
+            .dark .erb-map-popup-title {
+                color: #f3f4f6;
+            }
+
+            .dark .leaflet-popup-content-wrapper,
+            .dark .leaflet-popup-tip {
+                background: #111827;
+            }
+        </style>
+    @endif
+
+    <section class="mt-4 overflow-hidden rounded-2xl border border-gray-200/70 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900">
+        <div class="flex flex-wrap items-center justify-between gap-3 border-b border-gray-100 px-5 py-4 dark:border-gray-800">
+            <div class="flex items-center gap-2">
+                <span class="inline-flex h-8 w-8 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400">
+                    <x-icon name="map-pin" class="h-4 w-4" />
+                </span>
+                <h2 class="text-sm font-semibold text-gray-900 dark:text-gray-100">Mapa</h2>
+                @if ($erb->latitude !== null && $erb->longitude !== null)
+                    <span class="font-mono text-xs text-gray-500 dark:text-gray-400">
+                        {{ number_format((float) $erb->latitude, 5, ',', '.') }},
+                        {{ number_format((float) $erb->longitude, 5, ',', '.') }}
+                    </span>
+                @endif
+            </div>
+
+            @if ($erb->latitude !== null && $erb->longitude !== null)
+                <div class="flex flex-wrap items-center gap-2">
+                    <a
+                        href="https://www.google.com/maps?q={{ $erb->latitude }},{{ $erb->longitude }}"
+                        target="_blank"
+                        rel="noopener"
+                        class="inline-flex items-center gap-1.5 rounded-xl border border-gray-200/70 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 shadow-sm transition hover:border-indigo-200 hover:text-indigo-600 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-200 dark:hover:border-indigo-500/40"
+                    >
+                        <x-icon name="arrow-top-right-on-square" class="h-3.5 w-3.5" />
+                        Google Maps
+                    </a>
+
+                    <a
+                        href="https://www.openstreetmap.org/?mlat={{ $erb->latitude }}&mlon={{ $erb->longitude }}#map=16/{{ $erb->latitude }}/{{ $erb->longitude }}"
+                        target="_blank"
+                        rel="noopener"
+                        class="inline-flex items-center gap-1.5 rounded-xl border border-gray-200/70 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 shadow-sm transition hover:border-indigo-200 hover:text-indigo-600 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-200 dark:hover:border-indigo-500/40"
+                    >
+                        <x-icon name="arrow-top-right-on-square" class="h-3.5 w-3.5" />
+                        OpenStreetMap
+                    </a>
+                </div>
+            @endif
+        </div>
+
+        @if ($erb->latitude !== null && $erb->longitude !== null)
+            <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css" />
+
+            <div id="erb-map" class="bg-gray-100 dark:bg-gray-800"></div>
+
+            <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
+            <script>
+                (function () {
+                    const container = document.getElementById('erb-map');
+
+                    if (! container) {
+                        return;
+                    }
+
+                    if (typeof L === 'undefined') {
+                        container.innerHTML = '<p style="display: flex; height: 100%; align-items: center; justify-content: center; font-size: 13px; color: #6b7280;">Não foi possível carregar o mapa.</p>';
+
+                        return;
+                    }
+
+                    const latitude = @js((float) $erb->latitude);
+                    const longitude = @js((float) $erb->longitude);
+
+                    const escapeHtml = (value) => String(value).replace(/[&<>"']/g, (character) => ({
+                        '&': '&amp;',
+                        '<': '&lt;',
+                        '>': '&gt;',
+                        '"': '&quot;',
+                        "'": '&#039;',
+                    })[character]);
+
+                    const map = L.map(container, {
+                        center: [latitude, longitude],
+                        zoom: 16,
+                        scrollWheelZoom: false,
+                    });
+
+                    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+                        maxZoom: 19,
+                    }).addTo(map);
+
+                    const address = @js($address->implode(' · '));
+
+                    const popup = [
+                        '<div class="erb-map-popup">',
+                        '<p class="erb-map-popup-title">' + escapeHtml(@js($erb->code)) + '</p>',
+                        address ? '<p>' + escapeHtml(address) + '</p>' : '',
+                        '<p class="erb-map-popup-coords">' + latitude.toFixed(5) + ', ' + longitude.toFixed(5) + '</p>',
+                        '<a class="erb-map-popup-link" href="https://www.google.com/maps?q=' + latitude + ',' + longitude + '" target="_blank" rel="noopener">Abrir no Google Maps</a>',
+                        '</div>',
+                    ].join('');
+
+                    L.marker([latitude, longitude], {
+                        title: @js($erb->name),
+                        icon: L.divIcon({
+                            className: '',
+                            html: '<span class="erb-map-pin"></span>',
+                            iconSize: [20, 20],
+                            iconAnchor: [10, 10],
+                            popupAnchor: [0, -11],
+                        }),
+                    })
+                        .addTo(map)
+                        .bindPopup(popup)
+                        .openPopup();
+                })();
+            </script>
+        @else
+            <div class="px-5 py-12 text-center">
+                <span class="mx-auto flex h-11 w-11 items-center justify-center rounded-2xl bg-gray-100 text-gray-400 dark:bg-gray-800 dark:text-gray-500">
+                    <x-icon name="map-pin" class="h-5 w-5" />
+                </span>
+                <p class="mt-3 text-sm text-gray-500 dark:text-gray-400">Coordenadas não informadas para esta ERB.</p>
+            </div>
+        @endif
+    </section>
+
     <div class="mt-4 overflow-hidden rounded-2xl border border-gray-200/70 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900">
-        <div class="flex items-center gap-2 border-b border-gray-100 px-5 py-4 dark:border-gray-800">
-            <span class="inline-flex h-8 w-8 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-400">
-                <x-icon name="clipboard-document-list" class="h-4 w-4" />
-            </span>
-            <h2 class="text-sm font-semibold text-gray-900 dark:text-gray-100">Ordens de serviço</h2>
-            <span class="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600 dark:bg-gray-800 dark:text-gray-300">
-                {{ $erb->workOrders->count() }}
-            </span>
+        <div class="flex flex-wrap items-center justify-between gap-3 border-b border-gray-100 px-5 py-4 dark:border-gray-800">
+            <div class="flex items-center gap-2">
+                <span class="inline-flex h-8 w-8 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-400">
+                    <x-icon name="clipboard-document-list" class="h-4 w-4" />
+                </span>
+                <h2 class="text-sm font-semibold text-gray-900 dark:text-gray-100">Ordens de serviço</h2>
+                <span class="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600 dark:bg-gray-800 dark:text-gray-300">
+                    {{ $erb->workOrders->count() }}
+                </span>
+            </div>
+
+            <button
+                type="button"
+                data-modal-open="erb-work-orders-modal"
+                class="inline-flex items-center gap-1.5 rounded-xl border border-gray-200/70 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 shadow-sm transition hover:border-indigo-200 hover:text-indigo-600 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-200 dark:hover:border-indigo-500/40"
+            >
+                <x-icon name="pencil-square" class="h-3.5 w-3.5" />
+                Editar
+            </button>
         </div>
 
         @if ($erb->workOrders->isEmpty())
@@ -252,14 +459,25 @@
     </div>
 
     <div class="mt-4 overflow-hidden rounded-2xl border border-gray-200/70 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900">
-        <div class="flex items-center gap-2 border-b border-gray-100 px-5 py-4 dark:border-gray-800">
-            <span class="inline-flex h-8 w-8 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400">
-                <x-icon name="briefcase" class="h-4 w-4" />
-            </span>
-            <h2 class="text-sm font-semibold text-gray-900 dark:text-gray-100">Projetos</h2>
-            <span class="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600 dark:bg-gray-800 dark:text-gray-300">
-                {{ $erb->projects->count() }}
-            </span>
+        <div class="flex flex-wrap items-center justify-between gap-3 border-b border-gray-100 px-5 py-4 dark:border-gray-800">
+            <div class="flex items-center gap-2">
+                <span class="inline-flex h-8 w-8 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400">
+                    <x-icon name="briefcase" class="h-4 w-4" />
+                </span>
+                <h2 class="text-sm font-semibold text-gray-900 dark:text-gray-100">Projetos</h2>
+                <span class="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600 dark:bg-gray-800 dark:text-gray-300">
+                    {{ $erb->projects->count() }}
+                </span>
+            </div>
+
+            <button
+                type="button"
+                data-modal-open="erb-projects-modal"
+                class="inline-flex items-center gap-1.5 rounded-xl border border-gray-200/70 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 shadow-sm transition hover:border-indigo-200 hover:text-indigo-600 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-200 dark:hover:border-indigo-500/40"
+            >
+                <x-icon name="pencil-square" class="h-3.5 w-3.5" />
+                Editar
+            </button>
         </div>
 
         <div class="divide-y divide-gray-100 dark:divide-gray-800">
@@ -280,14 +498,25 @@
     </div>
 
     <div class="mt-4 overflow-hidden rounded-2xl border border-gray-200/70 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900">
-        <div class="flex items-center gap-2 border-b border-gray-100 px-5 py-4 dark:border-gray-800">
-            <span class="inline-flex h-8 w-8 items-center justify-center rounded-xl bg-violet-50 text-violet-600 dark:bg-violet-500/10 dark:text-violet-400">
-                <x-icon name="arrows-right-left" class="h-4 w-4" />
-            </span>
-            <h2 class="text-sm font-semibold text-gray-900 dark:text-gray-100">Radio links</h2>
-            <span class="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600 dark:bg-gray-800 dark:text-gray-300">
-                {{ $radioLinkCount }}
-            </span>
+        <div class="flex flex-wrap items-center justify-between gap-3 border-b border-gray-100 px-5 py-4 dark:border-gray-800">
+            <div class="flex items-center gap-2">
+                <span class="inline-flex h-8 w-8 items-center justify-center rounded-xl bg-violet-50 text-violet-600 dark:bg-violet-500/10 dark:text-violet-400">
+                    <x-icon name="arrows-right-left" class="h-4 w-4" />
+                </span>
+                <h2 class="text-sm font-semibold text-gray-900 dark:text-gray-100">Radio links</h2>
+                <span class="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600 dark:bg-gray-800 dark:text-gray-300">
+                    {{ $radioLinkCount }}
+                </span>
+            </div>
+
+            <button
+                type="button"
+                data-modal-open="erb-radio-links-modal"
+                class="inline-flex items-center gap-1.5 rounded-xl border border-gray-200/70 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 shadow-sm transition hover:border-indigo-200 hover:text-indigo-600 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-200 dark:hover:border-indigo-500/40"
+            >
+                <x-icon name="pencil-square" class="h-3.5 w-3.5" />
+                Editar
+            </button>
         </div>
 
         @php
@@ -325,6 +554,13 @@
             </div>
         @endif
     </div>
+
+    @include('admin.erbs.partials.relations', [
+        'erb' => $erb,
+        'projectOptions' => $projectOptions,
+        'workOrderOptions' => $workOrderOptions,
+        'radioLinkOptions' => $radioLinkOptions,
+    ])
 
     @include('admin.erbs.partials.documents', ['erb' => $erb])
 

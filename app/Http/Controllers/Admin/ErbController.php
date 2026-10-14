@@ -103,7 +103,7 @@ class ErbController extends Controller
     /**
      * Show the ERB details.
      */
-    public function show(Erb $erb): View
+    public function show(Request $request, Erb $erb): View
     {
         $this->authorize('view', $erb);
 
@@ -116,7 +116,14 @@ class ErbController extends Controller
             'radioLinksAsEndB' => fn ($query) => $query->with('erbA:id,code,name')->orderByDesc('updated_at'),
         ]);
 
-        return view('admin.erbs.show', ['erb' => $erb]);
+        $user = $request->user();
+
+        return view('admin.erbs.show', [
+            'erb' => $erb,
+            'projectOptions' => $user->projects()->orderBy('name')->get(['id', 'code', 'name', 'erb_id']),
+            'workOrderOptions' => $user->workOrders()->orderByDesc('opened_at')->orderByDesc('id')->get(['id', 'number', 'erb_id']),
+            'radioLinkOptions' => $user->radioLinks()->with(['erbA:id,code', 'erbB:id,code'])->orderBy('code')->get(['id', 'code', 'erb_a_id', 'erb_b_id']),
+        ]);
     }
 
     /**
