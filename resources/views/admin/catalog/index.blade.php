@@ -329,6 +329,10 @@
         </div>
     @endif
 
+    @foreach ($catalogItems as $catalogItem)
+        @include('admin.catalog.partials.edit-modal', ['catalogItem' => $catalogItem])
+    @endforeach
+
     <div
         id="catalog-item-modal"
         class="fixed inset-0 z-50 hidden"
@@ -513,6 +517,7 @@
 
                 const modal = document.getElementById(opener.dataset.modalOpen);
                 if (modal) {
+                    modal.resetWizard?.();
                     openModal(modal);
                 }
 
@@ -531,34 +536,38 @@
             }
         });
 
-        const catalogModal = document.getElementById('catalog-item-modal');
-        if (catalogModal?.hasAttribute('data-open')) {
-            openModal(catalogModal);
-        }
+        const progressWidths = ['w-1/3', 'w-2/3', 'w-full'];
+        const defaultWizardLabels = ['Identificação', 'Valores', 'Detalhes'];
 
-        const wizard = catalogModal?.querySelector('[data-wizard]');
+        const setupWizard = (modal) => {
+            const wizard = modal?.querySelector('[data-wizard]');
 
-        if (wizard) {
+            if (!wizard || wizard.dataset.wizardReady === 'true') {
+                return;
+            }
+
+            wizard.dataset.wizardReady = 'true';
+
             const steps = Array.from(wizard.querySelectorAll('[data-wizard-step]'));
-            const label = catalogModal.querySelector('[data-wizard-label]');
-            const counter = catalogModal.querySelector('[data-wizard-counter]');
-            const progressBar = catalogModal.querySelector('[data-wizard-progress]');
-            const prevButton = catalogModal.querySelector('[data-wizard-prev]');
-            const nextButton = catalogModal.querySelector('[data-wizard-next]');
-            const submitButton = catalogModal.querySelector('[data-wizard-submit]');
 
-            const stepLabels = ['Identificação', 'Valores', 'Detalhes'];
-            const progressWidths = ['w-1/3', 'w-2/3', 'w-full'];
+            if (steps.length === 0) {
+                return;
+            }
 
+            const prevButton = modal.querySelector('[data-wizard-prev]');
+            const nextButton = modal.querySelector('[data-wizard-next]');
+            const submitButton = modal.querySelector('[data-wizard-submit]');
+            const label = modal.querySelector('[data-wizard-label]');
+            const counter = modal.querySelector('[data-wizard-counter]');
+            const progressBar = modal.querySelector('[data-wizard-progress]');
+            const labels = JSON.parse(wizard.dataset.wizardLabels || JSON.stringify(defaultWizardLabels));
             let current = 0;
 
             const render = () => {
-                steps.forEach((step, index) => {
-                    step.classList.toggle('hidden', index !== current);
-                });
+                steps.forEach((step, index) => step.classList.toggle('hidden', index !== current));
 
                 if (label) {
-                    label.textContent = stepLabels[current] || '';
+                    label.textContent = labels[current] || '';
                 }
 
                 if (counter) {
@@ -566,7 +575,7 @@
                 }
 
                 if (progressBar) {
-                    progressBar.classList.remove('w-1/3', 'w-2/3', 'w-full');
+                    progressBar.classList.remove(...progressWidths);
                     progressBar.classList.add(progressWidths[current] || 'w-full');
                 }
 
@@ -596,13 +605,26 @@
 
             prevButton?.addEventListener('click', () => goTo(current - 1));
 
-            document.querySelectorAll('[data-modal-open="catalog-item-modal"]').forEach((opener) => {
-                opener.addEventListener('click', () => goTo(0));
-            });
+            const errorStep = () => {
+                const index = steps.findIndex((step) => step.querySelector('.text-red-600'));
 
-            const errorStep = steps.findIndex((step) => step.querySelector('.text-red-600'));
+                return index === -1 ? 0 : index;
+            };
 
-            goTo(errorStep > -1 ? errorStep : 0);
+            modal.resetWizard = () => goTo(errorStep());
+
+            goTo(errorStep());
+        };
+
+        const catalogModal = document.getElementById('catalog-item-modal');
+        setupWizard(catalogModal);
+
+        document.querySelectorAll('[data-catalog-edit-modal]').forEach(setupWizard);
+
+        if (catalogModal?.hasAttribute('data-open')) {
+            openModal(catalogModal);
         }
+
+        document.querySelectorAll('[data-catalog-edit-modal][data-open]').forEach(openModal);
     </script>
 </x-layouts.admin>

@@ -32,6 +32,33 @@ class CatalogItem extends Model
     use HasFactory, SoftDeletes;
 
     /**
+     * Assign a sequential code when one is not provided.
+     */
+    protected static function booted(): void
+    {
+        static::saving(function (CatalogItem $item): void {
+            if (blank($item->code) && $item->user_id !== null) {
+                $item->code = static::generateCode($item->user);
+            }
+        });
+    }
+
+    /**
+     * Generate the next sequential code for the user's catalog items.
+     */
+    public static function generateCode(User $user): string
+    {
+        $sequence = $user->catalogItems()->withTrashed()->count() + 1;
+
+        do {
+            $code = 'COD-'.str_pad((string) $sequence, 4, '0', STR_PAD_LEFT);
+            $sequence++;
+        } while ($user->catalogItems()->withTrashed()->where('code', $code)->exists());
+
+        return $code;
+    }
+
+    /**
      * The user that created the catalog item.
      */
     public function user(): BelongsTo

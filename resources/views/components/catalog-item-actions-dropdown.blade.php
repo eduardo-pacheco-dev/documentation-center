@@ -26,14 +26,15 @@
             Ver detalhes
         </a>
 
-        <a
-            href="{{ route('admin.catalog.edit', $catalogItem) }}"
-            class="flex items-center gap-2 px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800"
+        <button
+            type="button"
+            data-modal-open="catalog-item-edit-modal-{{ $catalogItem->getKey() }}"
+            class="flex w-full items-center gap-2 px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800"
             role="menuitem"
         >
             <x-icon name="pencil-square" class="h-4 w-4 text-gray-400 dark:text-gray-500" />
             Editar
-        </a>
+        </button>
 
         <form method="POST" action="{{ route('admin.catalog.destroy', $catalogItem) }}">
             @csrf

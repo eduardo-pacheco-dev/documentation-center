@@ -69,6 +69,17 @@ it('renders the create form inside a modal on the catalog list', function () {
         ->assertSee(route('admin.catalog.store'), false);
 });
 
+it('renders edit modals on the catalog list', function () {
+    $user = User::factory()->create();
+    $item = CatalogItem::factory()->create(['user_id' => $user->getKey()]);
+
+    $this->actingAs($user)
+        ->get('/admin/catalog')
+        ->assertOk()
+        ->assertSee('data-modal-open="catalog-item-edit-modal-'.$item->getKey().'"', false)
+        ->assertSee('id="catalog-item-edit-modal-'.$item->getKey().'"', false);
+});
+
 it('creates a product owned by the authenticated user', function () {
     $user = User::factory()->create();
 
@@ -126,6 +137,17 @@ it('defaults the catalog item status to active when it is not sent', function ()
     ])->assertRedirect();
 
     expect(CatalogItem::query()->firstOrFail()->status->value)->toBe('active');
+});
+
+it('generates a code automatically when none is given', function () {
+    $user = User::factory()->create();
+
+    $this->actingAs($user)->post('/admin/catalog', [
+        'type' => 'product',
+        'name' => 'Item sem código',
+    ])->assertRedirect();
+
+    expect(CatalogItem::query()->firstOrFail()->code)->toBe('COD-0001');
 });
 
 it('rejects a catalog item without a name or a type', function () {
