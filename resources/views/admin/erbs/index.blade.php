@@ -7,29 +7,32 @@
             : number_format((float) $value, 5, ',', '.');
     @endphp
 
-    <div class="flex items-center justify-between">
+    <div class="flex flex-wrap items-end justify-between gap-4">
         <div>
-            <h1 class="flex items-center gap-2 text-xl font-semibold">
-                <x-icon name="signal" class="h-5 w-5 text-gray-400 dark:text-gray-500" />
+            <p class="text-xs font-semibold uppercase tracking-wide text-indigo-600 dark:text-indigo-400">
+                Rede
+            </p>
+            <h1 class="mt-1 flex items-center gap-2 text-2xl font-semibold tracking-tight text-gray-900 dark:text-gray-100">
+                <x-icon name="signal" class="h-6 w-6 text-gray-400 dark:text-gray-500" />
                 ERBs
             </h1>
             <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Gerencie as estações rádio base (torres de telecom).</p>
         </div>
 
-        <div class="flex items-center gap-2">
+        <div class="flex flex-wrap items-center gap-2">
             <button
                 type="button"
                 data-modal-open="erb-import-modal"
-                class="inline-flex items-center gap-1.5 rounded-md border border-gray-300 dark:border-gray-700 dark:bg-gray-900 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800"
+                class="inline-flex items-center gap-1.5 rounded-2xl border border-gray-200/70 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 shadow-sm transition hover:border-indigo-200 hover:text-indigo-600 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-200 dark:hover:border-indigo-500/40"
             >
                 <x-icon name="arrow-up-tray" class="h-4 w-4" />
-                Importar em massa
+                Importar
             </button>
 
             <a
                 href="{{ route('admin.erbs.create') }}"
                 data-modal-open="erb-create-modal"
-                class="inline-flex items-center gap-1.5 rounded-md bg-gray-900 dark:bg-white px-4 py-2 text-sm font-medium text-white dark:text-gray-900 hover:bg-gray-700 dark:hover:bg-gray-200"
+                class="inline-flex items-center gap-1.5 rounded-2xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-500"
             >
                 <x-icon name="plus" class="h-4 w-4" />
                 Nova ERB
@@ -37,7 +40,45 @@
         </div>
     </div>
 
-    <div class="mt-6 flex flex-wrap items-center justify-between gap-4">
+    @php
+        $erbsOnPage = $erbs->getCollection();
+        $activeOnPage = $erbsOnPage->filter(fn ($erb) => $erb->status?->value === 'active')->count();
+        $maintenanceOnPage = $erbsOnPage->filter(fn ($erb) => $erb->status?->value === 'maintenance')->count();
+        $citiesOnPage = $erbsOnPage->pluck('city')->filter()->unique()->count();
+    @endphp
+
+    <div class="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <div class="group relative overflow-hidden rounded-2xl border border-gray-200/70 bg-white p-5 shadow-sm transition duration-200 hover:-translate-y-0.5 hover:border-indigo-200 hover:shadow-lg hover:shadow-indigo-600/5 dark:border-gray-800 dark:bg-gray-900 dark:hover:border-indigo-500/40">
+            <span class="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-400">
+                <x-icon name="signal" class="h-5 w-5" />
+            </span>
+            <p class="mt-4 text-3xl font-semibold tracking-tight text-gray-900 dark:text-gray-100">{{ $erbs->total() }}</p>
+            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">ERBs encontradas</p>
+        </div>
+        <div class="group relative overflow-hidden rounded-2xl border border-gray-200/70 bg-white p-5 shadow-sm transition duration-200 hover:-translate-y-0.5 hover:border-violet-200 hover:shadow-lg hover:shadow-violet-600/5 dark:border-gray-800 dark:bg-gray-900 dark:hover:border-violet-500/40">
+            <span class="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-violet-50 text-violet-600 dark:bg-violet-500/10 dark:text-violet-400">
+                <x-icon name="squares-2x2" class="h-5 w-5" />
+            </span>
+            <p class="mt-4 text-3xl font-semibold tracking-tight text-gray-900 dark:text-gray-100">{{ $erbsOnPage->count() }}</p>
+            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Nesta página</p>
+        </div>
+        <div class="group relative overflow-hidden rounded-2xl border border-gray-200/70 bg-white p-5 shadow-sm transition duration-200 hover:-translate-y-0.5 hover:border-emerald-200 hover:shadow-lg hover:shadow-emerald-600/5 dark:border-gray-800 dark:bg-gray-900 dark:hover:border-emerald-500/40">
+            <span class="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400">
+                <x-icon name="check-circle" class="h-5 w-5" />
+            </span>
+            <p class="mt-4 text-3xl font-semibold tracking-tight text-gray-900 dark:text-gray-100">{{ $activeOnPage }}</p>
+            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Ativas nesta página</p>
+        </div>
+        <div class="group relative overflow-hidden rounded-2xl border border-gray-200/70 bg-white p-5 shadow-sm transition duration-200 hover:-translate-y-0.5 hover:border-amber-200 hover:shadow-lg hover:shadow-amber-600/5 dark:border-gray-800 dark:bg-gray-900 dark:hover:border-amber-500/40">
+            <span class="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-amber-50 text-amber-600 dark:bg-amber-500/10 dark:text-amber-400">
+                <x-icon name="wrench-screwdriver" class="h-5 w-5" />
+            </span>
+            <p class="mt-4 text-3xl font-semibold tracking-tight text-gray-900 dark:text-gray-100">{{ $maintenanceOnPage }}</p>
+            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Em manutenção nesta página</p>
+        </div>
+    </div>
+
+    <section class="mt-6 rounded-2xl border border-gray-200/70 bg-white p-4 shadow-sm dark:border-gray-800 dark:bg-gray-900">
         <form
             method="GET"
             action="{{ route('admin.erbs.index') }}"
@@ -57,22 +98,23 @@
                     name="search"
                     value="{{ $search }}"
                     placeholder="Buscar por código, nome, site ID, end ID, operadora, tecnologia ou cidade..."
-                    class="block w-full rounded-md border border-gray-300 dark:border-gray-700 dark:bg-gray-900 py-2 pl-9 pr-3 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500"
+                    class="block w-full rounded-xl border border-gray-300 bg-white py-2 pl-9 pr-3 text-sm shadow-sm transition focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
                     data-search-input
                 >
             </div>
 
             <button
                 type="submit"
-                class="rounded-md border border-gray-300 dark:border-gray-700 dark:bg-gray-900 px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800"
+                class="inline-flex items-center gap-1.5 rounded-xl border border-gray-200/70 bg-white px-4 py-2 text-sm font-semibold text-gray-700 shadow-sm transition hover:border-indigo-200 hover:text-indigo-600 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-200 dark:hover:border-indigo-500/40"
             >
+                <x-icon name="magnifying-glass" class="h-4 w-4" />
                 Buscar
             </button>
 
             @if ($search !== '')
                 <a
                     href="{{ route('admin.erbs.index', array_filter(['status' => $status, 'view' => $view])) }}"
-                    class="text-sm text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100"
+                    class="rounded-xl px-3 py-2 text-sm font-medium text-gray-500 transition hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100"
                 >
                     Limpar
                 </a>
@@ -83,20 +125,33 @@
                 id="status-filter"
                 name="status"
                 onchange="this.form.submit()"
-                class="rounded-md border border-gray-300 dark:border-gray-700 dark:bg-gray-900 py-2 pl-3 pr-8 text-sm text-gray-700 dark:text-gray-200 focus:border-indigo-500 focus:outline-none focus:ring-indigo-500"
+                class="rounded-xl border border-gray-300 bg-white py-2 pl-3 pr-8 text-sm text-gray-700 transition focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200"
             >
                 @foreach (['' => 'Todos os status', 'active' => 'Ativas', 'maintenance' => 'Em manutenção', 'inactive' => 'Desativadas'] as $value => $label)
                     <option value="{{ $value }}" @selected($status === ($value ?: null))>{{ $label }}</option>
                 @endforeach
             </select>
         </form>
+    </section>
 
-        <div class="inline-flex rounded-lg border border-gray-300 dark:border-gray-700 p-0.5" role="group" aria-label="Modo de visualização">
+    <div class="mt-4 flex flex-wrap items-center justify-between gap-3">
+        <p class="text-sm text-gray-500 dark:text-gray-400">
+            Exibindo
+            <span class="font-medium text-gray-900 dark:text-gray-100">{{ $erbs->count() }}</span>
+            de
+            <span class="font-medium text-gray-900 dark:text-gray-100">{{ $erbs->total() }}</span>
+            ERBs
+            @if ($citiesOnPage > 0)
+                &middot; {{ $citiesOnPage }} {{ $citiesOnPage === 1 ? 'cidade' : 'cidades' }}
+            @endif
+        </p>
+
+        <div class="inline-flex rounded-2xl border border-gray-200 bg-white p-1 dark:border-gray-800 dark:bg-gray-900" role="group" aria-label="Modo de visualização">
             @foreach (['table' => 'Tabela', 'cards' => 'Cards', 'compact' => 'Lista'] as $mode => $label)
                 <a
                     href="{{ route('admin.erbs.index', array_merge($viewQuery, ['view' => $mode])) }}"
                     data-view-toggle="{{ $mode }}"
-                    class="inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm {{ $view === $mode ? 'bg-gray-900 text-white dark:bg-white dark:text-gray-900' : 'text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800' }}"
+                    class="inline-flex items-center gap-1.5 rounded-xl px-2.5 py-1.5 text-sm font-medium transition {{ $view === $mode ? 'bg-indigo-600 text-white shadow-sm' : 'text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800' }}"
                 >
                     <x-icon :name="$mode === 'table' ? 'table-cells' : ($mode === 'cards' ? 'squares-2x2' : 'bars-3')" class="h-4 w-4" />
                     {{ $label }}
@@ -106,63 +161,82 @@
     </div>
 
     @if ($view === 'table')
-        <div class="mt-4 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 shadow-sm">
+        <div class="mt-4 overflow-hidden rounded-2xl border border-gray-200/70 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900">
             <div class="overflow-x-auto lg:overflow-x-visible">
                 <table class="min-w-full divide-y divide-gray-200 text-sm dark:divide-gray-800">
-                    <thead class="rounded-t-xl bg-gray-50 text-left text-xs uppercase text-gray-500 dark:bg-gray-800 dark:text-gray-400">
+                    <thead class="bg-gray-50/80 text-left text-xs font-medium uppercase tracking-wide text-gray-500 dark:bg-gray-800/60 dark:text-gray-400">
                         <tr>
-                            <x-sort-header column="code" label="ERB" icon="signal" class="px-5 py-3" />
-                            <x-sort-header column="operator" label="Operadora" class="px-5 py-3" />
-                            <x-sort-header column="technology" label="Tecnologia" class="px-5 py-3" />
-                            <x-sort-header column="city" label="Cidade" class="px-5 py-3" />
-                            <x-sort-header column="state" label="UF" class="px-5 py-3" />
-                            <th class="px-5 py-3 text-right font-medium">OS / Projetos</th>
-                            <x-sort-header column="status" label="Status" icon="flag" class="px-5 py-3" />
-                            <x-sort-header column="updated_at" label="Atualizado" default="updated_at" class="px-5 py-3" />
-                            <th class="px-5 py-3 text-right font-medium">Ações</th>
+                            <x-sort-header column="code" label="ERB" icon="signal" class="px-5 py-3.5" />
+                            <x-sort-header column="operator" label="Operadora" class="px-5 py-3.5" />
+                            <x-sort-header column="technology" label="Tecnologia" class="px-5 py-3.5" />
+                            <x-sort-header column="city" label="Cidade" class="px-5 py-3.5" />
+                            <x-sort-header column="state" label="UF" class="px-5 py-3.5" />
+                            <th class="px-5 py-3.5 text-right font-medium">OS / Projetos</th>
+                            <x-sort-header column="status" label="Status" icon="flag" class="px-5 py-3.5" />
+                            <x-sort-header column="updated_at" label="Atualizado" default="updated_at" class="px-5 py-3.5" />
+                            <th class="px-5 py-3.5 text-right font-medium">Ações</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
                         @forelse ($erbs as $erb)
-                            <tr>
-                                <td class="px-5 py-3">
-                                    <a
-                                        href="{{ route('admin.erbs.show', $erb) }}"
-                                        class="flex items-center gap-2 font-medium text-gray-900 hover:text-indigo-600 dark:text-gray-100 dark:hover:text-indigo-400"
-                                    >
-                                        <x-icon name="signal" class="h-4 w-4 text-gray-400 dark:text-gray-500" />
-                                        {{ $erb->code }}
-                                    </a>
-                                    <p class="mt-0.5 max-w-[20rem] truncate text-xs text-gray-500 dark:text-gray-400">{{ $erb->end_id ?? '—' }}</p>
+                            <tr class="transition hover:bg-gray-50/70 dark:hover:bg-gray-800/40">
+                                <td class="px-5 py-4">
+                                    <div class="flex items-center gap-3">
+                                        <span class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-400">
+                                            <x-icon name="signal" class="h-4 w-4" />
+                                        </span>
+                                        <div class="min-w-0">
+                                            <a
+                                                href="{{ route('admin.erbs.show', $erb) }}"
+                                                class="block truncate font-semibold text-gray-900 hover:text-indigo-600 dark:text-gray-100 dark:hover:text-indigo-400"
+                                            >
+                                                {{ $erb->code }}
+                                            </a>
+                                            <p class="mt-0.5 max-w-[20rem] truncate text-xs text-gray-500 dark:text-gray-400">{{ $erb->end_id ?? '—' }}</p>
+                                        </div>
+                                    </div>
                                 </td>
-                                <td class="whitespace-nowrap px-5 py-3 text-gray-500 dark:text-gray-400">{{ $erb->operator ?? '—' }}</td>
-                                <td class="whitespace-nowrap px-5 py-3 text-gray-500 dark:text-gray-400">{{ $erb->technology ?? '—' }}</td>
-                                <td class="whitespace-nowrap px-5 py-3 text-gray-500 dark:text-gray-400">{{ $erb->city ?? '—' }}</td>
-                                <td class="whitespace-nowrap px-5 py-3 text-gray-500 dark:text-gray-400">{{ $erb->state ?? '—' }}</td>
-                                <td class="whitespace-nowrap px-5 py-3 text-right text-gray-500 dark:text-gray-400">
-                                    {{ $erb->work_orders_count }} / {{ $erb->projects_count }}
+                                <td class="whitespace-nowrap px-5 py-4 text-gray-500 dark:text-gray-400">{{ $erb->operator ?? '—' }}</td>
+                                <td class="whitespace-nowrap px-5 py-4 text-gray-500 dark:text-gray-400">{{ $erb->technology ?? '—' }}</td>
+                                <td class="whitespace-nowrap px-5 py-4 text-gray-500 dark:text-gray-400">{{ $erb->city ?? '—' }}</td>
+                                <td class="whitespace-nowrap px-5 py-4 text-gray-500 dark:text-gray-400">{{ $erb->state ?? '—' }}</td>
+                                <td class="whitespace-nowrap px-5 py-4 text-right">
+                                    <span class="inline-flex items-center gap-1.5 rounded-lg bg-gray-100 px-2 py-1 text-xs font-medium text-gray-600 dark:bg-gray-800 dark:text-gray-300">
+                                        {{ $erb->work_orders_count }} OS
+                                        <span class="text-gray-300 dark:text-gray-600">&middot;</span>
+                                        {{ $erb->projects_count }} proj.
+                                    </span>
                                 </td>
-                                <td class="px-5 py-3">
+                                <td class="px-5 py-4">
                                     <x-erb-status :erb="$erb" />
                                 </td>
-                                <td class="px-5 py-3">
+                                <td class="whitespace-nowrap px-5 py-4">
                                     <x-relative-time :value="$erb->updated_at" class="text-gray-500 dark:text-gray-400" />
                                 </td>
-                                <td class="px-5 py-3 text-right">
+                                <td class="px-5 py-4 text-right">
                                     <x-erb-actions-dropdown :erb="$erb" />
                                 </td>
                             </tr>
                         @empty
                             <tr>
-                                <td class="px-5 py-6 text-gray-500 dark:text-gray-400" colspan="9">
-                                    <span class="inline-flex items-center gap-2">
-                                        <x-icon name="signal" class="h-4 w-4" />
-                                        @if ($search !== '' || $status !== null)
-                                            Nenhuma ERB encontrada para os filtros informados.
-                                        @else
-                                            Nenhuma ERB cadastrada até o momento.
-                                        @endif
+                                <td class="px-5 py-16 text-center" colspan="9">
+                                    <span class="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-gray-100 text-gray-400 dark:bg-gray-800 dark:text-gray-500">
+                                        <x-icon name="signal" class="h-6 w-6" />
                                     </span>
+                                    <p class="mt-3 text-sm font-medium text-gray-900 dark:text-gray-100">
+                                        @if ($search !== '' || $status !== null)
+                                            Nenhuma ERB encontrada
+                                        @else
+                                            Nenhuma ERB cadastrada
+                                        @endif
+                                    </p>
+                                    <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                                        @if ($search !== '' || $status !== null)
+                                            Ajuste a busca ou os filtros para ver mais resultados.
+                                        @else
+                                            Cadastre a primeira estação rádio base para começar.
+                                        @endif
+                                    </p>
                                 </td>
                             </tr>
                         @endforelse
@@ -170,7 +244,7 @@
                 </table>
             </div>
 
-            <div class="flex flex-wrap items-center justify-between gap-3 px-5 py-4">
+            <div class="flex flex-wrap items-center justify-between gap-3 border-t border-gray-100 px-5 py-4 dark:border-gray-800">
                 <form method="GET" action="{{ route('admin.erbs.index') }}" class="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
                     @foreach (['search', 'view', 'sort', 'direction', 'status'] as $param)
                         @if (request($param))
@@ -182,7 +256,7 @@
                         id="per-page"
                         name="per_page"
                         onchange="this.form.submit()"
-                        class="rounded-md border border-gray-300 dark:border-gray-700 dark:bg-gray-900 py-1.5 pl-2 pr-8 text-sm text-gray-700 dark:text-gray-200 focus:border-indigo-500 focus:outline-none focus:ring-indigo-500"
+                        class="rounded-xl border border-gray-300 bg-white py-1.5 pl-2 pr-8 text-sm text-gray-700 transition focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200"
                     >
                         @foreach ([12, 24, 36] as $option)
                             <option value="{{ $option }}" @selected($perPage === $option)>{{ $option }} por página</option>
@@ -196,14 +270,14 @@
     @elseif ($view === 'cards')
         <div class="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             @forelse ($erbs as $erb)
-                <div class="rounded-xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-800 dark:bg-gray-900">
+                <div class="group relative flex flex-col overflow-hidden rounded-2xl border border-gray-200/70 bg-white p-5 shadow-sm transition duration-200 hover:-translate-y-0.5 hover:border-indigo-200 hover:shadow-lg hover:shadow-indigo-600/5 dark:border-gray-800 dark:bg-gray-900 dark:hover:border-indigo-500/40">
                     <div class="flex items-start justify-between gap-3">
                         <div class="flex min-w-0 items-center gap-3">
-                            <span class="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400">
+                            <span class="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-400">
                                 <x-icon name="signal" class="h-5 w-5" />
                             </span>
                             <div class="min-w-0">
-                                <a href="{{ route('admin.erbs.show', $erb) }}" class="block truncate text-sm font-medium text-gray-900 hover:text-indigo-600 dark:text-gray-100 dark:hover:text-indigo-400">
+                                <a href="{{ route('admin.erbs.show', $erb) }}" class="block truncate font-semibold text-gray-900 hover:text-indigo-600 dark:text-gray-100 dark:hover:text-indigo-400">
                                     {{ $erb->code }}
                                 </a>
                                 <p class="truncate text-xs text-gray-500 dark:text-gray-400">{{ $erb->name }}</p>
@@ -213,32 +287,51 @@
                         <x-erb-actions-dropdown :erb="$erb" />
                     </div>
 
-                    <div class="mt-4 flex flex-wrap items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
-                        <span>{{ $erb->operator ?? 'Operadora não informada' }}</span>
+                    <div class="mt-4 flex flex-wrap items-center gap-1.5 text-xs">
+                        <span class="inline-flex items-center rounded-lg bg-gray-100 px-2 py-1 font-medium text-gray-600 dark:bg-gray-800 dark:text-gray-300">
+                            {{ $erb->operator ?? 'Operadora não informada' }}
+                        </span>
                         @if ($erb->technology)
-                            <span>&middot; {{ $erb->technology }}</span>
+                            <span class="inline-flex items-center rounded-lg bg-indigo-50 px-2 py-1 font-medium text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-400">
+                                {{ $erb->technology }}
+                            </span>
                         @endif
                     </div>
 
-                    <p class="mt-2 flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
-                        <x-icon name="map-pin" class="h-3.5 w-3.5" />
+                    <p class="mt-3 flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
+                        <x-icon name="map-pin" class="h-3.5 w-3.5 shrink-0" />
                         {{ $erb->city ?? 'Cidade não informada' }}{{ $erb->state ? '/'.$erb->state : '' }}
                     </p>
 
-                    <div class="mt-4 flex flex-wrap items-center justify-between gap-2 border-t border-gray-100 pt-3 text-xs text-gray-500 dark:border-gray-800 dark:text-gray-400">
+                    <div class="mt-auto flex flex-wrap items-center justify-between gap-2 border-t border-gray-100 pt-3.5 text-xs text-gray-500 dark:border-gray-800 dark:text-gray-400">
                         <x-erb-status :erb="$erb" />
-                        <span>{{ $erb->work_orders_count }} OS &middot; {{ $erb->projects_count }} projetos</span>
+                        <span class="inline-flex items-center gap-1.5">
+                            <span class="font-medium text-gray-700 dark:text-gray-200">{{ $erb->work_orders_count }}</span> OS
+                            <span class="text-gray-300 dark:text-gray-600">&middot;</span>
+                            <span class="font-medium text-gray-700 dark:text-gray-200">{{ $erb->projects_count }}</span> projetos
+                        </span>
                     </div>
                 </div>
             @empty
-                <p class="col-span-full flex items-center gap-2 py-8 text-sm text-gray-500 dark:text-gray-400">
-                    <x-icon name="signal" class="h-4 w-4 text-gray-400 dark:text-gray-500" />
-                    @if ($search !== '' || $status !== null)
-                        Nenhuma ERB encontrada para os filtros informados.
-                    @else
-                        Nenhuma ERB cadastrada até o momento.
-                    @endif
-                </p>
+                <div class="col-span-full rounded-2xl border border-dashed border-gray-300 bg-white py-16 text-center dark:border-gray-700 dark:bg-gray-900">
+                    <span class="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-gray-100 text-gray-400 dark:bg-gray-800 dark:text-gray-500">
+                        <x-icon name="signal" class="h-6 w-6" />
+                    </span>
+                    <p class="mt-3 text-sm font-medium text-gray-900 dark:text-gray-100">
+                        @if ($search !== '' || $status !== null)
+                            Nenhuma ERB encontrada
+                        @else
+                            Nenhuma ERB cadastrada
+                        @endif
+                    </p>
+                    <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                        @if ($search !== '' || $status !== null)
+                            Ajuste a busca ou os filtros para ver mais resultados.
+                        @else
+                            Cadastre a primeira estação rádio base para começar.
+                        @endif
+                    </p>
+                </div>
             @endforelse
         </div>
 
@@ -254,7 +347,7 @@
                     id="per-page"
                     name="per_page"
                     onchange="this.form.submit()"
-                    class="rounded-md border border-gray-300 dark:border-gray-700 dark:bg-gray-900 py-1.5 pl-2 pr-8 text-sm text-gray-700 dark:text-gray-200 focus:border-indigo-500 focus:outline-none focus:ring-indigo-500"
+                    class="rounded-xl border border-gray-300 bg-white py-1.5 pl-2 pr-8 text-sm text-gray-700 transition focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200"
                 >
                     @foreach ([12, 24, 36] as $option)
                         <option value="{{ $option }}" @selected($perPage === $option)>{{ $option }} por página</option>
@@ -265,15 +358,15 @@
             <x-pagination :paginator="$erbs" />
         </div>
     @else
-        <div class="mt-4 divide-y divide-gray-100 rounded-xl border border-gray-200 bg-white shadow-sm dark:divide-gray-800 dark:border-gray-800 dark:bg-gray-900">
+        <div class="mt-4 overflow-hidden rounded-2xl border border-gray-200/70 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900">
             @forelse ($erbs as $erb)
-                <div class="flex items-center gap-4 px-5 py-3">
-                    <span class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400">
+                <div class="flex items-center gap-4 border-b border-gray-100 px-5 py-3.5 transition last:border-b-0 hover:bg-gray-50/70 dark:border-gray-800 dark:hover:bg-gray-800/40">
+                    <span class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-400">
                         <x-icon name="signal" class="h-4 w-4" />
                     </span>
 
                     <div class="min-w-0 flex-1">
-                        <a href="{{ route('admin.erbs.show', $erb) }}" class="truncate text-sm font-medium text-gray-900 hover:text-indigo-600 dark:text-gray-100 dark:hover:text-indigo-400">
+                        <a href="{{ route('admin.erbs.show', $erb) }}" class="truncate font-semibold text-gray-900 hover:text-indigo-600 dark:text-gray-100 dark:hover:text-indigo-400">
                             {{ $erb->code }}
                         </a>
                         <p class="truncate text-xs text-gray-500 dark:text-gray-400">
@@ -292,14 +385,25 @@
                     <x-erb-actions-dropdown :erb="$erb" />
                 </div>
             @empty
-                <p class="flex items-center gap-2 px-5 py-8 text-sm text-gray-500 dark:text-gray-400">
-                    <x-icon name="signal" class="h-4 w-4 text-gray-400 dark:text-gray-500" />
-                    @if ($search !== '' || $status !== null)
-                        Nenhuma ERB encontrada para os filtros informados.
-                    @else
-                        Nenhuma ERB cadastrada até o momento.
-                    @endif
-                </p>
+                <div class="px-5 py-16 text-center">
+                    <span class="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-gray-100 text-gray-400 dark:bg-gray-800 dark:text-gray-500">
+                        <x-icon name="signal" class="h-6 w-6" />
+                    </span>
+                    <p class="mt-3 text-sm font-medium text-gray-900 dark:text-gray-100">
+                        @if ($search !== '' || $status !== null)
+                            Nenhuma ERB encontrada
+                        @else
+                            Nenhuma ERB cadastrada
+                        @endif
+                    </p>
+                    <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                        @if ($search !== '' || $status !== null)
+                            Ajuste a busca ou os filtros para ver mais resultados.
+                        @else
+                            Cadastre a primeira estação rádio base para começar.
+                        @endif
+                    </p>
+                </div>
             @endforelse
         </div>
 
@@ -315,7 +419,7 @@
                     id="per-page"
                     name="per_page"
                     onchange="this.form.submit()"
-                    class="rounded-md border border-gray-300 dark:border-gray-700 dark:bg-gray-900 py-1.5 pl-2 pr-8 text-sm text-gray-700 dark:text-gray-200 focus:border-indigo-500 focus:outline-none focus:ring-indigo-500"
+                    class="rounded-xl border border-gray-300 bg-white py-1.5 pl-2 pr-8 text-sm text-gray-700 transition focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200"
                 >
                     @foreach ([12, 24, 36] as $option)
                         <option value="{{ $option }}" @selected($perPage === $option)>{{ $option }} por página</option>
@@ -337,10 +441,10 @@
     >
         <div class="absolute inset-0 bg-gray-900/50" data-modal-close></div>
 
-        <div class="absolute left-1/2 top-1/2 max-h-[90vh] w-full max-w-xl -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-xl bg-white p-5 shadow-xl dark:bg-gray-900">
+        <div class="absolute left-1/2 top-1/2 max-h-[90vh] w-full max-w-xl -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-2xl bg-white p-6 shadow-xl dark:bg-gray-900">
             <div class="flex items-start justify-between gap-4">
                 <div>
-                    <h2 id="erb-import-modal-title" class="flex items-center gap-2 text-base font-semibold text-gray-900 dark:text-gray-100">
+                    <h2 id="erb-import-modal-title" class="flex items-center gap-2 text-lg font-semibold text-gray-900 dark:text-gray-100">
                         <x-icon name="arrow-up-tray" class="h-5 w-5 text-gray-400 dark:text-gray-500" />
                         Importar ERBs
                     </h2>
@@ -360,7 +464,7 @@
             @if ($errors->any() && old('modal') === 'import')
                 <div
                     data-modal-error
-                    class="mt-4 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300"
+                    class="mt-4 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300"
                 >
                     <p class="font-medium">Nenhuma ERB foi criada. Corrija os itens abaixo e tente novamente:</p>
 
@@ -374,7 +478,7 @@
                 </div>
             @endif
 
-            <div class="mt-4 rounded-md border border-gray-200 bg-gray-50 p-3 text-sm text-gray-600 dark:border-gray-800 dark:bg-gray-800/50 dark:text-gray-300">
+            <div class="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-600 dark:border-gray-800 dark:bg-gray-800/50 dark:text-gray-300">
                 <p>Colunas: <span class="font-medium">Site ID, End ID, Operadora, Tecnologia, Status, Logradouro, Número, Complemento, Bairro, Cidade, Estado, CEP, Latitude, Longitude, Observações</span>.</p>
                 <p class="mt-1">Informe ao menos o Site ID ou o End ID; código e nome são gerados automaticamente.</p>
                 <p class="mt-1">Se o Site ID já existir, a ERB correspondente é atualizada com os dados da planilha.</p>
@@ -399,7 +503,7 @@
                     id="import-file"
                     accept=".xlsx,.xls"
                     required
-                    class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-700 dark:bg-gray-900 px-3 py-2 text-sm text-gray-700 dark:text-gray-200 file:mr-3 file:rounded-md file:border-0 file:bg-gray-900 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-white dark:file:bg-white dark:file:text-gray-900"
+                    class="mt-1 block w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 transition dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200 file:mr-3 file:rounded-lg file:border-0 file:bg-indigo-600 file:px-3 file:py-1.5 file:text-sm file:font-semibold file:text-white"
                 >
                 @error('file')
                     <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p>
@@ -408,14 +512,14 @@
                 <div class="mt-6 flex justify-end gap-2">
                     <button
                         type="button"
-                        class="rounded-md border border-gray-300 dark:border-gray-700 dark:bg-gray-900 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800"
+                        class="rounded-xl border border-gray-200/70 bg-white px-4 py-2 text-sm font-semibold text-gray-700 shadow-sm transition hover:border-indigo-200 hover:text-indigo-600 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-200 dark:hover:border-indigo-500/40"
                         data-modal-close
                     >
                         Cancelar
                     </button>
                     <button
                         type="submit"
-                        class="inline-flex items-center gap-1.5 rounded-md bg-gray-900 dark:bg-white px-4 py-2 text-sm font-medium text-white dark:text-gray-900 hover:bg-gray-700 dark:hover:bg-gray-200"
+                        class="inline-flex items-center gap-1.5 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-500"
                     >
                         <x-icon name="arrow-up-tray" class="h-4 w-4" />
                         Importar
@@ -435,10 +539,10 @@
     >
         <div class="absolute inset-0 bg-gray-900/50" data-modal-close></div>
 
-        <div class="absolute left-1/2 top-1/2 max-h-[90vh] w-full max-w-2xl -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-xl bg-white p-5 shadow-xl dark:bg-gray-900">
+        <div class="absolute left-1/2 top-1/2 max-h-[90vh] w-full max-w-2xl -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-2xl bg-white p-6 shadow-xl dark:bg-gray-900">
             <div class="flex items-start justify-between gap-4">
                 <div>
-                    <h2 id="erb-create-modal-title" class="flex items-center gap-2 text-base font-semibold text-gray-900 dark:text-gray-100">
+                    <h2 id="erb-create-modal-title" class="flex items-center gap-2 text-lg font-semibold text-gray-900 dark:text-gray-100">
                         <x-icon name="signal" class="h-5 w-5 text-gray-400 dark:text-gray-500" />
                         Nova ERB
                     </h2>
@@ -458,7 +562,7 @@
             @if ($errors->any() && old('modal') === 'create')
                 <div
                     data-modal-error
-                    class="mt-4 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300"
+                    class="mt-4 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300"
                 >
                     <p class="font-medium">Não foi possível criar a ERB. Corrija os itens destacados e tente novamente.</p>
                 </div>
@@ -478,7 +582,7 @@
                     <button
                         type="button"
                         data-wizard-prev
-                        class="hidden rounded-md border border-gray-300 dark:border-gray-700 dark:bg-gray-900 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800"
+                        class="hidden rounded-xl border border-gray-200/70 bg-white px-4 py-2 text-sm font-semibold text-gray-700 shadow-sm transition hover:border-indigo-200 hover:text-indigo-600 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-200 dark:hover:border-indigo-500/40"
                     >
                         Voltar
                     </button>
@@ -486,7 +590,7 @@
                     <div class="ml-auto flex items-center gap-2">
                         <button
                             type="button"
-                            class="rounded-md border border-gray-300 dark:border-gray-700 dark:bg-gray-900 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800"
+                            class="rounded-xl border border-gray-200/70 bg-white px-4 py-2 text-sm font-semibold text-gray-700 shadow-sm transition hover:border-indigo-200 hover:text-indigo-600 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-200 dark:hover:border-indigo-500/40"
                             data-modal-close
                         >
                             Cancelar
@@ -494,14 +598,14 @@
                         <button
                             type="button"
                             data-wizard-next
-                            class="inline-flex items-center gap-1.5 rounded-md bg-gray-900 dark:bg-white px-4 py-2 text-sm font-medium text-white dark:text-gray-900 hover:bg-gray-700 dark:hover:bg-gray-200"
+                            class="inline-flex items-center gap-1.5 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-500"
                         >
                             Próximo
                         </button>
                         <button
                             type="submit"
                             data-wizard-submit
-                            class="hidden items-center gap-1.5 rounded-md bg-gray-900 dark:bg-white px-4 py-2 text-sm font-medium text-white dark:text-gray-900 hover:bg-gray-700 dark:hover:bg-gray-200"
+                            class="hidden items-center gap-1.5 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-500"
                         >
                             <x-icon name="check" class="h-4 w-4" />
                             Criar ERB
@@ -645,9 +749,9 @@
             const submitButton = wizard.querySelector('[data-wizard-submit]');
             const scroller = wizard.closest('.overflow-y-auto');
             const baseIndicator = 'inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-medium transition';
-            const inactiveIndicator = baseIndicator + ' border-gray-300 text-gray-600 hover:bg-gray-100 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800';
-            const activeIndicator = baseIndicator + ' border-gray-900 bg-gray-900 text-white dark:border-white dark:bg-white dark:text-gray-900';
-            const doneIndicator = baseIndicator + ' border-green-500 text-green-600 dark:text-green-400';
+            const inactiveIndicator = baseIndicator + ' border-gray-200 bg-white text-gray-600 hover:border-indigo-200 hover:text-indigo-600 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 dark:hover:border-indigo-500/40';
+            const activeIndicator = baseIndicator + ' border-indigo-600 bg-indigo-600 text-white shadow-sm';
+            const doneIndicator = baseIndicator + ' border-emerald-500 text-emerald-600 dark:text-emerald-400';
             let current = 0;
 
             if (stepsList) {
