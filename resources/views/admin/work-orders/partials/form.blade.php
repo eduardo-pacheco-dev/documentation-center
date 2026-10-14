@@ -34,6 +34,10 @@
 
     $wizard = $wizard ?? false;
     $panelClass = fn (int $index): string => trim('grid gap-5 sm:grid-cols-2 '.($wizard && $index > 0 ? 'hidden' : ''));
+
+    $selectedErb = old('erb_id', $workOrder?->erb_id);
+    $selectedRadioLink = old('radio_link_id', $workOrder?->radio_link_id);
+    $binding = $selectedErb ? 'erb' : ($selectedRadioLink ? 'radio' : '');
 @endphp
 
 <script type="application/json" id="work-order-catalog-data">@json($catalogData, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT)</script>
@@ -65,21 +69,87 @@
         @endif
     </div>
 
-    <div class="sm:col-span-2">
-        <label for="erb_id" class="block text-sm font-medium text-gray-700 dark:text-gray-300">ERB (Estação Rádio Base)</label>
-        <x-searchable-select
-            class="mt-1"
-            name="erb_id"
-            id="erb_id"
-            :selected="old('erb_id', $workOrder?->erb_id)"
-            placeholder="Busque pelo código ou nome da ERB..."
-            empty-message="Nenhuma ERB encontrada."
-            :options="$erbs->map(fn ($erb) => ['value' => $erb->getKey(), 'label' => trim(($erb->code ? $erb->code.' — ' : '').$erb->name)])->all()"
-        />
-        @error('erb_id')
-            <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p>
-        @enderror
-        <p class="mt-1 text-xs text-gray-400 dark:text-gray-500">Opcional. Deixe em branco se a OS não estiver vinculada a uma ERB.</p>
+    <div class="sm:col-span-2" x-data="{ binding: @js($binding) }">
+        <span class="block text-sm font-medium text-gray-700 dark:text-gray-300">Vínculo</span>
+        <p class="mt-0.5 text-xs text-gray-500 dark:text-gray-400">Vincule a OS a um site (ERB) ou a um radio link. Você pode escolher apenas um.</p>
+
+        <div class="mt-2 inline-flex flex-wrap rounded-lg border border-gray-300 p-0.5 dark:border-gray-700" role="group" aria-label="Tipo de vínculo">
+            <button
+                type="button"
+                @click="binding = ''"
+                :class="binding === '' ? 'bg-gray-900 text-white dark:bg-white dark:text-gray-900' : 'text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800'"
+                class="inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition"
+            >
+                <x-icon name="minus-circle" class="h-4 w-4" />
+                Nenhum
+            </button>
+            <button
+                type="button"
+                @click="binding = 'erb'"
+                :class="binding === 'erb' ? 'bg-gray-900 text-white dark:bg-white dark:text-gray-900' : 'text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800'"
+                class="inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition"
+            >
+                <x-icon name="signal" class="h-4 w-4" />
+                Site (ERB)
+            </button>
+            <button
+                type="button"
+                @click="binding = 'radio'"
+                :class="binding === 'radio' ? 'bg-gray-900 text-white dark:bg-white dark:text-gray-900' : 'text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800'"
+                class="inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition"
+            >
+                <x-icon name="arrows-right-left" class="h-4 w-4" />
+                Radio link
+            </button>
+        </div>
+
+        <template x-if="binding === 'erb'">
+            <div class="mt-3">
+                <label for="erb_id" class="block text-sm font-medium text-gray-700 dark:text-gray-300">ERB (Estação Rádio Base)</label>
+                <x-searchable-select
+                    class="mt-1"
+                    name="erb_id"
+                    id="erb_id"
+                    :selected="$selectedErb"
+                    placeholder="Busque pelo código ou nome da ERB..."
+                    empty-message="Nenhuma ERB encontrada."
+                    :options="$erbs->map(fn ($erb) => ['value' => $erb->getKey(), 'label' => trim(($erb->code ? $erb->code.' — ' : '').$erb->name)])->all()"
+                />
+                @error('erb_id')
+                    <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p>
+                @enderror
+                @if ($erbs->isEmpty())
+                    <p class="mt-1 text-xs text-amber-600 dark:text-amber-400">
+                        Você ainda não tem ERBs cadastradas.
+                        <a href="{{ route('admin.erbs.create') }}" class="underline">Cadastre uma ERB</a>.
+                    </p>
+                @endif
+            </div>
+        </template>
+
+        <template x-if="binding === 'radio'">
+            <div class="mt-3">
+                <label for="radio_link_id" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Radio link</label>
+                <x-searchable-select
+                    class="mt-1"
+                    name="radio_link_id"
+                    id="radio_link_id"
+                    :selected="$selectedRadioLink"
+                    placeholder="Busque pelo código do radio link..."
+                    empty-message="Nenhum radio link encontrado."
+                    :options="$radioLinks->map(fn ($link) => ['value' => $link->getKey(), 'label' => trim($link->code.($link->erbA || $link->erbB ? ' — '.($link->erbA?->code ?? '?').' a '.($link->erbB?->code ?? '?') : ''))])->all()"
+                />
+                @error('radio_link_id')
+                    <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p>
+                @enderror
+                @if ($radioLinks->isEmpty())
+                    <p class="mt-1 text-xs text-amber-600 dark:text-amber-400">
+                        Você ainda não tem radio links cadastrados.
+                        <a href="{{ route('admin.radio-links.index') }}" class="underline">Cadastre um radio link</a>.
+                    </p>
+                @endif
+            </div>
+        </template>
     </div>
     </div>
 

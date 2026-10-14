@@ -96,6 +96,9 @@ class WorkOrderController extends Controller
         $items = $attributes['items'];
         unset($attributes['items']);
 
+        $attributes['erb_id'] = $request->input('erb_id') ?: null;
+        $attributes['radio_link_id'] = $request->input('radio_link_id') ?: null;
+
         $status = WorkOrderStatus::from($attributes['status'] ?? WorkOrderStatus::Open->value);
         $attributes['status'] = $status->value;
         $attributes['completed_at'] = $this->resolveCompletedAt($status, null);
@@ -122,7 +125,7 @@ class WorkOrderController extends Controller
     {
         $this->authorize('view', $workOrder);
 
-        $workOrder->load(['client', 'erb', 'items.catalogItem', 'project']);
+        $workOrder->load(['client', 'erb', 'radioLink', 'items.catalogItem', 'project']);
 
         return view('admin.work-orders.show', [
             ...$this->formData($request->user()),
@@ -137,7 +140,7 @@ class WorkOrderController extends Controller
     {
         $this->authorize('update', $workOrder);
 
-        $workOrder->load(['client', 'erb', 'items.catalogItem', 'project']);
+        $workOrder->load(['client', 'erb', 'radioLink', 'items.catalogItem', 'project']);
 
         return view('admin.work-orders.show', [
             ...$this->formData($request->user()),
@@ -154,6 +157,9 @@ class WorkOrderController extends Controller
         $attributes = $request->validated();
         $items = $attributes['items'];
         unset($attributes['items']);
+
+        $attributes['erb_id'] = $request->input('erb_id') ?: null;
+        $attributes['radio_link_id'] = $request->input('radio_link_id') ?: null;
 
         $status = WorkOrderStatus::from($attributes['status'] ?? $workOrder->status->value);
         $attributes['status'] = $status->value;
@@ -199,10 +205,16 @@ class WorkOrderController extends Controller
 
         $erbs = $user->erbs()->orderBy('name')->get(['id', 'code', 'name']);
 
+        $radioLinks = $user->radioLinks()
+            ->with(['erbA:id,code', 'erbB:id,code'])
+            ->orderBy('code')
+            ->get(['id', 'code', 'erb_a_id', 'erb_b_id']);
+
         return [
             'clients' => $clients,
             'catalogItems' => $catalogItems,
             'erbs' => $erbs,
+            'radioLinks' => $radioLinks,
             'catalogData' => $catalogItems->map(fn (CatalogItem $item): array => [
                 'id' => $item->getKey(),
                 'name' => $item->name,

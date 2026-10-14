@@ -18,6 +18,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
     'user_id',
     'client_id',
     'erb_id',
+    'radio_link_id',
     'number',
     'description',
     'priority',
@@ -55,6 +56,14 @@ class WorkOrder extends Model
     public function erb(): BelongsTo
     {
         return $this->belongsTo(Erb::class);
+    }
+
+    /**
+     * The radio link the work order is related to.
+     */
+    public function radioLink(): BelongsTo
+    {
+        return $this->belongsTo(RadioLink::class);
     }
 
     /**

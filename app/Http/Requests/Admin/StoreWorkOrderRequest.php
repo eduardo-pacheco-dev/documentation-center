@@ -38,7 +38,14 @@ class StoreWorkOrderRequest extends FormRequest
             'erb_id' => [
                 'nullable',
                 'integer',
+                'prohibits:radio_link_id',
                 Rule::exists('erbs', 'id')->where(fn ($query) => $query->where('user_id', $userId)),
+            ],
+            'radio_link_id' => [
+                'nullable',
+                'integer',
+                'prohibits:erb_id',
+                Rule::exists('radio_links', 'id')->where(fn ($query) => $query->where('user_id', $userId)),
             ],
             'description' => ['nullable', 'string', 'max:2000'],
             'priority' => ['required', new Enum(WorkOrderPriority::class)],

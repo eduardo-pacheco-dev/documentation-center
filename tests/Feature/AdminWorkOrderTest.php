@@ -2,6 +2,8 @@
 
 use App\Models\CatalogItem;
 use App\Models\Client;
+use App\Models\Erb;
+use App\Models\RadioLink;
 use App\Models\User;
 use App\Models\WorkOrder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -250,4 +252,72 @@ it('soft deletes the work order', function () {
     expect($workOrder->refresh()->trashed())->toBeTrue();
 
     $this->actingAs($user)->get('/admin/work-orders')->assertOk()->assertDontSee($workOrder->number);
+});
+
+it('links a work order to a radio link', function () {
+    $user = User::factory()->create();
+    $client = ownedClient($user);
+    $radioLink = RadioLink::factory()->create(['user_id' => $user->getKey()]);
+
+    $this->actingAs($user)->post('/admin/work-orders', [
+        'client_id' => $client->getKey(),
+        'radio_link_id' => $radioLink->getKey(),
+        'priority' => 'normal',
+        'opened_at' => '2026-01-10',
+        'items' => [
+            ['description' => 'Serviço', 'quantity' => 1, 'unit_price' => 100],
+        ],
+    ])->assertRedirect();
+
+    $workOrder = WorkOrder::query()->firstOrFail();
+
+    expect($workOrder->radio_link_id)->toBe($radioLink->getKey())
+        ->and($workOrder->erb_id)->toBeNull();
+});
+
+it('rejects a work order linked to both an erb and a radio link', function () {
+    $user = User::factory()->create();
+    $client = ownedClient($user);
+    $erb = Erb::factory()->create(['user_id' => $user->getKey()]);
+    $radioLink = RadioLink::factory()->create(['user_id' => $user->getKey()]);
+
+    $this->actingAs($user)->post('/admin/work-orders', [
+        'client_id' => $client->getKey(),
+        'erb_id' => $erb->getKey(),
+        'radio_link_id' => $radioLink->getKey(),
+        'priority' => 'normal',
+        'opened_at' => '2026-01-10',
+        'items' => [
+            ['description' => 'Serviço', 'quantity' => 1, 'unit_price' => 100],
+        ],
+    ])->assertSessionHasErrors(['erb_id', 'radio_link_id']);
+
+    expect(WorkOrder::query()->count())->toBe(0);
+});
+
+it('clears the erb when the work order is switched to a radio link', function () {
+    $user = User::factory()->create();
+    $client = ownedClient($user);
+    $erb = Erb::factory()->create(['user_id' => $user->getKey()]);
+    $radioLink = RadioLink::factory()->create(['user_id' => $user->getKey()]);
+    $workOrder = WorkOrder::factory()->create([
+        'user_id' => $user->getKey(),
+        'client_id' => $client->getKey(),
+        'erb_id' => $erb->getKey(),
+    ]);
+
+    $this->actingAs($user)->put("/admin/work-orders/{$workOrder->getKey()}", [
+        'client_id' => $client->getKey(),
+        'radio_link_id' => $radioLink->getKey(),
+        'priority' => 'normal',
+        'opened_at' => '2026-01-10',
+        'items' => [
+            ['description' => 'Serviço', 'quantity' => 1, 'unit_price' => 100],
+        ],
+    ])->assertSessionHas('status');
+
+    $workOrder->refresh();
+
+    expect($workOrder->radio_link_id)->toBe($radioLink->getKey())
+        ->and($workOrder->erb_id)->toBeNull();
 });

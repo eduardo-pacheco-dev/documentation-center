@@ -29,6 +29,15 @@
                         {{ $workOrder->erb->code }}
                     </a>
                 @endif
+                @if ($workOrder->radioLink)
+                    <a
+                        href="{{ route('admin.radio-links.show', $workOrder->radioLink) }}"
+                        class="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-indigo-600 dark:text-gray-400 dark:hover:text-indigo-400"
+                    >
+                        <x-icon name="arrows-right-left" class="h-4 w-4" />
+                        {{ $workOrder->radioLink->code }}
+                    </a>
+                @endif
             </div>
         </div>
 
