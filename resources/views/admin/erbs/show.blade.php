@@ -7,135 +7,209 @@
             trim(($erb->city ?? '').($erb->state ? '/'.$erb->state : '')),
             $erb->zip,
         ])->filter();
+
+        $radioLinkCount = $erb->radioLinksAsEndA->count() + $erb->radioLinksAsEndB->count();
     @endphp
 
-    <div class="flex flex-wrap items-start justify-between gap-4">
+    <div class="flex flex-wrap items-end justify-between gap-4">
         <div>
-            <h1 class="flex items-center gap-2 text-xl font-semibold">
-                <x-icon name="signal" class="h-5 w-5 text-gray-400 dark:text-gray-500" />
+            <p class="text-xs font-semibold uppercase tracking-wide text-indigo-600 dark:text-indigo-400">
+                Estação rádio base
+            </p>
+            <h1 class="mt-1 flex items-center gap-2 text-2xl font-semibold tracking-tight text-gray-900 dark:text-gray-100">
+                <x-icon name="signal" class="h-6 w-6 text-gray-400 dark:text-gray-500" />
                 {{ $erb->code }}
             </h1>
             <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">{{ $erb->name }}</p>
-            <div class="mt-2 flex flex-wrap items-center gap-3">
+            <div class="mt-3 flex flex-wrap items-center gap-2">
                 <x-erb-status :erb="$erb" />
                 @if ($erb->operator)
-                    <span class="text-sm text-gray-500 dark:text-gray-400">{{ $erb->operator }}</span>
+                    <span class="inline-flex items-center rounded-lg bg-gray-100 px-2.5 py-1 text-xs font-medium text-gray-600 dark:bg-gray-800 dark:text-gray-300">
+                        {{ $erb->operator }}
+                    </span>
                 @endif
                 @if ($erb->technology)
-                    <span class="text-sm text-gray-500 dark:text-gray-400">{{ $erb->technology }}</span>
+                    <span class="inline-flex items-center rounded-lg bg-indigo-50 px-2.5 py-1 text-xs font-medium text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-400">
+                        {{ $erb->technology }}
+                    </span>
+                @endif
+                @if ($erb->city)
+                    <span class="inline-flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
+                        <x-icon name="map-pin" class="h-3.5 w-3.5" />
+                        {{ $erb->city }}{{ $erb->state ? '/'.$erb->state : '' }}
+                    </span>
                 @endif
             </div>
         </div>
 
-        <div class="flex items-center gap-2">
+        <div class="flex flex-wrap items-center gap-2">
+            <a
+                href="{{ route('admin.erbs.index') }}"
+                class="inline-flex items-center gap-1.5 rounded-2xl border border-gray-200/70 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 shadow-sm transition hover:border-indigo-200 hover:text-indigo-600 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-200 dark:hover:border-indigo-500/40"
+            >
+                <x-icon name="chevron-left" class="h-4 w-4" />
+                Voltar
+            </a>
+
             <a
                 href="{{ route('admin.erbs.edit', $erb) }}"
-                class="inline-flex items-center gap-1.5 rounded-md bg-gray-900 dark:bg-white px-4 py-2 text-sm font-medium text-white dark:text-gray-900 hover:bg-gray-700 dark:hover:bg-gray-200"
+                class="inline-flex items-center gap-1.5 rounded-2xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-500"
             >
                 <x-icon name="pencil-square" class="h-4 w-4" />
                 Editar
             </a>
+        </div>
+    </div>
 
-            <a
-                href="{{ route('admin.erbs.index') }}"
-                class="rounded-md px-3 py-2 text-sm font-medium text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100"
-            >
-                Voltar
-            </a>
+    <div class="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <div class="group relative overflow-hidden rounded-2xl border border-gray-200/70 bg-white p-5 shadow-sm transition duration-200 hover:-translate-y-0.5 hover:border-indigo-200 hover:shadow-lg hover:shadow-indigo-600/5 dark:border-gray-800 dark:bg-gray-900 dark:hover:border-indigo-500/40">
+            <span class="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-400">
+                <x-icon name="clipboard-document-list" class="h-5 w-5" />
+            </span>
+            <p class="mt-4 text-3xl font-semibold tracking-tight text-gray-900 dark:text-gray-100">{{ $erb->workOrders->count() }}</p>
+            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Ordens de serviço</p>
+        </div>
+        <div class="group relative overflow-hidden rounded-2xl border border-gray-200/70 bg-white p-5 shadow-sm transition duration-200 hover:-translate-y-0.5 hover:border-emerald-200 hover:shadow-lg hover:shadow-emerald-600/5 dark:border-gray-800 dark:bg-gray-900 dark:hover:border-emerald-500/40">
+            <span class="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400">
+                <x-icon name="briefcase" class="h-5 w-5" />
+            </span>
+            <p class="mt-4 text-3xl font-semibold tracking-tight text-gray-900 dark:text-gray-100">{{ $erb->projects->count() }}</p>
+            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Projetos</p>
+        </div>
+        <div class="group relative overflow-hidden rounded-2xl border border-gray-200/70 bg-white p-5 shadow-sm transition duration-200 hover:-translate-y-0.5 hover:border-violet-200 hover:shadow-lg hover:shadow-violet-600/5 dark:border-gray-800 dark:bg-gray-900 dark:hover:border-violet-500/40">
+            <span class="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-violet-50 text-violet-600 dark:bg-violet-500/10 dark:text-violet-400">
+                <x-icon name="arrows-right-left" class="h-5 w-5" />
+            </span>
+            <p class="mt-4 text-3xl font-semibold tracking-tight text-gray-900 dark:text-gray-100">{{ $radioLinkCount }}</p>
+            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Radio links</p>
+        </div>
+        <div class="group relative overflow-hidden rounded-2xl border border-gray-200/70 bg-white p-5 shadow-sm transition duration-200 hover:-translate-y-0.5 hover:border-amber-200 hover:shadow-lg hover:shadow-amber-600/5 dark:border-gray-800 dark:bg-gray-900 dark:hover:border-amber-500/40">
+            <span class="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-amber-50 text-amber-600 dark:bg-amber-500/10 dark:text-amber-400">
+                <x-icon name="paper-clip" class="h-5 w-5" />
+            </span>
+            <p class="mt-4 text-3xl font-semibold tracking-tight text-gray-900 dark:text-gray-100">{{ $erb->documents->count() }}</p>
+            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Anexos</p>
         </div>
     </div>
 
     <div class="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        <div class="rounded-xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-800 dark:bg-gray-900">
-            <h2 class="text-xs font-semibold uppercase text-gray-500 dark:text-gray-400">Localização</h2>
-            <div class="mt-3 space-y-2 text-sm text-gray-700 dark:text-gray-300">
+        <section class="rounded-2xl border border-gray-200/70 bg-white p-6 shadow-sm transition duration-200 hover:-translate-y-0.5 hover:border-indigo-200 hover:shadow-md dark:border-gray-800 dark:bg-gray-900 dark:hover:border-indigo-500/40">
+            <div class="flex items-center gap-2">
+                <span class="inline-flex h-9 w-9 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-400">
+                    <x-icon name="map-pin" class="h-5 w-5" />
+                </span>
+                <h2 class="text-sm font-semibold text-gray-900 dark:text-gray-100">Localização</h2>
+            </div>
+
+            <div class="mt-4 space-y-1 text-sm text-gray-700 dark:text-gray-300">
                 @forelse ($address as $line)
                     <p>{{ $line }}</p>
                 @empty
-                    <p>Endereço não informado.</p>
+                    <p class="text-gray-500 dark:text-gray-400">Endereço não informado.</p>
                 @endforelse
+            </div>
 
-                @if ($erb->latitude !== null && $erb->longitude !== null)
-                    <p class="pt-1 text-xs text-gray-500 dark:text-gray-400">
+            @if ($erb->latitude !== null && $erb->longitude !== null)
+                <div class="mt-4 flex flex-wrap items-center justify-between gap-2 rounded-xl bg-gray-50 px-3 py-2.5 dark:bg-gray-800/50">
+                    <span class="font-mono text-xs text-gray-500 dark:text-gray-400">
                         {{ number_format((float) $erb->latitude, 5, ',', '.') }},
                         {{ number_format((float) $erb->longitude, 5, ',', '.') }}
-                    </p>
+                    </span>
                     <a
                         href="https://www.google.com/maps?q={{ $erb->latitude }},{{ $erb->longitude }}"
                         target="_blank"
                         rel="noopener"
-                        class="inline-flex items-center gap-1 text-xs font-medium text-indigo-600 hover:text-indigo-500 dark:text-indigo-400"
+                        class="inline-flex items-center gap-1 text-xs font-semibold text-indigo-600 hover:text-indigo-500 dark:text-indigo-400"
                     >
-                        <x-icon name="map-pin" class="h-3.5 w-3.5" />
+                        <x-icon name="arrow-top-right-on-square" class="h-3.5 w-3.5" />
                         Ver no mapa
                     </a>
-                @endif
-            </div>
-        </div>
+                </div>
+            @endif
+        </section>
 
-        <div class="rounded-xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-800 dark:bg-gray-900">
-            <h2 class="text-xs font-semibold uppercase text-gray-500 dark:text-gray-400">Operadora e tecnologia</h2>
-            <dl class="mt-3 space-y-2 text-sm">
-                <div class="flex items-center justify-between gap-4">
+        <section class="rounded-2xl border border-gray-200/70 bg-white p-6 shadow-sm transition duration-200 hover:-translate-y-0.5 hover:border-indigo-200 hover:shadow-md dark:border-gray-800 dark:bg-gray-900 dark:hover:border-indigo-500/40">
+            <div class="flex items-center gap-2">
+                <span class="inline-flex h-9 w-9 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400">
+                    <x-icon name="signal" class="h-5 w-5" />
+                </span>
+                <h2 class="text-sm font-semibold text-gray-900 dark:text-gray-100">Operadora e tecnologia</h2>
+            </div>
+
+            <dl class="mt-4 text-sm">
+                <div class="flex items-center justify-between gap-4 border-b border-gray-100 py-2.5 dark:border-gray-800">
                     <dt class="text-gray-500 dark:text-gray-400">Operadora</dt>
                     <dd class="font-medium text-gray-900 dark:text-gray-100">{{ $erb->operator ?? '—' }}</dd>
                 </div>
-                <div class="flex items-center justify-between gap-4">
+                <div class="flex items-center justify-between gap-4 border-b border-gray-100 py-2.5 dark:border-gray-800">
                     <dt class="text-gray-500 dark:text-gray-400">Tecnologia</dt>
                     <dd class="font-medium text-gray-900 dark:text-gray-100">{{ $erb->technology ?? '—' }}</dd>
                 </div>
-                <div class="flex items-center justify-between gap-4">
+                <div class="flex items-center justify-between gap-4 py-2.5 pb-0">
                     <dt class="text-gray-500 dark:text-gray-400">Status</dt>
                     <dd><x-erb-status :erb="$erb" /></dd>
                 </div>
             </dl>
-        </div>
+        </section>
 
-        <div class="rounded-xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-800 dark:bg-gray-900">
-            <h2 class="text-xs font-semibold uppercase text-gray-500 dark:text-gray-400">Integração AFL</h2>
-            <dl class="mt-3 space-y-2 text-sm">
-                <div class="flex items-center justify-between gap-4">
+        <section class="rounded-2xl border border-gray-200/70 bg-white p-6 shadow-sm transition duration-200 hover:-translate-y-0.5 hover:border-indigo-200 hover:shadow-md dark:border-gray-800 dark:bg-gray-900 dark:hover:border-indigo-500/40">
+            <div class="flex items-center gap-2">
+                <span class="inline-flex h-9 w-9 items-center justify-center rounded-2xl bg-amber-50 text-amber-600 dark:bg-amber-500/10 dark:text-amber-400">
+                    <x-icon name="cube" class="h-5 w-5" />
+                </span>
+                <h2 class="text-sm font-semibold text-gray-900 dark:text-gray-100">Integração AFL</h2>
+            </div>
+
+            <dl class="mt-4 text-sm">
+                <div class="flex items-center justify-between gap-4 border-b border-gray-100 py-2.5 dark:border-gray-800">
                     <dt class="text-gray-500 dark:text-gray-400">Site ID</dt>
                     <dd class="truncate font-medium text-gray-900 dark:text-gray-100">{{ $erb->site_id ?? '—' }}</dd>
                 </div>
-                <div class="flex items-center justify-between gap-4">
+                <div class="flex items-center justify-between gap-4 border-b border-gray-100 py-2.5 dark:border-gray-800">
                     <dt class="text-gray-500 dark:text-gray-400">End ID</dt>
                     <dd class="truncate font-medium text-gray-900 dark:text-gray-100">{{ $erb->end_id ?? '—' }}</dd>
                 </div>
-                <div class="flex items-center justify-between gap-4">
+                <div class="flex items-center justify-between gap-4 border-b border-gray-100 py-2.5 dark:border-gray-800">
                     <dt class="text-gray-500 dark:text-gray-400">Responsável</dt>
                     <dd class="truncate font-medium text-gray-900 dark:text-gray-100">{{ $erb->assigned_to ?? '—' }}</dd>
                 </div>
-                <div class="flex items-center justify-between gap-4">
+                <div class="flex items-center justify-between gap-4 border-b border-gray-100 py-2.5 dark:border-gray-800">
                     <dt class="text-gray-500 dark:text-gray-400">ID SMP</dt>
                     <dd class="truncate font-medium text-gray-900 dark:text-gray-100">{{ $erb->nokia_smp_id ?? '—' }}</dd>
                 </div>
-                <div class="flex items-center justify-between gap-4">
+                <div class="flex items-center justify-between gap-4 border-b border-gray-100 py-2.5 dark:border-gray-800">
                     <dt class="text-gray-500 dark:text-gray-400">Ordem de serviço</dt>
                     <dd class="truncate font-medium text-gray-900 dark:text-gray-100">{{ $erb->service_order_id ?? '—' }}</dd>
                 </div>
-                <div class="flex items-center justify-between gap-4">
+                <div class="flex items-center justify-between gap-4 border-b border-gray-100 py-2.5 dark:border-gray-800">
                     <dt class="text-gray-500 dark:text-gray-400">Início</dt>
                     <dd class="font-medium text-gray-900 dark:text-gray-100">{{ $erb->start_date?->format('d/m/Y') ?? '—' }}</dd>
                 </div>
-                <div class="flex items-center justify-between gap-4">
+                <div class="flex items-center justify-between gap-4 py-2.5 pb-0">
                     <dt class="text-gray-500 dark:text-gray-400">Fim</dt>
                     <dd class="font-medium text-gray-900 dark:text-gray-100">{{ $erb->end_date?->format('d/m/Y') ?? '—' }}</dd>
                 </div>
             </dl>
-        </div>
+        </section>
 
-        <div class="rounded-xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-800 dark:bg-gray-900">
-            <h2 class="text-xs font-semibold uppercase text-gray-500 dark:text-gray-400">Observações</h2>
-            <p class="mt-3 text-sm text-gray-700 dark:text-gray-300">
+        <section class="rounded-2xl border border-gray-200/70 bg-white p-6 shadow-sm transition duration-200 hover:-translate-y-0.5 hover:border-indigo-200 hover:shadow-md sm:col-span-2 lg:col-span-3 dark:border-gray-800 dark:bg-gray-900 dark:hover:border-indigo-500/40">
+            <div class="flex items-center gap-2">
+                <span class="inline-flex h-9 w-9 items-center justify-center rounded-2xl bg-violet-50 text-violet-600 dark:bg-violet-500/10 dark:text-violet-400">
+                    <x-icon name="document-text" class="h-5 w-5" />
+                </span>
+                <h2 class="text-sm font-semibold text-gray-900 dark:text-gray-100">Observações</h2>
+            </div>
+            <p class="mt-4 text-sm text-gray-700 dark:text-gray-300">
                 {{ $erb->notes ?? 'Nenhuma observação registrada.' }}
             </p>
-        </div>
+        </section>
     </div>
 
-    <div class="mt-4 rounded-xl border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900">
+    <div class="mt-4 overflow-hidden rounded-2xl border border-gray-200/70 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900">
         <div class="flex items-center gap-2 border-b border-gray-100 px-5 py-4 dark:border-gray-800">
-            <x-icon name="clipboard-document-list" class="h-5 w-5 text-gray-400 dark:text-gray-500" />
+            <span class="inline-flex h-8 w-8 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-400">
+                <x-icon name="clipboard-document-list" class="h-4 w-4" />
+            </span>
             <h2 class="text-sm font-semibold text-gray-900 dark:text-gray-100">Ordens de serviço</h2>
             <span class="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600 dark:bg-gray-800 dark:text-gray-300">
                 {{ $erb->workOrders->count() }}
@@ -143,27 +217,32 @@
         </div>
 
         @if ($erb->workOrders->isEmpty())
-            <p class="px-5 py-6 text-sm text-gray-500 dark:text-gray-400">Nenhuma ordem de serviço vinculada a esta ERB.</p>
+            <div class="px-5 py-12 text-center">
+                <span class="mx-auto flex h-11 w-11 items-center justify-center rounded-2xl bg-gray-100 text-gray-400 dark:bg-gray-800 dark:text-gray-500">
+                    <x-icon name="clipboard-document-list" class="h-5 w-5" />
+                </span>
+                <p class="mt-3 text-sm text-gray-500 dark:text-gray-400">Nenhuma ordem de serviço vinculada a esta ERB.</p>
+            </div>
         @else
             <div class="overflow-x-auto">
                 <table class="min-w-full divide-y divide-gray-200 text-sm dark:divide-gray-800">
-                    <thead class="bg-gray-50 text-left text-xs uppercase text-gray-500 dark:bg-gray-800 dark:text-gray-400">
+                    <thead class="bg-gray-50/80 text-left text-xs font-medium uppercase tracking-wide text-gray-500 dark:bg-gray-800/60 dark:text-gray-400">
                         <tr>
-                            <th class="px-5 py-3 font-medium">Número</th>
-                            <th class="px-5 py-3 font-medium">Cliente</th>
-                            <th class="px-5 py-3 font-medium">Status</th>
+                            <th class="px-5 py-3.5 font-medium">Número</th>
+                            <th class="px-5 py-3.5 font-medium">Cliente</th>
+                            <th class="px-5 py-3.5 font-medium">Status</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
                         @foreach ($erb->workOrders as $workOrder)
-                            <tr>
-                                <td class="px-5 py-3">
-                                    <a href="{{ route('admin.work-orders.show', $workOrder) }}" class="font-medium text-gray-900 hover:text-indigo-600 dark:text-gray-100 dark:hover:text-indigo-400">
+                            <tr class="transition hover:bg-gray-50/70 dark:hover:bg-gray-800/40">
+                                <td class="px-5 py-4">
+                                    <a href="{{ route('admin.work-orders.show', $workOrder) }}" class="font-semibold text-gray-900 hover:text-indigo-600 dark:text-gray-100 dark:hover:text-indigo-400">
                                         {{ $workOrder->number }}
                                     </a>
                                 </td>
-                                <td class="px-5 py-3 text-gray-500 dark:text-gray-400">{{ $workOrder->client?->name ?? '—' }}</td>
-                                <td class="px-5 py-3"><x-work-order-status :work-order="$workOrder" /></td>
+                                <td class="px-5 py-4 text-gray-500 dark:text-gray-400">{{ $workOrder->client?->name ?? '—' }}</td>
+                                <td class="px-5 py-4"><x-work-order-status :work-order="$workOrder" /></td>
                             </tr>
                         @endforeach
                     </tbody>
@@ -172,9 +251,11 @@
         @endif
     </div>
 
-    <div class="mt-4 rounded-xl border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900">
+    <div class="mt-4 overflow-hidden rounded-2xl border border-gray-200/70 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900">
         <div class="flex items-center gap-2 border-b border-gray-100 px-5 py-4 dark:border-gray-800">
-            <x-icon name="briefcase" class="h-5 w-5 text-gray-400 dark:text-gray-500" />
+            <span class="inline-flex h-8 w-8 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400">
+                <x-icon name="briefcase" class="h-4 w-4" />
+            </span>
             <h2 class="text-sm font-semibold text-gray-900 dark:text-gray-100">Projetos</h2>
             <span class="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600 dark:bg-gray-800 dark:text-gray-300">
                 {{ $erb->projects->count() }}
@@ -183,24 +264,29 @@
 
         <div class="divide-y divide-gray-100 dark:divide-gray-800">
             @forelse ($erb->projects as $project)
-                <div class="flex flex-wrap items-center justify-between gap-3 px-5 py-3">
+                <div class="flex flex-wrap items-center justify-between gap-3 px-5 py-3.5 transition hover:bg-gray-50/70 dark:hover:bg-gray-800/40">
                     <a href="{{ route('admin.projects.show', $project) }}" class="text-sm font-medium text-gray-900 hover:text-indigo-600 dark:text-gray-100 dark:hover:text-indigo-400">
                         {{ $project->name }}
                     </a>
                     <x-project-status :project="$project" />
                 </div>
             @empty
-                <p class="px-5 py-8 text-sm text-gray-500 dark:text-gray-400">Nenhum projeto vinculado a esta ERB.</p>
+                <p class="flex items-center justify-center gap-2 px-5 py-12 text-sm text-gray-500 dark:text-gray-400">
+                    <x-icon name="briefcase" class="h-4 w-4 text-gray-400 dark:text-gray-500" />
+                    Nenhum projeto vinculado a esta ERB.
+                </p>
             @endforelse
         </div>
     </div>
 
-    <div class="mt-4 rounded-xl border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900">
+    <div class="mt-4 overflow-hidden rounded-2xl border border-gray-200/70 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900">
         <div class="flex items-center gap-2 border-b border-gray-100 px-5 py-4 dark:border-gray-800">
-            <x-icon name="arrows-right-left" class="h-5 w-5 text-gray-400 dark:text-gray-500" />
+            <span class="inline-flex h-8 w-8 items-center justify-center rounded-xl bg-violet-50 text-violet-600 dark:bg-violet-500/10 dark:text-violet-400">
+                <x-icon name="arrows-right-left" class="h-4 w-4" />
+            </span>
             <h2 class="text-sm font-semibold text-gray-900 dark:text-gray-100">Radio links</h2>
             <span class="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600 dark:bg-gray-800 dark:text-gray-300">
-                {{ $erb->radioLinksAsEndA->count() + $erb->radioLinksAsEndB->count() }}
+                {{ $radioLinkCount }}
             </span>
         </div>
 
@@ -209,14 +295,19 @@
         @endphp
 
         @if ($radioLinks->isEmpty())
-            <p class="px-5 py-6 text-sm text-gray-500 dark:text-gray-400">Nenhum radio link vinculado a esta ERB.</p>
+            <div class="px-5 py-12 text-center">
+                <span class="mx-auto flex h-11 w-11 items-center justify-center rounded-2xl bg-gray-100 text-gray-400 dark:bg-gray-800 dark:text-gray-500">
+                    <x-icon name="arrows-right-left" class="h-5 w-5" />
+                </span>
+                <p class="mt-3 text-sm text-gray-500 dark:text-gray-400">Nenhum radio link vinculado a esta ERB.</p>
+            </div>
         @else
             <div class="divide-y divide-gray-100 dark:divide-gray-800">
                 @foreach ($radioLinks as $radioLink)
                     @php
                         $otherEnd = $radioLink->erb_a_id === $erb->getKey() ? $radioLink->erbB : $radioLink->erbA;
                     @endphp
-                    <div class="flex flex-wrap items-center justify-between gap-3 px-5 py-3">
+                    <div class="flex flex-wrap items-center justify-between gap-3 px-5 py-3.5 transition hover:bg-gray-50/70 dark:hover:bg-gray-800/40">
                         <div class="flex min-w-0 items-center gap-3">
                             <a href="{{ route('admin.radio-links.show', $radioLink) }}" class="text-sm font-medium text-gray-900 hover:text-indigo-600 dark:text-gray-100 dark:hover:text-indigo-400">
                                 {{ $radioLink->code }}
@@ -239,9 +330,15 @@
 
     @include('admin.erbs.partials.comments', ['erb' => $erb])
 
-    <div class="mt-4 rounded-xl border border-gray-200 bg-white px-5 py-4 text-xs text-gray-500 shadow-sm dark:border-gray-800 dark:bg-gray-900 dark:text-gray-400">
-        Criado em {{ $erb->created_at->format('d/m/Y H:i') }}
-        &middot;
-        Atualizado em {{ $erb->updated_at->format('d/m/Y H:i') }}
+    <div class="mt-4 rounded-2xl border border-gray-200/70 bg-white px-5 py-4 text-xs text-gray-500 shadow-sm dark:border-gray-800 dark:bg-gray-900 dark:text-gray-400">
+        <span class="inline-flex items-center gap-1.5">
+            <x-icon name="clock" class="h-3.5 w-3.5" />
+            Criado em {{ $erb->created_at->format('d/m/Y H:i') }}
+        </span>
+        <span class="mx-2 text-gray-300 dark:text-gray-600">·</span>
+        <span class="inline-flex items-center gap-1.5">
+            <x-icon name="arrow-path" class="h-3.5 w-3.5" />
+            Atualizado em {{ $erb->updated_at->format('d/m/Y H:i') }}
+        </span>
     </div>
 </x-layouts.admin>
