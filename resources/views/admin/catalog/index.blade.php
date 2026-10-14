@@ -21,13 +21,14 @@
             <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Cadastre os produtos e serviços da sua empresa.</p>
         </div>
 
-        <a
-            href="{{ route('admin.catalog.create') }}"
+        <button
+            type="button"
+            data-modal-open="catalog-item-modal"
             class="inline-flex items-center gap-1.5 rounded-md bg-gray-900 dark:bg-white px-4 py-2 text-sm font-medium text-white dark:text-gray-900 hover:bg-gray-700 dark:hover:bg-gray-200"
         >
             <x-icon name="plus" class="h-4 w-4" />
             Novo item
-        </a>
+        </button>
     </div>
 
     <div class="mt-6 flex flex-wrap items-center justify-between gap-4">
@@ -328,6 +329,92 @@
         </div>
     @endif
 
+    <div
+        id="catalog-item-modal"
+        class="fixed inset-0 z-50 hidden"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="catalog-item-modal-title"
+        @if ($errors->any() && old('modal') === 'create') data-open @endif
+    >
+        <div class="absolute inset-0 bg-gray-900/50" data-modal-close></div>
+
+        <div class="absolute left-1/2 top-1/2 max-h-[90vh] w-full max-w-2xl -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-xl bg-white p-5 shadow-xl dark:bg-gray-900">
+            <div class="flex items-start justify-between gap-4">
+                <div>
+                    <h2 id="catalog-item-modal-title" class="flex items-center gap-2 text-base font-semibold text-gray-900 dark:text-gray-100">
+                        <x-icon name="cube" class="h-5 w-5 text-gray-400 dark:text-gray-500" />
+                        Novo item
+                    </h2>
+                    <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Cadastre um produto ou serviço no catálogo.</p>
+                </div>
+
+                <button
+                    type="button"
+                    class="rounded-full p-1 text-gray-400 dark:text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-700"
+                    data-modal-close
+                >
+                    <span class="sr-only">Fechar</span>
+                    <x-icon name="x-mark" class="h-5 w-5" />
+                </button>
+            </div>
+
+            <form method="POST" action="{{ route('admin.catalog.store') }}" class="mt-5">
+                @csrf
+                <input type="hidden" name="modal" value="create">
+
+                <div class="mb-5">
+                    <div class="flex items-center justify-between text-xs font-medium text-gray-500 dark:text-gray-400">
+                        <span data-wizard-label>Identificação</span>
+                        <span data-wizard-counter>Passo 1 de 3</span>
+                    </div>
+                    <div class="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-gray-200 dark:bg-gray-800">
+                        <div data-wizard-progress class="h-full w-1/3 rounded-full bg-indigo-500 transition-all duration-200"></div>
+                    </div>
+                </div>
+
+                @include('admin.catalog.partials.form', ['catalogItem' => null, 'types' => \App\Enums\CatalogItemType::cases(), 'wizard' => true])
+
+                <div class="mt-6 flex items-center justify-between gap-3">
+                    <button
+                        type="button"
+                        class="rounded-md px-3 py-2 text-sm font-medium text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100"
+                        data-modal-close
+                    >
+                        Cancelar
+                    </button>
+
+                    <div class="flex items-center gap-3">
+                        <button
+                            type="button"
+                            data-wizard-prev
+                            class="hidden rounded-md border border-gray-300 dark:border-gray-700 dark:bg-gray-900 px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800"
+                        >
+                            Voltar
+                        </button>
+
+                        <button
+                            type="button"
+                            data-wizard-next
+                            class="inline-flex items-center gap-1.5 rounded-md bg-gray-900 dark:bg-white px-4 py-2 text-sm font-medium text-white dark:text-gray-900 hover:bg-gray-700 dark:hover:bg-gray-200"
+                        >
+                            Próximo
+                        </button>
+
+                        <button
+                            type="submit"
+                            data-wizard-submit
+                            class="hidden items-center gap-1.5 rounded-md bg-gray-900 dark:bg-white px-4 py-2 text-sm font-medium text-white dark:text-gray-900 hover:bg-gray-700 dark:hover:bg-gray-200"
+                        >
+                            <x-icon name="check" class="h-4 w-4" />
+                            Criar item
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <script>
         (function () {
             const params = new URLSearchParams(window.location.search);
@@ -405,6 +492,117 @@
                 searchInput.focus();
                 searchInput.setSelectionRange(searchInput.value.length, searchInput.value.length);
             }
+        }
+
+        const openModal = (modal) => {
+            modal.classList.remove('hidden');
+            document.body.classList.add('overflow-hidden');
+        };
+
+        const closeModal = (modal) => {
+            modal.classList.add('hidden');
+            document.body.classList.remove('overflow-hidden');
+        };
+
+        document.addEventListener('click', (event) => {
+            const opener = event.target.closest('[data-modal-open]');
+
+            if (opener) {
+                event.preventDefault();
+                closeDropdowns();
+
+                const modal = document.getElementById(opener.dataset.modalOpen);
+                if (modal) {
+                    openModal(modal);
+                }
+
+                return;
+            }
+
+            const closer = event.target.closest('[data-modal-close]');
+            if (closer) {
+                closeModal(closer.closest('[role="dialog"]'));
+            }
+        });
+
+        document.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape') {
+                document.querySelectorAll('[role="dialog"]:not(.hidden)').forEach(closeModal);
+            }
+        });
+
+        const catalogModal = document.getElementById('catalog-item-modal');
+        if (catalogModal?.hasAttribute('data-open')) {
+            openModal(catalogModal);
+        }
+
+        const wizard = catalogModal?.querySelector('[data-wizard]');
+
+        if (wizard) {
+            const steps = Array.from(wizard.querySelectorAll('[data-wizard-step]'));
+            const label = catalogModal.querySelector('[data-wizard-label]');
+            const counter = catalogModal.querySelector('[data-wizard-counter]');
+            const progressBar = catalogModal.querySelector('[data-wizard-progress]');
+            const prevButton = catalogModal.querySelector('[data-wizard-prev]');
+            const nextButton = catalogModal.querySelector('[data-wizard-next]');
+            const submitButton = catalogModal.querySelector('[data-wizard-submit]');
+
+            const stepLabels = ['Identificação', 'Valores', 'Detalhes'];
+            const progressWidths = ['w-1/3', 'w-2/3', 'w-full'];
+
+            let current = 0;
+
+            const render = () => {
+                steps.forEach((step, index) => {
+                    step.classList.toggle('hidden', index !== current);
+                });
+
+                if (label) {
+                    label.textContent = stepLabels[current] || '';
+                }
+
+                if (counter) {
+                    counter.textContent = 'Passo ' + (current + 1) + ' de ' + steps.length;
+                }
+
+                if (progressBar) {
+                    progressBar.classList.remove('w-1/3', 'w-2/3', 'w-full');
+                    progressBar.classList.add(progressWidths[current] || 'w-full');
+                }
+
+                prevButton?.classList.toggle('hidden', current === 0);
+                nextButton?.classList.toggle('hidden', current === steps.length - 1);
+                submitButton?.classList.toggle('hidden', current !== steps.length - 1);
+                submitButton?.classList.toggle('inline-flex', current === steps.length - 1);
+            };
+
+            const goTo = (index) => {
+                current = Math.max(0, Math.min(index, steps.length - 1));
+                render();
+            };
+
+            nextButton?.addEventListener('click', () => {
+                const step = steps[current];
+                const invalid = Array.from(step.querySelectorAll('input, select, textarea')).find((field) => !field.checkValidity());
+
+                if (invalid) {
+                    invalid.reportValidity();
+
+                    return;
+                }
+
+                goTo(current + 1);
+            });
+
+            prevButton?.addEventListener('click', () => goTo(current - 1));
+
+            document.querySelectorAll('[data-modal-open="catalog-item-modal"]').forEach((opener) => {
+                opener.addEventListener('click', () => goTo(0));
+            });
+
+            const errorStep = steps.findIndex((step) => step.querySelector('.text-red-600'));
+
+            goTo(errorStep > -1 ? errorStep : 0);
         }
     </script>
 </x-layouts.admin>

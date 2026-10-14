@@ -58,6 +58,17 @@ it('renders the catalog list in the alternate view modes', function () {
     $this->actingAs($owner)->get('/admin/catalog?view=compact')->assertOk()->assertSee('Cimento Alpha');
 });
 
+it('renders the create form inside a modal on the catalog list', function () {
+    $user = User::factory()->create();
+
+    $this->actingAs($user)
+        ->get('/admin/catalog')
+        ->assertOk()
+        ->assertSee('data-modal-open="catalog-item-modal"', false)
+        ->assertSee('id="catalog-item-modal"', false)
+        ->assertSee(route('admin.catalog.store'), false);
+});
+
 it('creates a product owned by the authenticated user', function () {
     $user = User::factory()->create();
 
