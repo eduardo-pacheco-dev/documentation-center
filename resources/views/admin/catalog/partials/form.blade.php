@@ -20,7 +20,7 @@
                 id="type{{ $fieldSuffix }}"
                 required
                 x-on:change="type = $event.target.value"
-                class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-700 dark:bg-gray-900 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500"
+                class="mt-1 block w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm transition focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
             >
                 @foreach ($types as $type)
                     <option value="{{ $type->value }}" @selected(old('type', $catalogItem?->type?->value ?? 'product') === $type->value)>
@@ -38,7 +38,7 @@
             <select
                 name="status"
                 id="status{{ $fieldSuffix }}"
-                class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-700 dark:bg-gray-900 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500"
+                class="mt-1 block w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm transition focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
             >
                 @foreach (\App\Enums\CatalogItemStatus::cases() as $status)
                     <option value="{{ $status->value }}" @selected(old('status', $catalogItem?->status?->value ?? 'active') === $status->value)>
@@ -59,7 +59,7 @@
                 id="name{{ $fieldSuffix }}"
                 value="{{ old('name', $catalogItem?->name) }}"
                 required
-                class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-700 dark:bg-gray-900 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500"
+                class="mt-1 block w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm transition focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
             >
             @error('name')
                 <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p>
@@ -93,7 +93,7 @@
                 step="0.01"
                 min="0"
                 value="{{ old('price', $catalogItem?->price) }}"
-                class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-700 dark:bg-gray-900 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500"
+                class="mt-1 block w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm transition focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
             >
             @error('price')
                 <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p>
@@ -109,7 +109,7 @@
                 step="0.01"
                 min="0"
                 value="{{ old('cost', $catalogItem?->cost) }}"
-                class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-700 dark:bg-gray-900 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500"
+                class="mt-1 block w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm transition focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
             >
             @error('cost')
                 <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p>
@@ -125,7 +125,7 @@
                 step="0.01"
                 min="0"
                 value="{{ old('stock_quantity', $catalogItem?->stock_quantity) }}"
-                class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-700 dark:bg-gray-900 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500"
+                class="mt-1 block w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm transition focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
             >
             @error('stock_quantity')
                 <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p>
@@ -140,7 +140,7 @@
                 name="description"
                 id="description{{ $fieldSuffix }}"
                 rows="3"
-                class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-700 dark:bg-gray-900 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500"
+                class="mt-1 block w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm transition focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
             >{{ old('description', $catalogItem?->description) }}</textarea>
             @error('description')
                 <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p>
@@ -153,7 +153,7 @@
                 name="notes"
                 id="notes{{ $fieldSuffix }}"
                 rows="3"
-                class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-700 dark:bg-gray-900 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500"
+                class="mt-1 block w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm transition focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
             >{{ old('notes', $catalogItem?->notes) }}</textarea>
             @error('notes')
                 <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p>

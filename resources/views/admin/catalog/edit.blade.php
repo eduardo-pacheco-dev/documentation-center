@@ -1,7 +1,8 @@
 <x-layouts.admin title="Editar item">
     <div>
-        <h1 class="flex items-center gap-2 text-xl font-semibold">
-            <x-icon name="pencil-square" class="h-5 w-5 text-gray-400 dark:text-gray-500" />
+        <p class="text-xs font-semibold uppercase tracking-wide text-indigo-600 dark:text-indigo-400">Catálogo</p>
+        <h1 class="mt-1 flex items-center gap-2 text-2xl font-semibold tracking-tight text-gray-900 dark:text-gray-100">
+            <x-icon name="pencil-square" class="h-6 w-6 text-gray-400 dark:text-gray-500" />
             Editar item
         </h1>
         <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">{{ $catalogItem->name }}</p>
@@ -16,7 +17,7 @@
         <div class="mt-6 flex items-center gap-3">
             <button
                 type="submit"
-                class="inline-flex items-center gap-1.5 rounded-md bg-gray-900 dark:bg-white px-4 py-2 text-sm font-medium text-white dark:text-gray-900 hover:bg-gray-700 dark:hover:bg-gray-200"
+                class="inline-flex items-center gap-1.5 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-500"
             >
                 <x-icon name="check" class="h-4 w-4" />
                 Salvar alterações
@@ -24,7 +25,7 @@
 
             <a
                 href="{{ route('admin.catalog.show', $catalogItem) }}"
-                class="rounded-md px-3 py-2 text-sm font-medium text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100"
+                class="rounded-xl px-3 py-2 text-sm font-medium text-gray-500 transition hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100"
             >
                 Cancelar
             </a>
@@ -43,7 +44,7 @@
 
             <button
                 type="submit"
-                class="inline-flex items-center gap-1.5 rounded-md border border-red-300 px-4 py-2 text-sm font-medium text-red-700 hover:bg-red-50 dark:border-red-900 dark:text-red-400 dark:hover:bg-red-950"
+                class="inline-flex items-center gap-1.5 rounded-xl border border-red-300 px-4 py-2 text-sm font-semibold text-red-700 transition hover:bg-red-50 dark:border-red-900 dark:text-red-400 dark:hover:bg-red-950"
             >
                 <x-icon name="trash" class="h-4 w-4" />
                 Excluir item

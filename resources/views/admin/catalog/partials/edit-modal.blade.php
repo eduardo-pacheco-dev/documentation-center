@@ -15,10 +15,10 @@
 >
     <div class="absolute inset-0 bg-gray-900/50" data-modal-close></div>
 
-    <div class="absolute left-1/2 top-1/2 max-h-[90vh] w-full max-w-2xl -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-xl bg-white p-5 shadow-xl dark:bg-gray-900">
+    <div class="absolute left-1/2 top-1/2 max-h-[90vh] w-full max-w-2xl -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-2xl bg-white p-6 shadow-xl dark:bg-gray-900">
         <div class="flex items-start justify-between gap-4">
             <div>
-                <h2 id="catalog-item-edit-modal-title-{{ $catalogItem->getKey() }}" class="flex items-center gap-2 text-base font-semibold text-gray-900 dark:text-gray-100">
+                <h2 id="catalog-item-edit-modal-title-{{ $catalogItem->getKey() }}" class="flex items-center gap-2 text-lg font-semibold text-gray-900 dark:text-gray-100">
                     <x-icon name="pencil-square" class="h-5 w-5 text-gray-400 dark:text-gray-500" />
                     Editar item
                 </h2>
@@ -34,6 +34,15 @@
                 <x-icon name="x-mark" class="h-5 w-5" />
             </button>
         </div>
+
+        @if ($editModalOpen)
+            <div
+                data-modal-error
+                class="mt-4 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300"
+            >
+                <p class="font-medium">Não foi possível salvar o item. Corrija os campos destacados e tente novamente.</p>
+            </div>
+        @endif
 
         <form method="POST" action="{{ route('admin.catalog.update', $catalogItem) }}" class="mt-5">
             @csrf
@@ -53,28 +62,28 @@
 
             @include('admin.catalog.partials.form', ['catalogItem' => $catalogItem, 'types' => \App\Enums\CatalogItemType::cases(), 'wizard' => true])
 
-            <div class="mt-6 flex items-center justify-between gap-3">
+            <div class="mt-6 flex items-center gap-2 border-t border-gray-100 pt-4 dark:border-gray-800">
                 <button
                     type="button"
-                    class="rounded-md px-3 py-2 text-sm font-medium text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100"
-                    data-modal-close
+                    data-wizard-prev
+                    class="hidden rounded-xl border border-gray-200/70 bg-white px-4 py-2 text-sm font-semibold text-gray-700 shadow-sm transition hover:border-indigo-200 hover:text-indigo-600 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-200 dark:hover:border-indigo-500/40"
                 >
-                    Cancelar
+                    Voltar
                 </button>
 
-                <div class="flex items-center gap-3">
+                <div class="ml-auto flex items-center gap-2">
                     <button
                         type="button"
-                        data-wizard-prev
-                        class="hidden rounded-md border border-gray-300 dark:border-gray-700 dark:bg-gray-900 px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800"
+                        class="rounded-xl border border-gray-200/70 bg-white px-4 py-2 text-sm font-semibold text-gray-700 shadow-sm transition hover:border-indigo-200 hover:text-indigo-600 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-200 dark:hover:border-indigo-500/40"
+                        data-modal-close
                     >
-                        Voltar
+                        Cancelar
                     </button>
 
                     <button
                         type="button"
                         data-wizard-next
-                        class="inline-flex items-center gap-1.5 rounded-md bg-gray-900 dark:bg-white px-4 py-2 text-sm font-medium text-white dark:text-gray-900 hover:bg-gray-700 dark:hover:bg-gray-200"
+                        class="inline-flex items-center gap-1.5 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-500"
                     >
                         Próximo
                     </button>
@@ -82,7 +91,7 @@
                     <button
                         type="submit"
                         data-wizard-submit
-                        class="hidden items-center gap-1.5 rounded-md bg-gray-900 dark:bg-white px-4 py-2 text-sm font-medium text-white dark:text-gray-900 hover:bg-gray-700 dark:hover:bg-gray-200"
+                        class="hidden items-center gap-1.5 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-500"
                     >
                         <x-icon name="check" class="h-4 w-4" />
                         Salvar alterações

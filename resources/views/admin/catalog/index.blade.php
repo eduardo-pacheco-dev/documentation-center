@@ -10,28 +10,69 @@
 
             return rtrim(rtrim(number_format((float) $value, 2, ',', '.'), '0'), ',');
         };
+
+        $itemsOnPage = $catalogItems->getCollection();
+        $productsOnPage = $itemsOnPage->filter(fn ($item) => $item->type->value === 'product')->count();
+        $servicesOnPage = $itemsOnPage->filter(fn ($item) => $item->type->value === 'service')->count();
+        $activeOnPage = $itemsOnPage->filter(fn ($item) => $item->status->value === 'active')->count();
     @endphp
 
-    <div class="flex items-center justify-between">
+    <div class="flex flex-wrap items-end justify-between gap-4">
         <div>
-            <h1 class="flex items-center gap-2 text-xl font-semibold">
-                <x-icon name="cube" class="h-5 w-5 text-gray-400 dark:text-gray-500" />
+            <p class="text-xs font-semibold uppercase tracking-wide text-indigo-600 dark:text-indigo-400">
+                Comercial
+            </p>
+            <h1 class="mt-1 flex items-center gap-2 text-2xl font-semibold tracking-tight text-gray-900 dark:text-gray-100">
+                <x-icon name="cube" class="h-6 w-6 text-gray-400 dark:text-gray-500" />
                 Catálogo
             </h1>
-            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Cadastre os produtos e serviços da sua empresa.</p>
+            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Cadastre e organize os produtos e serviços da sua empresa.</p>
         </div>
 
-        <button
-            type="button"
-            data-modal-open="catalog-item-modal"
-            class="inline-flex items-center gap-1.5 rounded-md bg-gray-900 dark:bg-white px-4 py-2 text-sm font-medium text-white dark:text-gray-900 hover:bg-gray-700 dark:hover:bg-gray-200"
-        >
-            <x-icon name="plus" class="h-4 w-4" />
-            Novo item
-        </button>
+        <div class="flex flex-wrap items-center gap-2">
+            <button
+                type="button"
+                data-modal-open="catalog-item-modal"
+                class="inline-flex items-center gap-1.5 rounded-2xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-500"
+            >
+                <x-icon name="plus" class="h-4 w-4" />
+                Novo item
+            </button>
+        </div>
     </div>
 
-    <div class="mt-6 flex flex-wrap items-center justify-between gap-4">
+    <div class="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <div class="group relative overflow-hidden rounded-2xl border border-gray-200/70 bg-white p-5 shadow-sm transition duration-200 hover:-translate-y-0.5 hover:border-indigo-200 hover:shadow-lg hover:shadow-indigo-600/5 dark:border-gray-800 dark:bg-gray-900 dark:hover:border-indigo-500/40">
+            <span class="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-400">
+                <x-icon name="cube" class="h-5 w-5" />
+            </span>
+            <p class="mt-4 text-3xl font-semibold tracking-tight text-gray-900 dark:text-gray-100">{{ $catalogItems->total() }}</p>
+            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Itens no catálogo</p>
+        </div>
+        <div class="group relative overflow-hidden rounded-2xl border border-gray-200/70 bg-white p-5 shadow-sm transition duration-200 hover:-translate-y-0.5 hover:border-violet-200 hover:shadow-lg hover:shadow-violet-600/5 dark:border-gray-800 dark:bg-gray-900 dark:hover:border-violet-500/40">
+            <span class="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-violet-50 text-violet-600 dark:bg-violet-500/10 dark:text-violet-400">
+                <x-icon name="squares-2x2" class="h-5 w-5" />
+            </span>
+            <p class="mt-4 text-3xl font-semibold tracking-tight text-gray-900 dark:text-gray-100">{{ $productsOnPage }}</p>
+            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Produtos nesta página</p>
+        </div>
+        <div class="group relative overflow-hidden rounded-2xl border border-gray-200/70 bg-white p-5 shadow-sm transition duration-200 hover:-translate-y-0.5 hover:border-amber-200 hover:shadow-lg hover:shadow-amber-600/5 dark:border-gray-800 dark:bg-gray-900 dark:hover:border-amber-500/40">
+            <span class="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-amber-50 text-amber-600 dark:bg-amber-500/10 dark:text-amber-400">
+                <x-icon name="wrench-screwdriver" class="h-5 w-5" />
+            </span>
+            <p class="mt-4 text-3xl font-semibold tracking-tight text-gray-900 dark:text-gray-100">{{ $servicesOnPage }}</p>
+            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Serviços nesta página</p>
+        </div>
+        <div class="group relative overflow-hidden rounded-2xl border border-gray-200/70 bg-white p-5 shadow-sm transition duration-200 hover:-translate-y-0.5 hover:border-emerald-200 hover:shadow-lg hover:shadow-emerald-600/5 dark:border-gray-800 dark:bg-gray-900 dark:hover:border-emerald-500/40">
+            <span class="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400">
+                <x-icon name="check-circle" class="h-5 w-5" />
+            </span>
+            <p class="mt-4 text-3xl font-semibold tracking-tight text-gray-900 dark:text-gray-100">{{ $activeOnPage }}</p>
+            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Ativos nesta página</p>
+        </div>
+    </div>
+
+    <section class="mt-6 rounded-2xl border border-gray-200/70 bg-white p-4 shadow-sm dark:border-gray-800 dark:bg-gray-900">
         <form
             method="GET"
             action="{{ route('admin.catalog.index') }}"
@@ -51,22 +92,23 @@
                     name="search"
                     value="{{ $search }}"
                     placeholder="Buscar por nome, código ou descrição..."
-                    class="block w-full rounded-md border border-gray-300 dark:border-gray-700 dark:bg-gray-900 py-2 pl-9 pr-3 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500"
+                    class="block w-full rounded-xl border border-gray-300 bg-white py-2 pl-9 pr-3 text-sm shadow-sm transition focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
                     data-search-input
                 >
             </div>
 
             <button
                 type="submit"
-                class="rounded-md border border-gray-300 dark:border-gray-700 dark:bg-gray-900 px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800"
+                class="inline-flex items-center gap-1.5 rounded-xl border border-gray-200/70 bg-white px-4 py-2 text-sm font-semibold text-gray-700 shadow-sm transition hover:border-indigo-200 hover:text-indigo-600 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-200 dark:hover:border-indigo-500/40"
             >
+                <x-icon name="magnifying-glass" class="h-4 w-4" />
                 Buscar
             </button>
 
             @if ($search !== '')
                 <a
                     href="{{ route('admin.catalog.index', array_filter(['type' => $type, 'view' => $view])) }}"
-                    class="text-sm text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100"
+                    class="rounded-xl px-3 py-2 text-sm font-medium text-gray-500 transition hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100"
                 >
                     Limpar
                 </a>
@@ -77,20 +119,30 @@
                 id="type-filter"
                 name="type"
                 onchange="this.form.submit()"
-                class="rounded-md border border-gray-300 dark:border-gray-700 dark:bg-gray-900 py-2 pl-3 pr-8 text-sm text-gray-700 dark:text-gray-200 focus:border-indigo-500 focus:outline-none focus:ring-indigo-500"
+                class="rounded-xl border border-gray-300 bg-white py-2 pl-3 pr-8 text-sm text-gray-700 transition focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200"
             >
                 @foreach (['' => 'Todos os tipos', 'product' => 'Produtos', 'service' => 'Serviços'] as $value => $label)
                     <option value="{{ $value }}" @selected($type === ($value ?: null))>{{ $label }}</option>
                 @endforeach
             </select>
         </form>
+    </section>
 
-        <div class="inline-flex rounded-lg border border-gray-300 dark:border-gray-700 p-0.5" role="group" aria-label="Modo de visualização">
+    <div class="mt-4 flex flex-wrap items-center justify-between gap-3">
+        <p class="text-sm text-gray-500 dark:text-gray-400">
+            Exibindo
+            <span class="font-medium text-gray-900 dark:text-gray-100">{{ $catalogItems->count() }}</span>
+            de
+            <span class="font-medium text-gray-900 dark:text-gray-100">{{ $catalogItems->total() }}</span>
+            itens
+        </p>
+
+        <div class="inline-flex rounded-2xl border border-gray-200 bg-white p-1 dark:border-gray-800 dark:bg-gray-900" role="group" aria-label="Modo de visualização">
             @foreach (['table' => 'Tabela', 'cards' => 'Cards', 'compact' => 'Lista'] as $mode => $label)
                 <a
                     href="{{ route('admin.catalog.index', array_merge($viewQuery, ['view' => $mode])) }}"
                     data-view-toggle="{{ $mode }}"
-                    class="inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm {{ $view === $mode ? 'bg-gray-900 text-white dark:bg-white dark:text-gray-900' : 'text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800' }}"
+                    class="inline-flex items-center gap-1.5 rounded-xl px-2.5 py-1.5 text-sm font-medium transition {{ $view === $mode ? 'bg-indigo-600 text-white shadow-sm' : 'text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800' }}"
                 >
                     <x-icon :name="$mode === 'table' ? 'table-cells' : ($mode === 'cards' ? 'squares-2x2' : 'bars-3')" class="h-4 w-4" />
                     {{ $label }}
@@ -100,67 +152,80 @@
     </div>
 
     @if ($view === 'table')
-        <div class="mt-4 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 shadow-sm">
+        <div class="mt-4 overflow-hidden rounded-2xl border border-gray-200/70 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900">
             <div class="overflow-x-auto lg:overflow-x-visible">
                 <table class="min-w-full divide-y divide-gray-200 text-sm dark:divide-gray-800">
-                    <thead class="rounded-t-xl bg-gray-50 text-left text-xs uppercase text-gray-500 dark:bg-gray-800 dark:text-gray-400">
+                    <thead class="bg-gray-50/80 text-left text-xs font-medium uppercase tracking-wide text-gray-500 dark:bg-gray-800/60 dark:text-gray-400">
                         <tr>
-                            <x-sort-header column="name" label="Item" icon="cube" class="px-5 py-3" />
-                            <x-sort-header column="type" label="Tipo" class="px-5 py-3" />
-                            <x-sort-header column="unit" label="Unidade" class="px-5 py-3" />
-                            <x-sort-header column="price" label="Preço" class="px-5 py-3" />
-                            <x-sort-header column="cost" label="Custo" class="px-5 py-3" />
-                            <x-sort-header column="stock_quantity" label="Estoque" class="px-5 py-3" />
-                            <x-sort-header column="status" label="Status" icon="flag" class="px-5 py-3" />
-                            <x-sort-header column="updated_at" label="Atualizado" default="updated_at" class="px-5 py-3" />
-                            <th class="px-5 py-3 text-right font-medium">Ações</th>
+                            <x-sort-header column="name" label="Item" icon="cube" class="px-5 py-3.5" />
+                            <x-sort-header column="type" label="Tipo" class="px-5 py-3.5" />
+                            <x-sort-header column="unit" label="Unidade" class="px-5 py-3.5" />
+                            <x-sort-header column="price" label="Preço" class="px-5 py-3.5" />
+                            <x-sort-header column="cost" label="Custo" class="px-5 py-3.5" />
+                            <x-sort-header column="stock_quantity" label="Estoque" class="px-5 py-3.5" />
+                            <x-sort-header column="status" label="Status" icon="flag" class="px-5 py-3.5" />
+                            <x-sort-header column="updated_at" label="Atualizado" default="updated_at" class="px-5 py-3.5" />
+                            <th class="px-5 py-3.5 text-right font-medium">Ações</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
                         @forelse ($catalogItems as $catalogItem)
-                            <tr>
-                                <td class="px-5 py-3">
-                                    <a
-                                        href="{{ route('admin.catalog.show', $catalogItem) }}"
-                                        class="flex items-center gap-2 font-medium text-gray-900 hover:text-indigo-600 dark:text-gray-100 dark:hover:text-indigo-400"
-                                    >
-                                        <x-icon :name="$catalogItem->type->value === 'product' ? 'cube' : 'wrench-screwdriver'" class="h-4 w-4 text-gray-400 dark:text-gray-500" />
-                                        {{ $catalogItem->name }}
-                                    </a>
-                                    @if ($catalogItem->code)
-                                        <p class="mt-0.5 max-w-[20rem] truncate text-xs text-gray-500 dark:text-gray-400">{{ $catalogItem->code }}</p>
-                                    @endif
+                            <tr class="transition hover:bg-gray-50/70 dark:hover:bg-gray-800/40">
+                                <td class="px-5 py-4">
+                                    <div class="flex items-center gap-3">
+                                        <span class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl {{ $catalogItem->type->value === 'product' ? 'bg-indigo-50 text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-400' : 'bg-amber-50 text-amber-600 dark:bg-amber-500/10 dark:text-amber-400' }}">
+                                            <x-icon :name="$catalogItem->type->value === 'product' ? 'cube' : 'wrench-screwdriver'" class="h-4 w-4" />
+                                        </span>
+                                        <div class="min-w-0">
+                                            <a
+                                                href="{{ route('admin.catalog.show', $catalogItem) }}"
+                                                class="block truncate font-semibold text-gray-900 hover:text-indigo-600 dark:text-gray-100 dark:hover:text-indigo-400"
+                                            >
+                                                {{ $catalogItem->name }}
+                                            </a>
+                                            <p class="mt-0.5 max-w-[20rem] truncate text-xs text-gray-500 dark:text-gray-400">{{ $catalogItem->code ?? '—' }}</p>
+                                        </div>
+                                    </div>
                                 </td>
-                                <td class="whitespace-nowrap px-5 py-3">
+                                <td class="whitespace-nowrap px-5 py-4">
                                     <x-catalog-item-type :catalog-item="$catalogItem" />
                                 </td>
-                                <td class="whitespace-nowrap px-5 py-3 text-gray-500 dark:text-gray-400">{{ $catalogItem->unit ?? '—' }}</td>
-                                <td class="whitespace-nowrap px-5 py-3 text-gray-500 dark:text-gray-400">{{ $money((float) $catalogItem->price) }}</td>
-                                <td class="whitespace-nowrap px-5 py-3 text-gray-500 dark:text-gray-400">{{ $money((float) $catalogItem->cost) }}</td>
-                                <td class="whitespace-nowrap px-5 py-3 text-gray-500 dark:text-gray-400">
+                                <td class="whitespace-nowrap px-5 py-4 text-gray-500 dark:text-gray-400">{{ $catalogItem->unit ?? '—' }}</td>
+                                <td class="whitespace-nowrap px-5 py-4 font-medium text-gray-700 dark:text-gray-200">{{ $money((float) $catalogItem->price) }}</td>
+                                <td class="whitespace-nowrap px-5 py-4 text-gray-500 dark:text-gray-400">{{ $money((float) $catalogItem->cost) }}</td>
+                                <td class="whitespace-nowrap px-5 py-4 text-gray-500 dark:text-gray-400">
                                     {{ $catalogItem->type->value === 'product' ? $stock($catalogItem->stock_quantity) : '—' }}
                                 </td>
-                                <td class="px-5 py-3">
+                                <td class="px-5 py-4">
                                     <x-catalog-item-status :catalog-item="$catalogItem" />
                                 </td>
-                                <td class="px-5 py-3">
+                                <td class="whitespace-nowrap px-5 py-4">
                                     <x-relative-time :value="$catalogItem->updated_at" class="text-gray-500 dark:text-gray-400" />
                                 </td>
-                                <td class="px-5 py-3 text-right">
+                                <td class="px-5 py-4 text-right">
                                     <x-catalog-item-actions-dropdown :catalog-item="$catalogItem" />
                                 </td>
                             </tr>
                         @empty
                             <tr>
-                                <td class="px-5 py-6 text-gray-500 dark:text-gray-400" colspan="9">
-                                    <span class="inline-flex items-center gap-2">
-                                        <x-icon name="cube" class="h-4 w-4" />
-                                        @if ($search !== '')
-                                            Nenhum item encontrado para "{{ $search }}".
-                                        @else
-                                            Nenhum item cadastrado até o momento.
-                                        @endif
+                                <td class="px-5 py-16 text-center" colspan="9">
+                                    <span class="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-gray-100 text-gray-400 dark:bg-gray-800 dark:text-gray-500">
+                                        <x-icon name="cube" class="h-6 w-6" />
                                     </span>
+                                    <p class="mt-3 text-sm font-medium text-gray-900 dark:text-gray-100">
+                                        @if ($search !== '' || $type !== null)
+                                            Nenhum item encontrado
+                                        @else
+                                            Nenhum item cadastrado
+                                        @endif
+                                    </p>
+                                    <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                                        @if ($search !== '' || $type !== null)
+                                            Ajuste a busca ou os filtros para ver mais resultados.
+                                        @else
+                                            Cadastre o primeiro produto ou serviço para começar.
+                                        @endif
+                                    </p>
                                 </td>
                             </tr>
                         @endforelse
@@ -168,7 +233,7 @@
                 </table>
             </div>
 
-            <div class="flex flex-wrap items-center justify-between gap-3 px-5 py-4">
+            <div class="flex flex-wrap items-center justify-between gap-3 border-t border-gray-100 px-5 py-4 dark:border-gray-800">
                 <form method="GET" action="{{ route('admin.catalog.index') }}" class="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
                     @foreach (['search', 'view', 'sort', 'direction', 'type'] as $param)
                         @if (request($param))
@@ -180,7 +245,7 @@
                         id="per-page"
                         name="per_page"
                         onchange="this.form.submit()"
-                        class="rounded-md border border-gray-300 dark:border-gray-700 dark:bg-gray-900 py-1.5 pl-2 pr-8 text-sm text-gray-700 dark:text-gray-200 focus:border-indigo-500 focus:outline-none focus:ring-indigo-500"
+                        class="rounded-xl border border-gray-300 bg-white py-1.5 pl-2 pr-8 text-sm text-gray-700 transition focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200"
                     >
                         @foreach ([12, 24, 36] as $option)
                             <option value="{{ $option }}" @selected($perPage === $option)>{{ $option }} por página</option>
@@ -194,14 +259,14 @@
     @elseif ($view === 'cards')
         <div class="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             @forelse ($catalogItems as $catalogItem)
-                <div class="rounded-xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-800 dark:bg-gray-900">
+                <div class="group relative flex flex-col overflow-hidden rounded-2xl border border-gray-200/70 bg-white p-5 shadow-sm transition duration-200 hover:-translate-y-0.5 hover:border-indigo-200 hover:shadow-lg hover:shadow-indigo-600/5 dark:border-gray-800 dark:bg-gray-900 dark:hover:border-indigo-500/40">
                     <div class="flex items-start justify-between gap-3">
                         <div class="flex min-w-0 items-center gap-3">
-                            <span class="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400">
+                            <span class="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl {{ $catalogItem->type->value === 'product' ? 'bg-indigo-50 text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-400' : 'bg-amber-50 text-amber-600 dark:bg-amber-500/10 dark:text-amber-400' }}">
                                 <x-icon :name="$catalogItem->type->value === 'product' ? 'cube' : 'wrench-screwdriver'" class="h-5 w-5" />
                             </span>
                             <div class="min-w-0">
-                                <a href="{{ route('admin.catalog.show', $catalogItem) }}" class="block truncate text-sm font-medium text-gray-900 hover:text-indigo-600 dark:text-gray-100 dark:hover:text-indigo-400">
+                                <a href="{{ route('admin.catalog.show', $catalogItem) }}" class="block truncate font-semibold text-gray-900 hover:text-indigo-600 dark:text-gray-100 dark:hover:text-indigo-400">
                                     {{ $catalogItem->name }}
                                 </a>
                                 <p class="truncate text-xs text-gray-500 dark:text-gray-400">{{ $catalogItem->code ?? $catalogItem->type->label() }}</p>
@@ -211,7 +276,7 @@
                         <x-catalog-item-actions-dropdown :catalog-item="$catalogItem" />
                     </div>
 
-                    <p class="mt-4 text-lg font-semibold text-gray-900 dark:text-gray-100">{{ $money((float) $catalogItem->price) }}</p>
+                    <p class="mt-4 text-2xl font-semibold tracking-tight text-gray-900 dark:text-gray-100">{{ $money((float) $catalogItem->price) }}</p>
 
                     <div class="mt-2 flex flex-wrap items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
                         <x-catalog-item-type :catalog-item="$catalogItem" />
@@ -229,14 +294,25 @@
                     </div>
                 </div>
             @empty
-                <p class="col-span-full flex items-center gap-2 py-8 text-sm text-gray-500 dark:text-gray-400">
-                    <x-icon name="cube" class="h-4 w-4 text-gray-400 dark:text-gray-500" />
-                    @if ($search !== '')
-                        Nenhum item encontrado para "{{ $search }}".
-                    @else
-                        Nenhum item cadastrado até o momento.
-                    @endif
-                </p>
+                <div class="col-span-full rounded-2xl border border-gray-200/70 bg-white px-5 py-16 text-center shadow-sm dark:border-gray-800 dark:bg-gray-900">
+                    <span class="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-gray-100 text-gray-400 dark:bg-gray-800 dark:text-gray-500">
+                        <x-icon name="cube" class="h-6 w-6" />
+                    </span>
+                    <p class="mt-3 text-sm font-medium text-gray-900 dark:text-gray-100">
+                        @if ($search !== '' || $type !== null)
+                            Nenhum item encontrado
+                        @else
+                            Nenhum item cadastrado
+                        @endif
+                    </p>
+                    <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                        @if ($search !== '' || $type !== null)
+                            Ajuste a busca ou os filtros para ver mais resultados.
+                        @else
+                            Cadastre o primeiro produto ou serviço para começar.
+                        @endif
+                    </p>
+                </div>
             @endforelse
         </div>
 
@@ -252,7 +328,7 @@
                     id="per-page"
                     name="per_page"
                     onchange="this.form.submit()"
-                    class="rounded-md border border-gray-300 dark:border-gray-700 dark:bg-gray-900 py-1.5 pl-2 pr-8 text-sm text-gray-700 dark:text-gray-200 focus:border-indigo-500 focus:outline-none focus:ring-indigo-500"
+                    class="rounded-xl border border-gray-300 bg-white py-1.5 pl-2 pr-8 text-sm text-gray-700 transition focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200"
                 >
                     @foreach ([12, 24, 36] as $option)
                         <option value="{{ $option }}" @selected($perPage === $option)>{{ $option }} por página</option>
@@ -263,15 +339,15 @@
             <x-pagination :paginator="$catalogItems" />
         </div>
     @else
-        <div class="mt-4 divide-y divide-gray-100 rounded-xl border border-gray-200 bg-white shadow-sm dark:divide-gray-800 dark:border-gray-800 dark:bg-gray-900">
+        <div class="mt-4 divide-y divide-gray-100 overflow-hidden rounded-2xl border border-gray-200/70 bg-white shadow-sm dark:divide-gray-800 dark:border-gray-800 dark:bg-gray-900">
             @forelse ($catalogItems as $catalogItem)
-                <div class="flex items-center gap-4 px-5 py-3">
-                    <span class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400">
+                <div class="flex items-center gap-4 px-5 py-4 transition hover:bg-gray-50/70 dark:hover:bg-gray-800/40">
+                    <span class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl {{ $catalogItem->type->value === 'product' ? 'bg-indigo-50 text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-400' : 'bg-amber-50 text-amber-600 dark:bg-amber-500/10 dark:text-amber-400' }}">
                         <x-icon :name="$catalogItem->type->value === 'product' ? 'cube' : 'wrench-screwdriver'" class="h-4 w-4" />
                     </span>
 
                     <div class="min-w-0 flex-1">
-                        <a href="{{ route('admin.catalog.show', $catalogItem) }}" class="truncate text-sm font-medium text-gray-900 hover:text-indigo-600 dark:text-gray-100 dark:hover:text-indigo-400">
+                        <a href="{{ route('admin.catalog.show', $catalogItem) }}" class="truncate font-semibold text-gray-900 hover:text-indigo-600 dark:text-gray-100 dark:hover:text-indigo-400">
                             {{ $catalogItem->name }}
                         </a>
                         <p class="truncate text-xs text-gray-500 dark:text-gray-400">
@@ -283,7 +359,7 @@
                         <x-catalog-item-type :catalog-item="$catalogItem" />
                     </div>
 
-                    <span class="hidden whitespace-nowrap text-sm font-medium text-gray-700 md:inline dark:text-gray-200">
+                    <span class="hidden whitespace-nowrap text-sm font-semibold text-gray-700 md:inline dark:text-gray-200">
                         {{ $money((float) $catalogItem->price) }}
                     </span>
 
@@ -294,14 +370,25 @@
                     <x-catalog-item-actions-dropdown :catalog-item="$catalogItem" />
                 </div>
             @empty
-                <p class="flex items-center gap-2 px-5 py-8 text-sm text-gray-500 dark:text-gray-400">
-                    <x-icon name="cube" class="h-4 w-4 text-gray-400 dark:text-gray-500" />
-                    @if ($search !== '')
-                        Nenhum item encontrado para "{{ $search }}".
-                    @else
-                        Nenhum item cadastrado até o momento.
-                    @endif
-                </p>
+                <div class="px-5 py-16 text-center">
+                    <span class="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-gray-100 text-gray-400 dark:bg-gray-800 dark:text-gray-500">
+                        <x-icon name="cube" class="h-6 w-6" />
+                    </span>
+                    <p class="mt-3 text-sm font-medium text-gray-900 dark:text-gray-100">
+                        @if ($search !== '' || $type !== null)
+                            Nenhum item encontrado
+                        @else
+                            Nenhum item cadastrado
+                        @endif
+                    </p>
+                    <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                        @if ($search !== '' || $type !== null)
+                            Ajuste a busca ou os filtros para ver mais resultados.
+                        @else
+                            Cadastre o primeiro produto ou serviço para começar.
+                        @endif
+                    </p>
+                </div>
             @endforelse
         </div>
 
@@ -317,7 +404,7 @@
                     id="per-page"
                     name="per_page"
                     onchange="this.form.submit()"
-                    class="rounded-md border border-gray-300 dark:border-gray-700 dark:bg-gray-900 py-1.5 pl-2 pr-8 text-sm text-gray-700 dark:text-gray-200 focus:border-indigo-500 focus:outline-none focus:ring-indigo-500"
+                    class="rounded-xl border border-gray-300 bg-white py-1.5 pl-2 pr-8 text-sm text-gray-700 transition focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200"
                 >
                     @foreach ([12, 24, 36] as $option)
                         <option value="{{ $option }}" @selected($perPage === $option)>{{ $option }} por página</option>
@@ -343,10 +430,10 @@
     >
         <div class="absolute inset-0 bg-gray-900/50" data-modal-close></div>
 
-        <div class="absolute left-1/2 top-1/2 max-h-[90vh] w-full max-w-2xl -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-xl bg-white p-5 shadow-xl dark:bg-gray-900">
+        <div class="absolute left-1/2 top-1/2 max-h-[90vh] w-full max-w-2xl -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-2xl bg-white p-6 shadow-xl dark:bg-gray-900">
             <div class="flex items-start justify-between gap-4">
                 <div>
-                    <h2 id="catalog-item-modal-title" class="flex items-center gap-2 text-base font-semibold text-gray-900 dark:text-gray-100">
+                    <h2 id="catalog-item-modal-title" class="flex items-center gap-2 text-lg font-semibold text-gray-900 dark:text-gray-100">
                         <x-icon name="cube" class="h-5 w-5 text-gray-400 dark:text-gray-500" />
                         Novo item
                     </h2>
@@ -362,6 +449,15 @@
                     <x-icon name="x-mark" class="h-5 w-5" />
                 </button>
             </div>
+
+            @if ($errors->any() && old('modal') === 'create')
+                <div
+                    data-modal-error
+                    class="mt-4 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300"
+                >
+                    <p class="font-medium">Não foi possível criar o item. Corrija os campos destacados e tente novamente.</p>
+                </div>
+            @endif
 
             <form method="POST" action="{{ route('admin.catalog.store') }}" class="mt-5">
                 @csrf
@@ -379,28 +475,28 @@
 
                 @include('admin.catalog.partials.form', ['catalogItem' => null, 'types' => \App\Enums\CatalogItemType::cases(), 'wizard' => true])
 
-                <div class="mt-6 flex items-center justify-between gap-3">
+                <div class="mt-6 flex items-center gap-2 border-t border-gray-100 pt-4 dark:border-gray-800">
                     <button
                         type="button"
-                        class="rounded-md px-3 py-2 text-sm font-medium text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100"
-                        data-modal-close
+                        data-wizard-prev
+                        class="hidden rounded-xl border border-gray-200/70 bg-white px-4 py-2 text-sm font-semibold text-gray-700 shadow-sm transition hover:border-indigo-200 hover:text-indigo-600 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-200 dark:hover:border-indigo-500/40"
                     >
-                        Cancelar
+                        Voltar
                     </button>
 
-                    <div class="flex items-center gap-3">
+                    <div class="ml-auto flex items-center gap-2">
                         <button
                             type="button"
-                            data-wizard-prev
-                            class="hidden rounded-md border border-gray-300 dark:border-gray-700 dark:bg-gray-900 px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800"
+                            class="rounded-xl border border-gray-200/70 bg-white px-4 py-2 text-sm font-semibold text-gray-700 shadow-sm transition hover:border-indigo-200 hover:text-indigo-600 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-200 dark:hover:border-indigo-500/40"
+                            data-modal-close
                         >
-                            Voltar
+                            Cancelar
                         </button>
 
                         <button
                             type="button"
                             data-wizard-next
-                            class="inline-flex items-center gap-1.5 rounded-md bg-gray-900 dark:bg-white px-4 py-2 text-sm font-medium text-white dark:text-gray-900 hover:bg-gray-700 dark:hover:bg-gray-200"
+                            class="inline-flex items-center gap-1.5 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-500"
                         >
                             Próximo
                         </button>
@@ -408,7 +504,7 @@
                         <button
                             type="submit"
                             data-wizard-submit
-                            class="hidden items-center gap-1.5 rounded-md bg-gray-900 dark:bg-white px-4 py-2 text-sm font-medium text-white dark:text-gray-900 hover:bg-gray-700 dark:hover:bg-gray-200"
+                            class="hidden items-center gap-1.5 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-500"
                         >
                             <x-icon name="check" class="h-4 w-4" />
                             Criar item
