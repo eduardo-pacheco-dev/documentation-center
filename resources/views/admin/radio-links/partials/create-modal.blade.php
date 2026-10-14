@@ -48,45 +48,7 @@
             <ol data-wizard-steps class="flex flex-wrap items-center gap-2" role="list"></ol>
 
             <div class="mt-5">
-                <div data-wizard-panel data-wizard-title="Identificação">
-                    <div class="grid gap-5 sm:grid-cols-2">
-                        <div class="sm:col-span-2">
-                            <label for="code" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Código</label>
-                            <input
-                                type="text"
-                                name="code"
-                                id="code"
-                                value="{{ old('code') }}"
-                                required
-                                placeholder="Ex.: RL-00100"
-                                class="mt-1 block w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm transition focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
-                            >
-                            @error('code')
-                                <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p>
-                            @enderror
-                        </div>
-
-                        <div class="sm:col-span-2">
-                            <label for="status" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Status</label>
-                            <select
-                                name="status"
-                                id="status"
-                                class="mt-1 block w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm transition focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
-                            >
-                                @foreach (\App\Enums\RadioLinkStatus::cases() as $statusOption)
-                                    <option value="{{ $statusOption->value }}" @selected(old('status') === $statusOption->value)>
-                                        {{ $statusOption->label() }}
-                                    </option>
-                                @endforeach
-                            </select>
-                            @error('status')
-                                <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p>
-                            @enderror
-                        </div>
-                    </div>
-                </div>
-
-                <div data-wizard-panel data-wizard-title="Pontas" class="hidden">
+                <div data-wizard-panel data-wizard-title="Pontas">
                     <div class="grid gap-5 sm:grid-cols-2">
                         <div>
                             <label for="erb_a_id" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Ponta A — ERB</label>
@@ -233,6 +195,24 @@
                                 @endforeach
                             </select>
                             @error('polarization')
+                                <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p>
+                            @enderror
+                        </div>
+
+                        <div>
+                            <label for="status" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Status</label>
+                            <select
+                                name="status"
+                                id="status"
+                                class="mt-1 block w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm transition focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
+                            >
+                                @foreach (\App\Enums\RadioLinkStatus::cases() as $statusOption)
+                                    <option value="{{ $statusOption->value }}" @selected(old('status') === $statusOption->value)>
+                                        {{ $statusOption->label() }}
+                                    </option>
+                                @endforeach
+                            </select>
+                            @error('status')
                                 <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p>
                             @enderror
                         </div>

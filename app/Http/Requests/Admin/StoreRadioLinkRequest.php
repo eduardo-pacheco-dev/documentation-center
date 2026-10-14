@@ -30,14 +30,6 @@ class StoreRadioLinkRequest extends FormRequest
         $userId = $this->user()?->getKey();
 
         return [
-            'code' => [
-                'required',
-                'string',
-                'max:60',
-                Rule::unique('radio_links', 'code')
-                    ->where(fn ($query) => $query->where('user_id', $userId))
-                    ->whereNull('deleted_at'),
-            ],
             'erb_a_id' => [
                 'required',
                 'integer',

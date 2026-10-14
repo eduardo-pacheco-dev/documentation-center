@@ -162,12 +162,12 @@ it('defaults the radio link status to planned when it is not sent', function () 
     expect(RadioLink::query()->firstOrFail()->status->value)->toBe('planned');
 });
 
-it('rejects a radio link without a code or endpoints', function () {
+it('rejects a radio link without endpoints', function () {
     $user = User::factory()->create();
 
     $this->actingAs($user)
         ->post('/admin/radio-links', [])
-        ->assertSessionHasErrors(['code', 'erb_a_id', 'erb_b_id']);
+        ->assertSessionHasErrors(['erb_a_id', 'erb_b_id']);
 
     expect(RadioLink::query()->count())->toBe(0);
 });
@@ -178,7 +178,7 @@ it('reopens the create modal with the wizard when creation fails validation', fu
     $this->actingAs($user)
         ->from('/admin/radio-links')
         ->post('/admin/radio-links', ['modal' => 'create'])
-        ->assertSessionHasErrors(['code', 'erb_a_id', 'erb_b_id']);
+        ->assertSessionHasErrors(['erb_a_id', 'erb_b_id']);
 
     $this->actingAs($user)
         ->get('/admin/radio-links')
@@ -188,7 +188,30 @@ it('reopens the create modal with the wizard when creation fails validation', fu
         ->assertSee('data-wizard-steps', false);
 });
 
-it('rejects a duplicate code owned by the same user', function () {
+it('does not ask for a code in the create modal', function () {
+    $user = User::factory()->create();
+
+    $this->actingAs($user)
+        ->get('/admin/radio-links')
+        ->assertOk()
+        ->assertDontSee('name="code"', false);
+});
+
+it('generates the code automatically when one is not provided', function () {
+    $user = User::factory()->create();
+    $endpoints = radioLinkEndpoints($user);
+
+    $this->actingAs($user)
+        ->post('/admin/radio-links', [
+            'erb_a_id' => $endpoints['endA']->getKey(),
+            'erb_b_id' => $endpoints['endB']->getKey(),
+        ])
+        ->assertRedirect();
+
+    expect(RadioLink::query()->firstOrFail()->code)->toBe('RL-00001');
+});
+
+it('generates a sequential code for each radio link', function () {
     $user = User::factory()->create();
     $endpoints = radioLinkEndpoints($user);
 
@@ -196,18 +219,19 @@ it('rejects a duplicate code owned by the same user', function () {
         'user_id' => $user->getKey(),
         'erb_a_id' => $endpoints['endA']->getKey(),
         'erb_b_id' => $endpoints['endB']->getKey(),
-        'code' => 'RL-00042',
+        'code' => 'RL-00001',
     ]);
 
     $more = radioLinkEndpoints($user);
 
     $this->actingAs($user)
         ->post('/admin/radio-links', [
-            'code' => 'RL-00042',
             'erb_a_id' => $more['endA']->getKey(),
             'erb_b_id' => $more['endB']->getKey(),
         ])
-        ->assertSessionHasErrors('code');
+        ->assertRedirect();
+
+    expect(RadioLink::query()->where('user_id', $user->getKey())->latest('id')->firstOrFail()->code)->toBe('RL-00002');
 });
 
 it('rejects endpoints that belong to another user', function () {

@@ -37,6 +37,33 @@ class RadioLink extends Model
     private const EARTH_RADIUS_KM = 6371.0;
 
     /**
+     * Assign a sequential code when one is not provided.
+     */
+    protected static function booted(): void
+    {
+        static::saving(function (RadioLink $radioLink): void {
+            if (blank($radioLink->code) && $radioLink->user_id !== null) {
+                $radioLink->code = static::generateCode($radioLink->user);
+            }
+        });
+    }
+
+    /**
+     * Generate the next sequential code for the user's radio links.
+     */
+    public static function generateCode(User $user): string
+    {
+        $sequence = $user->radioLinks()->withTrashed()->count() + 1;
+
+        do {
+            $code = 'RL-'.str_pad((string) $sequence, 5, '0', STR_PAD_LEFT);
+            $sequence++;
+        } while ($user->radioLinks()->withTrashed()->where('code', $code)->exists());
+
+        return $code;
+    }
+
+    /**
      * The user that created the radio link.
      */
     public function user(): BelongsTo
