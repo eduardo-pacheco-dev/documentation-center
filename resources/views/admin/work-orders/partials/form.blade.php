@@ -43,19 +43,16 @@
     <div data-wizard-panel data-wizard-title="Identificação" class="{{ $panelClass(0) }}">
     <div class="sm:col-span-2">
         <label for="client_id" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Cliente</label>
-        <select
+        <x-searchable-select
+            class="mt-1"
             name="client_id"
             id="client_id"
             required
-            class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-700 dark:bg-gray-900 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500"
-        >
-            <option value="">Selecione um cliente</option>
-            @foreach ($clients as $client)
-                <option value="{{ $client->getKey() }}" @selected((string) old('client_id', $workOrder?->client_id) === (string) $client->getKey())>
-                    {{ $client->name }}
-                </option>
-            @endforeach
-        </select>
+            :selected="old('client_id', $workOrder?->client_id)"
+            placeholder="Busque pelo nome do cliente..."
+            empty-message="Nenhum cliente encontrado."
+            :options="$clients->map(fn ($client) => ['value' => $client->getKey(), 'label' => $client->name])->all()"
+        />
         @error('client_id')
             <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p>
         @enderror
@@ -70,21 +67,19 @@
 
     <div class="sm:col-span-2">
         <label for="erb_id" class="block text-sm font-medium text-gray-700 dark:text-gray-300">ERB (Estação Rádio Base)</label>
-        <select
+        <x-searchable-select
+            class="mt-1"
             name="erb_id"
             id="erb_id"
-            class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-700 dark:bg-gray-900 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500"
-        >
-            <option value="">Nenhuma ERB vinculada</option>
-            @foreach ($erbs as $erb)
-                <option value="{{ $erb->getKey() }}" @selected((string) old('erb_id', $workOrder?->erb_id) === (string) $erb->getKey())>
-                    {{ $erb->code }} — {{ $erb->name }}
-                </option>
-            @endforeach
-        </select>
+            :selected="old('erb_id', $workOrder?->erb_id)"
+            placeholder="Busque pelo código ou nome da ERB..."
+            empty-message="Nenhuma ERB encontrada."
+            :options="$erbs->map(fn ($erb) => ['value' => $erb->getKey(), 'label' => trim(($erb->code ? $erb->code.' — ' : '').$erb->name)])->all()"
+        />
         @error('erb_id')
             <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p>
         @enderror
+        <p class="mt-1 text-xs text-gray-400 dark:text-gray-500">Opcional. Deixe em branco se a OS não estiver vinculada a uma ERB.</p>
     </div>
 
     <div class="sm:col-span-2">
