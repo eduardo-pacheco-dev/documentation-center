@@ -2,6 +2,26 @@
     @php
         $money = fn (float $value): string => 'R$ '.number_format($value, 2, ',', '.');
         $quantity = fn ($value): string => rtrim(rtrim(number_format((float) $value, 2, ',', '.'), '0'), ',');
+
+        $rawEditorItems = old('items');
+
+        if (! is_array($rawEditorItems)) {
+            $rawEditorItems = $workOrder->items->map(fn ($item) => [
+                'catalog_item_id' => (string) ($item->catalog_item_id ?? ''),
+                'quantity' => (float) $item->quantity,
+            ])->all();
+        }
+
+        $editorItems = array_values(array_map(fn ($item) => [
+            'catalog_item_id' => (string) ($item['catalog_item_id'] ?? ''),
+            'quantity' => $item['quantity'] ?? 1,
+        ], $rawEditorItems));
+
+        $itemsErrors = collect($errors->keys())
+            ->filter(fn ($key) => $key === 'items' || str_starts_with($key, 'items.'))
+            ->flatMap(fn ($key) => $errors->get($key))
+            ->values()
+            ->all();
     @endphp
 
     <div class="flex flex-wrap items-start justify-between gap-4">
@@ -141,51 +161,250 @@
         @endif
     </div>
 
-    <div class="mt-4 rounded-xl border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900">
-        <div class="border-b border-gray-100 px-5 py-3 dark:border-gray-800">
-            <h2 class="text-xs font-semibold uppercase text-gray-500 dark:text-gray-400">Itens da OS</h2>
-        </div>
+    @can('update', $workOrder)
+        <script type="application/json" id="work-order-items-editor-data">@json(['catalog' => $catalogData, 'items' => $editorItems], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT)</script>
 
-        <div class="overflow-x-auto">
-            <table class="min-w-full divide-y divide-gray-200 text-sm dark:divide-gray-800">
-                <thead class="bg-gray-50 text-left text-xs uppercase text-gray-500 dark:bg-gray-800 dark:text-gray-400">
-                    <tr>
-                        <th class="px-5 py-3 font-medium">Descrição</th>
-                        <th class="px-5 py-3 font-medium">Unidade</th>
-                        <th class="px-5 py-3 text-right font-medium">Quantidade</th>
-                        <th class="px-5 py-3 text-right font-medium">Valor unitário</th>
-                        <th class="px-5 py-3 text-right font-medium">Subtotal</th>
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
-                    @forelse ($workOrder->items as $item)
-                        <tr>
-                            <td class="px-5 py-3 font-medium text-gray-900 dark:text-gray-100">
-                                {{ $item->description }}
-                                @if ($item->catalogItem)
-                                    <span class="mt-0.5 block text-xs text-gray-400 dark:text-gray-500">{{ $item->catalogItem->name }}</span>
-                                @endif
-                            </td>
-                            <td class="whitespace-nowrap px-5 py-3 text-gray-500 dark:text-gray-400">{{ $item->unit ?? '—' }}</td>
-                            <td class="whitespace-nowrap px-5 py-3 text-right text-gray-500 dark:text-gray-400">{{ $quantity($item->quantity) }}</td>
-                            <td class="whitespace-nowrap px-5 py-3 text-right text-gray-500 dark:text-gray-400">{{ $money((float) $item->unit_price) }}</td>
-                            <td class="whitespace-nowrap px-5 py-3 text-right font-medium text-gray-900 dark:text-gray-100">{{ $money((float) $item->total) }}</td>
-                        </tr>
-                    @empty
-                        <tr>
-                            <td class="px-5 py-6 text-gray-500 dark:text-gray-400" colspan="5">Nenhum item registrado.</td>
-                        </tr>
-                    @endforelse
-                </tbody>
-                <tfoot class="bg-gray-50 dark:bg-gray-800">
-                    <tr>
-                        <td class="px-5 py-3 text-right text-sm font-semibold text-gray-700 dark:text-gray-200" colspan="4">Total</td>
-                        <td class="whitespace-nowrap px-5 py-3 text-right text-sm font-semibold text-gray-900 dark:text-gray-100">{{ $money((float) $workOrder->total) }}</td>
-                    </tr>
-                </tfoot>
-            </table>
+        <div class="mt-4 rounded-xl border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900">
+            <div class="flex flex-wrap items-center justify-between gap-3 border-b border-gray-100 px-5 py-3 dark:border-gray-800">
+                <div class="flex items-center gap-2">
+                    <x-icon name="cube" class="h-4 w-4 text-gray-400 dark:text-gray-500" />
+                    <h2 class="text-xs font-semibold uppercase text-gray-500 dark:text-gray-400">Itens da OS</h2>
+                </div>
+                <p class="text-xs text-gray-400 dark:text-gray-500">Edite os itens e salve sem sair da página.</p>
+            </div>
+
+            <form
+                method="POST"
+                action="{{ route('admin.work-orders.items.update', $workOrder) }}"
+                x-data="{
+                    catalog: [],
+                    items: [],
+                    search: '',
+                    openResults: false,
+                    init() {
+                        const data = JSON.parse(document.getElementById('work-order-items-editor-data').textContent);
+                        this.catalog = data.catalog;
+                        this.items = data.items;
+                    },
+                    get results() {
+                        const term = this.search.trim().toLowerCase();
+                        const matches = term === ''
+                            ? this.catalog
+                            : this.catalog.filter((entry) => entry.name.toLowerCase().includes(term));
+                        return matches.slice(0, 20);
+                    },
+                    entry(item) {
+                        return this.catalog.find((option) => String(option.id) === String(item.catalog_item_id)) ?? null;
+                    },
+                    name(item) {
+                        const found = this.entry(item);
+                        return found ? found.name : 'Escolha um item do catálogo';
+                    },
+                    unit(item) {
+                        const found = this.entry(item);
+                        return found ? (found.unit ?? '') : '';
+                    },
+                    price(item) {
+                        const found = this.entry(item);
+                        return found ? Number(found.price) : 0;
+                    },
+                    lineTotal(item) {
+                        return (Number(item.quantity) || 0) * this.price(item);
+                    },
+                    get total() {
+                        return this.items.reduce((sum, item) => sum + this.lineTotal(item), 0);
+                    },
+                    addFromCatalog(option) {
+                        const existing = this.items.find((item) => String(item.catalog_item_id) === String(option.id));
+                        if (existing) {
+                            existing.quantity = (Number(existing.quantity) || 0) + 1;
+                        } else {
+                            this.items.push({ catalog_item_id: String(option.id), quantity: 1 });
+                        }
+                        this.search = '';
+                        this.openResults = false;
+                    },
+                    removeItem(index) {
+                        this.items.splice(index, 1);
+                    },
+                    money(value) {
+                        return 'R$ ' + (Number(value) || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                    },
+                }"
+            >
+                @csrf
+                @method('PUT')
+
+                <div class="space-y-4 p-5">
+                    @if (! empty($itemsErrors))
+                        <div class="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-300">
+                            <ul class="list-disc space-y-0.5 pl-4">
+                                @foreach ($itemsErrors as $message)
+                                    <li>{{ $message }}</li>
+                                @endforeach
+                            </ul>
+                        </div>
+                    @endif
+
+                    <div>
+                        <label for="work-order-items-search" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Adicionar item do catálogo</label>
+
+                        <div class="relative" @click.away="openResults = false">
+                            <div class="relative mt-1">
+                                <x-icon name="magnifying-glass" class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400 dark:text-gray-500" />
+                                <input
+                                    type="text"
+                                    id="work-order-items-search"
+                                    x-model="search"
+                                    @focus="openResults = true"
+                                    @click="openResults = true"
+                                    placeholder="Busque pelo nome do item..."
+                                    autocomplete="off"
+                                    class="block w-full rounded-md border border-gray-300 dark:border-gray-700 dark:bg-gray-900 pl-9 pr-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500"
+                                >
+                            </div>
+
+                            <div x-show="openResults" x-cloak class="mt-1 max-h-64 w-full overflow-auto rounded-md border border-gray-200 bg-white py-1 shadow-sm dark:border-gray-700 dark:bg-gray-900">
+                                <template x-for="option in results" :key="option.id">
+                                    <button type="button" @click="addFromCatalog(option)" class="flex w-full items-center gap-3 px-3 py-2 text-left hover:bg-gray-50 dark:hover:bg-gray-800">
+                                        <span class="min-w-0 flex-1 truncate text-sm text-gray-700 dark:text-gray-200" x-text="option.name"></span>
+                                        <span class="text-xs text-gray-400 dark:text-gray-500" x-text="option.unit ?? ''"></span>
+                                        <span class="text-sm font-medium text-gray-900 dark:text-gray-100" x-text="money(option.price)"></span>
+                                        <x-icon name="plus" class="h-4 w-4 shrink-0 text-indigo-500" />
+                                    </button>
+                                </template>
+
+                                <p x-show="results.length === 0" class="px-3 py-2 text-sm text-gray-500 dark:text-gray-400">
+                                    @if ($catalogItems->isEmpty())
+                                        Você ainda não tem itens no catálogo.
+                                        <a href="{{ route('admin.catalog.index') }}" class="underline">Cadastre um item</a>.
+                                    @else
+                                        Nenhum item encontrado.
+                                    @endif
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="space-y-2">
+                        <template x-for="(item, index) in items" :key="index">
+                            <div class="flex flex-wrap items-center gap-3 rounded-lg border border-gray-200 p-3 dark:border-gray-800 sm:flex-nowrap">
+                                <input type="hidden" :name="'items[' + index + '][catalog_item_id]'" :value="item.catalog_item_id">
+
+                                <div class="min-w-0 flex-1">
+                                    <p class="truncate text-sm font-medium text-gray-900 dark:text-gray-100" x-text="name(item)"></p>
+                                    <p class="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
+                                        <span x-text="unit(item)"></span>
+                                        <span x-show="unit(item) !== ''"> &middot; </span>
+                                        <span x-text="money(price(item))"></span>
+                                    </p>
+                                </div>
+
+                                <div>
+                                    <label class="sr-only" x-bind:for="'item-quantity-' + index">Quantidade</label>
+                                    <input
+                                        type="number"
+                                        step="0.01"
+                                        min="0.01"
+                                        x-bind:id="'item-quantity-' + index"
+                                        x-bind:name="'items[' + index + '][quantity]'"
+                                        x-model.number="item.quantity"
+                                        class="w-24 rounded-md border border-gray-300 dark:border-gray-700 dark:bg-gray-900 px-2 py-1.5 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500"
+                                    >
+                                </div>
+
+                                <span class="w-24 text-right text-sm font-semibold text-gray-900 dark:text-gray-100" x-text="money(lineTotal(item))"></span>
+
+                                <button
+                                    type="button"
+                                    @click="removeItem(index)"
+                                    class="rounded-md p-1.5 text-gray-400 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-500/15 dark:hover:text-red-400"
+                                    aria-label="Remover item"
+                                >
+                                    <x-icon name="trash" class="h-4 w-4" />
+                                </button>
+                            </div>
+                        </template>
+
+                        <template x-if="items.length === 0">
+                            <p class="rounded-lg border border-dashed border-gray-200 px-3 py-4 text-center text-sm text-gray-500 dark:border-gray-800 dark:text-gray-400">
+                                Nenhum item adicionado. Busque um item do catálogo acima.
+                            </p>
+                        </template>
+                    </div>
+                </div>
+
+                <div class="flex flex-wrap items-center justify-between gap-3 border-t border-gray-100 px-5 py-3 dark:border-gray-800">
+                    <div class="flex items-center gap-2">
+                        <span class="text-sm text-gray-500 dark:text-gray-400">Total</span>
+                        <span class="text-lg font-semibold text-gray-900 dark:text-gray-100" x-text="money(total)"></span>
+                    </div>
+
+                    <div class="flex items-center gap-2">
+                        <a
+                            href="{{ route('admin.work-orders.show', $workOrder) }}"
+                            class="rounded-md border border-gray-300 dark:border-gray-700 dark:bg-gray-900 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800"
+                        >
+                            Descartar
+                        </a>
+                        <button
+                            type="submit"
+                            class="inline-flex items-center gap-1.5 rounded-md bg-gray-900 dark:bg-white px-4 py-2 text-sm font-medium text-white dark:text-gray-900 hover:bg-gray-700 dark:hover:bg-gray-200"
+                        >
+                            <x-icon name="check" class="h-4 w-4" />
+                            Salvar itens
+                        </button>
+                    </div>
+                </div>
+            </form>
         </div>
-    </div>
+    @else
+        <div class="mt-4 rounded-xl border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900">
+            <div class="border-b border-gray-100 px-5 py-3 dark:border-gray-800">
+                <h2 class="text-xs font-semibold uppercase text-gray-500 dark:text-gray-400">Itens da OS</h2>
+            </div>
+
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200 text-sm dark:divide-gray-800">
+                    <thead class="bg-gray-50 text-left text-xs uppercase text-gray-500 dark:bg-gray-800 dark:text-gray-400">
+                        <tr>
+                            <th class="px-5 py-3 font-medium">Descrição</th>
+                            <th class="px-5 py-3 font-medium">Unidade</th>
+                            <th class="px-5 py-3 text-right font-medium">Quantidade</th>
+                            <th class="px-5 py-3 text-right font-medium">Valor unitário</th>
+                            <th class="px-5 py-3 text-right font-medium">Subtotal</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
+                        @forelse ($workOrder->items as $item)
+                            <tr>
+                                <td class="px-5 py-3 font-medium text-gray-900 dark:text-gray-100">
+                                    {{ $item->description }}
+                                    @if ($item->catalogItem)
+                                        <span class="mt-0.5 block text-xs text-gray-400 dark:text-gray-500">{{ $item->catalogItem->name }}</span>
+                                    @endif
+                                </td>
+                                <td class="whitespace-nowrap px-5 py-3 text-gray-500 dark:text-gray-400">{{ $item->unit ?? '—' }}</td>
+                                <td class="whitespace-nowrap px-5 py-3 text-right text-gray-500 dark:text-gray-400">{{ $quantity($item->quantity) }}</td>
+                                <td class="whitespace-nowrap px-5 py-3 text-right text-gray-500 dark:text-gray-400">{{ $money((float) $item->unit_price) }}</td>
+                                <td class="whitespace-nowrap px-5 py-3 text-right font-medium text-gray-900 dark:text-gray-100">{{ $money((float) $item->total) }}</td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td class="px-5 py-6 text-gray-500 dark:text-gray-400" colspan="5">Nenhum item registrado.</td>
+                            </tr>
+                        @endforelse
+                    </tbody>
+                    <tfoot class="bg-gray-50 dark:bg-gray-800">
+                        <tr>
+                            <td class="px-5 py-3 text-right text-sm font-semibold text-gray-700 dark:text-gray-200" colspan="4">Total</td>
+                            <td class="whitespace-nowrap px-5 py-3 text-right text-sm font-semibold text-gray-900 dark:text-gray-100">{{ $money((float) $workOrder->total) }}</td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+    @endcan
 
     <div class="mt-4 rounded-xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-800 dark:bg-gray-900">
         <h2 class="text-xs font-semibold uppercase text-gray-500 dark:text-gray-400">Observações</h2>

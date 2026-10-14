@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Enums\WorkOrderStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\StoreWorkOrderRequest;
+use App\Http\Requests\Admin\UpdateWorkOrderItemsRequest;
 use App\Http\Requests\Admin\UpdateWorkOrderRequest;
 use App\Models\CatalogItem;
 use App\Models\User;
@@ -176,6 +177,24 @@ class WorkOrderController extends Controller
         return redirect()
             ->route('admin.work-orders.show', $workOrder)
             ->with('status', 'Ordem de serviço atualizada com sucesso.');
+    }
+
+    /**
+     * Update only the line items of the work order.
+     */
+    public function updateItems(UpdateWorkOrderItemsRequest $request, WorkOrder $workOrder): RedirectResponse
+    {
+        $items = $request->validated('items');
+
+        DB::transaction(function () use ($request, $workOrder, $items): void {
+            $workOrder->items()->delete();
+            $workOrder->items()->createMany($this->normalizeItems($request->user(), $items));
+            $workOrder->update(['total' => $workOrder->items()->sum('total')]);
+        });
+
+        return redirect()
+            ->route('admin.work-orders.show', $workOrder)
+            ->with('status', 'Itens da ordem de serviço atualizados com sucesso.');
     }
 
     /**

@@ -140,7 +140,7 @@ it('creates a work order with items and computes the totals', function () {
         ->get(route('admin.work-orders.show', $workOrder))
         ->assertOk()
         ->assertSee('OS-0001')
-        ->assertSee('Mão de obra');
+        ->assertSee('work-order-items-editor-data', false);
 });
 
 it('marks the completion date when the status is completed', function () {
@@ -245,6 +245,46 @@ it('updates the work order, replaces the items and clears the completion date', 
         ->and((float) $workOrder->total)->toBe(100.0)
         ->and($workOrder->items)->toHaveCount(1)
         ->and($workOrder->items->first()->description)->toBe('Item novo');
+});
+
+it('updates the work order items inline from the details page', function () {
+    $user = User::factory()->create();
+    $client = ownedClient($user);
+    $catalogItem = ownedCatalogItem($user, ['name' => 'Cabo coaxial', 'unit' => 'm', 'price' => 12.50]);
+    $workOrder = WorkOrder::factory()->create([
+        'user_id' => $user->getKey(),
+        'client_id' => $client->getKey(),
+    ]);
+    $workOrder->items()->create(['description' => 'Item antigo', 'quantity' => 1, 'unit_price' => 10, 'total' => 10]);
+    $workOrder->update(['total' => 10]);
+
+    $this->actingAs($user)
+        ->put(route('admin.work-orders.items.update', $workOrder), [
+            'items' => [
+                ['catalog_item_id' => $catalogItem->getKey(), 'quantity' => 4],
+            ],
+        ])
+        ->assertRedirect(route('admin.work-orders.show', $workOrder))
+        ->assertSessionHas('status');
+
+    $workOrder->refresh();
+
+    expect($workOrder->items)->toHaveCount(1)
+        ->and((float) $workOrder->total)->toBe(50.0)
+        ->and($workOrder->items->first()->description)->toBe('Cabo coaxial');
+});
+
+it('forbids a stranger from updating the work order items inline', function () {
+    $stranger = User::factory()->create();
+    $workOrder = WorkOrder::factory()->create();
+
+    $this->actingAs($stranger)
+        ->put(route('admin.work-orders.items.update', $workOrder), [
+            'items' => [
+                ['catalog_item_id' => 1, 'quantity' => 1],
+            ],
+        ])
+        ->assertForbidden();
 });
 
 it('soft deletes the work order', function () {
