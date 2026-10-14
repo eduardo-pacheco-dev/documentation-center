@@ -211,20 +211,6 @@
                 }
             });
 
-            document.addEventListener('submit', (event) => {
-                const form = event.target.closest('[data-confirm-delete]');
-
-                if (!form) {
-                    return;
-                }
-
-                const message = form.dataset.confirmDelete || 'Tem certeza que deseja remover este item?';
-
-                if (!window.confirm(message)) {
-                    event.preventDefault();
-                }
-            });
-
             document.querySelectorAll('[role="dialog"][data-open]').forEach(openModal);
         })();
     </script>

@@ -97,7 +97,13 @@
                                     <p class="text-xs text-gray-500 dark:text-gray-400">{{ Number::fileSize($document->size) }}</p>
                                 </div>
 
-                                <form method="POST" action="{{ route('admin.links.documents.destroy', [$shortLink, $document]) }}">
+                                <form
+                                    method="POST"
+                                    action="{{ route('admin.links.documents.destroy', [$shortLink, $document]) }}"
+                                    data-confirm="Remover {{ $document->original_name }} deste link?"
+                                    data-confirm-title="Remover arquivo"
+                                    data-confirm-label="Remover"
+                                >
                                     @csrf
                                     @method('DELETE')
                                     <input type="hidden" name="modal" value="edit">
@@ -105,7 +111,6 @@
                                     <button
                                         type="submit"
                                         class="shrink-0 rounded-md px-2 py-1 text-xs font-medium text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-500/15"
-                                        onclick="return confirm('Remover {{ $document->original_name }} deste link?')"
                                     >
                                         Remover
                                     </button>

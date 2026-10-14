@@ -50,14 +50,19 @@
             Editar
         </button>
 
-        <form method="POST" action="{{ route('admin.links.destroy', $shortLink) }}">
+        <form
+            method="POST"
+            action="{{ route('admin.links.destroy', $shortLink) }}"
+            data-confirm="Excluir o link {{ $shortLink->code }}?"
+            data-confirm-title="Excluir link"
+            data-confirm-label="Excluir"
+        >
             @csrf
             @method('DELETE')
             <button
                 type="submit"
                 class="flex w-full items-center gap-2 px-3 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/15"
                 role="menuitem"
-                onclick="return confirm('Excluir o link {{ $shortLink->code }}?')"
             >
                 <x-icon name="trash" class="h-4 w-4" />
                 Excluir

@@ -264,18 +264,6 @@
 
     <script>
         (function () {
-            document.addEventListener('submit', (event) => {
-                const form = event.target.closest('[data-confirm]');
-
-                if (!form) {
-                    return;
-                }
-
-                if (!window.confirm(form.dataset.confirm)) {
-                    event.preventDefault();
-                }
-            });
-
             const workspace = document.querySelector('[data-form-workspace]');
             const tabRoot = document.querySelector('[data-form-tabs]');
 

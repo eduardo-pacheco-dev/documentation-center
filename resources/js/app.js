@@ -203,3 +203,121 @@ document.addEventListener('click', (event) => {
     event.preventDefault();
     Exports.trigger(link);
 });
+
+const ConfirmModal = (() => {
+    let resolvePending = null;
+
+    const element = () => document.getElementById('confirm-modal');
+
+    const close = (result) => {
+        const modal = element();
+
+        if (modal) {
+            modal.classList.add('hidden');
+            document.body.classList.remove('overflow-hidden');
+        }
+
+        if (resolvePending) {
+            resolvePending(result);
+            resolvePending = null;
+        }
+    };
+
+    const open = (options = {}) => {
+        const modal = element();
+
+        if (!modal) {
+            return Promise.resolve(window.confirm(options.message || ''));
+        }
+
+        modal.querySelector('[data-confirm-title]').textContent = options.title || 'Tem certeza?';
+        modal.querySelector('[data-confirm-message]').textContent = options.message || '';
+        modal.querySelector('[data-confirm-accept]').textContent = options.confirmLabel || 'Confirmar';
+
+        modal.classList.remove('hidden');
+        document.body.classList.add('overflow-hidden');
+
+        return new Promise((resolve) => {
+            resolvePending = resolve;
+        });
+    };
+
+    document.addEventListener('click', (event) => {
+        if (event.target.closest('[data-confirm-accept]')) {
+            event.preventDefault();
+            close(true);
+        } else if (event.target.closest('[data-confirm-cancel]')) {
+            event.preventDefault();
+            close(false);
+        }
+    });
+
+    document.addEventListener('keydown', (event) => {
+        const modal = element();
+
+        if (event.key === 'Escape' && modal && !modal.classList.contains('hidden')) {
+            close(false);
+        }
+    });
+
+    return { open };
+})();
+
+window.confirmAction = (options) => ConfirmModal.open(typeof options === 'string' ? { message: options } : options);
+
+document.addEventListener('submit', (event) => {
+    const form = event.target;
+
+    if (!(form instanceof HTMLFormElement) || !form.matches('form[data-confirm], form[data-confirm-delete]')) {
+        return;
+    }
+
+    if (form.dataset.confirmBypass === 'true') {
+        delete form.dataset.confirmBypass;
+
+        return;
+    }
+
+    event.preventDefault();
+
+    window.confirmAction({
+        title: form.dataset.confirmTitle || 'Tem certeza?',
+        message: form.dataset.confirm || form.dataset.confirmDelete || 'Tem certeza que deseja remover este item?',
+        confirmLabel: form.dataset.confirmLabel || 'Confirmar',
+    }).then((confirmed) => {
+        if (!confirmed) {
+            return;
+        }
+
+        form.dataset.confirmBypass = 'true';
+        form.requestSubmit();
+    });
+});
+
+document.addEventListener('click', (event) => {
+    const trigger = event.target.closest('[data-confirm], [data-confirm-delete]');
+
+    if (!trigger || trigger.matches('form')) {
+        return;
+    }
+
+    const form = trigger.form || trigger.closest('form');
+
+    if (!form || form.matches('form[data-confirm], form[data-confirm-delete]')) {
+        return;
+    }
+
+    event.preventDefault();
+
+    window.confirmAction({
+        title: trigger.dataset.confirmTitle || 'Tem certeza?',
+        message: trigger.dataset.confirm || trigger.dataset.confirmDelete || 'Tem certeza que deseja remover este item?',
+        confirmLabel: trigger.dataset.confirmLabel || 'Confirmar',
+    }).then((confirmed) => {
+        if (!confirmed) {
+            return;
+        }
+
+        form.requestSubmit(trigger);
+    });
+}, true);

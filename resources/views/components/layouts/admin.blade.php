@@ -167,5 +167,6 @@
         </footer>
 
         <x-toasts />
+        <x-confirm-modal />
     </body>
 </html>

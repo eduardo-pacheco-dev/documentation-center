@@ -619,13 +619,18 @@
                                     </a>
 
                                     @if ($shortLink->type->value !== 'upload')
-                                        <form method="POST" action="{{ route('admin.links.documents.destroy', [$shortLink, $document]) }}">
+                                        <form
+                                            method="POST"
+                                            action="{{ route('admin.links.documents.destroy', [$shortLink, $document]) }}"
+                                            data-confirm="Remover este arquivo do link?"
+                                            data-confirm-title="Remover arquivo"
+                                            data-confirm-label="Remover"
+                                        >
                                             @csrf
                                             @method('DELETE')
                                             <button
                                                 type="submit"
                                                 class="rounded-md px-2 py-1 text-xs font-medium text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-500/15"
-                                                data-confirm="Remover este arquivo do link?"
                                             >
                                                 Remover
                                             </button>
@@ -1305,15 +1310,6 @@
                 openModal(previewModal);
             });
 
-            document.addEventListener('click', (event) => {
-                const confirmation = event.target.closest('[data-confirm]');
-
-                if (confirmation && !window.confirm(confirmation.dataset.confirm)) {
-                    event.preventDefault();
-                    event.stopPropagation();
-                }
-            }, true);
-
             const renameModal = document.getElementById('rename-modal');
             const renameForm = document.getElementById('rename-form');
 
@@ -1544,7 +1540,7 @@
                 const token = qs('input[name="_token"]')?.value;
 
                 if (!ids.length || !template || !token) return;
-                if (!window.confirm('Mover ' + ids.length + ' arquivo(s) para a lixeira?')) return;
+                if (!await window.confirmAction({ title: 'Mover para a lixeira', message: 'Mover ' + ids.length + ' arquivo(s) para a lixeira?', confirmLabel: 'Mover' })) return;
 
                 button.disabled = true;
 

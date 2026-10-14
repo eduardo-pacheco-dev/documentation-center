@@ -120,6 +120,17 @@ test('administrators can switch the user list view mode', function () {
         ->assertSee('divide-y divide-gray-100 rounded-xl');
 });
 
+test('the users list renders the delete confirmation modal', function () {
+    $admin = User::factory()->admin()->create();
+    $user = User::factory()->create(['name' => 'Maria Souza']);
+
+    $this->actingAs($admin)
+        ->get('/admin/users')
+        ->assertOk()
+        ->assertSee('id="confirm-modal"', false)
+        ->assertSee('data-confirm="Excluir o usuário Maria Souza?"', false);
+});
+
 test('administrators can create users', function () {
     $admin = User::factory()->admin()->create();
 

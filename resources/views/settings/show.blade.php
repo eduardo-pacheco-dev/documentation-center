@@ -230,6 +230,9 @@
                 method="POST"
                 action="{{ route('settings.account.destroy') }}"
                 class="scroll-mt-6 space-y-4 rounded-xl border border-red-200 bg-white p-5 shadow-sm dark:border-red-900 dark:bg-gray-900"
+                data-confirm="Excluir sua conta permanentemente? Esta ação não pode ser desfeita."
+                data-confirm-title="Excluir conta"
+                data-confirm-label="Excluir conta"
             >
                 @csrf
                 @method('DELETE')
@@ -259,7 +262,6 @@
                 <button
                     type="submit"
                     class="rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 dark:bg-red-700 dark:hover:bg-red-600"
-                    onclick="return confirm('Excluir sua conta permanentemente?')"
                 >
                     Excluir conta
                 </button>

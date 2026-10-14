@@ -69,16 +69,6 @@
     @vite(['resources/js/gantt.js'])
 
     <script>
-        document.addEventListener('submit', (event) => {
-            if (!event.target.matches('[data-confirm-delete]')) {
-                return;
-            }
-
-            if (!window.confirm('Tem certeza que deseja excluir este item?')) {
-                event.preventDefault();
-            }
-        });
-
         const sectionLinks = [...document.querySelectorAll('[data-project-section]')];
         const panels = [...document.querySelectorAll('[data-project-panel]')];
 
