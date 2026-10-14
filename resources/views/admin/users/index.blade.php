@@ -4,6 +4,13 @@
         unset($viewQuery['page']);
 
         $hasFilters = $search !== '' || $profile !== null || $status !== null;
+
+        $createHasErrors = $errors->hasAny(['name', 'surname', 'email', 'password']) && old('modal') === 'create';
+        $editHasErrors = $errors->hasAny(['name', 'surname', 'email', 'password']) && old('modal') === 'edit';
+
+        $inputClass = 'mt-1 block w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm transition focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100';
+        $secondaryButton = 'inline-flex items-center gap-1.5 rounded-xl border border-gray-200/70 bg-white px-4 py-2 text-sm font-semibold text-gray-700 shadow-sm transition hover:border-indigo-200 hover:text-indigo-600 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-200 dark:hover:border-indigo-500/40';
+        $primaryButton = 'inline-flex items-center justify-center gap-1.5 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-500';
     @endphp
 
     <div class="flex flex-wrap items-end justify-between gap-4">
@@ -16,24 +23,63 @@
             <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Gerencie as contas e as permissões da plataforma.</p>
         </div>
 
-        <button
-            type="button"
-            data-modal-open="user-modal"
-            class="inline-flex items-center gap-1.5 rounded-xl bg-gray-900 dark:bg-white px-4 py-2.5 text-sm font-semibold text-white dark:text-gray-900 shadow-sm transition hover:bg-gray-700 dark:hover:bg-gray-200"
-        >
-            <x-icon name="plus" class="h-4 w-4" />
-            Novo usuário
-        </button>
+        <div class="flex flex-wrap items-center gap-2">
+            <button
+                type="button"
+                data-modal-open="user-modal"
+                class="inline-flex items-center gap-1.5 rounded-2xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-500"
+            >
+                <x-icon name="plus" class="h-4 w-4" />
+                Novo usuário
+            </button>
+        </div>
     </div>
 
-    <div class="mt-6 flex flex-wrap items-center justify-between gap-4">
+    @error('user')
+        <div class="mt-6 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300">
+            {{ $message }}
+        </div>
+    @enderror
+
+    <div class="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <div class="group relative overflow-hidden rounded-2xl border border-gray-200/70 bg-white p-5 shadow-sm transition duration-200 hover:-translate-y-0.5 hover:border-indigo-200 hover:shadow-lg hover:shadow-indigo-600/5 dark:border-gray-800 dark:bg-gray-900 dark:hover:border-indigo-500/40">
+            <span class="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-400">
+                <x-icon name="users" class="h-5 w-5" />
+            </span>
+            <p class="mt-4 text-3xl font-semibold tracking-tight text-gray-900 dark:text-gray-100">{{ $stats['total'] }}</p>
+            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Total de usuários</p>
+        </div>
+        <div class="group relative overflow-hidden rounded-2xl border border-gray-200/70 bg-white p-5 shadow-sm transition duration-200 hover:-translate-y-0.5 hover:border-violet-200 hover:shadow-lg hover:shadow-violet-600/5 dark:border-gray-800 dark:bg-gray-900 dark:hover:border-violet-500/40">
+            <span class="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-violet-50 text-violet-600 dark:bg-violet-500/10 dark:text-violet-400">
+                <x-icon name="star" class="h-5 w-5" />
+            </span>
+            <p class="mt-4 text-3xl font-semibold tracking-tight text-gray-900 dark:text-gray-100">{{ $stats['admins'] }}</p>
+            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Administradores</p>
+        </div>
+        <div class="group relative overflow-hidden rounded-2xl border border-gray-200/70 bg-white p-5 shadow-sm transition duration-200 hover:-translate-y-0.5 hover:border-emerald-200 hover:shadow-lg hover:shadow-emerald-600/5 dark:border-gray-800 dark:bg-gray-900 dark:hover:border-emerald-500/40">
+            <span class="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400">
+                <x-icon name="check-circle" class="h-5 w-5" />
+            </span>
+            <p class="mt-4 text-3xl font-semibold tracking-tight text-gray-900 dark:text-gray-100">{{ $stats['active'] }}</p>
+            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Ativos</p>
+        </div>
+        <div class="group relative overflow-hidden rounded-2xl border border-gray-200/70 bg-white p-5 shadow-sm transition duration-200 hover:-translate-y-0.5 hover:border-amber-200 hover:shadow-lg hover:shadow-amber-600/5 dark:border-gray-800 dark:bg-gray-900 dark:hover:border-amber-500/40">
+            <span class="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-amber-50 text-amber-600 dark:bg-amber-500/10 dark:text-amber-400">
+                <x-icon name="x-circle" class="h-5 w-5" />
+            </span>
+            <p class="mt-4 text-3xl font-semibold tracking-tight text-gray-900 dark:text-gray-100">{{ $stats['inactive'] }}</p>
+            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Inativos</p>
+        </div>
+    </div>
+
+    <section class="mt-6 rounded-2xl border border-gray-200/70 bg-white p-4 shadow-sm dark:border-gray-800 dark:bg-gray-900">
         <form
             method="GET"
             action="{{ route('admin.users.index') }}"
             class="flex flex-wrap items-center gap-2"
             data-search-form
         >
-            @foreach (['view', 'sort', 'direction', 'profile', 'status', 'per_page'] as $param)
+            @foreach (['view', 'sort', 'direction', 'per_page'] as $param)
                 @if (request($param))
                     <input type="hidden" name="{{ $param }}" value="{{ request($param) }}">
                 @endif
@@ -46,17 +92,31 @@
                     name="search"
                     value="{{ $search }}"
                     placeholder="Buscar por nome, sobrenome ou e-mail..."
-                    class="block w-full rounded-lg border border-gray-300 dark:border-gray-700 dark:bg-gray-900 py-2 pl-9 pr-3 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500"
+                    class="block w-full rounded-xl border border-gray-300 bg-white py-2 pl-9 pr-3 text-sm shadow-sm transition focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
                     data-search-input
                 >
             </div>
+
+            <button type="submit" class="{{ $secondaryButton }}">
+                <x-icon name="magnifying-glass" class="h-4 w-4" />
+                Buscar
+            </button>
+
+            @if ($hasFilters)
+                <a
+                    href="{{ route('admin.users.index', array_filter(['view' => $view])) }}"
+                    class="rounded-xl px-3 py-2 text-sm font-medium text-gray-500 transition hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100"
+                >
+                    Limpar
+                </a>
+            @endif
 
             <label for="profile-filter" class="sr-only">Filtrar por perfil</label>
             <select
                 id="profile-filter"
                 name="profile"
                 onchange="this.form.submit()"
-                class="rounded-lg border border-gray-300 dark:border-gray-700 dark:bg-gray-900 py-2 pl-3 pr-8 text-sm text-gray-700 dark:text-gray-200 focus:border-indigo-500 focus:outline-none focus:ring-indigo-500"
+                class="rounded-xl border border-gray-300 bg-white py-2 pl-3 pr-8 text-sm text-gray-700 transition focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200"
             >
                 @foreach (['' => 'Todos os perfis', 'admin' => 'Administradores', 'user' => 'Usuários'] as $value => $label)
                     <option value="{{ $value }}" @selected($profile === ($value ?: null))>{{ $label }}</option>
@@ -68,29 +128,30 @@
                 id="status-filter"
                 name="status"
                 onchange="this.form.submit()"
-                class="rounded-lg border border-gray-300 dark:border-gray-700 dark:bg-gray-900 py-2 pl-3 pr-8 text-sm text-gray-700 dark:text-gray-200 focus:border-indigo-500 focus:outline-none focus:ring-indigo-500"
+                class="rounded-xl border border-gray-300 bg-white py-2 pl-3 pr-8 text-sm text-gray-700 transition focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200"
             >
                 @foreach (['' => 'Todos os status', 'active' => 'Ativos', 'inactive' => 'Inativos'] as $value => $label)
                     <option value="{{ $value }}" @selected($status === ($value ?: null))>{{ $label }}</option>
                 @endforeach
             </select>
-
-            @if ($hasFilters)
-                <a
-                    href="{{ route('admin.users.index', array_filter(['view' => $view])) }}"
-                    class="text-sm font-medium text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100"
-                >
-                    Limpar
-                </a>
-            @endif
         </form>
+    </section>
 
-        <div class="inline-flex rounded-lg border border-gray-300 dark:border-gray-700 p-0.5" role="group" aria-label="Modo de visualização">
+    <div class="mt-4 flex flex-wrap items-center justify-between gap-3">
+        <p class="text-sm text-gray-500 dark:text-gray-400">
+            Exibindo
+            <span class="font-medium text-gray-900 dark:text-gray-100">{{ $users->count() }}</span>
+            de
+            <span class="font-medium text-gray-900 dark:text-gray-100">{{ $users->total() }}</span>
+            usuários
+        </p>
+
+        <div class="inline-flex rounded-2xl border border-gray-200 bg-white p-1 dark:border-gray-800 dark:bg-gray-900" role="group" aria-label="Modo de visualização">
             @foreach (['table' => 'Tabela', 'cards' => 'Cards', 'compact' => 'Lista'] as $mode => $label)
                 <a
                     href="{{ route('admin.users.index', array_merge($viewQuery, ['view' => $mode])) }}"
                     data-view-toggle="{{ $mode }}"
-                    class="inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm transition {{ $view === $mode ? 'bg-gray-900 text-white dark:bg-white dark:text-gray-900' : 'text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800' }}"
+                    class="inline-flex items-center gap-1.5 rounded-xl px-2.5 py-1.5 text-sm font-medium transition {{ $view === $mode ? 'bg-indigo-600 text-white shadow-sm' : 'text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800' }}"
                 >
                     <x-icon :name="$mode === 'table' ? 'table-cells' : ($mode === 'cards' ? 'squares-2x2' : 'bars-3')" class="h-4 w-4" />
                     {{ $label }}
@@ -101,38 +162,37 @@
 
     @if ($view === 'table')
         <div class="mt-4 overflow-hidden rounded-2xl border border-gray-200/70 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900">
-            @error('user')
-                <p class="border-b border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-950 px-5 py-3 text-sm text-red-700 dark:text-red-300">{{ $message }}</p>
-            @enderror
-
             <div class="overflow-x-auto">
                 <table class="min-w-full divide-y divide-gray-200 text-sm dark:divide-gray-800">
-                    <thead class="bg-gray-50 text-left text-xs uppercase tracking-wide text-gray-500 dark:bg-gray-800 dark:text-gray-400">
+                    <thead class="bg-gray-50/80 text-left text-xs font-medium uppercase tracking-wide text-gray-500 dark:bg-gray-800/60 dark:text-gray-400">
                         <tr>
-                            <x-sort-header column="name" label="Nome" class="px-5 py-3" />
-                            <x-sort-header column="email" label="E-mail" class="px-5 py-3" />
-                            <x-sort-header column="is_admin" label="Perfil" class="px-5 py-3" />
-                            <x-sort-header column="created_at" label="Criado em" icon="clock" class="px-5 py-3" />
-                            <th class="px-5 py-3 text-right font-medium">Ações</th>
+                            <x-sort-header column="name" label="Nome" icon="user" class="px-5 py-3.5" />
+                            <x-sort-header column="email" label="E-mail" class="px-5 py-3.5" />
+                            <x-sort-header column="is_admin" label="Perfil" class="px-5 py-3.5" />
+                            <x-sort-header column="created_at" label="Criado em" icon="clock" class="px-5 py-3.5" />
+                            <th class="px-5 py-3.5 text-right font-medium">Ações</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
                         @forelse ($users as $user)
-                            <tr class="align-middle transition hover:bg-gray-50 dark:hover:bg-gray-800/40">
+                            <tr class="transition hover:bg-gray-50/70 dark:hover:bg-gray-800/40">
                                 <td class="px-5 py-4">
                                     <div class="flex items-center gap-3">
                                         <span class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-indigo-50 text-xs font-semibold text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-400">
                                             {{ strtoupper(substr($user->name, 0, 1)) }}
                                         </span>
-                                        <span class="min-w-0">
-                                            <span class="block truncate font-medium text-gray-900 dark:text-gray-100">{{ $user->full_name }}</span>
-                                        </span>
+                                        <div class="min-w-0">
+                                            <p class="truncate font-semibold text-gray-900 dark:text-gray-100">{{ $user->full_name }}</p>
+                                            <p class="truncate text-xs text-gray-500 sm:hidden dark:text-gray-400">{{ $user->email }}</p>
+                                        </div>
                                     </div>
                                 </td>
-                                <td class="px-5 py-4 text-gray-500 dark:text-gray-400">{{ $user->email }}</td>
+                                <td class="px-5 py-4 text-gray-500 dark:text-gray-400">
+                                    <span class="hidden sm:inline">{{ $user->email }}</span>
+                                </td>
                                 <td class="px-5 py-4">
                                     <div class="flex flex-wrap items-center gap-1">
-                                        <span class="inline-flex rounded-full px-2 py-0.5 text-xs font-medium {{ $user->is_admin ? 'bg-indigo-100 dark:bg-indigo-500/15 text-indigo-700 dark:text-indigo-300' : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300' }}">
+                                        <span class="inline-flex rounded-full px-2 py-0.5 text-xs font-medium {{ $user->is_admin ? 'bg-violet-100 dark:bg-violet-500/15 text-violet-700 dark:text-violet-300' : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300' }}">
                                             {{ $user->is_admin ? 'Admin' : 'Usuário' }}
                                         </span>
 
@@ -143,40 +203,75 @@
                                         @endunless
                                     </div>
                                 </td>
-                                <td class="px-5 py-4 text-gray-500 dark:text-gray-400">{{ $user->created_at?->format('d/m/Y H:i') ?? '—' }}</td>
+                                <td class="whitespace-nowrap px-5 py-4 text-gray-500 dark:text-gray-400">
+                                    <x-relative-time :value="$user->created_at" />
+                                </td>
                                 <td class="px-5 py-4 text-right">
                                     <x-user-actions-dropdown :user="$user" />
                                 </td>
                             </tr>
                         @empty
                             <tr>
-                                <td class="px-5 py-12 text-center text-gray-500 dark:text-gray-400" colspan="5">
-                                    <span class="inline-flex flex-col items-center gap-2">
-                                        <x-icon name="users" class="h-6 w-6 text-gray-300 dark:text-gray-600" />
-                                        @if ($hasFilters)
-                                            Nenhum usuário encontrado para os filtros informados.
-                                        @else
-                                            Nenhum usuário cadastrado até o momento.
-                                        @endif
+                                <td class="px-5 py-16 text-center" colspan="5">
+                                    <span class="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-gray-100 text-gray-400 dark:bg-gray-800 dark:text-gray-500">
+                                        <x-icon name="users" class="h-6 w-6" />
                                     </span>
+                                    <p class="mt-3 text-sm font-medium text-gray-900 dark:text-gray-100">
+                                        @if ($hasFilters)
+                                            Nenhum usuário encontrado
+                                        @else
+                                            Nenhum usuário cadastrado
+                                        @endif
+                                    </p>
+                                    <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                                        @if ($hasFilters)
+                                            Ajuste a busca ou os filtros para ver mais resultados.
+                                        @else
+                                            Crie o primeiro usuário para começar.
+                                        @endif
+                                    </p>
                                 </td>
                             </tr>
                         @endforelse
                     </tbody>
                 </table>
             </div>
+
+            <div class="flex flex-wrap items-center justify-between gap-3 border-t border-gray-100 px-5 py-4 dark:border-gray-800">
+                <form method="GET" action="{{ route('admin.users.index') }}" class="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
+                    @foreach (['search', 'view', 'sort', 'direction', 'profile', 'status'] as $param)
+                        @if (request($param))
+                            <input type="hidden" name="{{ $param }}" value="{{ request($param) }}">
+                        @endif
+                    @endforeach
+
+                    <label for="per-page" class="sr-only">Itens por página</label>
+                    <select
+                        id="per-page"
+                        name="per_page"
+                        onchange="this.form.submit()"
+                        class="rounded-xl border border-gray-300 bg-white py-1.5 pl-2 pr-8 text-sm text-gray-700 transition focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200"
+                    >
+                        @foreach ([10, 25, 50] as $option)
+                            <option value="{{ $option }}" @selected($perPage === $option)>{{ $option }} por página</option>
+                        @endforeach
+                    </select>
+                </form>
+
+                <x-pagination :paginator="$users" />
+            </div>
         </div>
     @elseif ($view === 'cards')
         <div class="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             @forelse ($users as $user)
-                <div class="rounded-2xl border border-gray-200/70 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md dark:border-gray-800 dark:bg-gray-900">
+                <div class="group relative flex flex-col overflow-hidden rounded-2xl border border-gray-200/70 bg-white p-5 shadow-sm transition duration-200 hover:-translate-y-0.5 hover:border-indigo-200 hover:shadow-lg hover:shadow-indigo-600/5 dark:border-gray-800 dark:bg-gray-900 dark:hover:border-indigo-500/40">
                     <div class="flex items-start justify-between gap-3">
                         <div class="flex min-w-0 items-center gap-3">
                             <span class="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-indigo-50 text-sm font-semibold text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-400">
                                 {{ strtoupper(substr($user->name, 0, 1)) }}
                             </span>
                             <div class="min-w-0">
-                                <p class="truncate text-sm font-semibold text-gray-900 dark:text-gray-100">{{ $user->full_name }}</p>
+                                <p class="truncate font-semibold text-gray-900 dark:text-gray-100">{{ $user->full_name }}</p>
                                 <p class="truncate text-xs text-gray-500 dark:text-gray-400">{{ $user->email }}</p>
                             </div>
                         </div>
@@ -185,47 +280,89 @@
                     </div>
 
                     <div class="mt-4 flex flex-wrap items-center gap-2">
-                        <span class="inline-flex rounded-full px-2 py-0.5 text-xs font-medium {{ $user->is_admin ? 'bg-indigo-100 dark:bg-indigo-500/15 text-indigo-700 dark:text-indigo-300' : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300' }}">
+                        <span class="inline-flex rounded-full px-2 py-0.5 text-xs font-medium {{ $user->is_admin ? 'bg-violet-100 dark:bg-violet-500/15 text-violet-700 dark:text-violet-300' : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300' }}">
                             {{ $user->is_admin ? 'Admin' : 'Usuário' }}
                         </span>
 
-                        @unless ($user->is_active)
-                            <span class="inline-flex rounded-full bg-amber-100 dark:bg-amber-500/15 px-2 py-0.5 text-xs font-medium text-amber-700 dark:text-amber-300">
+                        @if ($user->is_active)
+                            <span class="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300">
+                                <x-icon name="check-circle" class="h-3.5 w-3.5" />
+                                Ativo
+                            </span>
+                        @else
+                            <span class="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700 dark:bg-amber-500/15 dark:text-amber-300">
+                                <x-icon name="x-circle" class="h-3.5 w-3.5" />
                                 Inativo
                             </span>
-                        @endunless
+                        @endif
                     </div>
 
                     <p class="mt-4 flex items-center gap-1.5 border-t border-gray-100 pt-3 text-xs text-gray-500 dark:border-gray-800 dark:text-gray-400">
                         <x-icon name="clock" class="h-3.5 w-3.5" />
-                        Criado em {{ $user->created_at?->format('d/m/Y H:i') ?? '—' }}
+                        Criado em <x-relative-time :value="$user->created_at" />
                     </p>
                 </div>
             @empty
-                <div class="col-span-full rounded-2xl border border-dashed border-gray-300 px-5 py-10 text-center text-sm text-gray-500 dark:border-gray-700 dark:text-gray-400">
-                    @if ($hasFilters)
-                        Nenhum usuário encontrado para os filtros informados.
-                    @else
-                        Nenhum usuário cadastrado até o momento.
-                    @endif
+                <div class="col-span-full rounded-2xl border border-gray-200/70 bg-white px-5 py-16 text-center shadow-sm dark:border-gray-800 dark:bg-gray-900">
+                    <span class="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-gray-100 text-gray-400 dark:bg-gray-800 dark:text-gray-500">
+                        <x-icon name="users" class="h-6 w-6" />
+                    </span>
+                    <p class="mt-3 text-sm font-medium text-gray-900 dark:text-gray-100">
+                        @if ($hasFilters)
+                            Nenhum usuário encontrado
+                        @else
+                            Nenhum usuário cadastrado
+                        @endif
+                    </p>
+                    <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                        @if ($hasFilters)
+                            Ajuste a busca ou os filtros para ver mais resultados.
+                        @else
+                            Crie o primeiro usuário para começar.
+                        @endif
+                    </p>
                 </div>
             @endforelse
         </div>
+
+        <div class="mt-4 flex flex-wrap items-center justify-between gap-3">
+            <form method="GET" action="{{ route('admin.users.index') }}" class="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
+                @foreach (['search', 'view', 'sort', 'direction', 'profile', 'status'] as $param)
+                    @if (request($param))
+                        <input type="hidden" name="{{ $param }}" value="{{ request($param) }}">
+                    @endif
+                @endforeach
+
+                <label for="per-page" class="sr-only">Itens por página</label>
+                <select
+                    id="per-page"
+                    name="per_page"
+                    onchange="this.form.submit()"
+                    class="rounded-xl border border-gray-300 bg-white py-1.5 pl-2 pr-8 text-sm text-gray-700 transition focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200"
+                >
+                    @foreach ([10, 25, 50] as $option)
+                        <option value="{{ $option }}" @selected($perPage === $option)>{{ $option }} por página</option>
+                    @endforeach
+                </select>
+            </form>
+
+            <x-pagination :paginator="$users" />
+        </div>
     @else
-        <div class="mt-4 divide-y divide-gray-100 rounded-xl border border-gray-200 bg-white shadow-sm dark:divide-gray-800 dark:border-gray-800 dark:bg-gray-900">
+        <div class="mt-4 divide-y divide-gray-100 rounded-xl overflow-hidden border border-gray-200/70 bg-white shadow-sm dark:divide-gray-800 dark:border-gray-800 dark:bg-gray-900">
             @forelse ($users as $user)
-                <div class="flex items-center gap-4 px-5 py-3 transition hover:bg-gray-50 dark:hover:bg-gray-800/40">
+                <div class="flex items-center gap-4 px-5 py-4 transition hover:bg-gray-50/70 dark:hover:bg-gray-800/40">
                     <span class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-indigo-50 text-xs font-semibold text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-400">
                         {{ strtoupper(substr($user->name, 0, 1)) }}
                     </span>
 
                     <div class="min-w-0 flex-1">
-                        <p class="truncate text-sm font-medium text-gray-900 dark:text-gray-100">{{ $user->full_name }}</p>
+                        <p class="truncate font-semibold text-gray-900 dark:text-gray-100">{{ $user->full_name }}</p>
                         <p class="truncate text-xs text-gray-500 dark:text-gray-400">{{ $user->email }}</p>
                     </div>
 
                     <div class="hidden items-center gap-2 sm:flex">
-                        <span class="inline-flex rounded-full px-2 py-0.5 text-xs font-medium {{ $user->is_admin ? 'bg-indigo-100 dark:bg-indigo-500/15 text-indigo-700 dark:text-indigo-300' : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300' }}">
+                        <span class="inline-flex rounded-full px-2 py-0.5 text-xs font-medium {{ $user->is_admin ? 'bg-violet-100 dark:bg-violet-500/15 text-violet-700 dark:text-violet-300' : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300' }}">
                             {{ $user->is_admin ? 'Admin' : 'Usuário' }}
                         </span>
 
@@ -236,49 +373,59 @@
                         @endunless
                     </div>
 
-                    <span class="hidden text-xs text-gray-500 md:inline dark:text-gray-400">{{ $user->created_at?->format('d/m/Y H:i') ?? '—' }}</span>
+                    <span class="hidden md:block">
+                        <x-relative-time :value="$user->created_at" class="text-xs text-gray-500 dark:text-gray-400" />
+                    </span>
 
                     <x-user-actions-dropdown :user="$user" />
                 </div>
             @empty
-                <p class="px-5 py-10 text-center text-sm text-gray-500 dark:text-gray-400">
-                    @if ($hasFilters)
-                        Nenhum usuário encontrado para os filtros informados.
-                    @else
-                        Nenhum usuário cadastrado até o momento.
-                    @endif
-                </p>
+                <div class="px-5 py-16 text-center">
+                    <span class="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-gray-100 text-gray-400 dark:bg-gray-800 dark:text-gray-500">
+                        <x-icon name="users" class="h-6 w-6" />
+                    </span>
+                    <p class="mt-3 text-sm font-medium text-gray-900 dark:text-gray-100">
+                        @if ($hasFilters)
+                            Nenhum usuário encontrado
+                        @else
+                            Nenhum usuário cadastrado
+                        @endif
+                    </p>
+                    <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                        @if ($hasFilters)
+                            Ajuste a busca ou os filtros para ver mais resultados.
+                        @else
+                            Crie o primeiro usuário para começar.
+                        @endif
+                    </p>
+                </div>
             @endforelse
         </div>
-    @endif
 
-    <div class="mt-4 flex flex-wrap items-center justify-between gap-3">
-        <form
-            method="GET"
-            action="{{ route('admin.users.index') }}"
-            class="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400"
-        >
-            @foreach (['search', 'view', 'sort', 'direction', 'profile', 'status'] as $param)
-                @if (request($param))
-                    <input type="hidden" name="{{ $param }}" value="{{ request($param) }}">
-                @endif
-            @endforeach
-
-            <label for="per-page" class="sr-only">Itens por página</label>
-            <select
-                id="per-page"
-                name="per_page"
-                onchange="this.form.submit()"
-                class="rounded-lg border border-gray-300 dark:border-gray-700 dark:bg-gray-900 py-1.5 pl-2 pr-8 text-sm text-gray-700 dark:text-gray-200 focus:border-indigo-500 focus:outline-none focus:ring-indigo-500"
-            >
-                @foreach ([10, 25, 50] as $option)
-                    <option value="{{ $option }}" @selected($perPage === $option)>{{ $option }} por página</option>
+        <div class="mt-4 flex flex-wrap items-center justify-between gap-3">
+            <form method="GET" action="{{ route('admin.users.index') }}" class="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
+                @foreach (['search', 'view', 'sort', 'direction', 'profile', 'status'] as $param)
+                    @if (request($param))
+                        <input type="hidden" name="{{ $param }}" value="{{ request($param) }}">
+                    @endif
                 @endforeach
-            </select>
-        </form>
 
-        <x-pagination :paginator="$users" />
-    </div>
+                <label for="per-page" class="sr-only">Itens por página</label>
+                <select
+                    id="per-page"
+                    name="per_page"
+                    onchange="this.form.submit()"
+                    class="rounded-xl border border-gray-300 bg-white py-1.5 pl-2 pr-8 text-sm text-gray-700 transition focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200"
+                >
+                    @foreach ([10, 25, 50] as $option)
+                        <option value="{{ $option }}" @selected($perPage === $option)>{{ $option }} por página</option>
+                    @endforeach
+                </select>
+            </form>
+
+            <x-pagination :paginator="$users" />
+        </div>
+    @endif
 
     <div
         id="user-modal"
@@ -286,26 +433,38 @@
         role="dialog"
         aria-modal="true"
         aria-labelledby="user-modal-title"
-        @if ($errors->hasAny(['name', 'surname', 'email', 'password']) && old('modal') === 'create') data-open @endif
+        @if ($createHasErrors) data-open @endif
     >
         <div class="absolute inset-0 bg-gray-900/50" data-modal-close></div>
 
-        <div class="absolute left-1/2 top-1/2 max-h-[90vh] w-full max-w-lg -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-2xl bg-white dark:bg-gray-900 p-6 shadow-xl">
+        <div class="absolute left-1/2 top-1/2 max-h-[90vh] w-full max-w-lg -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-2xl bg-white p-6 shadow-xl dark:bg-gray-900">
             <div class="flex items-start justify-between gap-4">
                 <div>
-                    <h2 id="user-modal-title" class="text-base font-semibold text-gray-900 dark:text-gray-100">Novo usuário</h2>
+                    <h2 id="user-modal-title" class="flex items-center gap-2 text-lg font-semibold text-gray-900 dark:text-gray-100">
+                        <x-icon name="user-plus" class="h-5 w-5 text-gray-400 dark:text-gray-500" />
+                        Novo usuário
+                    </h2>
                     <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Crie uma conta e defina se ela será administradora.</p>
                 </div>
 
                 <button
                     type="button"
-                    class="rounded-full p-1 text-gray-400 dark:text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-700"
+                    class="rounded-full p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-700 dark:text-gray-500 dark:hover:bg-gray-800"
                     data-modal-close
                 >
                     <span class="sr-only">Fechar</span>
                     <x-icon name="x-mark" class="h-5 w-5" />
                 </button>
             </div>
+
+            @if ($createHasErrors)
+                <div
+                    data-modal-error
+                    class="mt-4 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300"
+                >
+                    Não foi possível criar o usuário. Corrija os campos destacados e tente novamente.
+                </div>
+            @endif
 
             <form
                 method="POST"
@@ -324,7 +483,7 @@
                             type="text"
                             value="{{ old('name') }}"
                             required
-                            class="mt-1 block w-full rounded-lg border border-gray-300 dark:border-gray-700 dark:bg-gray-900 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500"
+                            class="{{ $inputClass }}"
                         >
                         @error('name')
                             <p class="mt-1 text-sm text-red-600 dark:text-red-400" data-modal-error>{{ $message }}</p>
@@ -338,7 +497,7 @@
                             name="surname"
                             type="text"
                             value="{{ old('surname') }}"
-                            class="mt-1 block w-full rounded-lg border border-gray-300 dark:border-gray-700 dark:bg-gray-900 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500"
+                            class="{{ $inputClass }}"
                         >
                         @error('surname')
                             <p class="mt-1 text-sm text-red-600 dark:text-red-400" data-modal-error>{{ $message }}</p>
@@ -354,7 +513,7 @@
                         type="email"
                         value="{{ old('email') }}"
                         required
-                        class="mt-1 block w-full rounded-lg border border-gray-300 dark:border-gray-700 dark:bg-gray-900 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500"
+                        class="{{ $inputClass }}"
                     >
                     @error('email')
                         <p class="mt-1 text-sm text-red-600 dark:text-red-400" data-modal-error>{{ $message }}</p>
@@ -369,7 +528,7 @@
                             name="password"
                             type="password"
                             required
-                            class="mt-1 block w-full rounded-lg border border-gray-300 dark:border-gray-700 dark:bg-gray-900 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500"
+                            class="{{ $inputClass }}"
                         >
                         @error('password')
                             <p class="mt-1 text-sm text-red-600 dark:text-red-400" data-modal-error>{{ $message }}</p>
@@ -383,28 +542,22 @@
                             name="password_confirmation"
                             type="password"
                             required
-                            class="mt-1 block w-full rounded-lg border border-gray-300 dark:border-gray-700 dark:bg-gray-900 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500"
+                            class="{{ $inputClass }}"
                         >
                     </div>
                 </div>
 
                 <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
-                    <input type="checkbox" name="is_admin" value="1" class="rounded border-gray-300 dark:border-gray-700 dark:bg-gray-900 text-indigo-600 dark:text-indigo-300 focus:ring-indigo-500">
+                    <input type="checkbox" name="is_admin" value="1" class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 dark:border-gray-700 dark:bg-gray-900 dark:text-indigo-300">
                     Tornar administrador
                 </label>
 
-                <div class="flex justify-end gap-2 pt-1">
-                    <button
-                        type="button"
-                        class="rounded-lg border border-gray-300 dark:border-gray-700 dark:bg-gray-900 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800"
-                        data-modal-close
-                    >
+                <div class="flex justify-end gap-2 border-t border-gray-100 pt-4 dark:border-gray-800">
+                    <button type="button" class="{{ $secondaryButton }}" data-modal-close>
                         Cancelar
                     </button>
-                    <button
-                        type="submit"
-                        class="rounded-lg bg-gray-900 dark:bg-white px-4 py-2 text-sm font-medium text-white dark:text-gray-900 hover:bg-gray-700 dark:hover:bg-gray-200"
-                    >
+                    <button type="submit" class="{{ $primaryButton }}">
+                        <x-icon name="check" class="h-4 w-4" />
                         Criar usuário
                     </button>
                 </div>
@@ -419,26 +572,38 @@
         aria-modal="true"
         aria-labelledby="edit-user-modal-title"
         data-action-template="{{ route('admin.users.update', ['user' => '__ID__']) }}"
-        @if ($errors->hasAny(['name', 'surname', 'email', 'password']) && old('modal') === 'edit') data-open @endif
+        @if ($editHasErrors) data-open @endif
     >
         <div class="absolute inset-0 bg-gray-900/50" data-modal-close></div>
 
-        <div class="absolute left-1/2 top-1/2 max-h-[90vh] w-full max-w-lg -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-2xl bg-white dark:bg-gray-900 p-6 shadow-xl">
+        <div class="absolute left-1/2 top-1/2 max-h-[90vh] w-full max-w-lg -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-2xl bg-white p-6 shadow-xl dark:bg-gray-900">
             <div class="flex items-start justify-between gap-4">
                 <div>
-                    <h2 id="edit-user-modal-title" class="text-base font-semibold text-gray-900 dark:text-gray-100">Editar usuário</h2>
+                    <h2 id="edit-user-modal-title" class="flex items-center gap-2 text-lg font-semibold text-gray-900 dark:text-gray-100">
+                        <x-icon name="pencil-square" class="h-5 w-5 text-gray-400 dark:text-gray-500" />
+                        Editar usuário
+                    </h2>
                     <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Atualize os dados da conta. Deixe a senha vazia para mantê-la.</p>
                 </div>
 
                 <button
                     type="button"
-                    class="rounded-full p-1 text-gray-400 dark:text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-700"
+                    class="rounded-full p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-700 dark:text-gray-500 dark:hover:bg-gray-800"
                     data-modal-close
                 >
                     <span class="sr-only">Fechar</span>
                     <x-icon name="x-mark" class="h-5 w-5" />
                 </button>
             </div>
+
+            @if ($editHasErrors)
+                <div
+                    data-modal-error
+                    class="mt-4 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300"
+                >
+                    Não foi possível salvar o usuário. Corrija os campos destacados e tente novamente.
+                </div>
+            @endif
 
             <form
                 id="edit-user-form"
@@ -460,7 +625,7 @@
                             type="text"
                             value="{{ old('name') }}"
                             required
-                            class="mt-1 block w-full rounded-lg border border-gray-300 dark:border-gray-700 dark:bg-gray-900 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500"
+                            class="{{ $inputClass }}"
                         >
                         @error('name')
                             <p class="mt-1 text-sm text-red-600 dark:text-red-400" data-modal-error>{{ $message }}</p>
@@ -474,7 +639,7 @@
                             name="surname"
                             type="text"
                             value="{{ old('surname') }}"
-                            class="mt-1 block w-full rounded-lg border border-gray-300 dark:border-gray-700 dark:bg-gray-900 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500"
+                            class="{{ $inputClass }}"
                         >
                         @error('surname')
                             <p class="mt-1 text-sm text-red-600 dark:text-red-400" data-modal-error>{{ $message }}</p>
@@ -490,7 +655,7 @@
                         type="email"
                         value="{{ old('email') }}"
                         required
-                        class="mt-1 block w-full rounded-lg border border-gray-300 dark:border-gray-700 dark:bg-gray-900 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500"
+                        class="{{ $inputClass }}"
                     >
                     @error('email')
                         <p class="mt-1 text-sm text-red-600 dark:text-red-400" data-modal-error>{{ $message }}</p>
@@ -504,7 +669,7 @@
                             id="edit-password"
                             name="password"
                             type="password"
-                            class="mt-1 block w-full rounded-lg border border-gray-300 dark:border-gray-700 dark:bg-gray-900 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500"
+                            class="{{ $inputClass }}"
                         >
                         @error('password')
                             <p class="mt-1 text-sm text-red-600 dark:text-red-400" data-modal-error>{{ $message }}</p>
@@ -517,29 +682,23 @@
                             id="edit-password_confirmation"
                             name="password_confirmation"
                             type="password"
-                            class="mt-1 block w-full rounded-lg border border-gray-300 dark:border-gray-700 dark:bg-gray-900 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500"
+                            class="{{ $inputClass }}"
                         >
                     </div>
                 </div>
 
                 <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
-                    <input type="checkbox" name="is_admin" value="1" @checked(old('is_admin')) class="rounded border-gray-300 dark:border-gray-700 dark:bg-gray-900 text-indigo-600 dark:text-indigo-300 focus:ring-indigo-500">
+                    <input type="checkbox" name="is_admin" value="1" @checked(old('is_admin')) class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 dark:border-gray-700 dark:bg-gray-900 dark:text-indigo-300">
                     Tornar administrador
                 </label>
 
-                <div class="flex justify-end gap-2 pt-1">
-                    <button
-                        type="button"
-                        class="rounded-lg border border-gray-300 dark:border-gray-700 dark:bg-gray-900 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800"
-                        data-modal-close
-                    >
+                <div class="flex justify-end gap-2 border-t border-gray-100 pt-4 dark:border-gray-800">
+                    <button type="button" class="{{ $secondaryButton }}" data-modal-close>
                         Cancelar
                     </button>
-                    <button
-                        type="submit"
-                        class="rounded-lg bg-gray-900 dark:bg-white px-4 py-2 text-sm font-medium text-white dark:text-gray-900 hover:bg-gray-700 dark:hover:bg-gray-200"
-                    >
-                        Salvar
+                    <button type="submit" class="{{ $primaryButton }}">
+                        <x-icon name="check" class="h-4 w-4" />
+                        Salvar alterações
                     </button>
                 </div>
             </form>

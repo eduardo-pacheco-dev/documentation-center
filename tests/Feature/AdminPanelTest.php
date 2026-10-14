@@ -35,6 +35,20 @@ test('administrators can list users', function () {
         ->assertSee('Usuários');
 });
 
+test('the users list shows account statistics', function () {
+    $admin = User::factory()->admin()->create();
+    User::factory()->create(['is_active' => false]);
+    User::factory()->count(2)->create();
+
+    $this->actingAs($admin)
+        ->get('/admin/users')
+        ->assertOk()
+        ->assertViewHas('stats', fn (array $stats): bool => $stats['total'] === 4
+            && $stats['admins'] === 1
+            && $stats['active'] === 3
+            && $stats['inactive'] === 1);
+});
+
 test('administrators can search for users', function () {
     $admin = User::factory()->admin()->create();
     User::factory()->create(['name' => 'Maria da Silva', 'email' => 'maria@example.com']);

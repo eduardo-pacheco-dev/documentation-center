@@ -69,6 +69,13 @@ class UserController extends Controller
             ? $request->query('view')
             : 'table';
 
+        $stats = [
+            'total' => User::query()->count(),
+            'admins' => User::query()->where('is_admin', true)->count(),
+            'active' => User::query()->where('is_active', true)->count(),
+            'inactive' => User::query()->where('is_active', false)->count(),
+        ];
+
         return view('admin.users.index', [
             'users' => $query->paginate($perPage)->withQueryString(),
             'search' => $search,
@@ -76,6 +83,7 @@ class UserController extends Controller
             'status' => $status,
             'view' => $view,
             'perPage' => $perPage,
+            'stats' => $stats,
         ]);
     }
 
