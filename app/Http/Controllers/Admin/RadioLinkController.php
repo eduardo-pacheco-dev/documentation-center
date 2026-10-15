@@ -128,6 +128,8 @@ class RadioLinkController extends Controller
         $radioLink->load([
             'erbA:id,code,name,site_id,latitude,longitude',
             'erbB:id,code,name,site_id,latitude,longitude',
+            'documents',
+            'comments.user',
         ]);
 
         return view('admin.radio-links.show', [

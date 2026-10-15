@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 #[Fillable([
     'user_id',
     'erb_id',
+    'radio_link_id',
     'body',
 ])]
 class Comment extends Model
@@ -27,10 +28,18 @@ class Comment extends Model
     }
 
     /**
-     * The ERB the comment belongs to.
+     * The ERB the comment belongs to, when the comment was written on an ERB.
      */
     public function erb(): BelongsTo
     {
         return $this->belongsTo(Erb::class);
+    }
+
+    /**
+     * The radio link the comment belongs to, when the comment was written on a radio link.
+     */
+    public function radioLink(): BelongsTo
+    {
+        return $this->belongsTo(RadioLink::class);
     }
 }

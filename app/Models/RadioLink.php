@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 #[Fillable([
@@ -85,6 +86,22 @@ class RadioLink extends Model
     public function erbB(): BelongsTo
     {
         return $this->belongsTo(Erb::class, 'erb_b_id');
+    }
+
+    /**
+     * The files attached to the radio link.
+     */
+    public function documents(): HasMany
+    {
+        return $this->hasMany(Document::class)->latest();
+    }
+
+    /**
+     * The comments written on the radio link.
+     */
+    public function comments(): HasMany
+    {
+        return $this->hasMany(Comment::class)->oldest();
     }
 
     /**

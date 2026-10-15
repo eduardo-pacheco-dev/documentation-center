@@ -28,7 +28,9 @@ use App\Http\Controllers\Admin\ProjectMemberController;
 use App\Http\Controllers\Admin\ProjectResourceController;
 use App\Http\Controllers\Admin\ProjectScheduleController;
 use App\Http\Controllers\Admin\ProjectTaskController;
+use App\Http\Controllers\Admin\RadioLinkCommentController;
 use App\Http\Controllers\Admin\RadioLinkController;
+use App\Http\Controllers\Admin\RadioLinkDocumentController;
 use App\Http\Controllers\Admin\ShortLinkController;
 use App\Http\Controllers\Admin\TrashController;
 use App\Http\Controllers\Admin\UserController;
@@ -174,6 +176,12 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
     Route::get('radio-links/{radioLink}/edit', [RadioLinkController::class, 'edit'])->name('radio-links.edit');
     Route::put('radio-links/{radioLink}', [RadioLinkController::class, 'update'])->name('radio-links.update');
     Route::delete('radio-links/{radioLink}', [RadioLinkController::class, 'destroy'])->name('radio-links.destroy');
+
+    Route::post('radio-links/{radioLink}/documents', [RadioLinkDocumentController::class, 'store'])->name('radio-links.documents.store');
+    Route::delete('radio-links/{radioLink}/documents/{document}', [RadioLinkDocumentController::class, 'destroy'])->name('radio-links.documents.destroy');
+
+    Route::post('radio-links/{radioLink}/comments', [RadioLinkCommentController::class, 'store'])->name('radio-links.comments.store');
+    Route::delete('radio-links/{radioLink}/comments/{comment}', [RadioLinkCommentController::class, 'destroy'])->name('radio-links.comments.destroy');
 
     Route::get('colaboradores', [ColaboradorController::class, 'index'])->name('colaboradores.index');
     Route::get('colaboradores/create', [ColaboradorController::class, 'create'])->name('colaboradores.create');

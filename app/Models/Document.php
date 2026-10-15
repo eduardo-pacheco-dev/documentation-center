@@ -11,7 +11,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\Storage;
 
-#[Fillable(['user_id', 'uploaded_via_short_link_id', 'folder_id', 'client_id', 'erb_id', 'original_name', 'path', 'disk', 'mime_type', 'size'])]
+#[Fillable(['user_id', 'uploaded_via_short_link_id', 'folder_id', 'client_id', 'erb_id', 'radio_link_id', 'original_name', 'path', 'disk', 'mime_type', 'size'])]
 class Document extends Model
 {
     /** @use HasFactory<DocumentFactory> */
@@ -55,6 +55,14 @@ class Document extends Model
     public function erb(): BelongsTo
     {
         return $this->belongsTo(Erb::class);
+    }
+
+    /**
+     * The radio link this file is attached to, if any.
+     */
+    public function radioLink(): BelongsTo
+    {
+        return $this->belongsTo(RadioLink::class);
     }
 
     /**

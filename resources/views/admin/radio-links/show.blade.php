@@ -475,6 +475,10 @@
         </section>
     </div>
 
+    @include('admin.radio-links.partials.documents', ['radioLink' => $radioLink])
+
+    @include('admin.radio-links.partials.comments', ['radioLink' => $radioLink])
+
     <div class="mt-4 rounded-2xl border border-gray-200/70 bg-white px-5 py-4 text-xs text-gray-500 shadow-sm dark:border-gray-800 dark:bg-gray-900 dark:text-gray-400">
         <span class="inline-flex items-center gap-1.5">
             <x-icon name="clock" class="h-3.5 w-3.5" />
