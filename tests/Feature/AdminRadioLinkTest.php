@@ -352,6 +352,32 @@ it('updates the radio link details', function () {
         ->and($radioLink->frequency)->toBe('23.500');
 });
 
+it('does not allow changing the radio link code', function () {
+    $user = User::factory()->create();
+    $endpoints = radioLinkEndpoints($user);
+    $radioLink = RadioLink::factory()->create([
+        'user_id' => $user->getKey(),
+        'erb_a_id' => $endpoints['endA']->getKey(),
+        'erb_b_id' => $endpoints['endB']->getKey(),
+        'code' => 'RL-00042',
+    ]);
+
+    $this->actingAs($user)
+        ->get(route('admin.radio-links.show', $radioLink))
+        ->assertOk()
+        ->assertSee('O código é gerado automaticamente e não pode ser alterado.')
+        ->assertDontSee('name="code"', false);
+
+    $this->actingAs($user)
+        ->put(route('admin.radio-links.update', $radioLink), [
+            ...validRadioLinkPayload($endpoints['endA'], $endpoints['endB']),
+            'code' => 'RL-99999',
+        ])
+        ->assertSessionHas('status');
+
+    expect($radioLink->refresh()->code)->toBe('RL-00042');
+});
+
 it('shows the site id of each erb on the radio link page', function () {
     $owner = User::factory()->create();
     $endA = Erb::factory()->create(['user_id' => $owner->getKey(), 'site_id' => 'SITE-ALPHA']);
@@ -421,8 +447,8 @@ it('reopens the edit modal with the wizard when update fails validation', functi
 
     $this->actingAs($user)
         ->from(route('admin.radio-links.show', $radioLink))
-        ->put(route('admin.radio-links.update', $radioLink), ['modal' => 'edit', 'code' => ''])
-        ->assertSessionHasErrors(['code', 'erb_a_id', 'erb_b_id']);
+        ->put(route('admin.radio-links.update', $radioLink), ['modal' => 'edit'])
+        ->assertSessionHasErrors(['erb_a_id', 'erb_b_id']);
 
     $this->actingAs($user)
         ->get(route('admin.radio-links.show', $radioLink))

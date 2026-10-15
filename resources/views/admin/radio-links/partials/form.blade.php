@@ -11,16 +11,13 @@
             <label for="code" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Código</label>
             <input
                 type="text"
-                name="code"
                 id="code"
-                value="{{ old('code', $radioLink?->code) }}"
-                required
-                placeholder="Ex.: RL-00001"
-                class="{{ $inputClass }}"
+                value="{{ $radioLink?->code }}"
+                readonly
+                disabled
+                class="{{ $inputClass }} cursor-not-allowed bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400"
             >
-            @error('code')
-                <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p>
-            @enderror
+            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">O código é gerado automaticamente e não pode ser alterado.</p>
         </div>
 
         <div>
