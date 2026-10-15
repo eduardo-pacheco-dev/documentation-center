@@ -11,7 +11,7 @@
     <div class="absolute left-1/2 top-1/2 max-h-[90vh] w-full max-w-2xl -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-2xl bg-white p-6 shadow-xl dark:bg-gray-900">
         <div class="flex items-start justify-between gap-4">
             <div>
-                <h2 id="colaborador-edit-modal-title" class="flex items-center gap-2 text-base font-semibold text-gray-900 dark:text-gray-100">
+                <h2 id="colaborador-edit-modal-title" class="flex items-center gap-2 text-lg font-semibold text-gray-900 dark:text-gray-100">
                     <x-icon name="pencil-square" class="h-5 w-5 text-gray-400 dark:text-gray-500" />
                     Editar colaborador
                 </h2>
@@ -20,7 +20,7 @@
 
             <button
                 type="button"
-                class="rounded-full p-1 text-gray-400 dark:text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-700"
+                class="rounded-full p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-700 dark:text-gray-500 dark:hover:bg-gray-800"
                 data-modal-close
             >
                 <span class="sr-only">Fechar</span>
@@ -45,10 +45,10 @@
 
             @include('admin.colaboradores.partials.form', ['colaborador' => $colaborador, 'wizard' => true])
 
-            <div class="mt-6 flex items-center justify-between gap-3">
+            <div class="mt-6 flex items-center justify-between gap-3 border-t border-gray-100 pt-4 dark:border-gray-800">
                 <button
                     type="button"
-                    class="rounded-md px-3 py-2 text-sm font-medium text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100"
+                    class="rounded-xl px-3 py-2 text-sm font-medium text-gray-500 transition hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100"
                     data-modal-close
                 >
                     Cancelar
@@ -58,7 +58,7 @@
                     <button
                         type="button"
                         data-wizard-prev
-                        class="hidden rounded-md border border-gray-300 dark:border-gray-700 dark:bg-gray-900 px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800"
+                        class="hidden rounded-xl border border-gray-200/70 bg-white px-3 py-2 text-sm font-semibold text-gray-700 shadow-sm transition hover:border-indigo-200 hover:text-indigo-600 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-200 dark:hover:border-indigo-500/40"
                     >
                         Voltar
                     </button>
@@ -66,7 +66,7 @@
                     <button
                         type="button"
                         data-wizard-next
-                        class="inline-flex items-center gap-1.5 rounded-md bg-gray-900 dark:bg-white px-4 py-2 text-sm font-medium text-white dark:text-gray-900 hover:bg-gray-700 dark:hover:bg-gray-200"
+                        class="inline-flex items-center gap-1.5 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-500"
                     >
                         Próximo
                     </button>
@@ -74,7 +74,7 @@
                     <button
                         type="submit"
                         data-wizard-submit
-                        class="hidden items-center gap-1.5 rounded-md bg-gray-900 dark:bg-white px-4 py-2 text-sm font-medium text-white dark:text-gray-900 hover:bg-gray-700 dark:hover:bg-gray-200"
+                        class="hidden items-center gap-1.5 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-500"
                     >
                         <x-icon name="check" class="h-4 w-4" />
                         Salvar alterações

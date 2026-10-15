@@ -23,6 +23,23 @@ it('lists only the colaboradores the user owns', function () {
         ->assertDontSee('Maria Alheia');
 });
 
+it('shows colaborador statistics for the authenticated user', function () {
+    $owner = User::factory()->create();
+
+    Colaborador::factory()->create(['user_id' => $owner->getKey(), 'regional' => 'NO']);
+    Colaborador::factory()->create(['user_id' => $owner->getKey(), 'regional' => 'NO']);
+    Colaborador::factory()->inactive()->create(['user_id' => $owner->getKey(), 'regional' => 'SP']);
+    Colaborador::factory()->create();
+
+    $this->actingAs($owner)
+        ->get('/admin/colaboradores')
+        ->assertOk()
+        ->assertViewHas('stats', fn (array $stats): bool => $stats['total'] === 3
+            && $stats['active'] === 2
+            && $stats['inactive'] === 1
+            && $stats['regionals'] === 2);
+});
+
 it('filters the colaborador list by search term and status', function () {
     $owner = User::factory()->create();
 

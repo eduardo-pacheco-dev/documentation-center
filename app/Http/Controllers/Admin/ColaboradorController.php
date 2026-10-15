@@ -65,6 +65,15 @@ class ColaboradorController extends Controller
             ? $request->query('view')
             : 'table';
 
+        $owned = fn () => Colaborador::query()->ownedBy($request->user());
+
+        $stats = [
+            'total' => $owned()->count(),
+            'active' => $owned()->where('status', ColaboradorStatus::Active->value)->count(),
+            'inactive' => $owned()->where('status', ColaboradorStatus::Inactive->value)->count(),
+            'regionals' => $regionals->count(),
+        ];
+
         return view('admin.colaboradores.index', [
             'colaboradores' => $colaboradores,
             'search' => $search,
@@ -75,6 +84,7 @@ class ColaboradorController extends Controller
             'regionals' => $regionals,
             'view' => $view,
             'perPage' => $perPage,
+            'stats' => $stats,
         ]);
     }
 

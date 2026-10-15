@@ -1,6 +1,6 @@
 <div
     data-create-modal
-    @if ($errors->any()) data-open-on-load="true" @endif
+    @if ($errors->any() && old('modal') === 'create') data-open-on-load="true" @endif
     class="fixed inset-0 z-50 hidden flex overflow-y-auto p-4"
     role="dialog"
     aria-modal="true"
@@ -8,16 +8,19 @@
 >
     <div class="fixed inset-0 bg-gray-950/50" data-create-modal-close></div>
 
-    <div class="relative m-auto w-full max-w-2xl rounded-xl bg-white shadow-xl dark:bg-gray-900">
-        <header class="flex items-start justify-between gap-4 border-b border-gray-200 px-5 py-4 dark:border-gray-800">
+    <div class="relative m-auto w-full max-w-2xl rounded-2xl bg-white shadow-xl dark:bg-gray-900">
+        <header class="flex items-start justify-between gap-4 border-b border-gray-100 px-5 py-4 dark:border-gray-800">
             <div>
-                <h2 id="create-colaborador-title" class="text-base font-semibold">Novo colaborador</h2>
+                <h2 id="create-colaborador-title" class="flex items-center gap-2 text-lg font-semibold text-gray-900 dark:text-gray-100">
+                    <x-icon name="user-plus" class="h-5 w-5 text-gray-400 dark:text-gray-500" />
+                    Novo colaborador
+                </h2>
                 <p class="mt-0.5 text-sm text-gray-500 dark:text-gray-400">Cadastre um membro da equipe técnica ou demais colaboradores.</p>
             </div>
             <button
                 type="button"
                 data-create-modal-close
-                class="rounded-md p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800 dark:hover:text-gray-300"
+                class="rounded-full p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-700 dark:text-gray-500 dark:hover:bg-gray-800"
                 aria-label="Fechar"
             >
                 <x-icon name="x-mark" class="h-5 w-5" />
@@ -26,6 +29,7 @@
 
         <form method="POST" action="{{ route('admin.colaboradores.store') }}" class="px-5 py-4">
             @csrf
+            <input type="hidden" name="modal" value="create">
 
             <div class="mb-5">
                 <div class="flex items-center justify-between text-xs font-medium text-gray-500 dark:text-gray-400">
@@ -41,11 +45,11 @@
 
             @include('admin.colaboradores.partials.form', ['wizard' => true])
 
-            <div class="mt-6 flex items-center justify-between gap-3">
+            <div class="mt-6 flex items-center justify-between gap-3 border-t border-gray-100 pt-4 dark:border-gray-800">
                 <button
                     type="button"
                     data-create-modal-close
-                    class="rounded-md px-3 py-2 text-sm font-medium text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100"
+                    class="rounded-xl px-3 py-2 text-sm font-medium text-gray-500 transition hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100"
                 >
                     Cancelar
                 </button>
@@ -54,7 +58,7 @@
                     <button
                         type="button"
                         data-wizard-prev
-                        class="hidden rounded-md border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
+                        class="hidden rounded-xl border border-gray-200/70 bg-white px-3 py-2 text-sm font-semibold text-gray-700 shadow-sm transition hover:border-indigo-200 hover:text-indigo-600 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-200 dark:hover:border-indigo-500/40"
                     >
                         Voltar
                     </button>
@@ -62,7 +66,7 @@
                     <button
                         type="button"
                         data-wizard-next
-                        class="inline-flex items-center gap-1.5 rounded-md bg-gray-900 dark:bg-white px-4 py-2 text-sm font-medium text-white dark:text-gray-900 hover:bg-gray-700 dark:hover:bg-gray-200"
+                        class="inline-flex items-center gap-1.5 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-500"
                     >
                         Próximo
                     </button>
@@ -70,7 +74,7 @@
                     <button
                         type="submit"
                         data-wizard-submit
-                        class="hidden items-center gap-1.5 rounded-md bg-gray-900 dark:bg-white px-4 py-2 text-sm font-medium text-white dark:text-gray-900 hover:bg-gray-700 dark:hover:bg-gray-200"
+                        class="hidden items-center gap-1.5 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-500"
                     >
                         <x-icon name="check" class="h-4 w-4" />
                         Criar colaborador
