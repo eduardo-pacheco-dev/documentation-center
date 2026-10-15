@@ -415,7 +415,6 @@
                             <thead class="bg-gray-50 text-left text-xs uppercase text-gray-500 dark:bg-gray-800 dark:text-gray-400">
                                 <tr>
                                     <th class="px-6 py-3 font-medium">Descrição</th>
-                                    <th class="px-6 py-3 font-medium">Unidade</th>
                                     <th class="px-6 py-3 font-medium">Status</th>
                                     <th class="px-6 py-3 text-right font-medium">Quantidade</th>
                                     <th class="px-6 py-3 text-right font-medium">Valor unitário</th>
@@ -431,7 +430,6 @@
                                                 <span class="mt-0.5 block text-xs text-gray-400 dark:text-gray-500">{{ $item->catalogItem->name }}</span>
                                             @endif
                                         </td>
-                                        <td class="whitespace-nowrap px-6 py-3 text-gray-500 dark:text-gray-400">{{ $item->unit ?? '—' }}</td>
                                         <td class="whitespace-nowrap px-6 py-3">
                                             <x-work-order-item-status :item="$item" />
                                         </td>
@@ -441,13 +439,13 @@
                                     </tr>
                                 @empty
                                     <tr>
-                                        <td class="px-6 py-6 text-gray-500 dark:text-gray-400" colspan="6">Nenhum item registrado.</td>
+                                        <td class="px-6 py-6 text-gray-500 dark:text-gray-400" colspan="5">Nenhum item registrado.</td>
                                     </tr>
                                 @endforelse
                             </tbody>
                             <tfoot class="bg-gray-50 dark:bg-gray-800">
                                 <tr>
-                                    <td class="px-6 py-3 text-right text-sm font-semibold text-gray-700 dark:text-gray-200" colspan="5">Total</td>
+                                    <td class="px-6 py-3 text-right text-sm font-semibold text-gray-700 dark:text-gray-200" colspan="4">Total</td>
                                     <td class="whitespace-nowrap px-6 py-3 text-right text-sm font-semibold text-gray-900 dark:text-gray-100">{{ $money((float) $workOrder->total) }}</td>
                                 </tr>
                             </tfoot>
@@ -481,7 +479,6 @@
                             <thead class="bg-gray-50 text-left text-xs uppercase text-gray-500 dark:bg-gray-800 dark:text-gray-400">
                                 <tr>
                                     <th class="px-6 py-3 font-medium">Descrição</th>
-                                    <th class="px-6 py-3 font-medium">Unidade</th>
                                     <th class="px-6 py-3 font-medium">Status</th>
                                     <th class="px-6 py-3 text-right font-medium">Quantidade</th>
                                     <th class="px-6 py-3 text-right font-medium">Valor unitário</th>
@@ -497,7 +494,6 @@
                                                 <span class="mt-0.5 block text-xs text-gray-400 dark:text-gray-500">{{ $item->catalogItem->name }}</span>
                                             @endif
                                         </td>
-                                        <td class="whitespace-nowrap px-6 py-3 text-gray-500 dark:text-gray-400">{{ $item->unit ?? '—' }}</td>
                                         <td class="whitespace-nowrap px-6 py-3">
                                             <x-work-order-item-status :item="$item" />
                                         </td>
@@ -507,13 +503,13 @@
                                     </tr>
                                 @empty
                                     <tr>
-                                        <td class="px-6 py-6 text-gray-500 dark:text-gray-400" colspan="6">Nenhum item registrado.</td>
+                                        <td class="px-6 py-6 text-gray-500 dark:text-gray-400" colspan="5">Nenhum item registrado.</td>
                                     </tr>
                                 @endforelse
                             </tbody>
                             <tfoot class="bg-gray-50 dark:bg-gray-800">
                                 <tr>
-                                    <td class="px-6 py-3 text-right text-sm font-semibold text-gray-700 dark:text-gray-200" colspan="5">Total</td>
+                                    <td class="px-6 py-3 text-right text-sm font-semibold text-gray-700 dark:text-gray-200" colspan="4">Total</td>
                                     <td class="whitespace-nowrap px-6 py-3 text-right text-sm font-semibold text-gray-900 dark:text-gray-100">{{ $money((float) $workOrder->total) }}</td>
                                 </tr>
                             </tfoot>
