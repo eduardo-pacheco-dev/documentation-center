@@ -5,16 +5,20 @@
 
         $rawEditorItems = old('items');
 
+        $itemStatus = fn ($value): string => \App\Enums\WorkOrderItemStatus::tryFrom((string) $value)?->value ?? \App\Enums\WorkOrderItemStatus::Pending->value;
+
         if (! is_array($rawEditorItems)) {
             $rawEditorItems = $workOrder->items->map(fn ($item) => [
                 'catalog_item_id' => (string) ($item->catalog_item_id ?? ''),
                 'quantity' => (float) $item->quantity,
+                'status' => $item->status->value,
             ])->all();
         }
 
         $editorItems = array_values(array_map(fn ($item) => [
             'catalog_item_id' => (string) ($item['catalog_item_id'] ?? ''),
             'quantity' => $item['quantity'] ?? 1,
+            'status' => $itemStatus($item['status'] ?? null),
         ], $rawEditorItems));
 
         $itemsErrors = collect($errors->keys())
@@ -27,6 +31,11 @@
         $dueDays = ($workOrder->due_at !== null && ! $isClosed)
             ? (int) now()->startOfDay()->diffInDays($workOrder->due_at->copy()->startOfDay(), false)
             : null;
+
+        $itemsTotal = $workOrder->items->count();
+        $itemsCompleted = $workOrder->items->filter(fn ($item) => $item->status->isCompleted())->count();
+        $itemsProgress = $itemsTotal > 0 ? (int) round(($itemsCompleted / $itemsTotal) * 100) : 0;
+        $itemsProgressLabel = $itemsCompleted.' de '.$itemsTotal.' '.($itemsTotal === 1 ? 'item concluído' : 'itens concluídos');
     @endphp
 
     <section class="relative overflow-hidden rounded-3xl bg-gradient-to-br from-indigo-600 via-indigo-600 to-violet-700 p-6 text-white shadow-xl shadow-indigo-600/10 sm:p-8">
@@ -209,7 +218,7 @@
                             if (existing) {
                                 existing.quantity = (Number(existing.quantity) || 0) + 1;
                             } else {
-                                this.items.push({ catalog_item_id: String(option.id), quantity: 1 });
+                                this.items.push({ catalog_item_id: String(option.id), quantity: 1, status: 'pending' });
                             }
                             this.search = '';
                             this.openResults = false;
@@ -238,7 +247,20 @@
                             <x-icon name="pencil-square" class="h-4 w-4" />
                             Editar itens
                         </button>
-                        <p x-show="editing" x-cloak class="text-xs text-gray-400 dark:text-gray-500">Adicione itens do catálogo e ajuste as quantidades.</p>
+                        <p x-show="editing" x-cloak class="text-xs text-gray-400 dark:text-gray-500">Adicione itens do catálogo, ajuste quantidades e informe o status de cada um.</p>
+                    </div>
+
+                    <div x-show="! editing" class="border-b border-gray-100 px-6 py-3 dark:border-gray-800">
+                        <div class="flex flex-wrap items-center justify-between gap-2">
+                            <p class="text-sm text-gray-500 dark:text-gray-400">Progresso dos itens</p>
+                            <p class="text-sm text-gray-500 dark:text-gray-400">
+                                {{ $itemsProgressLabel }}
+                                <span class="ml-1 font-medium text-emerald-600 dark:text-emerald-400">{{ $itemsProgress }}%</span>
+                            </p>
+                        </div>
+                        <div class="mt-2 h-2 w-full overflow-hidden rounded-full bg-gray-100 dark:bg-gray-800">
+                            <div class="h-full rounded-full bg-emerald-500 transition-all duration-500" style="width: {{ $itemsProgress }}%"></div>
+                        </div>
                     </div>
 
                     <form
@@ -328,6 +350,20 @@
                                             >
                                         </div>
 
+                                        <div>
+                                            <label class="sr-only" x-bind:for="'item-status-' + index">Status do item</label>
+                                            <select
+                                                x-bind:id="'item-status-' + index"
+                                                x-bind:name="'items[' + index + '][status]'"
+                                                x-model="item.status"
+                                                class="w-36 rounded-xl border border-gray-300 bg-white dark:border-gray-700 dark:bg-gray-900 px-2 py-1.5 text-sm shadow-sm transition focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30"
+                                            >
+                                                @foreach (\App\Enums\WorkOrderItemStatus::cases() as $lineStatus)
+                                                    <option value="{{ $lineStatus->value }}">{{ $lineStatus->label() }}</option>
+                                                @endforeach
+                                            </select>
+                                        </div>
+
                                         <span class="w-24 text-right text-sm font-semibold text-gray-900 dark:text-gray-100" x-text="money(lineTotal(item))"></span>
 
                                         <button
@@ -380,6 +416,7 @@
                                 <tr>
                                     <th class="px-6 py-3 font-medium">Descrição</th>
                                     <th class="px-6 py-3 font-medium">Unidade</th>
+                                    <th class="px-6 py-3 font-medium">Status</th>
                                     <th class="px-6 py-3 text-right font-medium">Quantidade</th>
                                     <th class="px-6 py-3 text-right font-medium">Valor unitário</th>
                                     <th class="px-6 py-3 text-right font-medium">Subtotal</th>
@@ -395,19 +432,22 @@
                                             @endif
                                         </td>
                                         <td class="whitespace-nowrap px-6 py-3 text-gray-500 dark:text-gray-400">{{ $item->unit ?? '—' }}</td>
+                                        <td class="whitespace-nowrap px-6 py-3">
+                                            <x-work-order-item-status :item="$item" />
+                                        </td>
                                         <td class="whitespace-nowrap px-6 py-3 text-right text-gray-500 dark:text-gray-400">{{ $quantity($item->quantity) }}</td>
                                         <td class="whitespace-nowrap px-6 py-3 text-right text-gray-500 dark:text-gray-400">{{ $money((float) $item->unit_price) }}</td>
                                         <td class="whitespace-nowrap px-6 py-3 text-right font-medium text-gray-900 dark:text-gray-100">{{ $money((float) $item->total) }}</td>
                                     </tr>
                                 @empty
                                     <tr>
-                                        <td class="px-6 py-6 text-gray-500 dark:text-gray-400" colspan="5">Nenhum item registrado.</td>
+                                        <td class="px-6 py-6 text-gray-500 dark:text-gray-400" colspan="6">Nenhum item registrado.</td>
                                     </tr>
                                 @endforelse
                             </tbody>
                             <tfoot class="bg-gray-50 dark:bg-gray-800">
                                 <tr>
-                                    <td class="px-6 py-3 text-right text-sm font-semibold text-gray-700 dark:text-gray-200" colspan="4">Total</td>
+                                    <td class="px-6 py-3 text-right text-sm font-semibold text-gray-700 dark:text-gray-200" colspan="5">Total</td>
                                     <td class="whitespace-nowrap px-6 py-3 text-right text-sm font-semibold text-gray-900 dark:text-gray-100">{{ $money((float) $workOrder->total) }}</td>
                                 </tr>
                             </tfoot>
@@ -423,12 +463,26 @@
                         <h2 class="text-sm font-semibold text-gray-900 dark:text-gray-100">Itens da OS</h2>
                     </div>
 
+                    <div class="border-b border-gray-100 px-6 py-3 dark:border-gray-800">
+                        <div class="flex flex-wrap items-center justify-between gap-2">
+                            <p class="text-sm text-gray-500 dark:text-gray-400">Progresso dos itens</p>
+                            <p class="text-sm text-gray-500 dark:text-gray-400">
+                                {{ $itemsProgressLabel }}
+                                <span class="ml-1 font-medium text-emerald-600 dark:text-emerald-400">{{ $itemsProgress }}%</span>
+                            </p>
+                        </div>
+                        <div class="mt-2 h-2 w-full overflow-hidden rounded-full bg-gray-100 dark:bg-gray-800">
+                            <div class="h-full rounded-full bg-emerald-500 transition-all duration-500" style="width: {{ $itemsProgress }}%"></div>
+                        </div>
+                    </div>
+
                     <div class="overflow-x-auto">
                         <table class="min-w-full divide-y divide-gray-200 text-sm dark:divide-gray-800">
                             <thead class="bg-gray-50 text-left text-xs uppercase text-gray-500 dark:bg-gray-800 dark:text-gray-400">
                                 <tr>
                                     <th class="px-6 py-3 font-medium">Descrição</th>
                                     <th class="px-6 py-3 font-medium">Unidade</th>
+                                    <th class="px-6 py-3 font-medium">Status</th>
                                     <th class="px-6 py-3 text-right font-medium">Quantidade</th>
                                     <th class="px-6 py-3 text-right font-medium">Valor unitário</th>
                                     <th class="px-6 py-3 text-right font-medium">Subtotal</th>
@@ -444,19 +498,22 @@
                                             @endif
                                         </td>
                                         <td class="whitespace-nowrap px-6 py-3 text-gray-500 dark:text-gray-400">{{ $item->unit ?? '—' }}</td>
+                                        <td class="whitespace-nowrap px-6 py-3">
+                                            <x-work-order-item-status :item="$item" />
+                                        </td>
                                         <td class="whitespace-nowrap px-6 py-3 text-right text-gray-500 dark:text-gray-400">{{ $quantity($item->quantity) }}</td>
                                         <td class="whitespace-nowrap px-6 py-3 text-right text-gray-500 dark:text-gray-400">{{ $money((float) $item->unit_price) }}</td>
                                         <td class="whitespace-nowrap px-6 py-3 text-right font-medium text-gray-900 dark:text-gray-100">{{ $money((float) $item->total) }}</td>
                                     </tr>
                                 @empty
                                     <tr>
-                                        <td class="px-6 py-6 text-gray-500 dark:text-gray-400" colspan="5">Nenhum item registrado.</td>
+                                        <td class="px-6 py-6 text-gray-500 dark:text-gray-400" colspan="6">Nenhum item registrado.</td>
                                     </tr>
                                 @endforelse
                             </tbody>
                             <tfoot class="bg-gray-50 dark:bg-gray-800">
                                 <tr>
-                                    <td class="px-6 py-3 text-right text-sm font-semibold text-gray-700 dark:text-gray-200" colspan="4">Total</td>
+                                    <td class="px-6 py-3 text-right text-sm font-semibold text-gray-700 dark:text-gray-200" colspan="5">Total</td>
                                     <td class="whitespace-nowrap px-6 py-3 text-right text-sm font-semibold text-gray-900 dark:text-gray-100">{{ $money((float) $workOrder->total) }}</td>
                                 </tr>
                             </tfoot>

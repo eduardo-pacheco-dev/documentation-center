@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Enums\WorkOrderItemStatus;
 use App\Enums\WorkOrderStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\StoreWorkOrderRequest;
@@ -317,6 +318,7 @@ class WorkOrderController extends Controller
                 'quantity' => $quantity,
                 'unit_price' => $unitPrice,
                 'total' => round($quantity * $unitPrice, 2),
+                'status' => WorkOrderItemStatus::tryFrom((string) ($item['status'] ?? '')) ?? WorkOrderItemStatus::Pending,
             ];
         }, array_values($items));
     }

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\WorkOrderItemStatus;
 use Database\Factories\WorkOrderItemFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -16,6 +17,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
     'quantity',
     'unit_price',
     'total',
+    'status',
 ])]
 class WorkOrderItem extends Model
 {
@@ -49,6 +51,7 @@ class WorkOrderItem extends Model
             'quantity' => 'decimal:2',
             'unit_price' => 'decimal:2',
             'total' => 'decimal:2',
+            'status' => WorkOrderItemStatus::class,
         ];
     }
 }

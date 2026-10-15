@@ -2,6 +2,7 @@
 
 namespace Database\Factories;
 
+use App\Enums\WorkOrderItemStatus;
 use App\Models\WorkOrder;
 use App\Models\WorkOrderItem;
 use Illuminate\Database\Eloquent\Factories\Factory;
@@ -29,6 +30,37 @@ class WorkOrderItemFactory extends Factory
             'quantity' => $quantity,
             'unit_price' => $unitPrice,
             'total' => round($quantity * $unitPrice, 2),
+            'status' => WorkOrderItemStatus::Pending,
         ];
+    }
+
+    /**
+     * Indicate that the line item has been completed.
+     */
+    public function completed(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'status' => WorkOrderItemStatus::Completed,
+        ]);
+    }
+
+    /**
+     * Indicate that the line item is being carried out.
+     */
+    public function inProgress(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'status' => WorkOrderItemStatus::InProgress,
+        ]);
+    }
+
+    /**
+     * Indicate that the line item has been cancelled.
+     */
+    public function cancelled(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'status' => WorkOrderItemStatus::Cancelled,
+        ]);
     }
 }

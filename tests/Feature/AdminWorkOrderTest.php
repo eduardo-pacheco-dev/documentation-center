@@ -309,6 +309,72 @@ it('updates the work order items inline from the details page', function () {
         ->and($workOrder->items->first()->description)->toBe('Cabo coaxial');
 });
 
+it('updates the status of the work order items inline from the details page', function () {
+    $user = User::factory()->create();
+    $client = ownedClient($user);
+    $catalogItem = ownedCatalogItem($user, ['name' => 'Cabo coaxial', 'unit' => 'm', 'price' => 12.50]);
+    $workOrder = WorkOrder::factory()->create([
+        'user_id' => $user->getKey(),
+        'client_id' => $client->getKey(),
+    ]);
+    $workOrder->items()->create(['description' => 'Item antigo', 'quantity' => 1, 'unit_price' => 10, 'total' => 10]);
+
+    $this->actingAs($user)
+        ->put(route('admin.work-orders.items.update', $workOrder), [
+            'items' => [
+                ['catalog_item_id' => $catalogItem->getKey(), 'quantity' => 4, 'status' => 'completed'],
+                ['catalog_item_id' => $catalogItem->getKey(), 'quantity' => 1],
+            ],
+        ])
+        ->assertRedirect(route('admin.work-orders.show', $workOrder))
+        ->assertSessionHasNoErrors();
+
+    $items = $workOrder->refresh()->items->sortBy('id')->values();
+
+    expect($items)->toHaveCount(2)
+        ->and($items[0]->status->value)->toBe('completed')
+        ->and($items[1]->status->value)->toBe('pending');
+});
+
+it('rejects an unknown work order item status', function () {
+    $user = User::factory()->create();
+    $client = ownedClient($user);
+    $catalogItem = ownedCatalogItem($user);
+    $workOrder = WorkOrder::factory()->create([
+        'user_id' => $user->getKey(),
+        'client_id' => $client->getKey(),
+    ]);
+
+    $this->actingAs($user)
+        ->from(route('admin.work-orders.show', $workOrder))
+        ->put(route('admin.work-orders.items.update', $workOrder), [
+            'items' => [
+                ['catalog_item_id' => $catalogItem->getKey(), 'quantity' => 1, 'status' => 'finished'],
+            ],
+        ])
+        ->assertRedirect(route('admin.work-orders.show', $workOrder))
+        ->assertSessionHasErrors('items.0.status');
+});
+
+it('shows the item progress on the work order details page', function () {
+    $user = User::factory()->create();
+    $workOrder = WorkOrder::factory()->create(['user_id' => $user->getKey()]);
+
+    $workOrder->items()->createMany([
+        ['description' => 'Item concluído', 'quantity' => 1, 'unit_price' => 10, 'total' => 10, 'status' => 'completed'],
+        ['description' => 'Item em andamento', 'quantity' => 1, 'unit_price' => 10, 'total' => 10, 'status' => 'in_progress'],
+        ['description' => 'Item pendente', 'quantity' => 1, 'unit_price' => 10, 'total' => 10, 'status' => 'pending'],
+    ]);
+
+    $this->actingAs($user)
+        ->get(route('admin.work-orders.show', $workOrder))
+        ->assertOk()
+        ->assertSee('Progresso dos itens')
+        ->assertSee('1 de 3 itens concluídos')
+        ->assertSee('33%')
+        ->assertSee('Em andamento');
+});
+
 it('forbids a stranger from updating the work order items inline', function () {
     $stranger = User::factory()->create();
     $workOrder = WorkOrder::factory()->create();

@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Admin;
 
+use App\Enums\WorkOrderItemStatus;
 use App\Enums\WorkOrderPriority;
 use App\Enums\WorkOrderStatus;
 use Illuminate\Contracts\Validation\ValidationRule;
@@ -59,6 +60,7 @@ class UpdateWorkOrderRequest extends FormRequest
                 Rule::exists('catalog_items', 'id')->where(fn ($query) => $query->where('user_id', $userId)),
             ],
             'items.*.quantity' => ['required', 'numeric', 'min:0.01', 'max:99999999.99'],
+            'items.*.status' => ['nullable', new Enum(WorkOrderItemStatus::class)],
         ];
     }
 }

@@ -2,15 +2,19 @@
     $workOrder = $workOrder ?? null;
     $oldItems = old('items');
 
+    $itemStatus = fn ($value): string => \App\Enums\WorkOrderItemStatus::tryFrom((string) $value)?->value ?? \App\Enums\WorkOrderItemStatus::Pending->value;
+
     if (is_array($oldItems)) {
         $initialItems = array_values(array_map(fn ($item) => [
             'catalog_item_id' => (string) ($item['catalog_item_id'] ?? ''),
             'quantity' => $item['quantity'] ?? 1,
+            'status' => $itemStatus($item['status'] ?? null),
         ], $oldItems));
     } elseif ($workOrder) {
         $initialItems = $workOrder->items->map(fn ($item) => [
             'catalog_item_id' => (string) ($item->catalog_item_id ?? ''),
             'quantity' => (float) $item->quantity,
+            'status' => $item->status->value,
         ])->values()->all();
     } else {
         $initialItems = [];
@@ -268,7 +272,7 @@
                 if (existing) {
                     existing.quantity = (Number(existing.quantity) || 0) + 1;
                 } else {
-                    this.items.push({ catalog_item_id: String(option.id), quantity: 1 });
+                    this.items.push({ catalog_item_id: String(option.id), quantity: 1, status: 'pending' });
                 }
                 this.search = '';
                 this.openResults = false;
@@ -371,6 +375,20 @@
                                 x-model.number="item.quantity"
                                 class="w-24 rounded-xl border border-gray-300 bg-white dark:border-gray-700 dark:bg-gray-900 px-2 py-1.5 text-sm shadow-sm transition focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30"
                             >
+                        </div>
+
+                        <div>
+                            <label class="sr-only" x-bind:for="'item-status-' + index">Status do item</label>
+                            <select
+                                x-bind:id="'item-status-' + index"
+                                x-bind:name="'items[' + index + '][status]'"
+                                x-model="item.status"
+                                class="w-36 rounded-xl border border-gray-300 bg-white dark:border-gray-700 dark:bg-gray-900 px-2 py-1.5 text-sm shadow-sm transition focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30"
+                            >
+                                @foreach (\App\Enums\WorkOrderItemStatus::cases() as $lineStatus)
+                                    <option value="{{ $lineStatus->value }}">{{ $lineStatus->label() }}</option>
+                                @endforeach
+                            </select>
                         </div>
 
                         <span class="w-24 text-right text-sm font-semibold text-gray-900 dark:text-gray-100" x-text="money(lineTotal(item))"></span>
