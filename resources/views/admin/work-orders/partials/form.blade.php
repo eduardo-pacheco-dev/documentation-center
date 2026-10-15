@@ -63,12 +63,12 @@
         <span class="block text-sm font-medium text-gray-700 dark:text-gray-300">Vínculo</span>
         <p class="mt-0.5 text-xs text-gray-500 dark:text-gray-400">Vincule a OS a um site (ERB) ou a um radio link. Você pode escolher apenas um.</p>
 
-        <div class="mt-2 inline-flex flex-wrap rounded-lg border border-gray-300 p-0.5 dark:border-gray-700" role="group" aria-label="Tipo de vínculo">
+        <div class="mt-2 inline-flex flex-wrap rounded-xl border border-gray-200/70 p-1 dark:border-gray-800" role="group" aria-label="Tipo de vínculo">
             <button
                 type="button"
                 @click="binding = ''"
-                :class="binding === '' ? 'bg-gray-900 text-white dark:bg-white dark:text-gray-900' : 'text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800'"
-                class="inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition"
+                :class="binding === '' ? 'bg-indigo-600 text-white shadow-sm' : 'text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800'"
+                class="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition"
             >
                 <x-icon name="minus-circle" class="h-4 w-4" />
                 Nenhum
@@ -76,8 +76,8 @@
             <button
                 type="button"
                 @click="binding = 'erb'"
-                :class="binding === 'erb' ? 'bg-gray-900 text-white dark:bg-white dark:text-gray-900' : 'text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800'"
-                class="inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition"
+                :class="binding === 'erb' ? 'bg-indigo-600 text-white shadow-sm' : 'text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800'"
+                class="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition"
             >
                 <x-icon name="signal" class="h-4 w-4" />
                 Site (ERB)
@@ -85,8 +85,8 @@
             <button
                 type="button"
                 @click="binding = 'radio'"
-                :class="binding === 'radio' ? 'bg-gray-900 text-white dark:bg-white dark:text-gray-900' : 'text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800'"
-                class="inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition"
+                :class="binding === 'radio' ? 'bg-indigo-600 text-white shadow-sm' : 'text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800'"
+                class="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition"
             >
                 <x-icon name="arrows-right-left" class="h-4 w-4" />
                 Radio link
@@ -150,7 +150,7 @@
             name="priority"
             id="priority"
             required
-            class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-700 dark:bg-gray-900 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500"
+            class="mt-1 block w-full rounded-xl border border-gray-300 bg-white dark:border-gray-700 dark:bg-gray-900 px-3 py-2 text-sm shadow-sm transition focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30"
         >
             @foreach (\App\Enums\WorkOrderPriority::cases() as $priority)
                 <option value="{{ $priority->value }}" @selected(old('priority', $workOrder?->priority?->value ?? 'normal') === $priority->value)>
@@ -168,7 +168,7 @@
         <select
             name="status"
             id="status"
-            class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-700 dark:bg-gray-900 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500"
+            class="mt-1 block w-full rounded-xl border border-gray-300 bg-white dark:border-gray-700 dark:bg-gray-900 px-3 py-2 text-sm shadow-sm transition focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30"
         >
             @foreach (\App\Enums\WorkOrderStatus::cases() as $status)
                 <option value="{{ $status->value }}" @selected(old('status', $workOrder?->status?->value ?? 'open') === $status->value)>
@@ -189,7 +189,7 @@
             id="opened_at"
             required
             value="{{ old('opened_at', $workOrder?->opened_at?->format('Y-m-d') ?? now()->format('Y-m-d')) }}"
-            class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-700 dark:bg-gray-900 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500"
+            class="mt-1 block w-full rounded-xl border border-gray-300 bg-white dark:border-gray-700 dark:bg-gray-900 px-3 py-2 text-sm shadow-sm transition focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30"
         >
         @error('opened_at')
             <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p>
@@ -203,7 +203,7 @@
             name="due_at"
             id="due_at"
             value="{{ old('due_at', $workOrder?->due_at?->format('Y-m-d')) }}"
-            class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-700 dark:bg-gray-900 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500"
+            class="mt-1 block w-full rounded-xl border border-gray-300 bg-white dark:border-gray-700 dark:bg-gray-900 px-3 py-2 text-sm shadow-sm transition focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30"
         >
         @error('due_at')
             <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p>
@@ -216,7 +216,7 @@
             name="description"
             id="description"
             rows="3"
-            class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-700 dark:bg-gray-900 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500"
+            class="mt-1 block w-full rounded-xl border border-gray-300 bg-white dark:border-gray-700 dark:bg-gray-900 px-3 py-2 text-sm shadow-sm transition focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30"
         >{{ old('description', $workOrder?->description) }}</textarea>
         @error('description')
             <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p>
@@ -294,14 +294,14 @@
                     @click="openResults = true"
                     placeholder="Busque pelo nome do item..."
                     autocomplete="off"
-                    class="block w-full rounded-md border border-gray-300 dark:border-gray-700 dark:bg-gray-900 pl-9 pr-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500"
+                    class="block w-full rounded-xl border border-gray-300 bg-white dark:border-gray-700 dark:bg-gray-900 pl-9 pr-3 py-2 text-sm shadow-sm transition focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30"
                 >
             </div>
 
             <div
                 x-show="openResults"
                 x-cloak
-                class="mt-1 max-h-64 w-full overflow-auto rounded-md border border-gray-200 bg-white py-1 shadow-sm dark:border-gray-700 dark:bg-gray-900"
+                class="mt-1 max-h-64 w-full overflow-auto rounded-xl border border-gray-200 bg-white py-1 shadow-lg ring-1 ring-gray-900/5 dark:border-gray-700 dark:bg-gray-900 dark:ring-white/10"
             >
                 <template x-for="option in results" :key="option.id">
                     <button
@@ -328,7 +328,7 @@
         </div>
 
         @if (! empty($itemErrors))
-            <div class="mt-2 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-300">
+            <div class="mt-2 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-300">
                 <ul class="list-disc space-y-0.5 pl-4">
                     @foreach ($itemErrors as $message)
                         <li>{{ $message }}</li>
@@ -341,14 +341,14 @@
             <span class="block text-sm font-medium text-gray-700 dark:text-gray-300">Itens da OS</span>
 
             <template x-if="! hasItems">
-                <p class="mt-2 rounded-lg border border-dashed border-gray-200 px-3 py-4 text-center text-sm text-gray-500 dark:border-gray-800 dark:text-gray-400">
+                <p class="mt-2 rounded-xl border border-dashed border-gray-200 bg-gray-50/50 px-3 py-4 text-center text-sm text-gray-500 dark:border-gray-800 dark:bg-gray-800/20 dark:text-gray-400">
                     Nenhum item adicionado. Busque um item do catálogo acima.
                 </p>
             </template>
 
             <div class="mt-2 space-y-2">
                 <template x-for="(item, index) in items" :key="index">
-                    <div class="flex flex-wrap items-center gap-3 rounded-lg border border-gray-200 p-3 dark:border-gray-800 sm:flex-nowrap">
+                    <div class="flex flex-wrap items-center gap-3 rounded-xl border border-gray-200 p-3 dark:border-gray-800 sm:flex-nowrap">
                         <input type="hidden" :name="'items[' + index + '][catalog_item_id]'" :value="item.catalog_item_id">
 
                         <div class="min-w-0 flex-1">
@@ -369,7 +369,7 @@
                                 x-bind:id="'item-quantity-' + index"
                                 x-bind:name="'items[' + index + '][quantity]'"
                                 x-model.number="item.quantity"
-                                class="w-24 rounded-md border border-gray-300 dark:border-gray-700 dark:bg-gray-900 px-2 py-1.5 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500"
+                                class="w-24 rounded-xl border border-gray-300 bg-white dark:border-gray-700 dark:bg-gray-900 px-2 py-1.5 text-sm shadow-sm transition focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30"
                             >
                         </div>
 
@@ -378,7 +378,7 @@
                         <button
                             type="button"
                             @click="removeItem(index)"
-                            class="rounded-md p-1.5 text-gray-400 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-500/15 dark:hover:text-red-400"
+                            class="rounded-lg p-1.5 text-gray-400 transition hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-500/15 dark:hover:text-red-400"
                             aria-label="Remover item"
                         >
                             <x-icon name="trash" class="h-4 w-4" />
@@ -402,7 +402,7 @@
             name="notes"
             id="notes"
             rows="3"
-            class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-700 dark:bg-gray-900 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500"
+            class="mt-1 block w-full rounded-xl border border-gray-300 bg-white dark:border-gray-700 dark:bg-gray-900 px-3 py-2 text-sm shadow-sm transition focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30"
         >{{ old('notes', $workOrder?->notes) }}</textarea>
         @error('notes')
             <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p>

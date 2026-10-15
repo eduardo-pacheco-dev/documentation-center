@@ -71,12 +71,22 @@ class WorkOrderController extends Controller
             ? $request->query('view')
             : 'table';
 
+        $owned = fn () => WorkOrder::query()->ownedBy($request->user());
+
+        $stats = [
+            'total' => $owned()->count(),
+            'open' => $owned()->where('status', WorkOrderStatus::Open->value)->count(),
+            'inProgress' => $owned()->where('status', WorkOrderStatus::InProgress->value)->count(),
+            'completed' => $owned()->where('status', WorkOrderStatus::Completed->value)->count(),
+        ];
+
         return view('admin.work-orders.index', [
             'workOrders' => $workOrders,
             'search' => $search,
             'status' => $status,
             'view' => $view,
             'perPage' => $perPage,
+            'stats' => $stats,
             ...$this->formData($request->user()),
         ]);
     }

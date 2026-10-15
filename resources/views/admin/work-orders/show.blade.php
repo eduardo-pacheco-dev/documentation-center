@@ -233,7 +233,7 @@
                             type="button"
                             x-show="! editing"
                             @click="startEditing()"
-                            class="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 dark:border-gray-700 dark:bg-gray-900 px-3 py-1.5 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800"
+                            class="inline-flex items-center gap-1.5 rounded-lg border border-gray-200/70 px-3 py-1.5 text-sm font-medium text-gray-600 transition hover:border-indigo-200 hover:text-indigo-600 dark:border-gray-800 dark:text-gray-300 dark:hover:border-indigo-500/40"
                         >
                             <x-icon name="pencil-square" class="h-4 w-4" />
                             Editar itens
@@ -252,7 +252,7 @@
 
                         <div class="space-y-4 p-6">
                             @if (! empty($itemsErrors))
-                                <div class="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-300">
+                                <div class="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-300">
                                     <ul class="list-disc space-y-0.5 pl-4">
                                         @foreach ($itemsErrors as $message)
                                             <li>{{ $message }}</li>
@@ -275,11 +275,11 @@
                                             @click="openResults = true"
                                             placeholder="Busque pelo nome do item..."
                                             autocomplete="off"
-                                            class="block w-full rounded-lg border border-gray-300 dark:border-gray-700 dark:bg-gray-900 pl-9 pr-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500"
+                                            class="block w-full rounded-xl border border-gray-300 bg-white dark:border-gray-700 dark:bg-gray-900 pl-9 pr-3 py-2 text-sm shadow-sm transition focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30"
                                         >
                                     </div>
 
-                                    <div x-show="openResults" x-cloak class="mt-1 max-h-64 w-full overflow-auto rounded-lg border border-gray-200 bg-white py-1 shadow-sm dark:border-gray-700 dark:bg-gray-900">
+                                    <div x-show="openResults" x-cloak class="mt-1 max-h-64 w-full overflow-auto rounded-xl border border-gray-200 bg-white py-1 shadow-lg ring-1 ring-gray-900/5 dark:border-gray-700 dark:bg-gray-900 dark:ring-white/10">
                                         <template x-for="option in results" :key="option.id">
                                             <button type="button" @click="addFromCatalog(option)" class="flex w-full items-center gap-3 px-3 py-2 text-left hover:bg-gray-50 dark:hover:bg-gray-800">
                                                 <span class="min-w-0 flex-1 truncate text-sm text-gray-700 dark:text-gray-200" x-text="option.name"></span>
@@ -324,7 +324,7 @@
                                                 x-bind:id="'item-quantity-' + index"
                                                 x-bind:name="'items[' + index + '][quantity]'"
                                                 x-model.number="item.quantity"
-                                                class="w-24 rounded-lg border border-gray-300 dark:border-gray-700 dark:bg-gray-900 px-2 py-1.5 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500"
+                                                class="w-24 rounded-xl border border-gray-300 bg-white dark:border-gray-700 dark:bg-gray-900 px-2 py-1.5 text-sm shadow-sm transition focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30"
                                             >
                                         </div>
 
@@ -359,13 +359,13 @@
                                 <button
                                     type="button"
                                     @click="cancelEditing()"
-                                    class="rounded-lg border border-gray-300 dark:border-gray-700 dark:bg-gray-900 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800"
+                                    class="rounded-xl border border-gray-200/70 px-4 py-2 text-sm font-semibold text-gray-700 transition hover:border-indigo-200 hover:text-indigo-600 dark:border-gray-800 dark:text-gray-200 dark:hover:border-indigo-500/40"
                                 >
                                     Cancelar
                                 </button>
                                 <button
                                     type="submit"
-                                    class="inline-flex items-center gap-1.5 rounded-lg bg-gray-900 dark:bg-white px-4 py-2 text-sm font-medium text-white dark:text-gray-900 hover:bg-gray-700 dark:hover:bg-gray-200"
+                                    class="inline-flex items-center gap-1.5 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-500"
                                 >
                                     <x-icon name="check" class="h-4 w-4" />
                                     Salvar itens
@@ -481,7 +481,7 @@
                             type="button"
                             x-show="! editing"
                             @click="editing = true"
-                            class="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 dark:border-gray-700 dark:bg-gray-900 px-3 py-1.5 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800"
+                            class="inline-flex items-center gap-1.5 rounded-lg border border-gray-200/70 px-3 py-1.5 text-sm font-medium text-gray-600 transition hover:border-indigo-200 hover:text-indigo-600 dark:border-gray-800 dark:text-gray-300 dark:hover:border-indigo-500/40"
                         >
                             <x-icon name="pencil-square" class="h-4 w-4" />
                             Editar
@@ -509,7 +509,7 @@
                             name="description"
                             id="work-order-description"
                             rows="4"
-                            class="block w-full rounded-lg border border-gray-300 dark:border-gray-700 dark:bg-gray-900 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500"
+                            class="block w-full rounded-xl border border-gray-300 bg-white dark:border-gray-700 dark:bg-gray-900 px-3 py-2 text-sm shadow-sm transition focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30"
                         >{{ old('description', $workOrder->description) }}</textarea>
                         @error('description')
                             <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p>
@@ -519,13 +519,13 @@
                             <button
                                 type="button"
                                 @click="editing = false"
-                                class="rounded-lg border border-gray-300 dark:border-gray-700 dark:bg-gray-900 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800"
+                                class="rounded-xl border border-gray-200/70 px-4 py-2 text-sm font-semibold text-gray-700 transition hover:border-indigo-200 hover:text-indigo-600 dark:border-gray-800 dark:text-gray-200 dark:hover:border-indigo-500/40"
                             >
                                 Cancelar
                             </button>
                             <button
                                 type="submit"
-                                class="inline-flex items-center gap-1.5 rounded-lg bg-gray-900 dark:bg-white px-4 py-2 text-sm font-medium text-white dark:text-gray-900 hover:bg-gray-700 dark:hover:bg-gray-200"
+                                class="inline-flex items-center gap-1.5 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-500"
                             >
                                 <x-icon name="check" class="h-4 w-4" />
                                 Salvar
@@ -563,7 +563,7 @@
                             type="button"
                             x-show="! editing"
                             @click="editing = true"
-                            class="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 dark:border-gray-700 dark:bg-gray-900 px-3 py-1.5 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800"
+                            class="inline-flex items-center gap-1.5 rounded-lg border border-gray-200/70 px-3 py-1.5 text-sm font-medium text-gray-600 transition hover:border-indigo-200 hover:text-indigo-600 dark:border-gray-800 dark:text-gray-300 dark:hover:border-indigo-500/40"
                         >
                             <x-icon name="pencil-square" class="h-4 w-4" />
                             Editar
@@ -591,7 +591,7 @@
                             name="notes"
                             id="work-order-notes"
                             rows="4"
-                            class="block w-full rounded-lg border border-gray-300 dark:border-gray-700 dark:bg-gray-900 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500"
+                            class="block w-full rounded-xl border border-gray-300 bg-white dark:border-gray-700 dark:bg-gray-900 px-3 py-2 text-sm shadow-sm transition focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30"
                         >{{ old('notes', $workOrder->notes) }}</textarea>
                         @error('notes')
                             <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p>
@@ -601,13 +601,13 @@
                             <button
                                 type="button"
                                 @click="editing = false"
-                                class="rounded-lg border border-gray-300 dark:border-gray-700 dark:bg-gray-900 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800"
+                                class="rounded-xl border border-gray-200/70 px-4 py-2 text-sm font-semibold text-gray-700 transition hover:border-indigo-200 hover:text-indigo-600 dark:border-gray-800 dark:text-gray-200 dark:hover:border-indigo-500/40"
                             >
                                 Cancelar
                             </button>
                             <button
                                 type="submit"
-                                class="inline-flex items-center gap-1.5 rounded-lg bg-gray-900 dark:bg-white px-4 py-2 text-sm font-medium text-white dark:text-gray-900 hover:bg-gray-700 dark:hover:bg-gray-200"
+                                class="inline-flex items-center gap-1.5 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-500"
                             >
                                 <x-icon name="check" class="h-4 w-4" />
                                 Salvar
@@ -647,7 +647,7 @@
                             type="button"
                             x-show="! editing"
                             @click="editing = true"
-                            class="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 dark:border-gray-700 dark:bg-gray-900 px-3 py-1.5 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800"
+                            class="inline-flex items-center gap-1.5 rounded-lg border border-gray-200/70 px-3 py-1.5 text-sm font-medium text-gray-600 transition hover:border-indigo-200 hover:text-indigo-600 dark:border-gray-800 dark:text-gray-300 dark:hover:border-indigo-500/40"
                         >
                             <x-icon name="pencil-square" class="h-4 w-4" />
                             Editar
@@ -688,7 +688,7 @@
                                     id="work-order-opened-at"
                                     required
                                     value="{{ old('opened_at', $workOrder->opened_at?->format('Y-m-d')) }}"
-                                    class="mt-1 block w-full rounded-lg border border-gray-300 dark:border-gray-700 dark:bg-gray-900 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500"
+                                    class="mt-1 block w-full rounded-xl border border-gray-300 bg-white dark:border-gray-700 dark:bg-gray-900 px-3 py-2 text-sm shadow-sm transition focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30"
                                 >
                                 @error('opened_at')
                                     <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p>
@@ -702,7 +702,7 @@
                                     name="due_at"
                                     id="work-order-due-at"
                                     value="{{ old('due_at', $workOrder->due_at?->format('Y-m-d')) }}"
-                                    class="mt-1 block w-full rounded-lg border border-gray-300 dark:border-gray-700 dark:bg-gray-900 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500"
+                                    class="mt-1 block w-full rounded-xl border border-gray-300 bg-white dark:border-gray-700 dark:bg-gray-900 px-3 py-2 text-sm shadow-sm transition focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30"
                                 >
                                 @error('due_at')
                                     <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p>
@@ -714,13 +714,13 @@
                             <button
                                 type="button"
                                 @click="editing = false"
-                                class="rounded-lg border border-gray-300 dark:border-gray-700 dark:bg-gray-900 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800"
+                                class="rounded-xl border border-gray-200/70 px-4 py-2 text-sm font-semibold text-gray-700 transition hover:border-indigo-200 hover:text-indigo-600 dark:border-gray-800 dark:text-gray-200 dark:hover:border-indigo-500/40"
                             >
                                 Cancelar
                             </button>
                             <button
                                 type="submit"
-                                class="inline-flex items-center gap-1.5 rounded-lg bg-gray-900 dark:bg-white px-4 py-2 text-sm font-medium text-white dark:text-gray-900 hover:bg-gray-700 dark:hover:bg-gray-200"
+                                class="inline-flex items-center gap-1.5 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-500"
                             >
                                 <x-icon name="check" class="h-4 w-4" />
                                 Salvar
@@ -768,7 +768,7 @@
                             @csrf
                             <button
                                 type="submit"
-                                class="inline-flex items-center gap-1.5 rounded-lg bg-gray-900 dark:bg-white px-3 py-1.5 text-sm font-medium text-white dark:text-gray-900 hover:bg-gray-700 dark:hover:bg-gray-200"
+                                class="inline-flex items-center gap-1.5 rounded-xl bg-indigo-600 px-3 py-1.5 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-500"
                             >
                                 <x-icon name="plus" class="h-4 w-4" />
                                 Criar projeto
@@ -879,15 +879,19 @@
             const scroller = wizard.closest('.overflow-y-auto');
             const baseIndicator = 'inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-medium transition';
             const inactiveIndicator = baseIndicator + ' border-gray-300 text-gray-600 hover:bg-gray-100 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800';
-            const activeIndicator = baseIndicator + ' border-gray-900 bg-gray-900 text-white dark:border-white dark:bg-white dark:text-gray-900';
-            const doneIndicator = baseIndicator + ' border-green-500 text-green-600 dark:text-green-400';
+            const activeIndicator = baseIndicator + ' border-indigo-600 bg-indigo-600 text-white shadow-sm';
+            const doneIndicator = baseIndicator + ' border-emerald-500 text-emerald-600 dark:text-emerald-400';
+            const baseBadge = 'inline-flex h-5 w-5 items-center justify-center rounded-full text-[0.65rem] font-semibold';
+            const inactiveBadge = baseBadge + ' bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-200';
+            const activeBadge = baseBadge + ' bg-white/25 text-white';
+            const doneBadge = baseBadge + ' bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300';
             let current = 0;
 
             if (stepsList) {
                 stepsList.innerHTML = panels.map((panel, index) => `
                     <li>
                         <button type="button" data-wizard-indicator="${index}" class="${inactiveIndicator}">
-                            <span class="inline-flex h-5 w-5 items-center justify-center rounded-full bg-gray-200 text-[0.65rem] font-semibold text-gray-700 dark:bg-gray-700 dark:text-gray-200">${index + 1}</span>
+                            <span data-wizard-badge class="${inactiveBadge}">${index + 1}</span>
                             <span>${panel.dataset.wizardTitle ?? ''}</span>
                         </button>
                     </li>
@@ -906,6 +910,14 @@
                     indicator.className = index === current
                         ? activeIndicator
                         : (index < current ? doneIndicator : inactiveIndicator);
+
+                    const badge = indicator.querySelector('[data-wizard-badge]');
+
+                    if (badge) {
+                        badge.className = index === current
+                            ? activeBadge
+                            : (index < current ? doneBadge : inactiveBadge);
+                    }
                 });
 
                 prevButton.classList.toggle('hidden', current === 0);

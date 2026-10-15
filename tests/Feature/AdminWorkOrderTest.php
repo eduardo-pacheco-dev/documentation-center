@@ -44,6 +44,24 @@ it('lists only the work orders the user owns', function () {
         ->assertDontSee('OS-9002');
 });
 
+it('shows work order statistics for the authenticated user', function () {
+    $owner = User::factory()->create();
+    $client = ownedClient($owner);
+
+    WorkOrder::factory()->create(['user_id' => $owner->getKey(), 'client_id' => $client->getKey()]);
+    WorkOrder::factory()->inProgress()->create(['user_id' => $owner->getKey(), 'client_id' => $client->getKey()]);
+    WorkOrder::factory()->completed()->create(['user_id' => $owner->getKey(), 'client_id' => $client->getKey()]);
+    WorkOrder::factory()->cancelled()->create();
+
+    $this->actingAs($owner)
+        ->get('/admin/work-orders')
+        ->assertOk()
+        ->assertViewHas('stats', fn (array $stats): bool => $stats['total'] === 3
+            && $stats['open'] === 1
+            && $stats['inProgress'] === 1
+            && $stats['completed'] === 1);
+});
+
 it('filters the work order list by search term and status', function () {
     $owner = User::factory()->create();
     $client = ownedClient($owner);
