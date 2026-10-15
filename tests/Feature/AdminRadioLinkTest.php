@@ -492,6 +492,8 @@ it('draws the link trace on the map when both endpoints have coordinates', funct
         ->assertSee('Mapa do enlace')
         ->assertSee('id="radio-link-map"', false)
         ->assertSee('L.polyline', false)
+        ->assertSee('radio-link-map-label', false)
+        ->assertSee("'Ponta '", false)
         ->assertSee('google.com/maps/dir/?api=1&origin=', false);
 
     $this->actingAs($user)

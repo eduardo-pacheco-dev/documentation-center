@@ -216,6 +216,24 @@
                 box-shadow: 0 1px 3px rgba(15, 23, 42, 0.4), 0 0 0 6px rgba(5, 150, 105, 0.25);
             }
 
+            .radio-link-map-label {
+                position: absolute;
+                bottom: 26px;
+                left: 50%;
+                transform: translateX(-50%);
+                display: inline-flex;
+                align-items: center;
+                padding: 2px 8px;
+                border-radius: 9999px;
+                background: #ffffff;
+                color: #374151;
+                font-size: 11px;
+                font-weight: 600;
+                white-space: nowrap;
+                box-shadow: 0 1px 3px rgba(15, 23, 42, 0.25);
+                pointer-events: none;
+            }
+
             .radio-link-map-distance {
                 display: inline-flex;
                 align-items: center;
@@ -253,6 +271,11 @@
 
             .dark .radio-link-map-popup-title {
                 color: #f3f4f6;
+            }
+
+            .dark .radio-link-map-label {
+                background: #111827;
+                color: #e5e7eb;
             }
 
             .dark .leaflet-popup-content-wrapper,
@@ -382,10 +405,11 @@
                             title: endpoint.label,
                             icon: L.divIcon({
                                 className: '',
-                                html: '<span class="radio-link-map-pin' + (endpoint.side === 'A' ? '' : ' radio-link-map-pin-end') + '"></span>',
+                                html: '<span class="radio-link-map-label">Ponta ' + endpoint.side + ': ' + escapeHtml(endpoint.label) + '</span>'
+                                    + '<span class="radio-link-map-pin' + (endpoint.side === 'A' ? '' : ' radio-link-map-pin-end') + '"></span>',
                                 iconSize: [20, 20],
                                 iconAnchor: [10, 10],
-                                popupAnchor: [0, -11],
+                                popupAnchor: [0, 3],
                             }),
                         })
                             .addTo(map)
