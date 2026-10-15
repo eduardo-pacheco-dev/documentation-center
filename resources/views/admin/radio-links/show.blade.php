@@ -13,6 +13,23 @@
             ? '—'
             : number_format($value, 2, ',', '.').' km';
         $endLabel = fn ($erb): string => $erb?->site_id ?: ($erb?->code ?? '—');
+
+        $locatedEndpoints = collect([
+            ['side' => 'A', 'erb' => $radioLink->erbA],
+            ['side' => 'B', 'erb' => $radioLink->erbB],
+        ])
+            ->filter(fn (array $endpoint) => $endpoint['erb'] !== null && $endpoint['erb']->latitude !== null && $endpoint['erb']->longitude !== null)
+            ->map(fn (array $endpoint) => [
+                'side' => $endpoint['side'],
+                'label' => $endpoint['erb']->site_id ?: $endpoint['erb']->code,
+                'name' => $endpoint['erb']->name,
+                'latitude' => (float) $endpoint['erb']->latitude,
+                'longitude' => (float) $endpoint['erb']->longitude,
+                'url' => route('admin.erbs.show', $endpoint['erb']),
+            ])
+            ->values();
+
+        $bothEndpointsLocated = $locatedEndpoints->count() === 2;
     @endphp
 
     <div class="flex flex-wrap items-end justify-between gap-4">
@@ -167,6 +184,223 @@
                 </div>
             @endforeach
         </div>
+    </section>
+
+    @if ($locatedEndpoints->isNotEmpty())
+        <style>
+            #radio-link-map {
+                position: relative;
+                z-index: 0;
+                isolation: isolate;
+                height: 420px;
+            }
+
+            @media (max-width: 640px) {
+                #radio-link-map {
+                    height: 320px;
+                }
+            }
+
+            .radio-link-map-pin {
+                display: block;
+                width: 20px;
+                height: 20px;
+                border: 3px solid #ffffff;
+                border-radius: 9999px;
+                background: #4f46e5;
+                box-shadow: 0 1px 3px rgba(15, 23, 42, 0.4), 0 0 0 6px rgba(79, 70, 229, 0.25);
+            }
+
+            .radio-link-map-pin-end {
+                background: #059669;
+                box-shadow: 0 1px 3px rgba(15, 23, 42, 0.4), 0 0 0 6px rgba(5, 150, 105, 0.25);
+            }
+
+            .radio-link-map-distance {
+                display: inline-flex;
+                align-items: center;
+                padding: 2px 8px;
+                border-radius: 9999px;
+                background: #ffffff;
+                color: #374151;
+                font-size: 11px;
+                font-weight: 600;
+                white-space: nowrap;
+                box-shadow: 0 1px 3px rgba(15, 23, 42, 0.25);
+            }
+
+            .radio-link-map-popup {
+                min-width: 190px;
+                font-size: 12px;
+                line-height: 1.5;
+                color: #4b5563;
+            }
+
+            .radio-link-map-popup-title {
+                font-size: 13px;
+                font-weight: 600;
+                color: #111827;
+            }
+
+            .radio-link-map-popup-coords {
+                font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+                font-size: 11px;
+            }
+
+            .dark .radio-link-map-popup {
+                color: #9ca3af;
+            }
+
+            .dark .radio-link-map-popup-title {
+                color: #f3f4f6;
+            }
+
+            .dark .leaflet-popup-content-wrapper,
+            .dark .leaflet-popup-tip {
+                background: #111827;
+            }
+        </style>
+    @endif
+
+    <section class="mt-4 overflow-hidden rounded-2xl border border-gray-200/70 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900">
+        <div class="flex flex-wrap items-center justify-between gap-3 border-b border-gray-100 px-5 py-4 dark:border-gray-800">
+            <div class="flex items-center gap-2">
+                <span class="inline-flex h-8 w-8 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400">
+                    <x-icon name="map-pin" class="h-4 w-4" />
+                </span>
+                <h2 class="text-sm font-semibold text-gray-900 dark:text-gray-100">Mapa do enlace</h2>
+                @if ($bothEndpointsLocated)
+                    <span class="rounded-full bg-indigo-50 px-2.5 py-0.5 text-xs font-medium text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-400">
+                        {{ $km($radioLink->distanceKm()) }}
+                    </span>
+                @endif
+            </div>
+
+            @if ($bothEndpointsLocated)
+                <div class="flex flex-wrap items-center gap-2">
+                    <a
+                        href="https://www.google.com/maps/dir/?api=1&origin={{ $radioLink->erbA->latitude }},{{ $radioLink->erbA->longitude }}&destination={{ $radioLink->erbB->latitude }},{{ $radioLink->erbB->longitude }}"
+                        target="_blank"
+                        rel="noopener"
+                        class="inline-flex items-center gap-1.5 rounded-xl border border-gray-200/70 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 shadow-sm transition hover:border-indigo-200 hover:text-indigo-600 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-200 dark:hover:border-indigo-500/40"
+                    >
+                        <x-icon name="arrow-top-right-on-square" class="h-3.5 w-3.5" />
+                        Google Maps
+                    </a>
+
+                    <a
+                        href="https://www.openstreetmap.org/directions?from={{ $radioLink->erbA->latitude }},{{ $radioLink->erbA->longitude }}&to={{ $radioLink->erbB->latitude }},{{ $radioLink->erbB->longitude }}"
+                        target="_blank"
+                        rel="noopener"
+                        class="inline-flex items-center gap-1.5 rounded-xl border border-gray-200/70 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 shadow-sm transition hover:border-indigo-200 hover:text-indigo-600 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-200 dark:hover:border-indigo-500/40"
+                    >
+                        <x-icon name="arrow-top-right-on-square" class="h-3.5 w-3.5" />
+                        OpenStreetMap
+                    </a>
+                </div>
+            @endif
+        </div>
+
+        @if ($locatedEndpoints->isNotEmpty())
+            <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css" />
+
+            <div id="radio-link-map" class="bg-gray-100 dark:bg-gray-800"></div>
+
+            <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
+            <script>
+                (function () {
+                    const container = document.getElementById('radio-link-map');
+
+                    if (! container) {
+                        return;
+                    }
+
+                    if (typeof L === 'undefined') {
+                        container.innerHTML = '<p style="display: flex; height: 100%; align-items: center; justify-content: center; font-size: 13px; color: #6b7280;">Não foi possível carregar o mapa.</p>';
+
+                        return;
+                    }
+
+                    const endpoints = @js($locatedEndpoints->all());
+
+                    const escapeHtml = (value) => String(value).replace(/[&<>"']/g, (character) => ({
+                        '&': '&amp;',
+                        '<': '&lt;',
+                        '>': '&gt;',
+                        '"': '&quot;',
+                        "'": '&#039;',
+                    })[character]);
+
+                    const map = L.map(container, { scrollWheelZoom: false });
+
+                    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+                        maxZoom: 19,
+                    }).addTo(map);
+
+                    const points = endpoints.map((endpoint) => [endpoint.latitude, endpoint.longitude]);
+
+                    if (points.length === 2) {
+                        L.polyline(points, {
+                            color: '#4f46e5',
+                            weight: 3,
+                            opacity: 0.9,
+                            dashArray: '10 8',
+                        }).addTo(map);
+
+                        map.fitBounds(L.latLngBounds(points), { padding: [48, 48] });
+
+                        const middle = [
+                            (points[0][0] + points[1][0]) / 2,
+                            (points[0][1] + points[1][1]) / 2,
+                        ];
+
+                        L.marker(middle, {
+                            interactive: false,
+                            icon: L.divIcon({
+                                className: '',
+                                html: '<span class="radio-link-map-distance">' + escapeHtml(@js($km($radioLink->distanceKm()))) + '</span>',
+                                iconSize: [78, 20],
+                                iconAnchor: [39, 10],
+                            }),
+                        }).addTo(map);
+                    } else {
+                        map.setView(points[0], 16);
+                    }
+
+                    endpoints.forEach((endpoint) => {
+                        const popup = [
+                            '<div class="radio-link-map-popup">',
+                            '<p class="radio-link-map-popup-title">' + escapeHtml('Ponta ' + endpoint.side + ' — ' + endpoint.label) + '</p>',
+                            '<p>' + escapeHtml(endpoint.name) + '</p>',
+                            '<p class="radio-link-map-popup-coords">' + endpoint.latitude.toFixed(5) + ', ' + endpoint.longitude.toFixed(5) + '</p>',
+                            '<a href="' + escapeHtml(endpoint.url) + '" target="_blank" rel="noopener">Abrir cadastro da ERB</a>',
+                            '</div>',
+                        ].join('');
+
+                        L.marker([endpoint.latitude, endpoint.longitude], {
+                            title: endpoint.label,
+                            icon: L.divIcon({
+                                className: '',
+                                html: '<span class="radio-link-map-pin' + (endpoint.side === 'A' ? '' : ' radio-link-map-pin-end') + '"></span>',
+                                iconSize: [20, 20],
+                                iconAnchor: [10, 10],
+                                popupAnchor: [0, -11],
+                            }),
+                        })
+                            .addTo(map)
+                            .bindPopup(popup);
+                    });
+                })();
+            </script>
+        @else
+            <div class="px-5 py-12 text-center">
+                <span class="mx-auto flex h-11 w-11 items-center justify-center rounded-2xl bg-gray-100 text-gray-400 dark:bg-gray-800 dark:text-gray-500">
+                    <x-icon name="map-pin" class="h-5 w-5" />
+                </span>
+                <p class="mt-3 text-sm text-gray-500 dark:text-gray-400">Informe as coordenadas das pontas para ver o traçado do enlace no mapa.</p>
+            </div>
+        @endif
     </section>
 
     <div class="mt-4 grid gap-4 lg:grid-cols-3">

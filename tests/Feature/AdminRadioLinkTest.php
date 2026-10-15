@@ -475,6 +475,59 @@ it('computes the link distance from the endpoint coordinates', function () {
     expect($radioLink->distanceKm())->toBeBetween(110, 113);
 });
 
+it('draws the link trace on the map when both endpoints have coordinates', function () {
+    $user = User::factory()->create();
+    $endpoints = radioLinkEndpoints($user);
+
+    $radioLink = RadioLink::factory()->create([
+        'user_id' => $user->getKey(),
+        'erb_a_id' => $endpoints['endA']->getKey(),
+        'erb_b_id' => $endpoints['endB']->getKey(),
+        'code' => 'RL-00001',
+    ]);
+
+    $this->actingAs($user)
+        ->get(route('admin.radio-links.show', $radioLink))
+        ->assertOk()
+        ->assertSee('Mapa do enlace')
+        ->assertSee('id="radio-link-map"', false)
+        ->assertSee('L.polyline', false)
+        ->assertSee('google.com/maps/dir/?api=1&origin=', false);
+
+    $this->actingAs($user)
+        ->get(route('admin.radio-links.edit', $radioLink))
+        ->assertOk()
+        ->assertSee('id="radio-link-map"', false);
+});
+
+it('asks for the endpoint coordinates when the link map cannot be drawn', function () {
+    $user = User::factory()->create();
+
+    $endA = Erb::factory()->create([
+        'user_id' => $user->getKey(),
+        'latitude' => null,
+        'longitude' => null,
+    ]);
+    $endB = Erb::factory()->create([
+        'user_id' => $user->getKey(),
+        'latitude' => null,
+        'longitude' => null,
+    ]);
+
+    $radioLink = RadioLink::factory()->create([
+        'user_id' => $user->getKey(),
+        'erb_a_id' => $endA->getKey(),
+        'erb_b_id' => $endB->getKey(),
+        'code' => 'RL-00001',
+    ]);
+
+    $this->actingAs($user)
+        ->get(route('admin.radio-links.show', $radioLink))
+        ->assertOk()
+        ->assertSee('Informe as coordenadas das pontas')
+        ->assertDontSee('id="radio-link-map"', false);
+});
+
 it('lists its radio links on the ERB detail page', function () {
     $user = User::factory()->create();
 
