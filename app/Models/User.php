@@ -49,6 +49,16 @@ class User extends Authenticatable
     }
 
     /**
+     * The backups requested by the user.
+     *
+     * @return HasMany<Backup, $this>
+     */
+    public function backups(): HasMany
+    {
+        return $this->hasMany(Backup::class);
+    }
+
+    /**
      * The folders owned by the user.
      */
     public function folders(): HasMany

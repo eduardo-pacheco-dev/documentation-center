@@ -38,6 +38,68 @@ resolve_web_user() {
     return 1
 }
 
+# Install/refresh a systemd service that keeps a queue worker alive so queued
+# jobs (e.g. backups) run without a manually started process. Falls back to a
+# graceful worker restart when not running as root or systemd is unavailable.
+configure_queue_worker() {
+    local php_bin service_name service_path run_user
+
+    php_bin="$(command -v php)"
+    service_name="$(basename "$APP_DIR" | tr -c 'a-zA-Z0-9' '-')-worker"
+
+    log "Restarting queue workers so they load the new code"
+    php artisan queue:restart || true
+
+    if ! command -v systemctl >/dev/null 2>&1; then
+        log "systemctl not found; ensure 'php artisan queue:work' runs as the web user"
+        return 0
+    fi
+
+    if [ "$(id -u)" -ne 0 ]; then
+        log "Warning: not running as root; skipping systemd worker setup"
+        log "Ensure a 'php artisan queue:work' process runs as the web user"
+        return 0
+    fi
+
+    if ! run_user="$(resolve_web_user)"; then
+        fail "Could not determine the web user for the queue worker; set the WEB_USER secret"
+    fi
+
+    service_path="/etc/systemd/system/${service_name}.service"
+
+    log "Installing queue worker service '${service_name}'"
+    cat > "$service_path" <<EOF
+[Unit]
+Description=Documentation Center queue worker
+After=network.target
+
+[Service]
+Type=simple
+User=${run_user}
+Group=${run_user}
+Restart=always
+RestartSec=5
+WorkingDirectory=${APP_DIR}
+ExecStart=${php_bin} artisan queue:work --sleep=3 --tries=1 --timeout=1900 --max-time=3600
+StopAsGroup=true
+KillMode=mixed
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+    systemctl daemon-reload
+    systemctl enable "$service_name" >/dev/null 2>&1 || true
+    systemctl restart "$service_name"
+
+    sleep 1
+    if systemctl is-active --quiet "$service_name"; then
+        log "Queue worker is running"
+    else
+        log "Warning: queue worker is not active; check 'journalctl -u ${service_name}'"
+    fi
+}
+
 command -v git >/dev/null 2>&1 || fail "git is not installed"
 command -v php >/dev/null 2>&1 || fail "php is not installed"
 command -v composer >/dev/null 2>&1 || fail "composer is not installed"
@@ -119,5 +181,8 @@ php artisan storage:link
 
 log "Running database migrations"
 php artisan migrate --force
+
+log "Configuring the queue worker"
+configure_queue_worker
 
 log "Deploy completed"

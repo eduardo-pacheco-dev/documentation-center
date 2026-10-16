@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Admin\BackupController;
 use App\Http\Controllers\Admin\CatalogItemController;
 use App\Http\Controllers\Admin\ClientContactController;
 use App\Http\Controllers\Admin\ClientController;
@@ -261,6 +262,12 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
         ->name('trash.folders.force-destroy');
 
     Route::middleware('admin')->group(function () {
+        Route::get('backups', [BackupController::class, 'index'])->name('backups.index');
+        Route::post('backups', [BackupController::class, 'store'])->name('backups.store');
+        Route::get('backups/status', [BackupController::class, 'status'])->name('backups.status');
+        Route::get('backups/{backup}/download', [BackupController::class, 'download'])->name('backups.download');
+        Route::delete('backups/{backup}', [BackupController::class, 'destroy'])->name('backups.destroy');
+
         Route::get('users', [UserController::class, 'index'])->name('users.index');
         Route::post('users', [UserController::class, 'store'])->name('users.store');
         Route::put('users/{user}', [UserController::class, 'update'])->name('users.update');

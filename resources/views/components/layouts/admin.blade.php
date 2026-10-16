@@ -52,6 +52,7 @@
                             ];
 
                             if (auth()->user()->is_admin) {
+                                $navItems[] = ['url' => route('admin.backups.index'), 'active' => 'admin.backups.*', 'icon' => 'rectangle-stack', 'label' => 'Backups'];
                                 $navItems[] = ['url' => route('admin.users.index'), 'active' => 'admin.users.*', 'icon' => 'users', 'label' => 'Usuários'];
                             }
 
