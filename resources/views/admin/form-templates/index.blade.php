@@ -21,10 +21,20 @@
             <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Estruturas reutilizáveis compartilhadas com todos os usuários.</p>
         </div>
 
-        <a href="{{ route('admin.forms.index') }}" class="{{ $secondaryButton }}">
-            <x-icon name="document-text" class="h-4 w-4" />
-            Ir para formulários
-        </a>
+        <div class="flex flex-wrap items-center gap-2">
+            <a
+                href="{{ route('admin.form-templates.create') }}"
+                class="inline-flex items-center gap-1.5 rounded-2xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-500"
+            >
+                <x-icon name="plus" class="h-4 w-4" />
+                Novo template
+            </a>
+
+            <a href="{{ route('admin.forms.index') }}" class="{{ $secondaryButton }}">
+                <x-icon name="document-text" class="h-4 w-4" />
+                Ir para formulários
+            </a>
+        </div>
     </div>
 
     <div class="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">

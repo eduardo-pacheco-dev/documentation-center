@@ -85,24 +85,50 @@ class FormTemplateController extends Controller
     }
 
     /**
-     * Create a shared template from one of the user's forms.
+     * Show the form to create a template from scratch.
+     */
+    public function create(): View
+    {
+        $this->authorize('create', FormTemplate::class);
+
+        return view('admin.form-templates.create', [
+            'types' => $this->templateTypes(),
+        ]);
+    }
+
+    /**
+     * Create a shared template, either from scratch or from one of the user's forms.
      */
     public function store(StoreFormTemplateRequest $request): RedirectResponse
     {
-        $form = Form::query()
-            ->where('user_id', $request->user()->getKey())
-            ->findOrFail($request->integer('form_id'));
+        $form = null;
+
+        if ($request->filled('form_id')) {
+            $form = Form::query()
+                ->where('user_id', $request->user()->getKey())
+                ->findOrFail($request->integer('form_id'));
+        }
 
         FormTemplate::create([
             'user_id' => $request->user()->getKey(),
             'name' => $request->string('name')->toString(),
-            'type' => $form->type,
-            'steps' => $form->steps ?? [],
+            'type' => $form?->type ?? ($request->string('type')->toString() ?: null),
+            'steps' => $form?->steps ?? $request->input('steps', []),
         ]);
 
         return redirect()
             ->route('admin.form-templates.index')
             ->with('status', 'Template criado com sucesso.');
+    }
+
+    /**
+     * The template types offered when creating or editing a template.
+     *
+     * @return list<string>
+     */
+    private function templateTypes(): array
+    {
+        return ['Registro Fotográfico', 'Checklist', 'Vistoria', 'Inspeção', 'Laudo Técnico'];
     }
 
     /**
@@ -116,7 +142,7 @@ class FormTemplateController extends Controller
 
         return view('admin.form-templates.edit', [
             'template' => $formTemplate,
-            'types' => ['Registro Fotográfico', 'Checklist', 'Vistoria', 'Inspeção', 'Laudo Técnico'],
+            'types' => $this->templateTypes(),
         ]);
     }
 

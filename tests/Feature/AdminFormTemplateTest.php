@@ -158,6 +158,91 @@ it('rejects creating a template from a form the user does not own', function () 
     expect(FormTemplate::query()->count())->toBe(0);
 });
 
+it('shows the blank template creation page', function () {
+    $user = User::factory()->create();
+
+    $this->actingAs($user)
+        ->get(route('admin.form-templates.create'))
+        ->assertOk()
+        ->assertSee('Novo template')
+        ->assertSee('name="name"', false)
+        ->assertSee('name="steps_json"', false)
+        ->assertSee(route('admin.form-templates.store'), false);
+});
+
+it('creates a blank template without needing a form first', function () {
+    $user = User::factory()->create();
+
+    $steps = [
+        ['id' => 'S1', 'title' => 'Identificação', 'fields' => [
+            ['id' => 'F1-1', 'type' => 'text', 'label' => 'Área registrada', 'required' => true],
+        ]],
+    ];
+
+    $this->actingAs($user)
+        ->post(route('admin.form-templates.store'), [
+            'name' => 'Template do zero',
+            'type' => 'Checklist',
+            'steps_json' => json_encode($steps),
+        ])
+        ->assertRedirect(route('admin.form-templates.index'));
+
+    $template = FormTemplate::query()->firstOrFail();
+
+    expect($template->user_id)->toBe($user->getKey());
+    expect($template->name)->toBe('Template do zero');
+    expect($template->type)->toBe('Checklist');
+    expect($template->steps)->toBe($steps);
+});
+
+it('creates an empty template when no structure is submitted', function () {
+    $user = User::factory()->create();
+
+    $this->actingAs($user)
+        ->post(route('admin.form-templates.store'), [
+            'name' => 'Rascunho',
+            'type' => 'Vistoria',
+        ])
+        ->assertRedirect(route('admin.form-templates.index'));
+
+    $template = FormTemplate::query()->firstOrFail();
+
+    expect($template->name)->toBe('Rascunho');
+    expect($template->type)->toBe('Vistoria');
+    expect($template->steps)->toBe([]);
+});
+
+it('validates the builder payload when creating a template', function () {
+    $user = User::factory()->create();
+
+    $steps = [
+        ['id' => 'S1', 'title' => 'Seção', 'fields' => [
+            ['id' => 'F1-1', 'type' => 'signature', 'label' => 'Assinatura'],
+        ]],
+    ];
+
+    $this->actingAs($user)
+        ->post(route('admin.form-templates.store'), [
+            'name' => 'Template inválido',
+            'steps_json' => json_encode($steps),
+        ])
+        ->assertSessionHasErrors('steps.0.fields.0.type');
+
+    expect(FormTemplate::query()->count())->toBe(0);
+});
+
+it('requires a name when creating a template', function () {
+    $user = User::factory()->create();
+
+    $this->actingAs($user)
+        ->post(route('admin.form-templates.store'), [
+            'type' => 'Checklist',
+        ])
+        ->assertSessionHasErrors('name');
+
+    expect(FormTemplate::query()->count())->toBe(0);
+});
+
 it('renders the template edit page with details and structure tabs', function () {
     $user = User::factory()->create();
     $template = FormTemplate::factory()->ownedBy($user)->create();
