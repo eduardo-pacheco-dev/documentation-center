@@ -26,6 +26,11 @@ class BackupManager
     private const STORAGE_FOLDER = 'storage/app';
 
     /**
+     * The number of rows grouped into a single insert statement.
+     */
+    private const INSERT_BATCH_SIZE = 500;
+
+    /**
      * Tables that are never dumped or restored because they hold ephemeral
      * runtime state (queue, cache, sessions) or the backup log itself.
      *
@@ -116,14 +121,14 @@ class BackupManager
     {
         $connection = DB::connection();
 
-        if ($connection->getDriverName() !== 'sqlite') {
-            throw new RuntimeException(sprintf(
+        $file = match ($connection->getDriverName()) {
+            'sqlite' => $this->dumpSqlite($connection),
+            'mysql', 'mariadb' => $this->dumpMysql($connection),
+            default => throw new RuntimeException(sprintf(
                 'O backup do banco de dados não é suportado para o driver [%s].',
                 $connection->getDriverName(),
-            ));
-        }
-
-        $file = $this->dumpSqlite($connection);
+            )),
+        };
 
         $temporaryFiles[] = $file;
 
@@ -131,11 +136,161 @@ class BackupManager
     }
 
     /**
+     * Write a restorable SQL dump of the MySQL or MariaDB database to a temporary file.
+     */
+    private function dumpMysql(Connection $connection): string
+    {
+        $target = $this->temporaryFile();
+
+        $handle = fopen($target, 'w');
+
+        if ($handle === false) {
+            throw new RuntimeException('Não foi possível criar o arquivo de dump do banco de dados.');
+        }
+
+        try {
+            $tables = $this->mysqlObjectNames($connection, 'BASE TABLE');
+
+            fwrite($handle, "SET FOREIGN_KEY_CHECKS=0;\n\n");
+
+            foreach ($tables as $table) {
+                fwrite($handle, $this->mysqlCreateStatement($connection, $table).";\n\n");
+            }
+
+            foreach ($tables as $table) {
+                $this->writeMysqlTableRows($handle, $connection, $table);
+            }
+
+            foreach ($this->mysqlObjectNames($connection, 'VIEW') as $view) {
+                fwrite($handle, $this->mysqlCreateStatement($connection, $view).";\n\n");
+            }
+
+            fwrite($handle, "SET FOREIGN_KEY_CHECKS=1;\n");
+        } finally {
+            fclose($handle);
+        }
+
+        return $target;
+    }
+
+    /**
+     * List the non preserved tables or views of the current database.
+     *
+     * @return array<int, string>
+     */
+    private function mysqlObjectNames(Connection $connection, string $type): array
+    {
+        $objects = $connection->select(
+            'SELECT table_name AS name FROM information_schema.tables
+             WHERE table_schema = DATABASE()
+               AND table_type = ?
+               AND table_name NOT IN ('.$this->preservedList().')
+             ORDER BY table_name',
+            [$type],
+        );
+
+        return array_map(static fn (object $object): string => $object->name, $objects);
+    }
+
+    /**
+     * Read the "CREATE" statement that recreates the given table or view.
+     */
+    private function mysqlCreateStatement(Connection $connection, string $name): string
+    {
+        $row = $connection->selectOne(sprintf('SHOW CREATE TABLE %s', $this->quoteMysqlIdentifier($name)));
+
+        $values = $row === null ? [] : array_values((array) $row);
+
+        if (! isset($values[1]) || ! is_string($values[1])) {
+            throw new RuntimeException(sprintf('Não foi possível ler a definição de [%s].', $name));
+        }
+
+        return $values[1];
+    }
+
+    /**
+     * Write the insert statements for every row of the given MySQL table.
+     *
+     * @param  resource  $handle
+     */
+    private function writeMysqlTableRows($handle, Connection $connection, string $table): void
+    {
+        $quotedTable = $this->quoteMysqlIdentifier($table);
+        $pdo = $connection->getPdo();
+
+        $columns = null;
+        $batch = [];
+
+        foreach ($connection->table($table)->cursor() as $row) {
+            $values = (array) $row;
+
+            $columns ??= array_keys($values);
+
+            $batch[] = '('.implode(', ', array_map(
+                fn (mixed $value): string => $this->quoteValue($pdo, $value),
+                $values,
+            )).')';
+
+            if (count($batch) >= self::INSERT_BATCH_SIZE) {
+                $this->flushMysqlInsert($handle, $quotedTable, $columns, $batch);
+            }
+        }
+
+        $this->flushMysqlInsert($handle, $quotedTable, $columns, $batch);
+    }
+
+    /**
+     * Write a batched insert statement.
+     *
+     * @param  resource  $handle
+     * @param  array<int, string>|null  $columns
+     * @param  array<int, string>  $batch
+     */
+    private function flushMysqlInsert($handle, string $quotedTable, ?array $columns, array &$batch): void
+    {
+        if ($columns === null || $batch === []) {
+            $batch = [];
+
+            return;
+        }
+
+        $columnList = implode(', ', array_map(
+            fn (string $column): string => $this->quoteMysqlIdentifier($column),
+            $columns,
+        ));
+
+        fwrite($handle, sprintf(
+            "INSERT INTO %s (%s) VALUES\n%s;\n\n",
+            $quotedTable,
+            $columnList,
+            implode(",\n", $batch),
+        ));
+
+        $batch = [];
+    }
+
+    /**
+     * Quote a MySQL or MariaDB identifier with backticks.
+     */
+    private function quoteMysqlIdentifier(string $name): string
+    {
+        return '`'.str_replace('`', '``', $name).'`';
+    }
+
+    /**
+     * Build a unique temporary file path for the dump.
+     */
+    private function temporaryFile(): string
+    {
+        return rtrim(sys_get_temp_dir(), '\\/').DIRECTORY_SEPARATOR.'backup-'.uniqid('', true).'.sql';
+    }
+
+    /**
      * Write a restorable SQL dump of the SQLite database to a temporary file.
      */
     private function dumpSqlite(Connection $connection): string
     {
-        $target = rtrim(sys_get_temp_dir(), '\\/').DIRECTORY_SEPARATOR.'backup-'.uniqid('', true).'.sql';
+        $target = $this->temporaryFile();
 
         $handle = fopen($target, 'w');
 

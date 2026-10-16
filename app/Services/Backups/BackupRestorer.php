@@ -4,6 +4,7 @@ namespace App\Services\Backups;
 
 use App\Enums\BackupStatus;
 use App\Models\Backup;
+use Illuminate\Database\Connection;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
@@ -28,7 +29,10 @@ class BackupRestorer
      */
     private const STORAGE_FOLDER = 'storage/app';
 
-    public function __construct(private BackupManager $manager) {}
+    public function __construct(
+        private BackupManager $manager,
+        private SqlStatementSplitter $splitter = new SqlStatementSplitter,
+    ) {}
 
     /**
      * Restore the given backup, keeping a safety copy of the current state.
@@ -98,13 +102,21 @@ class BackupRestorer
 
         $connection = DB::connection();
 
-        if ($connection->getDriverName() !== 'sqlite') {
-            throw new RuntimeException(sprintf(
+        match ($connection->getDriverName()) {
+            'sqlite' => $this->restoreSqlite($connection, $sql),
+            'mysql', 'mariadb' => $this->restoreMysql($connection, $sql),
+            default => throw new RuntimeException(sprintf(
                 'A restauração do banco de dados não é suportada para o driver [%s].',
                 $connection->getDriverName(),
-            ));
-        }
+            )),
+        };
+    }
 
+    /**
+     * Replace the SQLite tables and views with the ones stored in the dump.
+     */
+    private function restoreSqlite(Connection $connection, string $sql): void
+    {
         $pdo = $connection->getPdo();
 
         $pdo->exec('PRAGMA foreign_keys = OFF');
@@ -120,6 +132,55 @@ class BackupRestorer
         } finally {
             $pdo->exec('PRAGMA foreign_keys = ON');
         }
+    }
+
+    /**
+     * Replace the MySQL or MariaDB tables and views with the ones stored in the dump.
+     */
+    private function restoreMysql(Connection $connection, string $sql): void
+    {
+        $pdo = $connection->getPdo();
+
+        $pdo->exec('SET FOREIGN_KEY_CHECKS = 0');
+
+        try {
+            foreach ($this->mysqlObjects($connection) as $object) {
+                $keyword = strtoupper($object->type) === 'VIEW' ? 'VIEW' : 'TABLE';
+
+                $pdo->exec(sprintf(
+                    'DROP %s IF EXISTS `%s`',
+                    $keyword,
+                    str_replace('`', '``', $object->name),
+                ));
+            }
+
+            foreach ($this->splitter->split($sql) as $statement) {
+                $connection->unprepared($statement);
+            }
+        } finally {
+            $pdo->exec('SET FOREIGN_KEY_CHECKS = 1');
+        }
+    }
+
+    /**
+     * List the non preserved tables and views of the current MySQL database.
+     *
+     * @return array<int, object>
+     */
+    private function mysqlObjects(Connection $connection): array
+    {
+        $preserved = implode(', ', array_map(
+            fn (string $table): string => "'".str_replace("'", "''", $table)."'",
+            BackupManager::PRESERVED_TABLES,
+        ));
+
+        return $connection->select(
+            "SELECT table_name AS name, table_type AS type FROM information_schema.tables
+             WHERE table_schema = DATABASE()
+               AND table_type IN ('BASE TABLE', 'VIEW')
+               AND table_name NOT IN ({$preserved})
+             ORDER BY CASE table_type WHEN 'VIEW' THEN 1 ELSE 2 END"
+        );
     }
 
     /**
