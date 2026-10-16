@@ -51,7 +51,39 @@
 
             <div>
                 <dt class="text-xs font-medium uppercase tracking-wide text-gray-400 dark:text-gray-500">Status</dt>
-                <dd class="mt-1"><x-work-order-item-status :item="$item" /></dd>
+                <dd class="mt-1">
+                    @can('update', $workOrder)
+                        @php
+                            $selectedStatus = ($openItemId === $item->getKey() && old('status'))
+                                ? old('status')
+                                : $item->status->value;
+                        @endphp
+                        <form
+                            method="POST"
+                            action="{{ route('admin.work-orders.items.status.update', [$workOrder, $item]) }}"
+                        >
+                            @csrf
+                            @method('PUT')
+                            <input type="hidden" name="item_id" value="{{ $item->getKey() }}">
+
+                            <select
+                                name="status"
+                                onchange="this.form.submit()"
+                                class="w-full rounded-lg border border-gray-300 bg-white px-2 py-1.5 text-sm shadow-sm transition focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200"
+                            >
+                                @foreach (\App\Enums\WorkOrderItemStatus::cases() as $statusOption)
+                                    <option value="{{ $statusOption->value }}" @selected($selectedStatus === $statusOption->value)>{{ $statusOption->label() }}</option>
+                                @endforeach
+                            </select>
+                        </form>
+
+                        @if ($openItemId === $item->getKey() && $errors->has('status'))
+                            <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $errors->first('status') }}</p>
+                        @endif
+                    @else
+                        <x-work-order-item-status :item="$item" />
+                    @endcan
+                </dd>
             </div>
 
             <div>
