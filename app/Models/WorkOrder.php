@@ -77,6 +77,16 @@ class WorkOrder extends Model
     }
 
     /**
+     * The comments written on the work order.
+     *
+     * @return HasMany<Comment, $this>
+     */
+    public function comments(): HasMany
+    {
+        return $this->hasMany(Comment::class)->latest();
+    }
+
+    /**
      * The project created from the work order.
      */
     public function project(): HasOne

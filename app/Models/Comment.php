@@ -12,6 +12,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
     'user_id',
     'erb_id',
     'radio_link_id',
+    'work_order_id',
     'body',
 ])]
 class Comment extends Model
@@ -41,5 +42,13 @@ class Comment extends Model
     public function radioLink(): BelongsTo
     {
         return $this->belongsTo(RadioLink::class);
+    }
+
+    /**
+     * The work order the comment belongs to, when the comment was written on a work order.
+     */
+    public function workOrder(): BelongsTo
+    {
+        return $this->belongsTo(WorkOrder::class);
     }
 }

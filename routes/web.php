@@ -34,6 +34,7 @@ use App\Http\Controllers\Admin\RadioLinkDocumentController;
 use App\Http\Controllers\Admin\ShortLinkController;
 use App\Http\Controllers\Admin\TrashController;
 use App\Http\Controllers\Admin\UserController;
+use App\Http\Controllers\Admin\WorkOrderCommentController;
 use App\Http\Controllers\Admin\WorkOrderController;
 use App\Http\Controllers\Admin\WorkOrderImportController;
 use App\Http\Controllers\Admin\WorkOrderItemController;
@@ -208,6 +209,8 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
     Route::put('work-orders/{workOrder}/items/{item}/status', [WorkOrderItemController::class, 'updateStatus'])->name('work-orders.items.status.update');
     Route::post('work-orders/{workOrder}/items/{item}/documents', [WorkOrderItemDocumentController::class, 'store'])->name('work-orders.items.documents.store');
     Route::delete('work-orders/{workOrder}/items/{item}/documents/{document}', [WorkOrderItemDocumentController::class, 'destroy'])->name('work-orders.items.documents.destroy');
+    Route::post('work-orders/{workOrder}/comments', [WorkOrderCommentController::class, 'store'])->name('work-orders.comments.store');
+    Route::delete('work-orders/{workOrder}/comments/{comment}', [WorkOrderCommentController::class, 'destroy'])->name('work-orders.comments.destroy');
     Route::put('work-orders/{workOrder}/dates', [WorkOrderController::class, 'updateDates'])->name('work-orders.dates.update');
     Route::put('work-orders/{workOrder}/description', [WorkOrderController::class, 'updateDescription'])->name('work-orders.description.update');
     Route::put('work-orders/{workOrder}/notes', [WorkOrderController::class, 'updateNotes'])->name('work-orders.notes.update');

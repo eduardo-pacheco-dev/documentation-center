@@ -947,6 +947,8 @@
         </div>
     </div>
 
+    @include('admin.work-orders.partials.comments', ['workOrder' => $workOrder])
+
     @foreach ($workOrder->items as $item)
         @include('admin.work-orders.partials.item-details-modal', ['workOrder' => $workOrder, 'item' => $item, 'money' => $money, 'quantity' => $quantity])
     @endforeach
