@@ -220,7 +220,7 @@
                 </table>
             </div>
 
-            <div class="flex flex-wrap items-center justify-between gap-3 border-t border-gray-100 px-5 py-4 dark:border-gray-800">
+            <div class="border-t border-gray-100 px-5 py-4 dark:border-gray-800">
                 @include('admin.form-templates.partials.pagination')
             </div>
         </div>
@@ -261,13 +261,15 @@
                         @endif
                     </div>
 
-                    <div class="mt-4 flex items-center justify-between border-t border-gray-100 pt-3 text-xs text-gray-500 dark:border-gray-800 dark:text-gray-400">
+                    <div class="mt-4 flex items-center justify-between gap-3 border-t border-gray-100 pt-3 text-xs text-gray-500 dark:border-gray-800 dark:text-gray-400">
                         <span class="flex min-w-0 items-center gap-1.5">
                             <x-icon name="user" class="h-3.5 w-3.5 shrink-0" />
                             <span class="truncate">{{ $template->user?->name ?? '—' }}</span>
                         </span>
-                        <x-icon name="clock" class="h-3.5 w-3.5 shrink-0" />
-                        <x-relative-time :value="$template->updated_at" class="ml-auto" />
+                        <span class="flex shrink-0 items-center gap-1.5">
+                            <x-icon name="clock" class="h-3.5 w-3.5 shrink-0" />
+                            <x-relative-time :value="$template->updated_at" />
+                        </span>
                     </div>
                 </div>
             @empty
@@ -293,7 +295,9 @@
             @endforelse
         </div>
 
-        @include('admin.form-templates.partials.pagination')
+        <div class="mt-4">
+            @include('admin.form-templates.partials.pagination')
+        </div>
     @else
         <div class="mt-4 divide-y divide-gray-100 overflow-hidden rounded-2xl border border-gray-200/70 bg-white shadow-sm dark:divide-gray-800 dark:border-gray-800 dark:bg-gray-900">
             @forelse ($templates as $template)
@@ -304,7 +308,7 @@
 
                     <div class="min-w-0 flex-1">
                         @can('update', $template)
-                            <a href="{{ route('admin.form-templates.edit', $template) }}" class="truncate font-semibold text-gray-900 transition hover:text-indigo-600 dark:text-gray-100 dark:hover:text-indigo-400">
+                            <a href="{{ route('admin.form-templates.edit', $template) }}" class="block truncate font-semibold text-gray-900 transition hover:text-indigo-600 dark:text-gray-100 dark:hover:text-indigo-400">
                                 {{ $template->name }}
                             </a>
                         @else
@@ -348,7 +352,9 @@
             @endforelse
         </div>
 
-        @include('admin.form-templates.partials.pagination')
+        <div class="mt-4">
+            @include('admin.form-templates.partials.pagination')
+        </div>
     @endif
 
     <script>

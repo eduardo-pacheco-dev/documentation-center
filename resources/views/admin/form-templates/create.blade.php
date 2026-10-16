@@ -105,7 +105,7 @@
                 </div>
             @endif
 
-            <div class="px-5 pt-5">
+            <div class="p-5">
                 @include('admin.forms.partials.builder', ['steps' => $initialSteps])
             </div>
         </section>
