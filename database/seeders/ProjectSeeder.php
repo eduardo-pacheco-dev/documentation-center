@@ -438,7 +438,7 @@ class ProjectSeeder extends Seeder
             'project_id' => $project->getKey(),
             'name' => $name,
             'type' => $type,
-            'code' => substr(mb_strtoupper(preg_replace('/\PL+/u', '', $name)), 0, 4),
+            'code' => mb_substr(mb_strtoupper(preg_replace('/\PL+/u', '', $name)), 0, 4),
             'max_units' => 100,
             'cost_per_hour' => random_int($rate[0], $rate[1]),
             'cost_per_unit' => 0,

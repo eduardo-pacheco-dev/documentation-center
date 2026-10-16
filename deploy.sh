@@ -10,8 +10,7 @@ log() { printf '\n==> %s\n' "$*"; }
 fail() { printf 'ERROR: %s\n' "$*" >&2; exit 1; }
 
 # Resolve the OS user that actually runs PHP-FPM / the web server, so the
-# SQLite database and writable directories are owned by the process that
-# needs to write to them.
+# writable directories are owned by the process that needs to write to them.
 resolve_web_user() {
     local owner
 
@@ -128,6 +127,10 @@ if grep -qE '^APP_DEBUG=true\r?$' .env; then
     log "Warning: APP_DEBUG is true in .env - set it to false in production"
 fi
 
+if grep -qE '^DB_CONNECTION=sqlite\r?$' .env; then
+    fail "DB_CONNECTION is sqlite; configure MySQL/MariaDB credentials in .env before deploying"
+fi
+
 log "Installing PHP dependencies"
 composer install --no-dev --prefer-dist --no-interaction --optimize-autoloader
 
@@ -135,26 +138,19 @@ log "Clearing stale caches"
 php artisan optimize:clear
 
 log "Ensuring storage directories and writable paths"
-mkdir -p storage/framework/cache/data storage/framework/views storage/framework/sessions storage/logs database bootstrap/cache
-if [ ! -f database/database.sqlite ]; then
-    touch database/database.sqlite
-    log "Created database/database.sqlite"
-fi
+mkdir -p storage/framework/cache/data storage/framework/views storage/framework/sessions storage/logs bootstrap/cache
 
-# SQLite needs to write both the database file and its directory (for the
-# journal/WAL files), so the whole `database` directory must be writable.
 if [ "$(id -u)" -eq 0 ]; then
     if RESOLVED_WEB_USER="$(resolve_web_user)"; then
         log "Granting ownership of writable paths to '$RESOLVED_WEB_USER'"
-        chown -R "$RESOLVED_WEB_USER":"$RESOLVED_WEB_USER" storage database bootstrap/cache
-        chmod -R ug+rwX storage database bootstrap/cache
-        chmod ug+rw database/database.sqlite
+        chown -R "$RESOLVED_WEB_USER":"$RESOLVED_WEB_USER" storage bootstrap/cache
+        chmod -R ug+rwX storage bootstrap/cache
     else
         fail "Could not determine the web user; set the WEB_USER secret to the user that runs PHP-FPM"
     fi
 else
-    log "Warning: running as non-root; cannot change ownership. Ensure '$(id -un)' owns storage, database and bootstrap/cache."
-    chmod -R ug+rwX storage database bootstrap/cache 2>/dev/null || true
+    log "Warning: running as non-root; cannot change ownership. Ensure '$(id -un)' owns storage and bootstrap/cache."
+    chmod -R ug+rwX storage bootstrap/cache 2>/dev/null || true
 fi
 
 if grep -qE '^APP_KEY=\r?$' .env; then
