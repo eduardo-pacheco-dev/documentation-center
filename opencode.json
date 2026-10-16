@@ -4,12 +4,13 @@
         "laravel-boost": {
             "type": "local",
             "enabled": true,
+            "cwd": "C:\\Workspace\\documentation-center",
             "command": [
-                "php",
+                "C:\\Users\\Eduardo\\.config\\herd\\bin\\php84\\php.exe",
                 "artisan",
                 "boost:mcp"
             ],
-            "timeout": 60000
+            "timeout": 120000
         }
     }
 }
