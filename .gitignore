@@ -2,6 +2,7 @@
 .DS_Store
 .env
 .env.backup
+.env.cypress
 .env.production
 .phpactor.json
 .phpunit.result.cache
@@ -13,6 +14,9 @@
 /.vscode
 /.zed
 /auth.json
+/cypress/downloads
+/cypress/screenshots
+/cypress/videos
 /node_modules
 /public/build
 /public/fonts-manifest.dev.json
