@@ -123,12 +123,35 @@ if [ -z "${DEPLOY_REEXEC:-}" ]; then
     exec bash "$APP_DIR/deploy.sh"
 fi
 
-if grep -qE '^APP_DEBUG=true\r?$' .env; then
-    log "Warning: APP_DEBUG is true in .env - set it to false in production"
+env_file="$APP_DIR/.env"
+
+if grep -qE '^APP_DEBUG=true' <(tr -d '\r' < "$env_file"); then
+    log "Warning: APP_DEBUG is true in $env_file - set it to false in production"
 fi
 
-if grep -qE '^DB_CONNECTION=sqlite\r?$' .env; then
-    fail "DB_CONNECTION is sqlite; configure MySQL/MariaDB credentials in .env before deploying"
+log "Checking the database connection in $env_file"
+
+# Laravel only honours the first DB_CONNECTION definition (phpdotenv never
+# overwrites an already-set variable), so validate that one and flag extras.
+db_entries="$(grep -nE '^[[:space:]]*DB_CONNECTION[[:space:]]*=' "$env_file" | tr -d '\r' || true)"
+
+if [ -z "$db_entries" ]; then
+    log "Note: DB_CONNECTION is not set in $env_file; the default connection will be used"
+else
+    db_entry_count="$(printf '%s\n' "$db_entries" | grep -c . || true)"
+
+    if [ "$db_entry_count" -gt 1 ]; then
+        log "Warning: $db_entry_count DB_CONNECTION entries in $env_file - Laravel uses the first one:"
+        printf '%s\n' "$db_entries" | sed 's/^/  /'
+    fi
+
+    db_connection="$(printf '%s\n' "$db_entries" | head -n 1 | sed -E 's/^[0-9]+://; s/^[[:space:]]*DB_CONNECTION[[:space:]]*=[[:space:]]*//; s/[[:space:]]+$//' | tr -d "\"'" )"
+
+    if [ "$db_connection" = "sqlite" ]; then
+        fail "DB_CONNECTION resolves to 'sqlite' in $env_file (offending line(s): $(printf '%s' "$db_entries" | tr '\n' ' ')). Configure MySQL/MariaDB credentials before deploying"
+    fi
+
+    log "Database connection: $db_connection"
 fi
 
 log "Installing PHP dependencies"
