@@ -56,7 +56,7 @@ class WorkOrderController extends Controller
 
         $workOrders = WorkOrder::query()
             ->ownedBy($request->user())
-            ->with(['client:id,name', 'erb:id,site_id,code', 'radioLink:id,code'])
+            ->with(['client:id,name', 'erb:id,site_id,code', 'radioLink:id,code,erb_a_id,erb_b_id', 'radioLink.erbA:id,site_id,code', 'radioLink.erbB:id,site_id,code'])
             ->withCount('items')
             ->when($search !== '', fn (Builder $query) => $query->where(fn (Builder $inner) => $inner
                 ->where('number', 'like', "%{$search}%")

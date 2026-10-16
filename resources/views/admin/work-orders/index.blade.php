@@ -176,7 +176,9 @@
                                             <span class="truncate">{{ $workOrder->erb->site_id ?: $workOrder->erb->code }}</span>
                                         @elseif ($workOrder->radioLink)
                                             <x-icon name="arrows-right-left" class="h-3.5 w-3.5 shrink-0 text-gray-400 dark:text-gray-500" />
-                                            <span class="truncate">{{ $workOrder->radioLink->code }}</span>
+                                            <span class="truncate">{{ $workOrder->radioLink->erbA?->site_id ?: ($workOrder->radioLink->erbA?->code ?? '—') }}</span>
+                                            <x-icon name="arrow-right" class="h-3 w-3 shrink-0 text-gray-400 dark:text-gray-500" />
+                                            <span class="truncate">{{ $workOrder->radioLink->erbB?->site_id ?: ($workOrder->radioLink->erbB?->code ?? '—') }}</span>
                                         @else
                                             <span class="text-gray-400 dark:text-gray-500">—</span>
                                         @endif

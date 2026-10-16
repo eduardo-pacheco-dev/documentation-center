@@ -117,6 +117,33 @@ it('shows the linked erb site id in the list', function () {
         ->assertSee('SITE-ABC-123');
 });
 
+it('shows the radio link ends as site a to site b in the list', function () {
+    $owner = User::factory()->create();
+    $client = ownedClient($owner);
+
+    $endA = Erb::factory()->create(['user_id' => $owner->getKey(), 'site_id' => 'SITE-AAA']);
+    $endB = Erb::factory()->create(['user_id' => $owner->getKey(), 'site_id' => 'SITE-BBB']);
+
+    $radioLink = RadioLink::factory()->create([
+        'user_id' => $owner->getKey(),
+        'erb_a_id' => $endA->getKey(),
+        'erb_b_id' => $endB->getKey(),
+    ]);
+
+    WorkOrder::factory()->create([
+        'user_id' => $owner->getKey(),
+        'client_id' => $client->getKey(),
+        'radio_link_id' => $radioLink->getKey(),
+    ]);
+
+    $response = $this->actingAs($owner)->get('/admin/work-orders')->assertOk();
+
+    expect($response->getContent())
+        ->toContain('SITE-AAA')
+        ->toContain('SITE-BBB')
+        ->toContain('M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3');
+});
+
 it('renders the create form inside a modal on the work orders list', function () {
     $owner = User::factory()->create();
     ownedClient($owner);
