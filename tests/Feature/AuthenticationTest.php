@@ -37,7 +37,9 @@ test('login rejects invalid credentials', function () {
     ]);
 
     $response->assertRedirect('/login');
-    $response->assertSessionHasErrors('email');
+    $response->assertSessionHasErrors([
+        'email' => 'As credenciais informadas não correspondem a um usuário.',
+    ]);
     $this->assertGuest();
 });
 
