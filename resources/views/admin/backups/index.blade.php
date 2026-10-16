@@ -12,7 +12,7 @@
                 Backups
             </h1>
             <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                Gere e baixe cópias completas do banco de dados e dos arquivos enviados.
+                Gere, baixe e restaure cópias completas do banco de dados e dos arquivos enviados.
             </p>
         </div>
 
@@ -62,15 +62,20 @@
         </div>
     </div>
 
-    @if ($stats['in_progress'] > 0)
+    @if ($stats['in_progress'] > 0 || $stats['restoring'] > 0)
         <div
             id="backup-progress"
             class="mt-6 flex items-center gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-300"
         >
             <x-icon name="arrow-path" class="h-5 w-5 animate-spin" />
             <div>
-                <p class="font-semibold">Backup em andamento</p>
-                <p class="text-amber-700 dark:text-amber-400">Esta página será atualizada automaticamente quando o backup terminar.</p>
+                @if ($stats['restoring'] > 0)
+                    <p class="font-semibold">Restauração em andamento</p>
+                    <p class="text-amber-700 dark:text-amber-400">A aplicação está em manutenção. Esta página será atualizada automaticamente quando terminar.</p>
+                @else
+                    <p class="font-semibold">Backup em andamento</p>
+                    <p class="text-amber-700 dark:text-amber-400">Esta página será atualizada automaticamente quando o backup terminar.</p>
+                @endif
             </div>
         </div>
 
@@ -79,7 +84,10 @@
                 fetch(@json(route('admin.backups.status')), { headers: { 'Accept': 'application/json' } })
                     .then((response) => response.json())
                     .then((backups) => {
-                        const busy = backups.some((backup) => ['pending', 'running'].includes(backup.status));
+                        const busyStates = ['pending', 'running'];
+                        const busy = backups.some((backup) =>
+                            busyStates.includes(backup.status) || busyStates.includes(backup.restore_status)
+                        );
 
                         if (busy) {
                             setTimeout(poll, 4000);
@@ -116,9 +124,15 @@
                                 @endif
                             </td>
                             <td class="px-5 py-4">
-                                <x-backup-status :backup="$backup" />
+                                <div class="flex flex-wrap items-center gap-2">
+                                    <x-backup-status :backup="$backup" />
+                                    <x-backup-restore-status :backup="$backup" />
+                                </div>
                                 @if ($backup->error)
                                     <p class="mt-1 max-w-md text-xs text-red-600 dark:text-red-400">{{ $backup->error }}</p>
+                                @endif
+                                @if ($backup->restore_error)
+                                    <p class="mt-1 max-w-md text-xs text-red-600 dark:text-red-400">{{ $backup->restore_error }}</p>
                                 @endif
                             </td>
                             <td class="whitespace-nowrap px-5 py-4 text-gray-500 dark:text-gray-400">
@@ -137,6 +151,26 @@
                                             <x-icon name="arrow-down-tray" class="h-4 w-4" />
                                             Baixar
                                         </a>
+                                    @endif
+
+                                    @if ($backup->isRestorable())
+                                        <form
+                                            method="POST"
+                                            action="{{ route('admin.backups.restore', $backup) }}"
+                                            data-confirm="Restaurar este backup sobre a aplicação? Os dados atuais do banco e os arquivos enviados serão substituídos. Um backup de segurança do estado atual é criado antes."
+                                            data-confirm-title="Restaurar backup"
+                                            data-confirm-label="Restaurar"
+                                        >
+                                            @csrf
+                                            <button
+                                                type="submit"
+                                                class="inline-flex items-center gap-1.5 rounded-lg border border-amber-200 px-3 py-1.5 text-xs font-medium text-amber-700 transition hover:border-amber-300 hover:text-amber-800 dark:border-amber-500/40 dark:text-amber-300 dark:hover:border-amber-400"
+                                                title="Restaurar este backup"
+                                            >
+                                                <x-icon name="arrow-uturn-left" class="h-4 w-4" />
+                                                Restaurar
+                                            </button>
+                                        </form>
                                     @endif
 
                                     <form
@@ -193,6 +227,8 @@
             <div>
                 <p class="font-medium text-gray-900 dark:text-gray-100">O que é incluído</p>
                 <p class="mt-1">Cada arquivo <code>.zip</code> contém o dump do banco de dados (<code>database/database.sql</code>), todos os arquivos enviados em <code>storage/app</code> e um <code>manifest.json</code> com os metadados do backup.</p>
+                <p class="mt-3 font-medium text-gray-900 dark:text-gray-100">Restauração</p>
+                <p class="mt-1">Restaurar substitui os dados do banco e os arquivos enviados pelos do backup. A aplicação entra em manutenção durante o processo e um backup de segurança do estado atual é criado automaticamente. Tabelas internas (fila, cache, sessões e o próprio registro de backups) não são afetadas.</p>
             </div>
         </div>
     </div>

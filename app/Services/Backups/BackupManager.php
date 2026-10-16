@@ -26,6 +26,36 @@ class BackupManager
     private const STORAGE_FOLDER = 'storage/app';
 
     /**
+     * Tables that are never dumped or restored because they hold ephemeral
+     * runtime state (queue, cache, sessions) or the backup log itself.
+     *
+     * @var array<int, string>
+     */
+    public const PRESERVED_TABLES = [
+        'backups',
+        'migrations',
+        'cache',
+        'cache_locks',
+        'jobs',
+        'job_batches',
+        'failed_jobs',
+        'sessions',
+    ];
+
+    /**
+     * Create a new manager, optionally overriding the uploaded files root.
+     */
+    public function __construct(private readonly ?string $root = null) {}
+
+    /**
+     * The absolute path that holds the uploaded files.
+     */
+    public function storageRoot(): string
+    {
+        return $this->root ?? storage_path('app');
+    }
+
+    /**
      * Build the archive for the given record and return its stored path.
      */
     public function build(Backup $backup): string
@@ -120,7 +150,9 @@ class BackupManager
 
             $objects = $pdo->query(
                 "SELECT sql FROM sqlite_master
-                 WHERE sql IS NOT NULL AND name NOT LIKE 'sqlite_%'
+                 WHERE sql IS NOT NULL
+                   AND name NOT LIKE 'sqlite_%'
+                   AND tbl_name NOT IN (".$this->preservedList().")
                  ORDER BY CASE type
                      WHEN 'table' THEN 1
                      WHEN 'index' THEN 2
@@ -154,8 +186,22 @@ class BackupManager
     private function tableNames(PDO $pdo): array
     {
         return $pdo->query(
-            "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'"
+            "SELECT name FROM sqlite_master
+             WHERE type='table'
+               AND name NOT LIKE 'sqlite_%'
+               AND name NOT IN (".$this->preservedList().')'
         )->fetchAll(PDO::FETCH_COLUMN);
+    }
+
+    /**
+     * Build a quoted, comma separated list of the preserved table names.
+     */
+    private function preservedList(): string
+    {
+        return implode(', ', array_map(
+            fn (string $table): string => "'".str_replace("'", "''", $table)."'",
+            self::PRESERVED_TABLES,
+        ));
     }
 
     /**
@@ -209,7 +255,7 @@ class BackupManager
      */
     private function addUploadedFiles(ZipArchive $zip): void
     {
-        $root = storage_path('app');
+        $root = $this->storageRoot();
 
         if (! is_dir($root)) {
             return;

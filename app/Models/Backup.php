@@ -54,6 +54,36 @@ class Backup extends Model
     }
 
     /**
+     * Determine whether the backup can be restored over the application.
+     */
+    public function isRestorable(): bool
+    {
+        return $this->isDownloadable();
+    }
+
+    /**
+     * Determine whether a restore is currently queued or running.
+     */
+    public function isRestoring(): bool
+    {
+        return $this->restore_status !== null && $this->restore_status->isInProgress();
+    }
+
+    /**
+     * The human readable label for the restore status, when there is one.
+     */
+    public function restoreStatusLabel(): ?string
+    {
+        return match ($this->restore_status) {
+            BackupStatus::Pending => 'Restauração na fila',
+            BackupStatus::Running => 'Restaurando…',
+            BackupStatus::Completed => 'Restaurado',
+            BackupStatus::Failed => 'Falha ao restaurar',
+            default => null,
+        };
+    }
+
+    /**
      * The file name of the backup archive, when it exists.
      */
     public function filename(): ?string
@@ -100,6 +130,41 @@ class Backup extends Model
     }
 
     /**
+     * Flag a restore of this backup as being applied.
+     */
+    public function markRestoring(): void
+    {
+        $this->forceFill([
+            'restore_status' => BackupStatus::Running,
+            'restore_error' => null,
+            'restore_started_at' => now(),
+        ])->save();
+    }
+
+    /**
+     * Flag a restore of this backup as finished.
+     */
+    public function markRestored(): void
+    {
+        $this->forceFill([
+            'restore_status' => BackupStatus::Completed,
+            'restore_error' => null,
+            'restored_at' => now(),
+        ])->save();
+    }
+
+    /**
+     * Flag a restore of this backup as failed and store the reason.
+     */
+    public function markRestoreFailed(string $error): void
+    {
+        $this->forceFill([
+            'restore_status' => BackupStatus::Failed,
+            'restore_error' => Str::limit($error, 2000),
+        ])->save();
+    }
+
+    /**
      * Get the attributes that should be cast.
      *
      * @return array<string, string>
@@ -108,9 +173,12 @@ class Backup extends Model
     {
         return [
             'status' => BackupStatus::class,
+            'restore_status' => BackupStatus::class,
             'size' => 'integer',
             'started_at' => 'datetime',
             'completed_at' => 'datetime',
+            'restore_started_at' => 'datetime',
+            'restored_at' => 'datetime',
         ];
     }
 }
