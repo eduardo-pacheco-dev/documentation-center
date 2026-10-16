@@ -36,6 +36,7 @@ use App\Http\Controllers\Admin\TrashController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Admin\WorkOrderController;
 use App\Http\Controllers\Admin\WorkOrderImportController;
+use App\Http\Controllers\Admin\WorkOrderItemDocumentController;
 use App\Http\Controllers\Admin\WorkOrderProjectController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\RegisteredUserController;
@@ -203,6 +204,8 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
     Route::post('work-orders/{workOrder}/project', [WorkOrderProjectController::class, 'store'])->name('work-orders.project.store');
     Route::get('work-orders/{workOrder}/edit', [WorkOrderController::class, 'edit'])->name('work-orders.edit');
     Route::put('work-orders/{workOrder}/items', [WorkOrderController::class, 'updateItems'])->name('work-orders.items.update');
+    Route::post('work-orders/{workOrder}/items/{item}/documents', [WorkOrderItemDocumentController::class, 'store'])->name('work-orders.items.documents.store');
+    Route::delete('work-orders/{workOrder}/items/{item}/documents/{document}', [WorkOrderItemDocumentController::class, 'destroy'])->name('work-orders.items.documents.destroy');
     Route::put('work-orders/{workOrder}/dates', [WorkOrderController::class, 'updateDates'])->name('work-orders.dates.update');
     Route::put('work-orders/{workOrder}/description', [WorkOrderController::class, 'updateDescription'])->name('work-orders.description.update');
     Route::put('work-orders/{workOrder}/notes', [WorkOrderController::class, 'updateNotes'])->name('work-orders.notes.update');

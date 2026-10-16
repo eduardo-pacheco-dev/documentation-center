@@ -140,7 +140,7 @@ class WorkOrderController extends Controller
     {
         $this->authorize('view', $workOrder);
 
-        $workOrder->load(['client', 'erb', 'radioLink', 'items.catalogItem', 'project']);
+        $workOrder->load(['client', 'erb', 'radioLink', 'items.catalogItem', 'items.documents', 'project']);
 
         return view('admin.work-orders.show', [
             ...$this->formData($request->user()),
@@ -155,7 +155,7 @@ class WorkOrderController extends Controller
     {
         $this->authorize('update', $workOrder);
 
-        $workOrder->load(['client', 'erb', 'radioLink', 'items.catalogItem', 'project']);
+        $workOrder->load(['client', 'erb', 'radioLink', 'items.catalogItem', 'items.documents', 'project']);
 
         return view('admin.work-orders.show', [
             ...$this->formData($request->user()),

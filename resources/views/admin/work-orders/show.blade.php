@@ -419,6 +419,7 @@
                                     <th class="px-6 py-3 text-right font-medium">Quantidade</th>
                                     <th class="px-6 py-3 text-right font-medium">Valor unitário</th>
                                     <th class="px-6 py-3 text-right font-medium">Subtotal</th>
+                                    <th class="px-6 py-3 text-right font-medium"><span class="sr-only">Ações</span></th>
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
@@ -436,10 +437,20 @@
                                         <td class="whitespace-nowrap px-6 py-3 text-right text-gray-500 dark:text-gray-400">{{ $quantity($item->quantity) }}</td>
                                         <td class="whitespace-nowrap px-6 py-3 text-right text-gray-500 dark:text-gray-400">{{ $money((float) $item->unit_price) }}</td>
                                         <td class="whitespace-nowrap px-6 py-3 text-right font-medium text-gray-900 dark:text-gray-100">{{ $money((float) $item->total) }}</td>
+                                        <td class="whitespace-nowrap px-6 py-3 text-right">
+                                            <button
+                                                type="button"
+                                                data-modal-open="work-order-item-modal-{{ $item->getKey() }}"
+                                                class="inline-flex items-center gap-1.5 rounded-lg border border-gray-200/70 px-2.5 py-1.5 text-xs font-medium text-gray-600 transition hover:border-indigo-200 hover:text-indigo-600 dark:border-gray-800 dark:text-gray-300 dark:hover:border-indigo-500/40"
+                                            >
+                                                <x-icon name="eye" class="h-4 w-4" />
+                                                Detalhes
+                                            </button>
+                                        </td>
                                     </tr>
                                 @empty
                                     <tr>
-                                        <td class="px-6 py-6 text-gray-500 dark:text-gray-400" colspan="5">Nenhum item registrado.</td>
+                                        <td class="px-6 py-6 text-gray-500 dark:text-gray-400" colspan="6">Nenhum item registrado.</td>
                                     </tr>
                                 @endforelse
                             </tbody>
@@ -447,6 +458,7 @@
                                 <tr>
                                     <td class="px-6 py-3 text-right text-sm font-semibold text-gray-700 dark:text-gray-200" colspan="4">Total</td>
                                     <td class="whitespace-nowrap px-6 py-3 text-right text-sm font-semibold text-gray-900 dark:text-gray-100">{{ $money((float) $workOrder->total) }}</td>
+                                    <td></td>
                                 </tr>
                             </tfoot>
                         </table>
@@ -483,6 +495,7 @@
                                     <th class="px-6 py-3 text-right font-medium">Quantidade</th>
                                     <th class="px-6 py-3 text-right font-medium">Valor unitário</th>
                                     <th class="px-6 py-3 text-right font-medium">Subtotal</th>
+                                    <th class="px-6 py-3 text-right font-medium"><span class="sr-only">Ações</span></th>
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
@@ -500,10 +513,20 @@
                                         <td class="whitespace-nowrap px-6 py-3 text-right text-gray-500 dark:text-gray-400">{{ $quantity($item->quantity) }}</td>
                                         <td class="whitespace-nowrap px-6 py-3 text-right text-gray-500 dark:text-gray-400">{{ $money((float) $item->unit_price) }}</td>
                                         <td class="whitespace-nowrap px-6 py-3 text-right font-medium text-gray-900 dark:text-gray-100">{{ $money((float) $item->total) }}</td>
+                                        <td class="whitespace-nowrap px-6 py-3 text-right">
+                                            <button
+                                                type="button"
+                                                data-modal-open="work-order-item-modal-{{ $item->getKey() }}"
+                                                class="inline-flex items-center gap-1.5 rounded-lg border border-gray-200/70 px-2.5 py-1.5 text-xs font-medium text-gray-600 transition hover:border-indigo-200 hover:text-indigo-600 dark:border-gray-800 dark:text-gray-300 dark:hover:border-indigo-500/40"
+                                            >
+                                                <x-icon name="eye" class="h-4 w-4" />
+                                                Detalhes
+                                            </button>
+                                        </td>
                                     </tr>
                                 @empty
                                     <tr>
-                                        <td class="px-6 py-6 text-gray-500 dark:text-gray-400" colspan="5">Nenhum item registrado.</td>
+                                        <td class="px-6 py-6 text-gray-500 dark:text-gray-400" colspan="6">Nenhum item registrado.</td>
                                     </tr>
                                 @endforelse
                             </tbody>
@@ -511,6 +534,7 @@
                                 <tr>
                                     <td class="px-6 py-3 text-right text-sm font-semibold text-gray-700 dark:text-gray-200" colspan="4">Total</td>
                                     <td class="whitespace-nowrap px-6 py-3 text-right text-sm font-semibold text-gray-900 dark:text-gray-100">{{ $money((float) $workOrder->total) }}</td>
+                                    <td></td>
                                 </tr>
                             </tfoot>
                         </table>
@@ -681,6 +705,68 @@
                     </p>
                 </section>
             @endcan
+
+            @php
+                $workOrderDocuments = $workOrder->items
+                    ->flatMap(fn ($item) => $item->documents->map(fn ($document) => ['item' => $item, 'document' => $document]))
+                    ->sortByDesc(fn (array $row) => $row['document']->created_at)
+                    ->values();
+            @endphp
+
+            <section class="rounded-2xl border border-gray-200/70 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900">
+                <div class="flex flex-wrap items-center justify-between gap-3 border-b border-gray-100 px-6 py-4 dark:border-gray-800">
+                    <div class="flex items-center gap-2">
+                        <span class="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-amber-50 text-amber-600 dark:bg-amber-500/10 dark:text-amber-400">
+                            <x-icon name="paper-clip" class="h-4 w-4" />
+                        </span>
+                        <h2 class="text-sm font-semibold text-gray-900 dark:text-gray-100">Anexos</h2>
+                        <span class="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600 dark:bg-gray-800 dark:text-gray-300">
+                            {{ $workOrderDocuments->count() }}
+                        </span>
+                    </div>
+                </div>
+
+                @if ($workOrderDocuments->isEmpty())
+                    <div class="px-6 py-10 text-center">
+                        <p class="text-sm text-gray-500 dark:text-gray-400">Nenhum anexo cadastrado. Envie arquivos a partir dos itens da OS.</p>
+                    </div>
+                @else
+                    <ul class="divide-y divide-gray-100 dark:divide-gray-800">
+                        @foreach ($workOrderDocuments as $row)
+                            @php
+                                $document = $row['document'];
+                                $documentItem = $row['item'];
+                            @endphp
+                            <li class="flex items-center gap-3 px-6 py-3.5 transition hover:bg-gray-50/70 dark:hover:bg-gray-800/40">
+                                <x-file-type-icon :name="$document->original_name" size="xs" />
+
+                                <div class="min-w-0 flex-1">
+                                    <p class="truncate text-sm font-medium text-gray-900 dark:text-gray-100" title="{{ $document->original_name }}">
+                                        {{ $document->original_name }}
+                                    </p>
+                                    <p class="text-xs text-gray-500 dark:text-gray-400">
+                                        Item: {{ \Illuminate\Support\Str::limit($documentItem->description, 40) }}
+                                        ·
+                                        {{ Number::fileSize($document->size) }}
+                                        ·
+                                        <x-relative-time :value="$document->created_at" />
+                                    </p>
+                                </div>
+
+                                <a
+                                    href="{{ route('admin.files.preview', $document) }}"
+                                    target="_blank"
+                                    rel="noopener"
+                                    class="rounded-lg p-1.5 text-gray-400 transition hover:bg-gray-100 hover:text-gray-700 dark:text-gray-500 dark:hover:bg-gray-800 dark:hover:text-gray-200"
+                                    aria-label="Visualizar anexo"
+                                >
+                                    <x-icon name="eye" class="h-4 w-4" />
+                                </a>
+                            </li>
+                        @endforeach
+                    </ul>
+                @endif
+            </section>
         </div>
 
         <div class="space-y-6">
@@ -872,6 +958,10 @@
             </section>
         </div>
     </div>
+
+    @foreach ($workOrder->items as $item)
+        @include('admin.work-orders.partials.item-details-modal', ['workOrder' => $workOrder, 'item' => $item, 'money' => $money, 'quantity' => $quantity])
+    @endforeach
 
     @can('update', $workOrder)
         @include('admin.work-orders.partials.edit-modal', ['workOrder' => $workOrder])

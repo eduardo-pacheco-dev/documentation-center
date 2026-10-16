@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 #[Fillable([
     'work_order_id',
@@ -38,6 +39,16 @@ class WorkOrderItem extends Model
     public function catalogItem(): BelongsTo
     {
         return $this->belongsTo(CatalogItem::class);
+    }
+
+    /**
+     * The files attached to this line item.
+     *
+     * @return HasMany<Document, $this>
+     */
+    public function documents(): HasMany
+    {
+        return $this->hasMany(Document::class)->latest();
     }
 
     /**
