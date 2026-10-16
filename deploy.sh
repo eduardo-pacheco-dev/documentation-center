@@ -171,7 +171,10 @@ log "Installing PHP dependencies"
 composer install --no-dev --prefer-dist --no-interaction --optimize-autoloader
 
 log "Clearing stale caches"
-php artisan optimize:clear
+# The application cache lives in the database (CACHE_STORE=database) and its
+# table only exists after the migrations below, so clear the bootstrap caches
+# here and the application cache right after migrating.
+php artisan optimize:clear --except=cache
 
 log "Ensuring storage directories and writable paths"
 mkdir -p storage/framework/cache/data storage/framework/views storage/framework/sessions storage/logs bootstrap/cache
@@ -213,6 +216,9 @@ php artisan storage:link
 
 log "Running database migrations"
 php artisan migrate --force
+
+log "Clearing the application cache"
+php artisan cache:clear
 
 log "Configuring the queue worker"
 configure_queue_worker
