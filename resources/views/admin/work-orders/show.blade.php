@@ -419,17 +419,22 @@
                                     <th class="px-6 py-3 text-right font-medium">Quantidade</th>
                                     <th class="px-6 py-3 text-right font-medium">Valor unitário</th>
                                     <th class="px-6 py-3 text-right font-medium">Subtotal</th>
-                                    <th class="px-6 py-3 text-right font-medium"><span class="sr-only">Ações</span></th>
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
                                 @forelse ($workOrder->items as $item)
                                     <tr>
                                         <td class="px-6 py-3 font-medium text-gray-900 dark:text-gray-100">
-                                            {{ $item->description }}
-                                            @if ($item->catalogItem)
-                                                <span class="mt-0.5 block text-xs text-gray-400 dark:text-gray-500">{{ $item->catalogItem->name }}</span>
-                                            @endif
+                                            <button
+                                                type="button"
+                                                data-modal-open="work-order-item-modal-{{ $item->getKey() }}"
+                                                class="block w-full text-left transition hover:text-indigo-600 dark:hover:text-indigo-400"
+                                            >
+                                                {{ $item->description }}
+                                                @if ($item->catalogItem)
+                                                    <span class="mt-0.5 block text-xs text-gray-400 dark:text-gray-500">{{ $item->catalogItem->name }}</span>
+                                                @endif
+                                            </button>
                                         </td>
                                         <td class="whitespace-nowrap px-6 py-3">
                                             <x-work-order-item-status :item="$item" />
@@ -437,20 +442,10 @@
                                         <td class="whitespace-nowrap px-6 py-3 text-right text-gray-500 dark:text-gray-400">{{ $quantity($item->quantity) }}</td>
                                         <td class="whitespace-nowrap px-6 py-3 text-right text-gray-500 dark:text-gray-400">{{ $money((float) $item->unit_price) }}</td>
                                         <td class="whitespace-nowrap px-6 py-3 text-right font-medium text-gray-900 dark:text-gray-100">{{ $money((float) $item->total) }}</td>
-                                        <td class="whitespace-nowrap px-6 py-3 text-right">
-                                            <button
-                                                type="button"
-                                                data-modal-open="work-order-item-modal-{{ $item->getKey() }}"
-                                                class="inline-flex items-center gap-1.5 rounded-lg border border-gray-200/70 px-2.5 py-1.5 text-xs font-medium text-gray-600 transition hover:border-indigo-200 hover:text-indigo-600 dark:border-gray-800 dark:text-gray-300 dark:hover:border-indigo-500/40"
-                                            >
-                                                <x-icon name="eye" class="h-4 w-4" />
-                                                Detalhes
-                                            </button>
-                                        </td>
                                     </tr>
                                 @empty
                                     <tr>
-                                        <td class="px-6 py-6 text-gray-500 dark:text-gray-400" colspan="6">Nenhum item registrado.</td>
+                                        <td class="px-6 py-6 text-gray-500 dark:text-gray-400" colspan="5">Nenhum item registrado.</td>
                                     </tr>
                                 @endforelse
                             </tbody>
@@ -458,7 +453,6 @@
                                 <tr>
                                     <td class="px-6 py-3 text-right text-sm font-semibold text-gray-700 dark:text-gray-200" colspan="4">Total</td>
                                     <td class="whitespace-nowrap px-6 py-3 text-right text-sm font-semibold text-gray-900 dark:text-gray-100">{{ $money((float) $workOrder->total) }}</td>
-                                    <td></td>
                                 </tr>
                             </tfoot>
                         </table>
@@ -495,17 +489,22 @@
                                     <th class="px-6 py-3 text-right font-medium">Quantidade</th>
                                     <th class="px-6 py-3 text-right font-medium">Valor unitário</th>
                                     <th class="px-6 py-3 text-right font-medium">Subtotal</th>
-                                    <th class="px-6 py-3 text-right font-medium"><span class="sr-only">Ações</span></th>
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
                                 @forelse ($workOrder->items as $item)
                                     <tr>
                                         <td class="px-6 py-3 font-medium text-gray-900 dark:text-gray-100">
-                                            {{ $item->description }}
-                                            @if ($item->catalogItem)
-                                                <span class="mt-0.5 block text-xs text-gray-400 dark:text-gray-500">{{ $item->catalogItem->name }}</span>
-                                            @endif
+                                            <button
+                                                type="button"
+                                                data-modal-open="work-order-item-modal-{{ $item->getKey() }}"
+                                                class="block w-full text-left transition hover:text-indigo-600 dark:hover:text-indigo-400"
+                                            >
+                                                {{ $item->description }}
+                                                @if ($item->catalogItem)
+                                                    <span class="mt-0.5 block text-xs text-gray-400 dark:text-gray-500">{{ $item->catalogItem->name }}</span>
+                                                @endif
+                                            </button>
                                         </td>
                                         <td class="whitespace-nowrap px-6 py-3">
                                             <x-work-order-item-status :item="$item" />
@@ -513,20 +512,10 @@
                                         <td class="whitespace-nowrap px-6 py-3 text-right text-gray-500 dark:text-gray-400">{{ $quantity($item->quantity) }}</td>
                                         <td class="whitespace-nowrap px-6 py-3 text-right text-gray-500 dark:text-gray-400">{{ $money((float) $item->unit_price) }}</td>
                                         <td class="whitespace-nowrap px-6 py-3 text-right font-medium text-gray-900 dark:text-gray-100">{{ $money((float) $item->total) }}</td>
-                                        <td class="whitespace-nowrap px-6 py-3 text-right">
-                                            <button
-                                                type="button"
-                                                data-modal-open="work-order-item-modal-{{ $item->getKey() }}"
-                                                class="inline-flex items-center gap-1.5 rounded-lg border border-gray-200/70 px-2.5 py-1.5 text-xs font-medium text-gray-600 transition hover:border-indigo-200 hover:text-indigo-600 dark:border-gray-800 dark:text-gray-300 dark:hover:border-indigo-500/40"
-                                            >
-                                                <x-icon name="eye" class="h-4 w-4" />
-                                                Detalhes
-                                            </button>
-                                        </td>
                                     </tr>
                                 @empty
                                     <tr>
-                                        <td class="px-6 py-6 text-gray-500 dark:text-gray-400" colspan="6">Nenhum item registrado.</td>
+                                        <td class="px-6 py-6 text-gray-500 dark:text-gray-400" colspan="5">Nenhum item registrado.</td>
                                     </tr>
                                 @endforelse
                             </tbody>
@@ -534,7 +523,6 @@
                                 <tr>
                                     <td class="px-6 py-3 text-right text-sm font-semibold text-gray-700 dark:text-gray-200" colspan="4">Total</td>
                                     <td class="whitespace-nowrap px-6 py-3 text-right text-sm font-semibold text-gray-900 dark:text-gray-100">{{ $money((float) $workOrder->total) }}</td>
-                                    <td></td>
                                 </tr>
                             </tfoot>
                         </table>

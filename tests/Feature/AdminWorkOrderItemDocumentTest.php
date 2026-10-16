@@ -142,8 +142,7 @@ it('renders the item details modal with its attachments', function () {
     $this->actingAs($user)
         ->get(route('admin.work-orders.show', $workOrder))
         ->assertOk()
-        ->assertSee('Detalhes')
-        ->assertSee('work-order-item-modal-'.$item->getKey(), false)
+        ->assertSee('data-modal-open="work-order-item-modal-'.$item->getKey().'"', false)
         ->assertSee(route('admin.work-orders.items.documents.store', ['workOrder' => $workOrder, 'item' => $item]), false)
         ->assertSee('laudo-tecnico.pdf')
         ->assertSee(route('admin.files.preview', $document), false);
