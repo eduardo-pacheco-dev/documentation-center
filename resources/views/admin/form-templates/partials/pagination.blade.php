@@ -15,7 +15,7 @@
             id="per-page"
             name="per_page"
             onchange="this.form.submit()"
-            class="rounded-md border border-gray-300 dark:border-gray-700 dark:bg-gray-900 py-1.5 pl-2 pr-8 text-sm text-gray-700 dark:text-gray-200 focus:border-indigo-500 focus:outline-none focus:ring-indigo-500"
+            class="rounded-xl border border-gray-300 bg-white py-1.5 pl-2 pr-8 text-sm text-gray-700 transition focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200"
         >
             @foreach ([12, 24, 36] as $option)
                 <option value="{{ $option }}" @selected($perPage === $option)>{{ $option }} por página</option>

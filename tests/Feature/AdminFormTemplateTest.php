@@ -74,7 +74,42 @@ it('switches the templates list view mode', function () {
     $this->actingAs($user)
         ->get(route('admin.form-templates.index', ['view' => 'compact']))
         ->assertOk()
-        ->assertSee('divide-y divide-gray-100 rounded-xl');
+        ->assertSee('divide-y divide-gray-100 overflow-hidden rounded-2xl');
+});
+
+it('summarizes the template library statistics', function () {
+    $user = User::factory()->create();
+
+    FormTemplate::factory()->ownedBy($user)->create([
+        'name' => 'Checklist de segurança',
+        'type' => 'Checklist',
+        'steps' => [
+            ['id' => 'S1', 'title' => 'Seção', 'fields' => [
+                ['id' => 'F1-1', 'type' => 'text', 'label' => 'Um'],
+                ['id' => 'F1-2', 'type' => 'text', 'label' => 'Dois'],
+            ]],
+        ],
+    ]);
+
+    FormTemplate::factory()->ownedBy($user)->create([
+        'name' => 'Vistoria elétrica',
+        'type' => 'Vistoria',
+        'steps' => [
+            ['id' => 'S1', 'title' => 'Seção', 'fields' => [
+                ['id' => 'F1-1', 'type' => 'text', 'label' => 'Um'],
+            ]],
+        ],
+    ]);
+
+    $this->actingAs($user)
+        ->get(route('admin.form-templates.index'))
+        ->assertOk()
+        ->assertViewHas('stats', fn (array $stats) => $stats === [
+            'total' => 2,
+            'types' => 2,
+            'questions' => 3,
+            'contributors' => 1,
+        ]);
 });
 
 it('creates a template from a form the user owns', function () {

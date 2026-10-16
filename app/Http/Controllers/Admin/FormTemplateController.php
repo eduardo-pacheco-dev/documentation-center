@@ -64,6 +64,15 @@ class FormTemplateController extends Controller
             ? $request->query('view')
             : 'table';
 
+        $stats = [
+            'total' => FormTemplate::query()->count(),
+            'types' => count($types),
+            'questions' => FormTemplate::query()
+                ->pluck('steps')
+                ->sum(fn ($steps) => collect($steps)->sum(fn ($step) => count($step['fields'] ?? []))),
+            'contributors' => FormTemplate::query()->distinct()->count('user_id'),
+        ];
+
         return view('admin.form-templates.index', [
             'templates' => $templates,
             'search' => $search,
@@ -71,6 +80,7 @@ class FormTemplateController extends Controller
             'types' => $types,
             'view' => $view,
             'perPage' => $perPage,
+            'stats' => $stats,
         ]);
     }
 
