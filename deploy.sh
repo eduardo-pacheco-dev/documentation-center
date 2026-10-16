@@ -154,6 +154,19 @@ else
     log "Database connection: $db_connection"
 fi
 
+# Laravel reaches MySQL/MariaDB through PDO; verify the driver now so a missing
+# extension fails fast with an actionable message instead of an obscure
+# "could not find driver" while the app is already in maintenance mode.
+case "${db_connection:-mysql}" in
+    mysql|mariadb)
+        if ! php -r 'exit(in_array("mysql", PDO::getAvailableDrivers(), true) ? 0 : 1);' 2>/dev/null; then
+            fail "The PHP 'pdo_mysql' extension is missing for the CLI at '$(command -v php)'. A MySQL/MariaDB connection requires it (install 'php-mysql' or 'php8.x-mysql' and restart PHP-FPM), then redeploy"
+        fi
+
+        log "PHP PDO MySQL driver is available"
+        ;;
+esac
+
 log "Installing PHP dependencies"
 composer install --no-dev --prefer-dist --no-interaction --optimize-autoloader
 
