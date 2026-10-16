@@ -264,6 +264,7 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
     Route::middleware('admin')->group(function () {
         Route::get('backups', [BackupController::class, 'index'])->name('backups.index');
         Route::post('backups', [BackupController::class, 'store'])->name('backups.store');
+        Route::post('backups/import', [BackupController::class, 'import'])->name('backups.import');
         Route::get('backups/status', [BackupController::class, 'status'])->name('backups.status');
         Route::get('backups/{backup}/download', [BackupController::class, 'download'])->name('backups.download');
         Route::post('backups/{backup}/restore', [BackupController::class, 'restore'])->name('backups.restore');

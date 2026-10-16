@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Enums\BackupStatus;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\ImportBackupRequest;
 use App\Jobs\RestoreBackupJob;
 use App\Jobs\RunBackupJob;
 use App\Models\Backup;
@@ -57,6 +58,39 @@ class BackupController extends Controller
         RunBackupJob::dispatch($backup);
 
         return back()->with('status', 'Backup iniciado. O andamento é exibido abaixo.');
+    }
+
+    /**
+     * Import an externally generated backup archive.
+     */
+    public function import(ImportBackupRequest $request): RedirectResponse
+    {
+        if ($this->restoreInProgress()) {
+            return back()->withErrors(['import' => 'Não é possível importar um backup enquanto uma restauração está em andamento.']);
+        }
+
+        if ($this->backupInProgress()) {
+            return back()->withErrors(['import' => 'Aguarde o backup em andamento terminar antes de importar.']);
+        }
+
+        $file = $request->file('file');
+
+        $backup = $request->user()->backups()->create([
+            'disk' => 'backups',
+            'status' => BackupStatus::Pending,
+        ]);
+
+        $path = sprintf(
+            'backup-%d-%s.zip',
+            $backup->getKey(),
+            now()->format('Y-m-d_H-i-s'),
+        );
+
+        $path = $file->storeAs('', $path, 'backups');
+
+        $backup->markCompleted($path, (int) Storage::disk('backups')->size($path));
+
+        return back()->with('status', 'Backup importado com sucesso. Ele já pode ser baixado ou restaurado.');
     }
 
     /**

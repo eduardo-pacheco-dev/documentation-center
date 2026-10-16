@@ -16,13 +16,24 @@
             </p>
         </div>
 
-        <form method="POST" action="{{ route('admin.backups.store') }}">
-            @csrf
-            <button type="submit" class="{{ $primaryButton }}">
-                <x-icon name="plus" class="h-4 w-4" />
-                Novo backup
+        <div class="flex flex-wrap items-center gap-2">
+            <button
+                type="button"
+                class="{{ $secondaryButton }}"
+                data-modal-open="backup-import-modal"
+            >
+                <x-icon name="arrow-up-tray" class="h-4 w-4" />
+                Importar backup
             </button>
-        </form>
+
+            <form method="POST" action="{{ route('admin.backups.store') }}">
+                @csrf
+                <button type="submit" class="{{ $primaryButton }}">
+                    <x-icon name="plus" class="h-4 w-4" />
+                    Novo backup
+                </button>
+            </form>
+        </div>
     </div>
 
     @error('backup')
@@ -229,7 +240,142 @@
                 <p class="mt-1">Cada arquivo <code>.zip</code> contém o dump do banco de dados (<code>database/database.sql</code>), todos os arquivos enviados em <code>storage/app</code> e um <code>manifest.json</code> com os metadados do backup.</p>
                 <p class="mt-3 font-medium text-gray-900 dark:text-gray-100">Restauração</p>
                 <p class="mt-1">Restaurar substitui os dados do banco e os arquivos enviados pelos do backup. A aplicação entra em manutenção durante o processo e um backup de segurança do estado atual é criado automaticamente. Tabelas internas (fila, cache, sessões e o próprio registro de backups) não são afetadas.</p>
+                <p class="mt-3 font-medium text-gray-900 dark:text-gray-100">Importação</p>
+                <p class="mt-1">Você também pode importar um arquivo <code>.zip</code> de backup gerado previamente (por exemplo, baixado de outra instância). Ele passa a aparecer na lista e pode ser baixado ou restaurado como qualquer outro.</p>
             </div>
         </div>
     </div>
+
+    <div
+        id="backup-import-modal"
+        class="fixed inset-0 z-50 hidden"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="backup-import-modal-title"
+        @if ($errors->any() && old('modal') === 'import') data-open @endif
+    >
+        <div class="absolute inset-0 bg-gray-900/50" data-modal-close></div>
+
+        <div class="absolute left-1/2 top-1/2 max-h-[90vh] w-full max-w-xl -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-2xl bg-white p-6 shadow-xl dark:bg-gray-900">
+            <div class="flex items-start justify-between gap-4">
+                <div>
+                    <h2 id="backup-import-modal-title" class="flex items-center gap-2 text-lg font-semibold text-gray-900 dark:text-gray-100">
+                        <x-icon name="arrow-up-tray" class="h-5 w-5 text-gray-400 dark:text-gray-500" />
+                        Importar backup
+                    </h2>
+                    <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Envie um arquivo <code>.zip</code> de backup gerado previamente por esta aplicação.</p>
+                </div>
+
+                <button
+                    type="button"
+                    class="rounded-full p-1 text-gray-400 dark:text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-700"
+                    data-modal-close
+                >
+                    <span class="sr-only">Fechar</span>
+                    <x-icon name="x-mark" class="h-5 w-5" />
+                </button>
+            </div>
+
+            @if ($errors->any() && old('modal') === 'import')
+                <div
+                    data-modal-error
+                    class="mt-4 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300"
+                >
+                    <p class="font-medium">O backup não foi importado. Corrija os itens abaixo e tente novamente:</p>
+
+                    <ul class="mt-2 list-disc space-y-1 pl-5">
+                        @forelse ($errors->get('file') as $message)
+                            <li>{{ $message }}</li>
+                        @empty
+                            <li>Verifique o arquivo enviado.</li>
+                        @endforelse
+                    </ul>
+                </div>
+            @endif
+
+            <div class="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-600 dark:border-gray-800 dark:bg-gray-800/50 dark:text-gray-300">
+                <p>O arquivo deve conter o dump do banco de dados em <code>database/database.sql</code>, os arquivos enviados em <code>storage/app</code> e o <code>manifest.json</code>.</p>
+                <p class="mt-1">Após a importação, o backup aparece na lista e pode ser baixado ou restaurado normalmente.</p>
+            </div>
+
+            <form method="POST" action="{{ route('admin.backups.import') }}" enctype="multipart/form-data" class="mt-5">
+                @csrf
+                <input type="hidden" name="modal" value="import">
+
+                <label for="import-file" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Arquivo de backup (.zip)</label>
+                <input
+                    type="file"
+                    name="file"
+                    id="import-file"
+                    accept=".zip"
+                    required
+                    class="mt-1 block w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 transition dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200 file:mr-3 file:rounded-lg file:border-0 file:bg-indigo-600 file:px-3 file:py-1.5 file:text-sm file:font-semibold file:text-white"
+                >
+                @error('file')
+                    <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p>
+                @enderror
+
+                <div class="mt-6 flex justify-end gap-2">
+                    <button
+                        type="button"
+                        class="rounded-xl border border-gray-200/70 bg-white px-4 py-2 text-sm font-semibold text-gray-700 shadow-sm transition hover:border-indigo-200 hover:text-indigo-600 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-200 dark:hover:border-indigo-500/40"
+                        data-modal-close
+                    >
+                        Cancelar
+                    </button>
+                    <button
+                        type="submit"
+                        class="inline-flex items-center gap-1.5 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-500"
+                    >
+                        <x-icon name="arrow-up-tray" class="h-4 w-4" />
+                        Importar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        const openBackupModal = (modal) => {
+            modal.classList.remove('hidden');
+            document.body.classList.add('overflow-hidden');
+
+            const error = modal.querySelector('[data-modal-error]');
+            if (error) {
+                error.scrollIntoView({ block: 'center' });
+            }
+        };
+
+        const closeBackupModal = (modal) => {
+            modal.classList.add('hidden');
+            document.body.classList.remove('overflow-hidden');
+        };
+
+        document.addEventListener('click', (event) => {
+            const opener = event.target.closest('[data-modal-open]');
+            if (opener) {
+                event.preventDefault();
+
+                const modal = document.getElementById(opener.dataset.modalOpen);
+                if (modal) {
+                    openBackupModal(modal);
+                }
+
+                return;
+            }
+
+            const closer = event.target.closest('[data-modal-close]');
+            if (closer) {
+                closeBackupModal(closer.closest('[role="dialog"]'));
+            }
+        });
+
+        document.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape') {
+                document.querySelectorAll('[role="dialog"]:not(.hidden)').forEach(closeBackupModal);
+            }
+        });
+
+        document.querySelectorAll('[role="dialog"][data-open]').forEach(openBackupModal);
+    </script>
 </x-layouts.admin>
