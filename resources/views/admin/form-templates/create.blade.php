@@ -14,7 +14,7 @@
         <span class="text-gray-700 dark:text-gray-200">Novo template</span>
     </nav>
 
-    <div class="mt-4 flex flex-wrap items-end justify-between gap-4">
+    <div class="mt-4 flex flex-wrap items-start justify-between gap-4">
         <div>
             <p class="text-xs font-semibold uppercase tracking-wide text-indigo-600 dark:text-indigo-400">Biblioteca</p>
             <h1 class="mt-1 flex items-center gap-2 text-2xl font-semibold tracking-tight text-gray-900 dark:text-gray-100">
