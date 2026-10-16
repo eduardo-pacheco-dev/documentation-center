@@ -9,3 +9,12 @@ if (!existsSync('.env.cypress')) {
 
     process.exit(1);
 }
+
+// The `cypress` environment always serves the compiled assets (see
+// `AppServiceProvider`), so the build manifest has to be present.
+if (!existsSync('public/build/manifest.json')) {
+    console.error('\n[cypress] Missing public/build/manifest.json.');
+    console.error('[cypress] Run `npm run build` before running the end-to-end suite.\n');
+
+    process.exit(1);
+}

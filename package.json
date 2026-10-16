@@ -9,7 +9,7 @@
         "cypress:run": "cypress run",
         "cypress:serve": "node cypress/scripts/require-env.mjs && php artisan serve --env=cypress --port=8000",
         "cypress:db": "node cypress/scripts/require-env.mjs && php artisan migrate:fresh --seed --env=cypress --force && php artisan db:seed --class=CypressSeeder --env=cypress --force",
-        "test:e2e": "npm run cypress:db && start-server-and-test cypress:serve http://127.0.0.1:8000/up cypress:run",
+        "test:e2e": "npm run build && npm run cypress:db && start-server-and-test cypress:serve http://127.0.0.1:8000/up cypress:run",
         "test:e2e:open": "start-server-and-test cypress:serve http://127.0.0.1:8000/up cypress:open"
     },
     "devDependencies": {
