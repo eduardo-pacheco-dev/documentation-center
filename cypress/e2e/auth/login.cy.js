@@ -79,26 +79,41 @@ describe('Authentication - Login', () => {
     });
 
     it('blocks further attempts after five failures', () => {
-        const email = 'cypress.throttle@example.com';
+        // A unique address keeps this test independent from attempts left over
+        // by an earlier run of the suite.
+        const email = `cypress.throttle.${Date.now()}@example.com`;
 
         cy.visit('/login');
 
         cy.get('input[name="_token"]').invoke('val').then((token) => {
-            const attempt = () => cy.request({
-                method: 'POST',
-                url: '/login',
-                form: true,
-                followRedirect: false,
-                failOnStatusCode: false,
-                body: { _token: token, email, password: 'wrong-password' },
-            });
+            const statuses = [];
 
-            attempt().its('status').should('eq', 302);
-            attempt().its('status').should('eq', 302);
-            attempt().its('status').should('eq', 302);
-            attempt().its('status').should('eq', 302);
-            attempt().its('status').should('eq', 302);
-            attempt().its('status').should('eq', 429);
+            const attempt = () => cy
+                .request({
+                    method: 'POST',
+                    url: '/login',
+                    form: true,
+                    followRedirect: false,
+                    failOnStatusCode: false,
+                    body: { _token: token, email, password: 'wrong-password' },
+                })
+                .then((response) => {
+                    statuses.push(response.status);
+                });
+
+            // Each request runs exactly once: the assertions only run once every
+            // request is done, so Cypress never retries a request and never
+            // consumes extra hits from the rate limiter.
+            attempt()
+                .then(attempt)
+                .then(attempt)
+                .then(attempt)
+                .then(attempt)
+                .then(attempt)
+                .then(() => {
+                    expect(statuses.slice(0, 5), 'first five attempts').to.deep.equal([302, 302, 302, 302, 302]);
+                    expect(statuses[5], 'sixth attempt').to.equal(429);
+                });
         });
     });
 });
