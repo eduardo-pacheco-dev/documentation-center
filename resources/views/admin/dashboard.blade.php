@@ -96,6 +96,7 @@
         @foreach ($stats as $stat)
             <a
                 href="{{ $stat['url'] }}"
+                data-stat="{{ \Illuminate\Support\Str::slug($stat['label']) }}"
                 class="group relative overflow-hidden rounded-2xl border border-gray-200/70 bg-white p-5 shadow-sm transition duration-200 hover:-translate-y-0.5 hover:border-indigo-200 hover:shadow-lg hover:shadow-indigo-600/5 dark:border-gray-800 dark:bg-gray-900 dark:hover:border-indigo-500/40"
             >
                 <div class="flex items-start justify-between">

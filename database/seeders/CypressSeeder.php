@@ -2,15 +2,33 @@
 
 namespace Database\Seeders;
 
+use App\Enums\WorkOrderStatus;
+use App\Models\CatalogItem;
+use App\Models\Client;
+use App\Models\Colaborador;
+use App\Models\Document;
+use App\Models\Erb;
+use App\Models\Form;
+use App\Models\Project;
+use App\Models\RadioLink;
+use App\Models\ShortLink;
 use App\Models\User;
+use App\Models\WorkOrder;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Seeder;
 
 /**
- * Deterministic accounts used by the Cypress end-to-end suite.
+ * Deterministic fixtures used by the Cypress end-to-end suite.
  *
- * Run through `npm run cypress:db` (after `migrate:fresh --seed`) so the
- * authentication specs always find the accounts they depend on. Every account
- * is created with the factory default password: `password`.
+ * Run through `npm run cypress:db` (after `migrate:fresh --seed`) so the specs
+ * always find the records they depend on. Every account is created with the
+ * factory default password: `password`.
+ *
+ * The dashboard counts are scoped to the signed-in user, so the records are
+ * split between the administrator and the member: the administrator owns the
+ * full dashboard data set and the member owns a single record per kind, which
+ * keeps the scoping assertions unambiguous. Keep the numbers in sync with
+ * `cypress/e2e/admin/dashboard.cy.js`.
  */
 class CypressSeeder extends Seeder
 {
@@ -19,11 +37,128 @@ class CypressSeeder extends Seeder
      */
     public function run(): void
     {
-        $this->createUser('Administrador Cypress', 'cypress.admin@example.com', isAdmin: true);
+        $administrator = $this->createUser('Administrador Cypress', 'cypress.admin@example.com', isAdmin: true);
 
-        $this->createUser('Usuario Cypress', 'cypress.user@example.com');
+        $member = $this->createUser('Usuario Cypress', 'cypress.user@example.com');
 
         $this->createUser('Usuario Inativo Cypress', 'cypress.inactive@example.com', isActive: false);
+
+        $this->seedAdministratorDashboard($administrator);
+
+        $this->seedMemberDashboard($member);
+    }
+
+    /**
+     * Populate the administrator dashboard with a known data set.
+     */
+    private function seedAdministratorDashboard(User $administrator): void
+    {
+        $clients = Client::factory()->count(2)->create(['user_id' => $administrator->getKey()]);
+
+        // Its work order keeps the soft deleted client id, so the dashboard has
+        // to fall back to the "Sem cliente" label.
+        $trashedClient = Client::factory()->create(['user_id' => $administrator->getKey()]);
+        $trashedClient->delete();
+
+        $this->seedWorkOrders($administrator, $clients, $trashedClient);
+
+        // Only the active project of the administrator is counted.
+        $activeProject = Project::factory()->create(['user_id' => $administrator->getKey()]);
+        Project::factory()->completed()->create(['user_id' => $administrator->getKey()]);
+
+        Form::factory()->forProject($activeProject)->create();
+
+        $erbs = Erb::factory()->count(4)->create(['user_id' => $administrator->getKey()]);
+
+        RadioLink::factory()->count(2)->create([
+            'user_id' => $administrator->getKey(),
+            'erb_a_id' => $erbs->first()->getKey(),
+            'erb_b_id' => $erbs->last()->getKey(),
+        ]);
+
+        CatalogItem::factory()->count(5)->create(['user_id' => $administrator->getKey()]);
+        Colaborador::factory()->count(2)->create(['user_id' => $administrator->getKey()]);
+        ShortLink::factory()->count(3)->create(['user_id' => $administrator->getKey()]);
+
+        $this->seedDocuments($administrator);
+    }
+
+    /**
+     * Create the administrator work orders.
+     *
+     * The records are spread over the last days so the "recent" panel has a
+     * deterministic order: the newest work order is `OS-1007`.
+     *
+     * @param  Collection<int, Client>  $clients
+     */
+    private function seedWorkOrders(User $administrator, Collection $clients, Client $trashedClient): void
+    {
+        /** @var list<array{number: string, status: WorkOrderStatus, client: Client, daysAgo: int}> $fixtures */
+        $fixtures = [
+            ['number' => 'OS-1001', 'status' => WorkOrderStatus::Open, 'client' => $clients[0], 'daysAgo' => 7],
+            ['number' => 'OS-1002', 'status' => WorkOrderStatus::Open, 'client' => $clients[1], 'daysAgo' => 6],
+            ['number' => 'OS-1003', 'status' => WorkOrderStatus::InProgress, 'client' => $clients[0], 'daysAgo' => 5],
+            ['number' => 'OS-1004', 'status' => WorkOrderStatus::Completed, 'client' => $clients[1], 'daysAgo' => 4],
+            ['number' => 'OS-1005', 'status' => WorkOrderStatus::Completed, 'client' => $clients[0], 'daysAgo' => 3],
+            ['number' => 'OS-1006', 'status' => WorkOrderStatus::Completed, 'client' => $trashedClient, 'daysAgo' => 2],
+            ['number' => 'OS-1007', 'status' => WorkOrderStatus::Cancelled, 'client' => $clients[1], 'daysAgo' => 1],
+        ];
+
+        foreach ($fixtures as $fixture) {
+            $workOrder = WorkOrder::factory()->create([
+                'user_id' => $administrator->getKey(),
+                'client_id' => $fixture['client']->getKey(),
+                'number' => $fixture['number'],
+                'status' => $fixture['status'],
+                'total' => $fixture['daysAgo'] * 100,
+            ]);
+
+            $workOrder->forceFill(['created_at' => now()->subDays($fixture['daysAgo'])])->saveQuietly();
+        }
+    }
+
+    /**
+     * Create the administrator files.
+     *
+     * The dashboard lists the five most recent files, so the oldest fixture
+     * (`arquivo-1.pdf`) must stay out of the panel.
+     */
+    private function seedDocuments(User $administrator): void
+    {
+        foreach (range(1, 6) as $index) {
+            $document = Document::factory()->create([
+                'user_id' => $administrator->getKey(),
+                'original_name' => "arquivo-{$index}.pdf",
+                'size' => $index * 1_000_000,
+            ]);
+
+            $document->forceFill(['created_at' => now()->subDays(7 - $index)])->saveQuietly();
+        }
+    }
+
+    /**
+     * Give the member a single record per dashboard counter.
+     */
+    private function seedMemberDashboard(User $member): void
+    {
+        $client = Client::factory()->create(['user_id' => $member->getKey()]);
+
+        WorkOrder::factory()->create([
+            'user_id' => $member->getKey(),
+            'client_id' => $client->getKey(),
+            'number' => 'OS-2001',
+            'status' => WorkOrderStatus::Open,
+            'total' => 500,
+        ]);
+
+        Document::factory()->create([
+            'user_id' => $member->getKey(),
+            'original_name' => 'arquivo-do-membro.pdf',
+        ]);
+
+        Erb::factory()->create(['user_id' => $member->getKey()]);
+
+        ShortLink::factory()->create(['user_id' => $member->getKey()]);
     }
 
     /**
@@ -34,8 +169,8 @@ class CypressSeeder extends Seeder
         string $email,
         bool $isAdmin = false,
         bool $isActive = true,
-    ): void {
-        User::factory()->create([
+    ): User {
+        return User::factory()->create([
             'name' => $name,
             'email' => $email,
             'is_admin' => $isAdmin,
