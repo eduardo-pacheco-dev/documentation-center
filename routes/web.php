@@ -50,12 +50,26 @@ use Illuminate\Support\Facades\Route;
 
 Route::redirect('/', '/admin');
 
-Route::get('s/{code}', [LinkController::class, 'show'])->name('public.short-links.show');
-Route::post('s/{code}/unlock', [LinkController::class, 'unlock'])
-    ->middleware('throttle:unlock')
-    ->name('public.short-links.unlock');
-Route::post('s/{code}/documents', [LinkController::class, 'storeDocuments'])->name('public.short-links.documents.store');
-Route::get('s/documents/{document}/download', [LinkController::class, 'download'])->name('public.short-links.documents.download');
+/*
+|--------------------------------------------------------------------------
+| Public short links
+|--------------------------------------------------------------------------
+*/
+
+Route::prefix('s')->name('public.short-links.')->group(function () {
+    Route::get('{code}', [LinkController::class, 'show'])->name('show');
+    Route::post('{code}/unlock', [LinkController::class, 'unlock'])
+        ->middleware('throttle:unlock')
+        ->name('unlock');
+    Route::post('{code}/documents', [LinkController::class, 'storeDocuments'])->name('documents.store');
+    Route::get('documents/{document}/download', [LinkController::class, 'download'])->name('documents.download');
+});
+
+/*
+|--------------------------------------------------------------------------
+| Authentication
+|--------------------------------------------------------------------------
+*/
 
 Route::middleware('guest')->group(function () {
     Route::get('login', [AuthenticatedSessionController::class, 'create'])->name('login');
@@ -67,6 +81,12 @@ Route::middleware('guest')->group(function () {
 
 Route::post('logout', [AuthenticatedSessionController::class, 'destroy'])->middleware('auth')->name('logout');
 
+/*
+|--------------------------------------------------------------------------
+| Authenticated area
+|--------------------------------------------------------------------------
+*/
+
 Route::middleware('auth')->group(function () {
     Route::get('profile', [ProfileController::class, 'show'])->name('profile');
     Route::put('profile', [ProfileController::class, 'update'])->name('profile.update');
@@ -77,8 +97,18 @@ Route::middleware('auth')->group(function () {
     Route::delete('settings/account', [SettingsController::class, 'destroy'])->name('settings.account.destroy');
 });
 
+/*
+|--------------------------------------------------------------------------
+| Administration
+|--------------------------------------------------------------------------
+*/
+
 Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
     Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
+
+    /*
+    | Short links
+    */
 
     Route::resource('links', ShortLinkController::class)
         ->parameters(['links' => 'shortLink'])
@@ -86,166 +116,155 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
     Route::post('links/{shortLink}/documents', [ShortLinkController::class, 'storeDocuments'])->name('links.documents.store');
     Route::delete('links/{shortLink}/documents/{document}', [ShortLinkController::class, 'destroyDocument'])->name('links.documents.destroy');
 
-    Route::get('files', [DocumentController::class, 'index'])->name('files.index');
-    Route::post('files', [DocumentController::class, 'store'])->name('files.store');
+    /*
+    | Files and folders
+    */
+
+    Route::resource('files', DocumentController::class)
+        ->parameters(['files' => 'document'])
+        ->only(['index', 'store', 'update', 'destroy']);
     Route::post('files/generate-link', [DocumentController::class, 'generateLink'])->name('files.generate-link');
     Route::post('files/move', [DocumentController::class, 'move'])->name('files.move');
     Route::get('files/{document}/preview', [DocumentController::class, 'preview'])->name('files.preview');
-    Route::put('files/{document}', [DocumentController::class, 'update'])->name('files.update');
-    Route::delete('files/{document}', [DocumentController::class, 'destroy'])->name('files.destroy');
 
-    Route::post('folders', [FolderController::class, 'store'])->name('folders.store');
-    Route::put('folders/{folder}', [FolderController::class, 'update'])->name('folders.update');
-    Route::delete('folders/{folder}', [FolderController::class, 'destroy'])->name('folders.destroy');
+    Route::resource('folders', FolderController::class)->only(['store', 'update', 'destroy']);
 
-    Route::get('projects', [ProjectController::class, 'index'])->name('projects.index');
-    Route::get('projects/create', [ProjectController::class, 'create'])->name('projects.create');
-    Route::post('projects', [ProjectController::class, 'store'])->name('projects.store');
-    Route::get('projects/{project}', [ProjectController::class, 'show'])->name('projects.show');
-    Route::get('projects/{project}/edit', [ProjectController::class, 'edit'])->name('projects.edit');
-    Route::put('projects/{project}', [ProjectController::class, 'update'])->name('projects.update');
-    Route::delete('projects/{project}', [ProjectController::class, 'destroy'])->name('projects.destroy');
+    /*
+    | Clients
+    */
 
-    Route::get('clients', [ClientController::class, 'index'])->name('clients.index');
-    Route::get('clients/create', [ClientController::class, 'create'])->name('clients.create');
-    Route::post('clients', [ClientController::class, 'store'])->name('clients.store');
     Route::post('clients/import', [ClientImportController::class, 'store'])->name('clients.import');
     Route::get('clients/import/template', [ClientImportController::class, 'template'])->name('clients.import.template');
     Route::get('clients/export', [ClientController::class, 'export'])->name('clients.export');
-    Route::get('clients/{client}', [ClientController::class, 'show'])->name('clients.show');
-    Route::get('clients/{client}/edit', [ClientController::class, 'edit'])->name('clients.edit');
-    Route::put('clients/{client}', [ClientController::class, 'update'])->name('clients.update');
-    Route::delete('clients/{client}', [ClientController::class, 'destroy'])->name('clients.destroy');
 
-    Route::post('clients/{client}/contacts', [ClientContactController::class, 'store'])->name('clients.contacts.store');
-    Route::put('clients/{client}/contacts/{contact}', [ClientContactController::class, 'update'])->name('clients.contacts.update');
-    Route::delete('clients/{client}/contacts/{contact}', [ClientContactController::class, 'destroy'])->name('clients.contacts.destroy');
+    Route::resource('clients', ClientController::class);
+    Route::resource('clients.contacts', ClientContactController::class)->only(['store', 'update', 'destroy']);
+    Route::resource('clients.documents', ClientDocumentController::class)->only(['store', 'destroy']);
 
-    Route::post('clients/{client}/documents', [ClientDocumentController::class, 'store'])->name('clients.documents.store');
-    Route::delete('clients/{client}/documents/{document}', [ClientDocumentController::class, 'destroy'])->name('clients.documents.destroy');
+    /*
+    | Catalog
+    */
 
-    Route::get('catalog', [CatalogItemController::class, 'index'])->name('catalog.index');
-    Route::get('catalog/create', [CatalogItemController::class, 'create'])->name('catalog.create');
-    Route::post('catalog', [CatalogItemController::class, 'store'])->name('catalog.store');
-    Route::get('catalog/{catalogItem}', [CatalogItemController::class, 'show'])->name('catalog.show');
-    Route::get('catalog/{catalogItem}/edit', [CatalogItemController::class, 'edit'])->name('catalog.edit');
-    Route::put('catalog/{catalogItem}', [CatalogItemController::class, 'update'])->name('catalog.update');
-    Route::delete('catalog/{catalogItem}', [CatalogItemController::class, 'destroy'])->name('catalog.destroy');
+    Route::resource('catalog', CatalogItemController::class)->parameters(['catalog' => 'catalogItem']);
 
-    Route::get('erbs', [ErbController::class, 'index'])->name('erbs.index');
-    Route::get('erbs/create', [ErbController::class, 'create'])->name('erbs.create');
-    Route::post('erbs', [ErbController::class, 'store'])->name('erbs.store');
+    /*
+    | ERBs
+    */
+
     Route::post('erbs/import', [ErbImportController::class, 'store'])->name('erbs.import');
     Route::get('erbs/import/template', [ErbImportController::class, 'template'])->name('erbs.import.template');
-    Route::get('erbs/lookup/zip', [ErbAddressLookupController::class, 'zip'])->name('erbs.lookup.zip');
-    Route::get('erbs/lookup/coordinates', [ErbAddressLookupController::class, 'coordinates'])->name('erbs.lookup.coordinates');
-    Route::get('erbs/{erb}', [ErbController::class, 'show'])->name('erbs.show');
-    Route::get('erbs/{erb}/edit', [ErbController::class, 'edit'])->name('erbs.edit');
-    Route::put('erbs/{erb}', [ErbController::class, 'update'])->name('erbs.update');
-    Route::delete('erbs/{erb}', [ErbController::class, 'destroy'])->name('erbs.destroy');
 
-    Route::post('erbs/{erb}/documents', [ErbDocumentController::class, 'store'])->name('erbs.documents.store');
-    Route::delete('erbs/{erb}/documents/{document}', [ErbDocumentController::class, 'destroy'])->name('erbs.documents.destroy');
+    Route::prefix('erbs/lookup')->name('erbs.lookup.')->group(function () {
+        Route::get('zip', [ErbAddressLookupController::class, 'zip'])->name('zip');
+        Route::get('coordinates', [ErbAddressLookupController::class, 'coordinates'])->name('coordinates');
+    });
 
-    Route::post('erbs/{erb}/comments', [ErbCommentController::class, 'store'])->name('erbs.comments.store');
-    Route::delete('erbs/{erb}/comments/{comment}', [ErbCommentController::class, 'destroy'])->name('erbs.comments.destroy');
+    Route::resource('erbs', ErbController::class);
+    Route::resource('erbs.documents', ErbDocumentController::class)->only(['store', 'destroy']);
+    Route::resource('erbs.comments', ErbCommentController::class)->only(['store', 'destroy']);
 
-    Route::put('erbs/{erb}/relations/projects', [ErbRelationController::class, 'projects'])->name('erbs.relations.projects');
-    Route::put('erbs/{erb}/relations/work-orders', [ErbRelationController::class, 'workOrders'])->name('erbs.relations.work-orders');
-    Route::put('erbs/{erb}/relations/radio-links', [ErbRelationController::class, 'radioLinks'])->name('erbs.relations.radio-links');
+    Route::prefix('erbs/{erb}/relations')->name('erbs.relations.')->group(function () {
+        Route::put('projects', [ErbRelationController::class, 'projects'])->name('projects');
+        Route::put('work-orders', [ErbRelationController::class, 'workOrders'])->name('work-orders');
+        Route::put('radio-links', [ErbRelationController::class, 'radioLinks'])->name('radio-links');
+    });
 
-    Route::get('forms', [FormController::class, 'index'])->name('forms.index');
-    Route::get('forms/create', [FormController::class, 'create'])->name('forms.create');
-    Route::post('forms', [FormController::class, 'store'])->name('forms.store');
-    Route::get('forms/{form}', [FormController::class, 'show'])->name('forms.show');
-    Route::get('forms/{form}/edit', [FormController::class, 'edit'])->name('forms.edit');
-    Route::put('forms/{form}', [FormController::class, 'update'])->name('forms.update');
+    /*
+    | Forms
+    */
+
+    Route::resource('forms', FormController::class);
     Route::patch('forms/{form}/steps', [FormController::class, 'updateSteps'])->name('forms.steps.update');
-    Route::delete('forms/{form}', [FormController::class, 'destroy'])->name('forms.destroy');
 
-    Route::get('forms/{form}/avaliacao', [FormEvaluationController::class, 'create'])->name('forms.evaluate');
-    Route::post('forms/{form}/avaliacao', [FormEvaluationController::class, 'store'])->name('forms.evaluations.store');
-    Route::post('forms/{form}/avaliacao/auto-save', [FormEvaluationController::class, 'autosave'])->name('forms.evaluations.autosave');
+    Route::prefix('forms/{form}/avaliacao')->name('forms.')->group(function () {
+        Route::get('/', [FormEvaluationController::class, 'create'])->name('evaluate');
+        Route::post('/', [FormEvaluationController::class, 'store'])->name('evaluations.store');
+        Route::post('auto-save', [FormEvaluationController::class, 'autosave'])->name('evaluations.autosave');
+    });
 
-    Route::get('form-templates', [FormTemplateController::class, 'index'])->name('form-templates.index');
-    Route::post('form-templates', [FormTemplateController::class, 'store'])->name('form-templates.store');
-    Route::get('form-templates/create', [FormTemplateController::class, 'create'])->name('form-templates.create');
-    Route::get('form-templates/{formTemplate}/edit', [FormTemplateController::class, 'edit'])->name('form-templates.edit');
-    Route::put('form-templates/{formTemplate}', [FormTemplateController::class, 'update'])->name('form-templates.update');
+    /*
+    | Form templates
+    */
+
+    Route::resource('form-templates', FormTemplateController::class)
+        ->parameters(['form-templates' => 'formTemplate'])
+        ->except(['show']);
     Route::patch('form-templates/{formTemplate}/steps', [FormTemplateController::class, 'updateSteps'])->name('form-templates.steps.update');
-    Route::delete('form-templates/{formTemplate}', [FormTemplateController::class, 'destroy'])->name('form-templates.destroy');
 
-    Route::get('radio-links', [RadioLinkController::class, 'index'])->name('radio-links.index');
-    Route::post('radio-links', [RadioLinkController::class, 'store'])->name('radio-links.store');
-    Route::get('radio-links/{radioLink}', [RadioLinkController::class, 'show'])->name('radio-links.show');
-    Route::get('radio-links/{radioLink}/edit', [RadioLinkController::class, 'edit'])->name('radio-links.edit');
-    Route::put('radio-links/{radioLink}', [RadioLinkController::class, 'update'])->name('radio-links.update');
-    Route::delete('radio-links/{radioLink}', [RadioLinkController::class, 'destroy'])->name('radio-links.destroy');
+    /*
+    | Radio links
+    */
 
-    Route::post('radio-links/{radioLink}/documents', [RadioLinkDocumentController::class, 'store'])->name('radio-links.documents.store');
-    Route::delete('radio-links/{radioLink}/documents/{document}', [RadioLinkDocumentController::class, 'destroy'])->name('radio-links.documents.destroy');
+    Route::resource('radio-links', RadioLinkController::class)
+        ->parameters(['radio-links' => 'radioLink'])
+        ->except(['create']);
+    Route::resource('radio-links.documents', RadioLinkDocumentController::class)
+        ->parameters(['radio-links' => 'radioLink'])
+        ->only(['store', 'destroy']);
+    Route::resource('radio-links.comments', RadioLinkCommentController::class)
+        ->parameters(['radio-links' => 'radioLink'])
+        ->only(['store', 'destroy']);
 
-    Route::post('radio-links/{radioLink}/comments', [RadioLinkCommentController::class, 'store'])->name('radio-links.comments.store');
-    Route::delete('radio-links/{radioLink}/comments/{comment}', [RadioLinkCommentController::class, 'destroy'])->name('radio-links.comments.destroy');
+    /*
+    | Colaboradores
+    */
 
-    Route::get('colaboradores', [ColaboradorController::class, 'index'])->name('colaboradores.index');
-    Route::get('colaboradores/create', [ColaboradorController::class, 'create'])->name('colaboradores.create');
-    Route::post('colaboradores', [ColaboradorController::class, 'store'])->name('colaboradores.store');
     Route::post('colaboradores/import', [ColaboradorImportController::class, 'store'])->name('colaboradores.import');
     Route::get('colaboradores/import/template', [ColaboradorImportController::class, 'template'])->name('colaboradores.import.template');
     Route::get('colaboradores/export', [ColaboradorController::class, 'export'])->name('colaboradores.export');
-    Route::get('colaboradores/{colaborador}', [ColaboradorController::class, 'show'])->name('colaboradores.show');
-    Route::get('colaboradores/{colaborador}/edit', [ColaboradorController::class, 'edit'])->name('colaboradores.edit');
-    Route::put('colaboradores/{colaborador}', [ColaboradorController::class, 'update'])->name('colaboradores.update');
-    Route::delete('colaboradores/{colaborador}', [ColaboradorController::class, 'destroy'])->name('colaboradores.destroy');
 
-    Route::get('work-orders', [WorkOrderController::class, 'index'])->name('work-orders.index');
-    Route::get('work-orders/create', [WorkOrderController::class, 'create'])->name('work-orders.create');
+    Route::resource('colaboradores', ColaboradorController::class)
+        ->parameters(['colaboradores' => 'colaborador']);
+
+    /*
+    | Work orders
+    */
+
     Route::post('work-orders/import', [WorkOrderImportController::class, 'store'])->name('work-orders.import');
     Route::get('work-orders/import/template', [WorkOrderImportController::class, 'template'])->name('work-orders.import.template');
-    Route::post('work-orders', [WorkOrderController::class, 'store'])->name('work-orders.store');
-    Route::get('work-orders/{workOrder}', [WorkOrderController::class, 'show'])->name('work-orders.show');
+
+    Route::resource('work-orders', WorkOrderController::class)
+        ->parameters(['work-orders' => 'workOrder']);
+
     Route::post('work-orders/{workOrder}/project', [WorkOrderProjectController::class, 'store'])->name('work-orders.project.store');
-    Route::get('work-orders/{workOrder}/edit', [WorkOrderController::class, 'edit'])->name('work-orders.edit');
     Route::put('work-orders/{workOrder}/items', [WorkOrderController::class, 'updateItems'])->name('work-orders.items.update');
     Route::put('work-orders/{workOrder}/items/{item}/status', [WorkOrderItemController::class, 'updateStatus'])->name('work-orders.items.status.update');
-    Route::post('work-orders/{workOrder}/items/{item}/documents', [WorkOrderItemDocumentController::class, 'store'])->name('work-orders.items.documents.store');
-    Route::delete('work-orders/{workOrder}/items/{item}/documents/{document}', [WorkOrderItemDocumentController::class, 'destroy'])->name('work-orders.items.documents.destroy');
-    Route::post('work-orders/{workOrder}/comments', [WorkOrderCommentController::class, 'store'])->name('work-orders.comments.store');
-    Route::delete('work-orders/{workOrder}/comments/{comment}', [WorkOrderCommentController::class, 'destroy'])->name('work-orders.comments.destroy');
+    Route::resource('work-orders.items.documents', WorkOrderItemDocumentController::class)
+        ->parameters(['work-orders' => 'workOrder'])
+        ->only(['store', 'destroy']);
+    Route::resource('work-orders.comments', WorkOrderCommentController::class)
+        ->parameters(['work-orders' => 'workOrder'])
+        ->only(['store', 'destroy']);
     Route::put('work-orders/{workOrder}/dates', [WorkOrderController::class, 'updateDates'])->name('work-orders.dates.update');
     Route::put('work-orders/{workOrder}/description', [WorkOrderController::class, 'updateDescription'])->name('work-orders.description.update');
     Route::put('work-orders/{workOrder}/notes', [WorkOrderController::class, 'updateNotes'])->name('work-orders.notes.update');
-    Route::put('work-orders/{workOrder}', [WorkOrderController::class, 'update'])->name('work-orders.update');
-    Route::delete('work-orders/{workOrder}', [WorkOrderController::class, 'destroy'])->name('work-orders.destroy');
 
-    Route::post('projects/{project}/tasks', [ProjectTaskController::class, 'store'])->name('projects.tasks.store');
-    Route::put('projects/{project}/tasks/{task}', [ProjectTaskController::class, 'update'])->name('projects.tasks.update');
-    Route::delete('projects/{project}/tasks/{task}', [ProjectTaskController::class, 'destroy'])->name('projects.tasks.destroy');
+    /*
+    | Projects
+    */
+
+    Route::resource('projects', ProjectController::class);
+
+    Route::resource('projects.tasks', ProjectTaskController::class)->only(['store', 'update', 'destroy']);
     Route::patch('projects/{project}/tasks/{task}/progress', [ProjectTaskController::class, 'progress'])->name('projects.tasks.progress');
 
-    Route::post('projects/{project}/dependencies', [ProjectDependencyController::class, 'store'])->name('projects.dependencies.store');
-    Route::delete('projects/{project}/dependencies/{dependency}', [ProjectDependencyController::class, 'destroy'])->name('projects.dependencies.destroy');
-
-    Route::post('projects/{project}/resources', [ProjectResourceController::class, 'store'])->name('projects.resources.store');
-    Route::put('projects/{project}/resources/{resource}', [ProjectResourceController::class, 'update'])->name('projects.resources.update');
-    Route::delete('projects/{project}/resources/{resource}', [ProjectResourceController::class, 'destroy'])->name('projects.resources.destroy');
-
-    Route::post('projects/{project}/assignments', [ProjectAssignmentController::class, 'store'])->name('projects.assignments.store');
-    Route::delete('projects/{project}/assignments/{assignment}', [ProjectAssignmentController::class, 'destroy'])->name('projects.assignments.destroy');
+    Route::resource('projects.dependencies', ProjectDependencyController::class)->only(['store', 'destroy']);
+    Route::resource('projects.resources', ProjectResourceController::class)->only(['store', 'update', 'destroy']);
+    Route::resource('projects.assignments', ProjectAssignmentController::class)->only(['store', 'destroy']);
+    Route::resource('projects.members', ProjectMemberController::class)->only(['store', 'update', 'destroy']);
 
     Route::post('projects/{project}/schedule', [ProjectScheduleController::class, 'store'])->name('projects.schedule.store');
     Route::post('projects/{project}/level', [ProjectScheduleController::class, 'level'])->name('projects.level.store');
 
-    Route::post('projects/{project}/baselines', [ProjectBaselineController::class, 'store'])->name('projects.baselines.store');
+    Route::resource('projects.baselines', ProjectBaselineController::class)->only(['store']);
     Route::post('projects/{project}/baselines/{baseline}/restore', [ProjectBaselineController::class, 'restore'])->name('projects.baselines.restore');
-
-    Route::post('projects/{project}/members', [ProjectMemberController::class, 'store'])->name('projects.members.store');
-    Route::put('projects/{project}/members/{member}', [ProjectMemberController::class, 'update'])->name('projects.members.update');
-    Route::delete('projects/{project}/members/{member}', [ProjectMemberController::class, 'destroy'])->name('projects.members.destroy');
 
     Route::get('projects/{project}/gantt', [ProjectGanttController::class, 'data'])->name('projects.gantt.data');
     Route::put('projects/{project}/gantt/tasks/{task}', [ProjectGanttController::class, 'move'])->name('projects.gantt.move');
+
+    /*
+    | Trash
+    */
 
     Route::get('trash', fn () => redirect()->route('admin.files.index', ['view' => 'trash']))->name('trash.index');
     Route::delete('trash', [TrashController::class, 'destroy'])->name('trash.destroy');
@@ -262,19 +281,18 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
         ->withTrashed()
         ->name('trash.folders.force-destroy');
 
+    /*
+    | Administration only
+    */
+
     Route::middleware('admin')->group(function () {
-        Route::get('backups', [BackupController::class, 'index'])->name('backups.index');
-        Route::post('backups', [BackupController::class, 'store'])->name('backups.store');
+        Route::resource('backups', BackupController::class)->only(['index', 'store', 'destroy']);
         Route::post('backups/import', [BackupController::class, 'import'])->name('backups.import');
         Route::get('backups/status', [BackupController::class, 'status'])->name('backups.status');
         Route::get('backups/{backup}/download', [BackupController::class, 'download'])->name('backups.download');
         Route::post('backups/{backup}/restore', [BackupController::class, 'restore'])->name('backups.restore');
-        Route::delete('backups/{backup}', [BackupController::class, 'destroy'])->name('backups.destroy');
 
-        Route::get('users', [UserController::class, 'index'])->name('users.index');
-        Route::post('users', [UserController::class, 'store'])->name('users.store');
-        Route::put('users/{user}', [UserController::class, 'update'])->name('users.update');
+        Route::resource('users', UserController::class)->only(['index', 'store', 'update', 'destroy']);
         Route::patch('users/{user}/toggle', [UserController::class, 'toggle'])->name('users.toggle');
-        Route::delete('users/{user}', [UserController::class, 'destroy'])->name('users.destroy');
     });
 });
