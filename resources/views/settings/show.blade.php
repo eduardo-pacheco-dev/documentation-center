@@ -15,10 +15,16 @@
                             this.active = hash;
                         }
 
+                        const state = this;
+
+                        if (typeof IntersectionObserver !== 'function') {
+                            return;
+                        }
+
                         const observer = new IntersectionObserver((entries) => {
                             entries.forEach((entry) => {
                                 if (entry.isIntersecting) {
-                                    this.active = entry.target.id;
+                                    state.active = entry.target.id;
                                 }
                             });
                         }, { rootMargin: '-10% 0px -55% 0px' });
@@ -89,6 +95,9 @@
                                 light: { label: 'Claro', description: 'Sempre com fundo claro' },
                                 dark: { label: 'Escuro', description: 'Sempre com fundo escuro' },
                             },
+                            get selected() {
+                                return this.options[this.value] ?? this.options.system;
+                            },
                             init() {
                                 if (!this.options[this.value]) {
                                     this.value = 'system';
@@ -111,7 +120,7 @@
                             :aria-expanded="open"
                             class="flex w-full items-center justify-between gap-2 rounded-md border border-gray-300 bg-white px-3 py-2 text-left text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
                         >
-                            <span x-text="options[value].label"></span>
+                            <span x-text="selected.label"></span>
                             <x-icon name="chevron-up-down" class="h-4 w-4 shrink-0 text-gray-400 dark:text-gray-500" />
                         </button>
 
