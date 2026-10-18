@@ -47,6 +47,16 @@ class WorkOrderFactory extends Factory
     }
 
     /**
+     * Indicate that the work order is on hold.
+     */
+    public function onHold(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'status' => WorkOrderStatus::OnHold,
+        ]);
+    }
+
+    /**
      * Indicate that the work order is completed.
      */
     public function completed(): static

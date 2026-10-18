@@ -6,6 +6,7 @@ enum WorkOrderStatus: string
 {
     case Open = 'open';
     case InProgress = 'in_progress';
+    case OnHold = 'on_hold';
     case Completed = 'completed';
     case Cancelled = 'cancelled';
 
@@ -17,6 +18,7 @@ enum WorkOrderStatus: string
         return match ($this) {
             self::Open => 'Aberta',
             self::InProgress => 'Em andamento',
+            self::OnHold => 'Em espera',
             self::Completed => 'Concluída',
             self::Cancelled => 'Cancelada',
         };

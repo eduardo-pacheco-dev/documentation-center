@@ -103,7 +103,7 @@ class WorkOrdersTemplateExport implements FromArray, WithColumnWidths, WithEvent
                     ['Radio link', 'Não', 'Código do radio link (ex.: RL-00001). Preencha a ERB ou o Radio link, nunca ambos.'],
                     ['Descrição', 'Não', 'Até 2000 caracteres.'],
                     ['Prioridade', 'Sim', 'baixa, normal, alta ou urgente.'],
-                    ['Status', 'Não', 'aberta, em andamento, concluída ou cancelada. Padrão: aberta.'],
+                    ['Status', 'Não', 'aberta, em andamento, em espera, concluída ou cancelada. Padrão: aberta.'],
                     ['Abertura', 'Sim', 'dd/mm/aaaa.'],
                     ['Previsão', 'Não', 'dd/mm/aaaa. Deve ser igual ou posterior à abertura.'],
                     ['Observações', 'Não', 'Até 2000 caracteres.'],

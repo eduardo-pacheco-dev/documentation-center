@@ -178,6 +178,22 @@ it('creates no work order when any row is invalid', function () {
     expect(WorkOrder::query()->count())->toBe(0);
 });
 
+it('accepts the on hold status label in the spreadsheet', function () {
+    $user = User::factory()->create();
+    Client::factory()->create(['user_id' => $user->getKey(), 'name' => 'Construtora Alfa']);
+
+    $file = workOrderWorkbook([
+        ['Construtora Alfa', '', '', '', 'normal', 'em espera', '10/01/2026', '', ''],
+    ]);
+
+    $this->actingAs($user)->post(route('admin.work-orders.import'), ['file' => $file])
+        ->assertRedirect(route('admin.work-orders.index'));
+
+    $workOrder = WorkOrder::query()->sole();
+
+    expect($workOrder->status->value)->toBe('on_hold');
+});
+
 it('rejects a file that is not an excel spreadsheet', function () {
     $user = User::factory()->create();
 

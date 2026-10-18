@@ -106,7 +106,7 @@ class WorkOrderBulkImporter
             }
 
             if ($status === null) {
-                $errors[] = "Linha {$line}: status inválido (use aberta, em andamento, concluída ou cancelada).";
+                $errors[] = "Linha {$line}: status inválido (use aberta, em andamento, em espera, concluída ou cancelada).";
             }
 
             $openedAt = $this->parseDate($data['abertura'] ?? null);
@@ -202,6 +202,7 @@ class WorkOrderBulkImporter
         return match ($value) {
             'aberta', 'open' => WorkOrderStatus::Open,
             'em andamento', 'em_andamento', 'in_progress' => WorkOrderStatus::InProgress,
+            'em espera', 'em_espera', 'on_hold' => WorkOrderStatus::OnHold,
             'concluída', 'concluida', 'completed' => WorkOrderStatus::Completed,
             'cancelada', 'cancelled' => WorkOrderStatus::Cancelled,
             default => null,

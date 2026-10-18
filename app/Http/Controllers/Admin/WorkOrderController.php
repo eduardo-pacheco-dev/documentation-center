@@ -78,6 +78,7 @@ class WorkOrderController extends Controller
             'total' => $owned()->count(),
             'open' => $owned()->where('status', WorkOrderStatus::Open->value)->count(),
             'inProgress' => $owned()->where('status', WorkOrderStatus::InProgress->value)->count(),
+            'onHold' => $owned()->where('status', WorkOrderStatus::OnHold->value)->count(),
             'completed' => $owned()->where('status', WorkOrderStatus::Completed->value)->count(),
         ];
 

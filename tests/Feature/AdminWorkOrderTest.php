@@ -44,6 +44,33 @@ it('lists only the work orders the user owns', function () {
         ->assertDontSee('OS-9002');
 });
 
+it('creates a work order with the on hold status', function () {
+    $user = User::factory()->create();
+    $client = ownedClient($user);
+    $catalogItem = ownedCatalogItem($user);
+
+    $this->actingAs($user)->post('/admin/work-orders', [
+        'client_id' => $client->getKey(),
+        'priority' => 'normal',
+        'status' => 'on_hold',
+        'opened_at' => '2026-01-10',
+        'items' => [
+            ['catalog_item_id' => $catalogItem->getKey(), 'quantity' => 1],
+        ],
+    ])->assertSessionHas('status');
+
+    $workOrder = WorkOrder::query()->sole();
+
+    expect($workOrder->status->value)->toBe('on_hold')
+        ->and($workOrder->completed_at)->toBeNull();
+
+    $this->actingAs($user)
+        ->get(route('admin.work-orders.index', ['status' => 'on_hold']))
+        ->assertOk()
+        ->assertSee($workOrder->number)
+        ->assertSee('Em espera');
+});
+
 it('shows work order statistics for the authenticated user', function () {
     $owner = User::factory()->create();
     $client = ownedClient($owner);

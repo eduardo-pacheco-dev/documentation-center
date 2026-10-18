@@ -25,6 +25,7 @@
     $statusBreakdown = [
         ['key' => 'open', 'label' => 'Aberta', 'count' => $statusCounts['open'], 'bar' => 'bg-blue-500', 'dot' => 'bg-blue-500', 'stroke' => 'stroke-blue-500'],
         ['key' => 'in_progress', 'label' => 'Em andamento', 'count' => $statusCounts['in_progress'], 'bar' => 'bg-amber-500', 'dot' => 'bg-amber-500', 'stroke' => 'stroke-amber-500'],
+        ['key' => 'on_hold', 'label' => 'Em espera', 'count' => $statusCounts['on_hold'], 'bar' => 'bg-violet-500', 'dot' => 'bg-violet-500', 'stroke' => 'stroke-violet-500'],
         ['key' => 'completed', 'label' => 'Concluída', 'count' => $statusCounts['completed'], 'bar' => 'bg-green-500', 'dot' => 'bg-green-500', 'stroke' => 'stroke-green-500'],
         ['key' => 'cancelled', 'label' => 'Cancelada', 'count' => $statusCounts['cancelled'], 'bar' => 'bg-gray-400', 'dot' => 'bg-gray-400', 'stroke' => 'stroke-gray-400'],
     ];
