@@ -4,7 +4,7 @@
         "laravel-boost": {
             "type": "local",
             "enabled": true,
-            "cwd": "C:\\Workspace\\documentation-center",
+            "cwd": "C:\\Workstation\\documentation-center",
             "command": [
                 "C:\\Users\\Eduardo\\.config\\herd\\bin\\php84\\php.exe",
                 "artisan",
