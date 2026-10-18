@@ -9,9 +9,12 @@ use App\Models\Erb;
 use App\Models\User;
 use BackedEnum;
 use Illuminate\Contracts\Validation\ValidationRule;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
+use PhpOffice\PhpSpreadsheet\Shared\Date as ExcelDate;
+use Throwable;
 
 class ErbBulkImporter
 {
@@ -89,12 +92,36 @@ class ErbBulkImporter
                 continue;
             }
 
+            $startDate = $this->parseDate($data['inicio'] ?? null);
+            $endDate = $this->parseDate($data['termino'] ?? null);
+
+            if ($this->hasValue($data['inicio'] ?? null) && $startDate === null) {
+                $errors[] = "Linha {$line}: data de início inválida (use dd/mm/aaaa).";
+
+                continue;
+            }
+
+            if ($this->hasValue($data['termino'] ?? null) && $endDate === null) {
+                $errors[] = "Linha {$line}: data de término inválida (use dd/mm/aaaa).";
+
+                continue;
+            }
+
+            if ($startDate !== null && $endDate !== null && $endDate->lt($startDate)) {
+                $errors[] = "Linha {$line}: a data de término deve ser posterior à data de início.";
+
+                continue;
+            }
+
             $attributes = [
                 'site_id' => $siteId,
                 'end_id' => $data['end_id'] ?? null,
                 'operator' => $operator,
                 'technology' => $technology,
+                'nokia_smp_id' => $data['nokia_smp_id'] ?? null,
                 'status' => $status->value,
+                'start_date' => $startDate?->toDateString(),
+                'end_date' => $endDate?->toDateString(),
                 'street' => $data['logradouro'] ?? null,
                 'number' => $data['numero'] ?? null,
                 'complement' => $data['complemento'] ?? null,
@@ -163,7 +190,10 @@ class ErbBulkImporter
             'end_id' => ['nullable', 'string', 'max:60', 'required_without:site_id'],
             'operadora' => ['nullable', 'string', 'max:80'],
             'tecnologia' => ['nullable', 'string', 'max:40'],
+            'nokia_smp_id' => ['nullable', 'string', 'max:60'],
             'status' => ['nullable', 'string'],
+            'inicio' => ['nullable'],
+            'termino' => ['nullable'],
             'logradouro' => ['nullable', 'string', 'max:255'],
             'numero' => ['nullable', 'string', 'max:20'],
             'complemento' => ['nullable', 'string', 'max:255'],
@@ -175,6 +205,48 @@ class ErbBulkImporter
             'longitude' => ['nullable', 'numeric', 'between:-180,180'],
             'observacoes' => ['nullable', 'string', 'max:2000'],
         ];
+    }
+
+    /**
+     * Whether the given cell contains a value.
+     */
+    private function hasValue(mixed $value): bool
+    {
+        return $value !== null && trim((string) $value) !== '';
+    }
+
+    /**
+     * Parse a date cell, accepting Excel serials and common string formats.
+     */
+    private function parseDate(mixed $value): ?Carbon
+    {
+        if (! $this->hasValue($value)) {
+            return null;
+        }
+
+        if (is_numeric($value)) {
+            try {
+                return Carbon::instance(ExcelDate::excelToDateTimeObject((float) $value))->startOfDay();
+            } catch (Throwable) {
+                return null;
+            }
+        }
+
+        $value = trim((string) $value);
+
+        foreach (['d/m/Y', 'd-m-Y', 'Y-m-d'] as $format) {
+            try {
+                $date = Carbon::createFromFormat($format, $value);
+
+                if ($date !== false && $date->format($format) === $value) {
+                    return $date->startOfDay();
+                }
+            } catch (Throwable) {
+                // Try the next format.
+            }
+        }
+
+        return null;
     }
 
     /**

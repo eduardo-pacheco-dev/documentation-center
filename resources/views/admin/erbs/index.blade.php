@@ -479,9 +479,9 @@
             @endif
 
             <div class="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-600 dark:border-gray-800 dark:bg-gray-800/50 dark:text-gray-300">
-                <p>Colunas: <span class="font-medium">Site ID, End ID, Operadora, Tecnologia, Status, Logradouro, Número, Complemento, Bairro, Cidade, Estado, CEP, Latitude, Longitude, Observações</span>.</p>
+                <p>Colunas: <span class="font-medium">Site ID, End ID, Operadora, Tecnologia, Nokia SMP ID, Status, Início, Término, Logradouro, Número, Complemento, Bairro, Cidade, Estado, CEP, Latitude, Longitude, Observações</span>.</p>
                 <p class="mt-1">Informe ao menos o Site ID ou o End ID; código e nome são gerados automaticamente.</p>
-                <p class="mt-1">Se o Site ID já existir, a ERB correspondente é atualizada com os dados da planilha.</p>
+                <p class="mt-1">Datas no formato dd/mm/aaaa. Se o Site ID já existir, a ERB correspondente é atualizada com os dados da planilha.</p>
                 <p class="mt-1">Operadora: {{ collect(\App\Enums\ErbOperator::cases())->map->value->implode(', ') }}. Tecnologia: {{ collect(\App\Enums\ErbTechnology::cases())->map->value->implode(', ') }}. Status: ativa, em manutenção ou desativada.</p>
                 <a
                     href="{{ route('admin.erbs.import.template') }}"

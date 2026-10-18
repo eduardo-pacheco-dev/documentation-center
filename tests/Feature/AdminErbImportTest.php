@@ -18,7 +18,7 @@ uses(RefreshDatabase::class);
  */
 function erbWorkbook(array $rows): UploadedFile
 {
-    $headings = ['Site ID', 'End ID', 'Operadora', 'Tecnologia', 'Status', 'Logradouro', 'Número', 'Complemento', 'Bairro', 'Cidade', 'Estado', 'CEP', 'Latitude', 'Longitude', 'Observações'];
+    $headings = ['Site ID', 'End ID', 'Operadora', 'Tecnologia', 'Nokia SMP ID', 'Status', 'Início', 'Término', 'Logradouro', 'Número', 'Complemento', 'Bairro', 'Cidade', 'Estado', 'CEP', 'Latitude', 'Longitude', 'Observações'];
 
     $spreadsheet = new Spreadsheet;
     $spreadsheet->getActiveSheet()->fromArray([$headings, ...$rows]);
@@ -40,8 +40,8 @@ it('imports erbs from an excel spreadsheet', function () {
     $user = User::factory()->create();
 
     $file = erbWorkbook([
-        ['SITE-001', 'PABLM_0001', 'Vivo', '5G', 'ativa', 'Av. Paulista', '1000', 'Conjunto 12', 'Bela Vista', 'São Paulo', 'SP', '01310-100', '-23.56143', '-46.65590', 'Acesso pelo estacionamento.'],
-        ['SITE-002', 'PABXA_0002', 'Claro', '4G', 'em manutenção', 'Rua A', 45, '', '', 'São Paulo', 'SP', '', '', '', ''],
+        ['SITE-001', 'PABLM_0001', 'Vivo', '5G', 'SMP-1024', 'ativa', '10/01/2026', '31/12/2026', 'Av. Paulista', '1000', 'Conjunto 12', 'Bela Vista', 'São Paulo', 'SP', '01310-100', '-23.56143', '-46.65590', 'Acesso pelo estacionamento.'],
+        ['SITE-002', 'PABXA_0002', 'Claro', '4G', '', 'em manutenção', '', '', 'Rua A', 45, '', '', 'São Paulo', 'SP', '', '', '', ''],
     ]);
 
     $response = $this->actingAs($user)->post(route('admin.erbs.import'), ['file' => $file]);
@@ -59,7 +59,10 @@ it('imports erbs from an excel spreadsheet', function () {
         ->and($erbs[0]->end_id)->toBe('PABLM_0001')
         ->and($erbs[0]->operator)->toBe('Vivo')
         ->and($erbs[0]->technology)->toBe('5G')
+        ->and($erbs[0]->nokia_smp_id)->toBe('SMP-1024')
         ->and($erbs[0]->status->value)->toBe('active')
+        ->and($erbs[0]->start_date->toDateString())->toBe('2026-01-10')
+        ->and($erbs[0]->end_date->toDateString())->toBe('2026-12-31')
         ->and($erbs[0]->street)->toBe('Av. Paulista')
         ->and($erbs[0]->number)->toBe('1000')
         ->and($erbs[0]->complement)->toBe('Conjunto 12')
@@ -73,6 +76,9 @@ it('imports erbs from an excel spreadsheet', function () {
         ->and($erbs[1]->code)->toBe('ERB-0002')
         ->and($erbs[1]->name)->toBe('SITE-002')
         ->and($erbs[1]->end_id)->toBe('PABXA_0002')
+        ->and($erbs[1]->nokia_smp_id)->toBeNull()
+        ->and($erbs[1]->start_date)->toBeNull()
+        ->and($erbs[1]->end_date)->toBeNull()
         ->and($erbs[1]->number)->toBe('45')
         ->and($erbs[1]->status->value)->toBe('maintenance');
 });
@@ -81,7 +87,7 @@ it('derives the name from the end id when the site id is missing', function () {
     $user = User::factory()->create();
 
     $file = erbWorkbook([
-        ['', 'PABLM_0001', 'Vivo', '5G', 'ativa', '', '', '', '', '', '', '', '', '', ''],
+        ['', 'PABLM_0001', 'Vivo', '5G', '', 'ativa', '', '', '', '', '', '', '', '', '', '', '', ''],
     ]);
 
     $this->actingAs($user)->post(route('admin.erbs.import'), ['file' => $file])
@@ -98,7 +104,7 @@ it('accepts operator and technology regardless of case', function () {
     $user = User::factory()->create();
 
     $file = erbWorkbook([
-        ['SITE-001', 'PABLM_0001', 'vivo', '4g/5g', 'ativa', '', '', '', '', '', '', '', '', '', ''],
+        ['SITE-001', 'PABLM_0001', 'vivo', '4g/5g', '', 'ativa', '', '', '', '', '', '', '', '', '', '', '', ''],
     ]);
 
     $this->actingAs($user)->post(route('admin.erbs.import'), ['file' => $file])
@@ -114,8 +120,8 @@ it('keeps a single erb when a site id is duplicated within the file', function (
     $user = User::factory()->create();
 
     $file = erbWorkbook([
-        ['SITE-DUP', 'PABLM_0001', 'Vivo', '5G', 'ativa', '', '', '', '', '', '', '', '', '', ''],
-        ['site-dup', 'PABLM_0002', 'Claro', '4G', 'em manutenção', '', '', '', '', '', '', '', '', '', ''],
+        ['SITE-DUP', 'PABLM_0001', 'Vivo', '5G', '', 'ativa', '', '', '', '', '', '', '', '', '', '', '', ''],
+        ['site-dup', 'PABLM_0002', 'Claro', '4G', '', 'em manutenção', '', '', '', '', '', '', '', '', '', '', '', ''],
     ]);
 
     $this->actingAs($user)->post(route('admin.erbs.import'), ['file' => $file])
@@ -142,7 +148,7 @@ it('updates the existing erb when the site id is already in use', function () {
     ]);
 
     $file = erbWorkbook([
-        ['site-001', 'PABLM_0009', 'Vivo', '5G', 'ativa', 'Rua Nova', '10', '', '', 'Campinas', 'sp', '', '', '', 'Atualizada.'],
+        ['site-001', 'PABLM_0009', 'Vivo', '5G', 'SMP-2048', 'ativa', '01/02/2026', '', 'Rua Nova', '10', '', '', 'Campinas', 'sp', '', '', '', 'Atualizada.'],
     ]);
 
     $this->actingAs($user)->post(route('admin.erbs.import'), ['file' => $file])
@@ -155,7 +161,10 @@ it('updates the existing erb when the site id is already in use', function () {
         ->and($erb->end_id)->toBe('PABLM_0009')
         ->and($erb->operator)->toBe('Vivo')
         ->and($erb->technology)->toBe('5G')
+        ->and($erb->nokia_smp_id)->toBe('SMP-2048')
         ->and($erb->status->value)->toBe('active')
+        ->and($erb->start_date->toDateString())->toBe('2026-02-01')
+        ->and($erb->end_date)->toBeNull()
         ->and($erb->street)->toBe('Rua Nova')
         ->and($erb->city)->toBe('Campinas')
         ->and($erb->state)->toBe('SP')
@@ -167,8 +176,8 @@ it('creates new erbs and updates existing ones in the same file', function () {
     Erb::factory()->create(['user_id' => $user->getKey(), 'site_id' => 'SITE-001']);
 
     $file = erbWorkbook([
-        ['SITE-001', 'PABLM_0001', 'Vivo', '5G', 'ativa', '', '', '', '', '', '', '', '', '', ''],
-        ['SITE-002', 'PABLM_0002', 'Claro', '4G', 'ativa', '', '', '', '', '', '', '', '', '', ''],
+        ['SITE-001', 'PABLM_0001', 'Vivo', '5G', '', 'ativa', '', '', '', '', '', '', '', '', '', '', '', ''],
+        ['SITE-002', 'PABLM_0002', 'Claro', '4G', '', 'ativa', '', '', '', '', '', '', '', '', '', '', '', ''],
     ]);
 
     $this->actingAs($user)->post(route('admin.erbs.import'), ['file' => $file])
@@ -182,8 +191,8 @@ it('creates no erb when any row is invalid', function () {
     $user = User::factory()->create();
 
     $file = erbWorkbook([
-        ['SITE-001', 'PABLM_0001', 'Vivo', '5G', 'ativa', '', '', '', '', '', '', '', '', '', ''],
-        ['SITE-002', 'PABLM_0002', 'Vivo', '5G', 'desligada', '', '', '', '', '', '', '', '', '', ''],
+        ['SITE-001', 'PABLM_0001', 'Vivo', '5G', '', 'ativa', '', '', '', '', '', '', '', '', '', '', '', ''],
+        ['SITE-002', 'PABLM_0002', 'Vivo', '5G', '', 'desligada', '', '', '', '', '', '', '', '', '', '', '', ''],
     ]);
 
     $this->actingAs($user)
@@ -198,7 +207,37 @@ it('creates no erb when the operator or technology is invalid', function () {
     $user = User::factory()->create();
 
     $file = erbWorkbook([
-        ['SITE-001', 'PABLM_0001', 'Nextel', '6G', 'ativa', '', '', '', '', '', '', '', '', '', ''],
+        ['SITE-001', 'PABLM_0001', 'Nextel', '6G', '', 'ativa', '', '', '', '', '', '', '', '', '', '', '', ''],
+    ]);
+
+    $this->actingAs($user)
+        ->from(route('admin.erbs.index'))
+        ->post(route('admin.erbs.import'), ['file' => $file])
+        ->assertSessionHasErrors('import');
+
+    expect(Erb::query()->count())->toBe(0);
+});
+
+it('creates no erb when the start or end date is invalid', function () {
+    $user = User::factory()->create();
+
+    $file = erbWorkbook([
+        ['SITE-001', 'PABLM_0001', 'Vivo', '5G', '', 'ativa', '32/13/2026', '', '', '', '', '', '', '', '', '', '', ''],
+    ]);
+
+    $this->actingAs($user)
+        ->from(route('admin.erbs.index'))
+        ->post(route('admin.erbs.import'), ['file' => $file])
+        ->assertSessionHasErrors('import');
+
+    expect(Erb::query()->count())->toBe(0);
+});
+
+it('creates no erb when the end date is before the start date', function () {
+    $user = User::factory()->create();
+
+    $file = erbWorkbook([
+        ['SITE-001', 'PABLM_0001', 'Vivo', '5G', '', 'ativa', '10/01/2026', '01/01/2026', '', '', '', '', '', '', '', '', '', ''],
     ]);
 
     $this->actingAs($user)
@@ -213,7 +252,7 @@ it('creates no erb when both the site id and end id are missing', function () {
     $user = User::factory()->create();
 
     $file = erbWorkbook([
-        ['', '', 'Vivo', '5G', 'ativa', '', '', '', '', '', '', '', '', '', ''],
+        ['', '', 'Vivo', '5G', '', 'ativa', '', '', '', '', '', '', '', '', '', '', '', ''],
     ]);
 
     $this->actingAs($user)
@@ -232,7 +271,7 @@ it('allows the same site id for different users', function () {
     ]);
 
     $file = erbWorkbook([
-        ['SITE-001', 'PABXA_0002', 'Vivo', '5G', 'ativa', '', '', '', '', '', '', '', '', '', ''],
+        ['SITE-001', 'PABXA_0002', 'Vivo', '5G', '', 'ativa', '', '', '', '', '', '', '', '', '', '', '', ''],
     ]);
 
     $this->actingAs($user)->post(route('admin.erbs.import'), ['file' => $file])
@@ -259,7 +298,10 @@ it('exposes the current column headings in the import template', function () {
         'End ID',
         'Operadora',
         'Tecnologia',
+        'Nokia SMP ID',
         'Status',
+        'Início',
+        'Término',
         'Logradouro',
         'Número',
         'Complemento',
