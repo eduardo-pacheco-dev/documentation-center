@@ -712,11 +712,29 @@
                             {{ $workOrderDocuments->count() }}
                         </span>
                     </div>
+
+                    @can('update', $workOrder)
+                        @if ($workOrder->items->isNotEmpty())
+                            <button
+                                type="button"
+                                data-modal-open="work-order-attach-modal"
+                                class="inline-flex items-center gap-1.5 rounded-xl border border-gray-200/70 bg-white px-3.5 py-2 text-sm font-semibold text-gray-700 shadow-sm transition hover:border-indigo-200 hover:text-indigo-600 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-200 dark:hover:border-indigo-500/40"
+                            >
+                                <x-icon name="arrow-up-tray" class="h-4 w-4" />
+                                Anexar
+                            </button>
+                        @endif
+                    @endcan
                 </div>
 
                 @if ($workOrderDocuments->isEmpty())
                     <div class="px-6 py-10 text-center">
-                        <p class="text-sm text-gray-500 dark:text-gray-400">Nenhum anexo cadastrado. Envie arquivos a partir dos itens da OS.</p>
+                        <p class="text-sm text-gray-500 dark:text-gray-400">
+                            Nenhum anexo cadastrado.
+                            @if ($workOrder->items->isEmpty())
+                                Adicione itens à OS para poder anexar arquivos.
+                            @endif
+                        </p>
                     </div>
                 @else
                     <ul class="divide-y divide-gray-100 dark:divide-gray-800">
@@ -955,6 +973,7 @@
 
     @can('update', $workOrder)
         @include('admin.work-orders.partials.edit-modal', ['workOrder' => $workOrder])
+        @include('admin.work-orders.partials.attach-modal', ['workOrder' => $workOrder])
     @endcan
 
     <script>

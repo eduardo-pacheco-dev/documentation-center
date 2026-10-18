@@ -37,6 +37,7 @@ use App\Http\Controllers\Admin\TrashController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Admin\WorkOrderCommentController;
 use App\Http\Controllers\Admin\WorkOrderController;
+use App\Http\Controllers\Admin\WorkOrderDocumentController;
 use App\Http\Controllers\Admin\WorkOrderImportController;
 use App\Http\Controllers\Admin\WorkOrderItemController;
 use App\Http\Controllers\Admin\WorkOrderItemDocumentController;
@@ -229,6 +230,7 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
     Route::post('work-orders/{workOrder}/project', [WorkOrderProjectController::class, 'store'])->name('work-orders.project.store');
     Route::put('work-orders/{workOrder}/items', [WorkOrderController::class, 'updateItems'])->name('work-orders.items.update');
     Route::put('work-orders/{workOrder}/items/{item}/status', [WorkOrderItemController::class, 'updateStatus'])->name('work-orders.items.status.update');
+    Route::post('work-orders/{workOrder}/documents', [WorkOrderDocumentController::class, 'store'])->name('work-orders.documents.store');
     Route::resource('work-orders.items.documents', WorkOrderItemDocumentController::class)
         ->parameters(['work-orders' => 'workOrder'])
         ->only(['store', 'destroy']);

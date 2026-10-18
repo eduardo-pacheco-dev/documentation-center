@@ -148,6 +148,102 @@ it('renders the item details modal with its attachments', function () {
         ->assertSee(route('admin.files.preview', $document), false);
 });
 
+it('uploads attachments from the attachments section to the selected item', function () {
+    Storage::fake('local');
+
+    $user = User::factory()->create();
+    $workOrder = WorkOrder::factory()->create(['user_id' => $user->getKey()]);
+    $item = $workOrder->items()->create(['description' => 'Item', 'quantity' => 1, 'unit_price' => 10, 'total' => 10]);
+
+    $this->actingAs($user)
+        ->post(route('admin.work-orders.documents.store', $workOrder), [
+            'item_id' => $item->getKey(),
+            'documents' => [
+                UploadedFile::fake()->create('laudo.pdf', 100, 'application/pdf'),
+            ],
+        ])
+        ->assertRedirect(route('admin.work-orders.show', $workOrder))
+        ->assertSessionHas('status');
+
+    expect($item->documents()->count())->toBe(1);
+
+    $document = $item->documents()->first();
+
+    expect($document->work_order_item_id)->toBe($item->getKey())
+        ->and($document->user_id)->toBe($user->getKey());
+
+    Storage::disk('local')->assertExists($document->path);
+});
+
+it('requires an item of the work order when attaching from the attachments section', function () {
+    $user = User::factory()->create();
+    $workOrder = WorkOrder::factory()->create(['user_id' => $user->getKey()]);
+    $other = WorkOrder::factory()->create(['user_id' => $user->getKey()]);
+    $item = $other->items()->create(['description' => 'Item de outra OS', 'quantity' => 1, 'unit_price' => 10, 'total' => 10]);
+
+    $this->actingAs($user)
+        ->post(route('admin.work-orders.documents.store', $workOrder), [
+            'item_id' => $item->getKey(),
+            'documents' => [UploadedFile::fake()->create('laudo.pdf', 100, 'application/pdf')],
+        ])
+        ->assertSessionHasErrors('item_id');
+
+    expect($item->documents()->count())->toBe(0);
+});
+
+it('validates the uploaded attachment type from the attachments section', function () {
+    $user = User::factory()->create();
+    $workOrder = WorkOrder::factory()->create(['user_id' => $user->getKey()]);
+    $item = $workOrder->items()->create(['description' => 'Item', 'quantity' => 1, 'unit_price' => 10, 'total' => 10]);
+
+    $this->actingAs($user)
+        ->post(route('admin.work-orders.documents.store', $workOrder), [
+            'item_id' => $item->getKey(),
+            'documents' => [UploadedFile::fake()->create('virus.exe', 100, 'application/x-msdownload')],
+        ])
+        ->assertSessionHasErrors('documents.0');
+
+    expect($item->documents()->count())->toBe(0);
+});
+
+it('forbids a stranger from attaching from the attachments section', function () {
+    $workOrder = WorkOrder::factory()->create();
+    $item = $workOrder->items()->create(['description' => 'Item', 'quantity' => 1, 'unit_price' => 10, 'total' => 10]);
+
+    $this->actingAs(User::factory()->create())
+        ->post(route('admin.work-orders.documents.store', $workOrder), [
+            'item_id' => $item->getKey(),
+            'documents' => [UploadedFile::fake()->create('laudo.pdf', 100, 'application/pdf')],
+        ])
+        ->assertForbidden();
+
+    expect($item->documents()->count())->toBe(0);
+});
+
+it('shows the attach button in the attachments section when the work order has items', function () {
+    $user = User::factory()->create();
+    $workOrder = WorkOrder::factory()->create(['user_id' => $user->getKey()]);
+    $workOrder->items()->create(['description' => 'Item', 'quantity' => 1, 'unit_price' => 10, 'total' => 10]);
+
+    $this->actingAs($user)
+        ->get(route('admin.work-orders.show', $workOrder))
+        ->assertOk()
+        ->assertSee('data-modal-open="work-order-attach-modal"', false)
+        ->assertSee('id="work-order-attach-modal"', false)
+        ->assertSee(route('admin.work-orders.documents.store', $workOrder), false);
+});
+
+it('hides the attach button when the work order has no items', function () {
+    $user = User::factory()->create();
+    $workOrder = WorkOrder::factory()->create(['user_id' => $user->getKey()]);
+
+    $this->actingAs($user)
+        ->get(route('admin.work-orders.show', $workOrder))
+        ->assertOk()
+        ->assertDontSee('data-modal-open="work-order-attach-modal"', false)
+        ->assertSee('Adicione itens à OS para poder anexar arquivos.');
+});
+
 it('lists the item attachments in the work order attachments section', function () {
     $user = User::factory()->create();
     $workOrder = WorkOrder::factory()->create(['user_id' => $user->getKey()]);
