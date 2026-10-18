@@ -250,6 +250,7 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
     */
 
     Route::get('tasks', [TodoTaskController::class, 'index'])->name('tasks.index');
+    Route::get('tasks/export', [TodoTaskController::class, 'export'])->name('tasks.export');
     Route::post('tasks', [TodoTaskController::class, 'store'])->name('tasks.store');
     Route::put('tasks/{todoTask}', [TodoTaskController::class, 'update'])->name('tasks.update');
     Route::delete('tasks/{todoTask}', [TodoTaskController::class, 'destroy'])->name('tasks.destroy');

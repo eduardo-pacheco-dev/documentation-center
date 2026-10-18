@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Enums\TodoRepeat;
+use App\Exports\TodoTasksExport;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\StoreTodoTaskRequest;
 use App\Http\Requests\Admin\UpdateTodoTaskRequest;
@@ -14,6 +15,8 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\View\View;
+use Maatwebsite\Excel\Facades\Excel;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class TodoTaskController extends Controller
 {
@@ -42,36 +45,17 @@ class TodoTaskController extends Controller
 
         $lists = $user->todoLists()->ordered()->get();
 
-        $activeList = null;
-        $view = (string) $request->query('view', 'my_day');
-
-        if ($request->filled('list')) {
-            $activeList = $lists->firstWhere('id', (int) $request->query('list'));
-
-            abort_if($activeList === null, 404);
-
-            $view = 'list';
-        }
-
-        if (! in_array($view, self::VIEWS, true) || $view === '') {
-            $view = 'my_day';
-        }
-
-        if ($view === 'list' && $activeList === null) {
-            $view = 'all';
-        }
+        [$view, $activeList] = $this->resolveView($request, $user);
 
         $search = trim((string) $request->query('search', ''));
 
-        $sort = in_array($request->query('sort'), self::SORTS, true)
-            ? (string) $request->query('sort')
-            : 'manual';
+        $sort = $this->resolveSort($request);
 
-        $tasks = $this->taskQuery($user, $view, $activeList, $search, $view === 'completed', $sort)->limit(150)->get();
+        $tasks = $this->taskQuery($user, $view, $activeList, $search, $sort, $view === 'completed')->limit(150)->get();
 
         $completedTasks = $view === 'completed'
             ? collect()
-            : $this->taskQuery($user, $view, $activeList, $search, true, $sort)->limit(50)->get();
+            : $this->taskQuery($user, $view, $activeList, $search, $sort, true)->limit(50)->get();
 
         $base = TodoTask::query()->where('user_id', $user->getKey())->incomplete();
 
@@ -104,6 +88,68 @@ class TodoTaskController extends Controller
             'counts' => $counts,
             'listCounts' => $listCounts,
         ]);
+    }
+
+    /**
+     * Download the tasks of the current view, honoring its filters, as a spreadsheet.
+     */
+    public function export(Request $request): BinaryFileResponse
+    {
+        $this->authorize('viewAny', TodoTask::class);
+
+        $user = $request->user();
+
+        [$view, $activeList] = $this->resolveView($request, $user);
+
+        $search = trim((string) $request->query('search', ''));
+
+        $sort = $this->resolveSort($request);
+
+        $query = $this->taskQuery($user, $view, $activeList, $search, $sort, $view === 'completed' ? true : null);
+
+        return Excel::download(
+            new TodoTasksExport($query),
+            'tarefas.xlsx',
+        );
+    }
+
+    /**
+     * Resolve the smart view and the active list of the request.
+     *
+     * @return array{0: string, 1: TodoList|null}
+     */
+    protected function resolveView(Request $request, User $user): array
+    {
+        $view = (string) $request->query('view', 'my_day');
+        $activeList = null;
+
+        if ($request->filled('list')) {
+            $activeList = $user->todoLists()->find((int) $request->query('list'));
+
+            abort_if($activeList === null, 404);
+
+            $view = 'list';
+        }
+
+        if (! in_array($view, self::VIEWS, true) || $view === '') {
+            $view = 'my_day';
+        }
+
+        if ($view === 'list' && $activeList === null) {
+            $view = 'all';
+        }
+
+        return [$view, $activeList];
+    }
+
+    /**
+     * Resolve the sort option of the request.
+     */
+    protected function resolveSort(Request $request): string
+    {
+        return in_array($request->query('sort'), self::SORTS, true)
+            ? (string) $request->query('sort')
+            : 'manual';
     }
 
     /**
@@ -258,14 +304,18 @@ class TodoTaskController extends Controller
 
     /**
      * Build the query for the tasks visible in the current view.
+     *
+     * When `$completed` is null the completion state is not filtered.
      */
-    protected function taskQuery(User $user, string $view, ?TodoList $activeList, string $search, bool $completed, string $sort): Builder
+    protected function taskQuery(User $user, string $view, ?TodoList $activeList, string $search, string $sort, ?bool $completed = null): Builder
     {
         $query = TodoTask::query()
             ->where('user_id', $user->getKey())
             ->with(['todoList', 'steps']);
 
-        $completed ? $query->completed() : $query->incomplete();
+        if ($completed !== null) {
+            $completed ? $query->completed() : $query->incomplete();
+        }
 
         match ($view) {
             'list' => $query->where('todo_list_id', $activeList?->getKey()),

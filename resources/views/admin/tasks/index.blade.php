@@ -42,6 +42,13 @@
         'created' => 'Data de criação',
     ];
 
+    $exportQuery = array_filter([
+        'view' => $view,
+        'list' => $activeList?->getKey(),
+        'search' => $search,
+        'sort' => $sort === 'manual' ? null : $sort,
+    ]);
+
     $panel = 'rounded-2xl border border-gray-200/70 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900';
     $input = 'w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 shadow-sm transition focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200';
     $primaryButton = 'inline-flex items-center gap-1.5 rounded-2xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-500';
@@ -60,14 +67,26 @@
             <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Organize listas, planeje o dia e acompanhe suas etapas.</p>
         </div>
 
-        <button
-            type="button"
-            data-modal-open="task-list-modal"
-            class="inline-flex items-center gap-1.5 rounded-2xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-500"
-        >
-            <x-icon name="plus" class="h-4 w-4" />
-            Nova lista
-        </button>
+        <div class="flex flex-wrap items-center gap-2">
+            <a
+                href="{{ route('admin.tasks.export', $exportQuery) }}"
+                data-export-link
+                data-export-filename="tarefas.xlsx"
+                class="inline-flex items-center gap-1.5 rounded-2xl border border-gray-200/70 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 shadow-sm transition hover:border-indigo-200 hover:text-indigo-600 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-200 dark:hover:border-indigo-500/40"
+            >
+                <x-icon name="arrow-down-tray" class="h-4 w-4" />
+                Exportar
+            </a>
+
+            <button
+                type="button"
+                data-modal-open="task-list-modal"
+                class="inline-flex items-center gap-1.5 rounded-2xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-500"
+            >
+                <x-icon name="plus" class="h-4 w-4" />
+                Nova lista
+            </button>
+        </div>
     </div>
 
     <div class="mt-6 grid gap-6 lg:grid-cols-[17rem_1fr]">
