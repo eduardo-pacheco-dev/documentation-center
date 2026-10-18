@@ -1,6 +1,8 @@
 <?php
 
 use App\Models\Client;
+use App\Models\Erb;
+use App\Models\RadioLink;
 use App\Models\User;
 use App\Models\WorkOrder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -17,7 +19,7 @@ uses(RefreshDatabase::class);
  */
 function workOrderWorkbook(array $rows): UploadedFile
 {
-    $headings = ['Cliente', 'Descrição', 'Prioridade', 'Status', 'Abertura', 'Previsão', 'Observações'];
+    $headings = ['Cliente', 'ERB', 'Radio link', 'Descrição', 'Prioridade', 'Status', 'Abertura', 'Previsão', 'Observações'];
 
     $spreadsheet = new Spreadsheet;
     $spreadsheet->getActiveSheet()->fromArray([$headings, ...$rows]);
@@ -40,8 +42,8 @@ it('imports work orders from an excel spreadsheet', function () {
     Client::factory()->create(['user_id' => $user->getKey(), 'name' => 'Construtora Alfa']);
 
     $file = workOrderWorkbook([
-        ['Construtora Alfa', 'Revisão do quadro', 'alta', 'aberta', '10/01/2026', '24/01/2026', 'Portaria liberada'],
-        ['Construtora Alfa', '', 'urgente', 'em andamento', '12/01/2026', '', ''],
+        ['Construtora Alfa', '', '', 'Revisão do quadro', 'alta', 'aberta', '10/01/2026', '24/01/2026', 'Portaria liberada'],
+        ['Construtora Alfa', '', '', '', 'urgente', 'em andamento', '12/01/2026', '', ''],
     ]);
 
     $response = $this->actingAs($user)->post(route('admin.work-orders.import'), ['file' => $file]);
@@ -55,6 +57,8 @@ it('imports work orders from an excel spreadsheet', function () {
         ->and($workOrders[0]->number)->toBe('OS-0001')
         ->and($workOrders[1]->number)->toBe('OS-0002')
         ->and($workOrders[0]->user_id)->toBe($user->getKey())
+        ->and($workOrders[0]->erb_id)->toBeNull()
+        ->and($workOrders[0]->radio_link_id)->toBeNull()
         ->and($workOrders[0]->description)->toBe('Revisão do quadro')
         ->and($workOrders[0]->priority->value)->toBe('high')
         ->and($workOrders[0]->status->value)->toBe('open')
@@ -66,13 +70,104 @@ it('imports work orders from an excel spreadsheet', function () {
         ->and((float) $workOrders[0]->total)->toBe(0.0);
 });
 
+it('links the work order to an erb by site id or code', function () {
+    $user = User::factory()->create();
+    Client::factory()->create(['user_id' => $user->getKey(), 'name' => 'Construtora Alfa']);
+    $erb = Erb::factory()->create(['user_id' => $user->getKey(), 'site_id' => 'SITE-010']);
+
+    $file = workOrderWorkbook([
+        ['Construtora Alfa', 'site-010', '', '', 'normal', 'aberta', '10/01/2026', '', ''],
+        ['Construtora Alfa', $erb->code, '', '', 'normal', 'aberta', '11/01/2026', '', ''],
+    ]);
+
+    $this->actingAs($user)->post(route('admin.work-orders.import'), ['file' => $file])
+        ->assertRedirect(route('admin.work-orders.index'));
+
+    $workOrders = WorkOrder::query()->orderBy('id')->get();
+
+    expect($workOrders)->toHaveCount(2)
+        ->and($workOrders[0]->erb_id)->toBe($erb->getKey())
+        ->and($workOrders[1]->erb_id)->toBe($erb->getKey())
+        ->and($workOrders[0]->radio_link_id)->toBeNull();
+});
+
+it('links the work order to a radio link by code', function () {
+    $user = User::factory()->create();
+    Client::factory()->create(['user_id' => $user->getKey(), 'name' => 'Construtora Alfa']);
+    $radioLink = RadioLink::factory()->create(['user_id' => $user->getKey(), 'code' => 'RL-00042']);
+
+    $file = workOrderWorkbook([
+        ['Construtora Alfa', '', 'rl-00042', '', 'normal', 'aberta', '10/01/2026', '', ''],
+    ]);
+
+    $this->actingAs($user)->post(route('admin.work-orders.import'), ['file' => $file])
+        ->assertRedirect(route('admin.work-orders.index'));
+
+    $workOrder = WorkOrder::query()->sole();
+
+    expect($workOrder->radio_link_id)->toBe($radioLink->getKey())
+        ->and($workOrder->erb_id)->toBeNull();
+});
+
+it('rejects a row that fills both the erb and the radio link', function () {
+    $user = User::factory()->create();
+    Client::factory()->create(['user_id' => $user->getKey(), 'name' => 'Construtora Alfa']);
+    Erb::factory()->create(['user_id' => $user->getKey(), 'site_id' => 'SITE-010']);
+    RadioLink::factory()->create(['user_id' => $user->getKey(), 'code' => 'RL-00042']);
+
+    $file = workOrderWorkbook([
+        ['Construtora Alfa', 'SITE-010', 'RL-00042', '', 'normal', 'aberta', '10/01/2026', '', ''],
+    ]);
+
+    $this->actingAs($user)
+        ->from(route('admin.work-orders.index'))
+        ->post(route('admin.work-orders.import'), ['file' => $file])
+        ->assertSessionHasErrors('import');
+
+    expect(WorkOrder::query()->count())->toBe(0);
+});
+
+it('rejects a row that references an unknown erb or radio link', function () {
+    $user = User::factory()->create();
+    Client::factory()->create(['user_id' => $user->getKey(), 'name' => 'Construtora Alfa']);
+
+    $file = workOrderWorkbook([
+        ['Construtora Alfa', 'SITE-999', '', '', 'normal', 'aberta', '10/01/2026', '', ''],
+        ['Construtora Alfa', '', 'RL-99999', '', 'normal', 'aberta', '10/01/2026', '', ''],
+    ]);
+
+    $this->actingAs($user)
+        ->from(route('admin.work-orders.index'))
+        ->post(route('admin.work-orders.import'), ['file' => $file])
+        ->assertSessionHasErrors('import');
+
+    expect(WorkOrder::query()->count())->toBe(0);
+});
+
+it('does not use an erb that belongs to another user', function () {
+    $user = User::factory()->create();
+    Client::factory()->create(['user_id' => $user->getKey(), 'name' => 'Construtora Alfa']);
+    Erb::factory()->create(['site_id' => 'SITE-010']);
+
+    $file = workOrderWorkbook([
+        ['Construtora Alfa', 'SITE-010', '', '', 'normal', 'aberta', '10/01/2026', '', ''],
+    ]);
+
+    $this->actingAs($user)
+        ->from(route('admin.work-orders.index'))
+        ->post(route('admin.work-orders.import'), ['file' => $file])
+        ->assertSessionHasErrors('import');
+
+    expect(WorkOrder::query()->count())->toBe(0);
+});
+
 it('creates no work order when any row is invalid', function () {
     $user = User::factory()->create();
     Client::factory()->create(['user_id' => $user->getKey(), 'name' => 'Construtora Alfa']);
 
     $file = workOrderWorkbook([
-        ['Construtora Alfa', '', 'normal', 'aberta', '10/01/2026', '', ''],
-        ['Cliente Inexistente', '', 'normal', 'aberta', '10/01/2026', '', ''],
+        ['Construtora Alfa', '', '', '', 'normal', 'aberta', '10/01/2026', '', ''],
+        ['Cliente Inexistente', '', '', '', 'normal', 'aberta', '10/01/2026', '', ''],
     ]);
 
     $this->actingAs($user)

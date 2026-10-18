@@ -531,7 +531,8 @@
             @endif
 
             <div class="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-3 text-sm text-gray-600 dark:border-gray-800 dark:bg-gray-800/50 dark:text-gray-300">
-                <p>Colunas: <span class="font-medium">Cliente, Descrição, Prioridade, Status, Abertura, Previsão, Observações</span>.</p>
+                <p>Colunas: <span class="font-medium">Cliente, ERB, Radio link, Descrição, Prioridade, Status, Abertura, Previsão, Observações</span>.</p>
+                <p class="mt-1">Informe a ERB (Site ID ou código) ou o Radio link (código), nunca ambos.</p>
                 <p class="mt-1">O cliente precisa já existir. Prioridade: baixa, normal, alta ou urgente. Status: aberta, em andamento, concluída ou cancelada. Datas em dd/mm/aaaa.</p>
                 <a
                     href="{{ route('admin.work-orders.import.template') }}"

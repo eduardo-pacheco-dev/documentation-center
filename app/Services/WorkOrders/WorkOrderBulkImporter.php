@@ -29,6 +29,20 @@ class WorkOrderBulkImporter
             ->pluck('id', 'name')
             ->mapWithKeys(fn ($id, $name): array => [mb_strtolower(trim((string) $name)) => $id]);
 
+        $erbs = collect();
+
+        foreach ($user->erbs()->get(['id', 'site_id', 'code']) as $erb) {
+            foreach ([$erb->site_id, $erb->code] as $key) {
+                if (filled($key)) {
+                    $erbs->put(mb_strtoupper((string) $key), $erb->getKey());
+                }
+            }
+        }
+
+        $radioLinks = $user->radioLinks()
+            ->pluck('id', 'code')
+            ->mapWithKeys(fn ($id, $code): array => [mb_strtoupper((string) $code) => $id]);
+
         $prepared = [];
         $errors = [];
 
@@ -39,6 +53,8 @@ class WorkOrderBulkImporter
 
             $validator = Validator::make($row, [
                 'cliente' => ['required', 'string', 'max:255'],
+                'erb' => ['nullable', 'string', 'max:255'],
+                'radio_link' => ['nullable', 'string', 'max:60'],
                 'descricao' => ['nullable', 'string', 'max:2000'],
                 'prioridade' => ['nullable', 'string'],
                 'status' => ['nullable', 'string'],
@@ -61,6 +77,25 @@ class WorkOrderBulkImporter
 
             if ($clientId === null) {
                 $errors[] = "Linha {$line}: o cliente \"{$data['cliente']}\" não foi encontrado.";
+            }
+
+            $erbRef = $data['erb'] ?? null;
+            $radioLinkRef = $data['radio_link'] ?? null;
+
+            if ($erbRef !== null && $radioLinkRef !== null) {
+                $errors[] = "Linha {$line}: informe a ERB ou o radio link, não ambos.";
+            }
+
+            $erbId = $erbRef !== null ? ($erbs[mb_strtoupper($erbRef)] ?? null) : null;
+
+            if ($erbRef !== null && $erbId === null) {
+                $errors[] = "Linha {$line}: a ERB \"{$erbRef}\" não foi encontrada.";
+            }
+
+            $radioLinkId = $radioLinkRef !== null ? ($radioLinks[mb_strtoupper($radioLinkRef)] ?? null) : null;
+
+            if ($radioLinkRef !== null && $radioLinkId === null) {
+                $errors[] = "Linha {$line}: o radio link \"{$radioLinkRef}\" não foi encontrado.";
             }
 
             $priority = $this->parsePriority($data['prioridade'] ?? null);
@@ -91,12 +126,14 @@ class WorkOrderBulkImporter
                 $errors[] = "Linha {$line}: a previsão de entrega deve ser posterior à abertura.";
             }
 
-            if ($clientId === null || $priority === null || $status === null) {
+            if ($clientId === null || $priority === null || $status === null || ($erbRef !== null && $erbId === null) || ($radioLinkRef !== null && $radioLinkId === null)) {
                 continue;
             }
 
             $prepared[] = [
                 'client_id' => $clientId,
+                'erb_id' => $erbId,
+                'radio_link_id' => $radioLinkId,
                 'description' => $data['descricao'] ?? null,
                 'priority' => $priority->value,
                 'status' => $status->value,
