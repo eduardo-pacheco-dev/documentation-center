@@ -19,7 +19,7 @@
                     <x-icon name="paper-clip" class="h-5 w-5 text-gray-400 dark:text-gray-500" />
                     Anexar arquivo
                 </h2>
-                <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Os arquivos ficam vinculados ao item da OS selecionado.</p>
+                <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Anexe os arquivos direto à ordem de serviço ou vincule-os a um item.</p>
             </div>
 
             <button
@@ -51,14 +51,13 @@
             <input type="hidden" name="modal" value="attach">
 
             <div>
-                <label for="work-order-attach-item" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Item da OS</label>
+                <label for="work-order-attach-item" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Item da OS <span class="font-normal text-gray-400 dark:text-gray-500">(opcional)</span></label>
                 <select
                     id="work-order-attach-item"
                     name="item_id"
-                    required
                     class="mt-1 w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 shadow-sm transition focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200"
                 >
-                    <option value="">Selecione o item</option>
+                    <option value="">Anexar direto à ordem de serviço</option>
                     @foreach ($workOrder->items as $item)
                         <option value="{{ $item->getKey() }}" @selected((string) old('item_id') === (string) $item->getKey())>
                             {{ $item->description }}

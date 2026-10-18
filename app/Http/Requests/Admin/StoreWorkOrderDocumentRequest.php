@@ -34,7 +34,7 @@ class StoreWorkOrderDocumentRequest extends FormRequest
     {
         return [
             'item_id' => [
-                'required',
+                'nullable',
                 'integer',
                 Rule::exists('work_order_items', 'id')->where('work_order_id', $this->workOrder()->getKey()),
             ],

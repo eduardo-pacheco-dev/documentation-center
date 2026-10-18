@@ -233,15 +233,103 @@ it('shows the attach button in the attachments section when the work order has i
         ->assertSee(route('admin.work-orders.documents.store', $workOrder), false);
 });
 
-it('hides the attach button when the work order has no items', function () {
+it('shows the attach button in the attachments section even when the work order has no items', function () {
     $user = User::factory()->create();
     $workOrder = WorkOrder::factory()->create(['user_id' => $user->getKey()]);
 
     $this->actingAs($user)
         ->get(route('admin.work-orders.show', $workOrder))
         ->assertOk()
-        ->assertDontSee('data-modal-open="work-order-attach-modal"', false)
-        ->assertSee('Adicione itens à OS para poder anexar arquivos.');
+        ->assertSee('data-modal-open="work-order-attach-modal"', false)
+        ->assertSee('id="work-order-attach-modal"', false)
+        ->assertSee(route('admin.work-orders.documents.store', $workOrder), false)
+        ->assertSee('Anexar direto à ordem de serviço');
+});
+
+it('uploads attachments directly to the work order without an item', function () {
+    Storage::fake('local');
+
+    $user = User::factory()->create();
+    $workOrder = WorkOrder::factory()->create(['user_id' => $user->getKey()]);
+
+    $this->actingAs($user)
+        ->post(route('admin.work-orders.documents.store', $workOrder), [
+            'documents' => [
+                UploadedFile::fake()->create('laudo.pdf', 100, 'application/pdf'),
+            ],
+        ])
+        ->assertRedirect(route('admin.work-orders.show', $workOrder))
+        ->assertSessionHas('status');
+
+    expect($workOrder->documents()->count())->toBe(1);
+
+    $document = $workOrder->documents()->first();
+
+    expect($document->work_order_id)->toBe($workOrder->getKey())
+        ->and($document->work_order_item_id)->toBeNull()
+        ->and($document->user_id)->toBe($user->getKey());
+
+    Storage::disk('local')->assertExists($document->path);
+
+    $this->actingAs($user)
+        ->get(route('admin.work-orders.show', $workOrder))
+        ->assertOk()
+        ->assertSee('laudo.pdf')
+        ->assertSee('Ordem de serviço')
+        ->assertSee(route('admin.work-orders.documents.destroy', [$workOrder, $document]), false);
+});
+
+it('removes an attachment attached directly to the work order', function () {
+    Storage::fake('local');
+
+    $user = User::factory()->create();
+    $workOrder = WorkOrder::factory()->create(['user_id' => $user->getKey()]);
+    $document = Document::factory()->for($user)->create(['work_order_id' => $workOrder->getKey()]);
+
+    $this->actingAs($user)
+        ->delete(route('admin.work-orders.documents.destroy', [$workOrder, $document]))
+        ->assertRedirect(route('admin.work-orders.show', $workOrder))
+        ->assertSessionHas('status');
+
+    $this->assertSoftDeleted('documents', ['id' => $document->getKey()]);
+});
+
+it('does not remove an attachment that belongs to another work order', function () {
+    $user = User::factory()->create();
+    $workOrder = WorkOrder::factory()->create(['user_id' => $user->getKey()]);
+    $other = WorkOrder::factory()->create(['user_id' => $user->getKey()]);
+    $document = Document::factory()->for($user)->create(['work_order_id' => $other->getKey()]);
+
+    $this->actingAs($user)
+        ->delete(route('admin.work-orders.documents.destroy', [$workOrder, $document]))
+        ->assertNotFound();
+
+    $this->assertNotSoftDeleted('documents', ['id' => $document->getKey()]);
+});
+
+it('does not remove an item attachment through the work order documents endpoint', function () {
+    $user = User::factory()->create();
+    $workOrder = WorkOrder::factory()->create(['user_id' => $user->getKey()]);
+    $item = $workOrder->items()->create(['description' => 'Item', 'quantity' => 1, 'unit_price' => 10, 'total' => 10]);
+    $document = Document::factory()->for($user)->create(['work_order_item_id' => $item->getKey()]);
+
+    $this->actingAs($user)
+        ->delete(route('admin.work-orders.documents.destroy', [$workOrder, $document]))
+        ->assertNotFound();
+
+    $this->assertNotSoftDeleted('documents', ['id' => $document->getKey()]);
+});
+
+it('forbids a stranger from removing a work order attachment', function () {
+    $owner = User::factory()->create();
+    $workOrder = WorkOrder::factory()->create(['user_id' => $owner->getKey()]);
+    $document = Document::factory()->for($owner)->create(['work_order_id' => $workOrder->getKey()]);
+
+    $this->actingAs(User::factory()->create())
+        ->delete(route('admin.work-orders.documents.destroy', [$workOrder, $document]))
+        ->assertForbidden();
+
+    $this->assertNotSoftDeleted('documents', ['id' => $document->getKey()]);
 });
 
 it('lists the item attachments in the work order attachments section', function () {

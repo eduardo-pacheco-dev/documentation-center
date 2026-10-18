@@ -77,6 +77,16 @@ class WorkOrder extends Model
     }
 
     /**
+     * The files attached directly to the work order, outside its line items.
+     *
+     * @return HasMany<Document, $this>
+     */
+    public function documents(): HasMany
+    {
+        return $this->hasMany(Document::class)->latest();
+    }
+
+    /**
      * The comments written on the work order.
      *
      * @return HasMany<Comment, $this>

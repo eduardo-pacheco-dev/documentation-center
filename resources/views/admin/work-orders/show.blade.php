@@ -697,6 +697,7 @@
             @php
                 $workOrderDocuments = $workOrder->items
                     ->flatMap(fn ($item) => $item->documents->map(fn ($document) => ['item' => $item, 'document' => $document]))
+                    ->concat($workOrder->documents->map(fn ($document) => ['item' => null, 'document' => $document]))
                     ->sortByDesc(fn (array $row) => $row['document']->created_at)
                     ->values();
             @endphp
@@ -714,27 +715,20 @@
                     </div>
 
                     @can('update', $workOrder)
-                        @if ($workOrder->items->isNotEmpty())
-                            <button
-                                type="button"
-                                data-modal-open="work-order-attach-modal"
-                                class="inline-flex items-center gap-1.5 rounded-xl border border-gray-200/70 bg-white px-3.5 py-2 text-sm font-semibold text-gray-700 shadow-sm transition hover:border-indigo-200 hover:text-indigo-600 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-200 dark:hover:border-indigo-500/40"
-                            >
-                                <x-icon name="arrow-up-tray" class="h-4 w-4" />
-                                Anexar
-                            </button>
-                        @endif
+                        <button
+                            type="button"
+                            data-modal-open="work-order-attach-modal"
+                            class="inline-flex items-center gap-1.5 rounded-xl border border-gray-200/70 bg-white px-3.5 py-2 text-sm font-semibold text-gray-700 shadow-sm transition hover:border-indigo-200 hover:text-indigo-600 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-200 dark:hover:border-indigo-500/40"
+                        >
+                            <x-icon name="arrow-up-tray" class="h-4 w-4" />
+                            Anexar
+                        </button>
                     @endcan
                 </div>
 
                 @if ($workOrderDocuments->isEmpty())
                     <div class="px-6 py-10 text-center">
-                        <p class="text-sm text-gray-500 dark:text-gray-400">
-                            Nenhum anexo cadastrado.
-                            @if ($workOrder->items->isEmpty())
-                                Adicione itens à OS para poder anexar arquivos.
-                            @endif
-                        </p>
+                        <p class="text-sm text-gray-500 dark:text-gray-400">Nenhum anexo cadastrado.</p>
                     </div>
                 @else
                     <ul class="divide-y divide-gray-100 dark:divide-gray-800">
@@ -751,7 +745,11 @@
                                         {{ $document->original_name }}
                                     </p>
                                     <p class="text-xs text-gray-500 dark:text-gray-400">
-                                        Item: {{ \Illuminate\Support\Str::limit($documentItem->description, 40) }}
+                                        @if ($documentItem !== null)
+                                            Item: {{ \Illuminate\Support\Str::limit($documentItem->description, 40) }}
+                                        @else
+                                            Ordem de serviço
+                                        @endif
                                         ·
                                         {{ Number::fileSize($document->size) }}
                                         ·
@@ -759,15 +757,33 @@
                                     </p>
                                 </div>
 
-                                <a
-                                    href="{{ route('admin.files.preview', $document) }}"
-                                    target="_blank"
-                                    rel="noopener"
-                                    class="rounded-lg p-1.5 text-gray-400 transition hover:bg-gray-100 hover:text-gray-700 dark:text-gray-500 dark:hover:bg-gray-800 dark:hover:text-gray-200"
-                                    aria-label="Visualizar anexo"
-                                >
-                                    <x-icon name="eye" class="h-4 w-4" />
-                                </a>
+                                <div class="flex shrink-0 items-center gap-1">
+                                    <a
+                                        href="{{ route('admin.files.preview', $document) }}"
+                                        target="_blank"
+                                        rel="noopener"
+                                        class="rounded-lg p-1.5 text-gray-400 transition hover:bg-gray-100 hover:text-gray-700 dark:text-gray-500 dark:hover:bg-gray-800 dark:hover:text-gray-200"
+                                        aria-label="Visualizar anexo"
+                                    >
+                                        <x-icon name="eye" class="h-4 w-4" />
+                                    </a>
+
+                                    @if ($documentItem === null)
+                                        @can('update', $workOrder)
+                                            <form method="POST" action="{{ route('admin.work-orders.documents.destroy', [$workOrder, $document]) }}" data-confirm-delete="Tem certeza que deseja remover este anexo?">
+                                                @csrf
+                                                @method('DELETE')
+                                                <button
+                                                    type="submit"
+                                                    class="rounded-lg p-1.5 text-gray-400 transition hover:bg-red-50 hover:text-red-600 dark:text-gray-500 dark:hover:bg-red-950 dark:hover:text-red-400"
+                                                    aria-label="Remover anexo"
+                                                >
+                                                    <x-icon name="trash" class="h-4 w-4" />
+                                                </button>
+                                            </form>
+                                        @endcan
+                                    @endif
+                                </div>
                             </li>
                         @endforeach
                     </ul>

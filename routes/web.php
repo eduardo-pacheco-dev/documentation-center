@@ -231,6 +231,7 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
     Route::put('work-orders/{workOrder}/items', [WorkOrderController::class, 'updateItems'])->name('work-orders.items.update');
     Route::put('work-orders/{workOrder}/items/{item}/status', [WorkOrderItemController::class, 'updateStatus'])->name('work-orders.items.status.update');
     Route::post('work-orders/{workOrder}/documents', [WorkOrderDocumentController::class, 'store'])->name('work-orders.documents.store');
+    Route::delete('work-orders/{workOrder}/documents/{document}', [WorkOrderDocumentController::class, 'destroy'])->name('work-orders.documents.destroy');
     Route::resource('work-orders.items.documents', WorkOrderItemDocumentController::class)
         ->parameters(['work-orders' => 'workOrder'])
         ->only(['store', 'destroy']);
