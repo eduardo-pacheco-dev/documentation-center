@@ -6,6 +6,9 @@ use App\Models\Resource;
 use App\Models\ResourceAssignment;
 use App\Models\Task;
 use App\Models\TaskDependency;
+use App\Models\TodoList;
+use App\Models\TodoTask;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -89,4 +92,28 @@ function assign(Resource $resource, Task $task, float $units = 100): ResourceAss
         'work_minutes' => $task->duration_minutes,
         'cost' => 0,
     ]);
+}
+
+/**
+ * Create a to-do list owned by the given user.
+ */
+function todoListFor(User $user, string $name = 'Tarefas'): TodoList
+{
+    return TodoList::factory()->create([
+        'user_id' => $user->getKey(),
+        'name' => $name,
+    ]);
+}
+
+/**
+ * Create a to-do task inside the given list.
+ *
+ * @param  array<string, mixed>  $attributes
+ */
+function todoTaskIn(TodoList $list, array $attributes = []): TodoTask
+{
+    return TodoTask::factory()->create(array_merge([
+        'user_id' => $list->user_id,
+        'todo_list_id' => $list->getKey(),
+    ], $attributes));
 }

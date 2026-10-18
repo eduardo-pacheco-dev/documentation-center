@@ -33,6 +33,9 @@ use App\Http\Controllers\Admin\RadioLinkCommentController;
 use App\Http\Controllers\Admin\RadioLinkController;
 use App\Http\Controllers\Admin\RadioLinkDocumentController;
 use App\Http\Controllers\Admin\ShortLinkController;
+use App\Http\Controllers\Admin\TodoListController;
+use App\Http\Controllers\Admin\TodoStepController;
+use App\Http\Controllers\Admin\TodoTaskController;
 use App\Http\Controllers\Admin\TrashController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Admin\WorkOrderCommentController;
@@ -241,6 +244,27 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
     Route::put('work-orders/{workOrder}/dates', [WorkOrderController::class, 'updateDates'])->name('work-orders.dates.update');
     Route::put('work-orders/{workOrder}/description', [WorkOrderController::class, 'updateDescription'])->name('work-orders.description.update');
     Route::put('work-orders/{workOrder}/notes', [WorkOrderController::class, 'updateNotes'])->name('work-orders.notes.update');
+
+    /*
+    | Tasks
+    */
+
+    Route::get('tasks', [TodoTaskController::class, 'index'])->name('tasks.index');
+    Route::post('tasks', [TodoTaskController::class, 'store'])->name('tasks.store');
+    Route::put('tasks/{todoTask}', [TodoTaskController::class, 'update'])->name('tasks.update');
+    Route::delete('tasks/{todoTask}', [TodoTaskController::class, 'destroy'])->name('tasks.destroy');
+    Route::patch('tasks/{todoTask}/toggle', [TodoTaskController::class, 'toggle'])->name('tasks.toggle');
+    Route::patch('tasks/{todoTask}/important', [TodoTaskController::class, 'toggleImportant'])->name('tasks.important');
+    Route::patch('tasks/{todoTask}/my-day', [TodoTaskController::class, 'toggleMyDay'])->name('tasks.my-day');
+    Route::patch('tasks/{todoTask}/move', [TodoTaskController::class, 'move'])->name('tasks.move');
+
+    Route::resource('tasks.steps', TodoStepController::class)
+        ->parameters(['tasks' => 'todoTask'])
+        ->only(['store', 'update', 'destroy']);
+
+    Route::resource('todo-lists', TodoListController::class)
+        ->parameters(['todo-lists' => 'todoList'])
+        ->only(['store', 'update', 'destroy']);
 
     /*
     | Projects

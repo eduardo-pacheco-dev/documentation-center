@@ -125,6 +125,26 @@ class User extends Authenticatable
     }
 
     /**
+     * The task lists created by the user.
+     *
+     * @return HasMany<TodoList, $this>
+     */
+    public function todoLists(): HasMany
+    {
+        return $this->hasMany(TodoList::class);
+    }
+
+    /**
+     * The tasks created by the user.
+     *
+     * @return HasMany<TodoTask, $this>
+     */
+    public function todoTasks(): HasMany
+    {
+        return $this->hasMany(TodoTask::class);
+    }
+
+    /**
      * The radio links created by the user.
      *
      * @return HasMany<RadioLink, $this>
