@@ -246,6 +246,14 @@
                                     <x-icon name="eye" class="h-4 w-4" />
                                 </a>
 
+                                <a
+                                    href="{{ route('admin.files.download', $document) }}"
+                                    class="rounded-lg p-1.5 text-gray-400 transition hover:bg-gray-100 hover:text-gray-700 dark:text-gray-500 dark:hover:bg-gray-800 dark:hover:text-gray-200"
+                                    aria-label="Baixar anexo"
+                                >
+                                    <x-icon name="arrow-down-tray" class="h-4 w-4" />
+                                </a>
+
                                 @can('update', $workOrder)
                                     <form method="POST" action="{{ route('admin.work-orders.items.documents.destroy', [$workOrder, $item, $document]) }}" data-confirm-delete="Tem certeza que deseja remover este anexo?">
                                         @csrf

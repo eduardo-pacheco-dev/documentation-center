@@ -130,6 +130,7 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
     Route::post('files/generate-link', [DocumentController::class, 'generateLink'])->name('files.generate-link');
     Route::post('files/move', [DocumentController::class, 'move'])->name('files.move');
     Route::get('files/{document}/preview', [DocumentController::class, 'preview'])->name('files.preview');
+    Route::get('files/{document}/download', [DocumentController::class, 'download'])->name('files.download');
 
     Route::resource('folders', FolderController::class)->only(['store', 'update', 'destroy']);
 

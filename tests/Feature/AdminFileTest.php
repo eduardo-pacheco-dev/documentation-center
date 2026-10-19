@@ -181,6 +181,45 @@ test('guests are redirected from the preview route', function () {
     $this->get(route('admin.files.preview', $document))->assertRedirect('/login');
 });
 
+test('users can download their own files as an attachment', function () {
+    Storage::fake('local');
+
+    $user = User::factory()->create();
+    $document = Document::factory()->for($user)->create([
+        'original_name' => 'relatorio.pdf',
+        'mime_type' => 'application/pdf',
+    ]);
+
+    Storage::disk('local')->put($document->path, 'conteudo do relatorio');
+
+    $response = $this->actingAs($user)->get(route('admin.files.download', $document));
+
+    $response->assertOk()
+        ->assertHeader('Content-Type', 'application/pdf')
+        ->assertDownload('relatorio.pdf');
+
+    $this->assertSame('conteudo do relatorio', $response->streamedContent());
+});
+
+test('users can not download files owned by someone else', function () {
+    Storage::fake('local');
+
+    $owner = User::factory()->create();
+    $document = Document::factory()->for($owner)->create();
+
+    Storage::disk('local')->put($document->path, 'segredo');
+
+    $this->actingAs(User::factory()->create())
+        ->get(route('admin.files.download', $document))
+        ->assertForbidden();
+});
+
+test('guests are redirected from the download route', function () {
+    $document = Document::factory()->create();
+
+    $this->get(route('admin.files.download', $document))->assertRedirect('/login');
+});
+
 test('files fall back to newest first when the sort is invalid', function () {
     $user = User::factory()->create();
     Document::factory()->for($user)->create(['original_name' => 'antigo.pdf']);

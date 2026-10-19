@@ -172,6 +172,22 @@ class DocumentController extends Controller
     }
 
     /**
+     * Stream a file owned by the authenticated user so the browser saves it.
+     */
+    public function download(Document $document): StreamedResponse
+    {
+        $this->authorize('view', $document);
+
+        $disk = Storage::disk($document->disk);
+
+        abort_unless($disk->exists($document->path), 404);
+
+        return $disk->download($document->path, $document->original_name, [
+            'Content-Type' => $document->mime_type ?? 'application/octet-stream',
+        ]);
+    }
+
+    /**
      * Rename a file owned by the authenticated user.
      */
     public function update(RenameDocumentRequest $request, Document $document): RedirectResponse

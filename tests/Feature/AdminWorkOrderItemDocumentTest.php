@@ -423,3 +423,25 @@ it('shows the empty attachment state in the item details modal', function () {
         ->assertOk()
         ->assertSee('Nenhum anexo cadastrado.');
 });
+
+it('offers a download action for attachments in the attachments section and in the item modal', function () {
+    $user = User::factory()->create();
+    $workOrder = WorkOrder::factory()->create(['user_id' => $user->getKey()]);
+    $item = $workOrder->items()->create(['description' => 'Item', 'quantity' => 1, 'unit_price' => 10, 'total' => 10]);
+    $document = Document::factory()->for($user)->create([
+        'work_order_item_id' => $item->getKey(),
+        'original_name' => 'laudo-tecnico.pdf',
+    ]);
+
+    $response = $this->actingAs($user)
+        ->get(route('admin.work-orders.show', $workOrder))
+        ->assertOk();
+
+    $downloadUrl = route('admin.files.download', $document);
+
+    $response->assertSee($downloadUrl, false);
+
+    // The link is rendered twice: once in the attachments section and once in
+    // the details modal of the item that owns the file.
+    $this->assertSame(2, substr_count($response->getContent(), $downloadUrl));
+});
