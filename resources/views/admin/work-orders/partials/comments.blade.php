@@ -6,7 +6,7 @@
             </span>
             Comentários
             <span class="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600 dark:bg-gray-800 dark:text-gray-300">
-                {{ $workOrder->comments->count() }}
+                {{ ($comments->total() ?? $workOrder->comments->count()) }} {{ ($comments->total() ?? $workOrder->comments->count()) === 1 ? 'comentário' : 'comentários' }}
             </span>
         </h2>
     </div>
@@ -108,7 +108,7 @@
         </form>
     @endcan
 
-    @if ($workOrder->comments->isEmpty())
+    @if (($comments->total() ?? $workOrder->comments->count()) === 0)
         <div class="mt-3 rounded-2xl border border-dashed border-gray-300 bg-white px-4 py-12 text-center dark:border-gray-700 dark:bg-gray-900">
             <span class="mx-auto flex h-11 w-11 items-center justify-center rounded-2xl bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-500">
                 <x-icon name="chat-bubble-oval-left-ellipsis" class="h-5 w-5" />
@@ -117,7 +117,7 @@
         </div>
     @else
         <ul class="mt-3 divide-y divide-gray-100 overflow-hidden rounded-2xl border border-gray-200/70 bg-white shadow-sm dark:divide-gray-800 dark:border-gray-800 dark:bg-gray-900">
-            @foreach ($workOrder->comments as $comment)
+            @foreach ($comments as $comment)
                 <li class="flex items-start gap-3 px-4 py-4">
                     <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-indigo-50 text-indigo-500 dark:bg-indigo-500/10 dark:text-indigo-400">
                         <x-icon name="user" class="h-5 w-5" />
@@ -143,8 +143,13 @@
                                             href="{{ route('admin.files.preview', $image) }}"
                                             target="_blank"
                                             rel="noopener"
-                                            title="{{ $image->original_name }}"
-                                            class="block overflow-hidden rounded-xl border border-gray-200/70 transition hover:border-indigo-300 dark:border-gray-800 dark:hover:border-indigo-500/40"
+                                            title="Visualizar {{ $image->original_name }}"
+                                            data-preview-open
+                                            data-preview-url="{{ route('admin.files.preview', $image) }}"
+                                            data-preview-name="{{ $image->original_name }}"
+                                            data-preview-mime="{{ $image->mime_type ?? '' }}"
+                                            data-preview-size="{{ Number::fileSize($image->size) }}"
+                                            class="group relative block overflow-hidden rounded-xl border border-gray-200/70 transition hover:border-indigo-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/40 dark:border-gray-800 dark:hover:border-indigo-500/40"
                                         >
                                             <img
                                                 src="{{ route('admin.files.preview', $image) }}"
@@ -152,6 +157,9 @@
                                                 loading="lazy"
                                                 class="h-24 w-24 object-cover"
                                             >
+                                            <span class="absolute inset-0 flex items-center justify-center bg-gray-900/0 text-white opacity-0 transition group-hover:bg-gray-900/40 group-hover:opacity-100">
+                                                <x-icon name="eye" class="h-5 w-5" />
+                                            </span>
                                         </a>
                                     </li>
                                 @endforeach
@@ -175,6 +183,12 @@
                 </li>
             @endforeach
         </ul>
+
+        @if (isset($comments) && $comments->hasPages())
+            <div class="mt-3 flex items-center justify-center">
+                {{ $comments->links() }}
+            </div>
+        @endif
     @endif
 </section>
 

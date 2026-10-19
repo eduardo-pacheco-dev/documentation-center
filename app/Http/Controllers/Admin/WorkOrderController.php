@@ -141,11 +141,18 @@ class WorkOrderController extends Controller
     {
         $this->authorize('view', $workOrder);
 
-        $workOrder->load(['client', 'erb', 'radioLink', 'items.catalogItem', 'items.documents', 'comments.user', 'comments.documents', 'project']);
+        $comments = $workOrder->comments()
+            ->with(['user', 'documents'])
+            ->latest()
+            ->paginate(20)
+            ->withQueryString();
+
+        $workOrder->load(['client', 'erb', 'radioLink', 'items.catalogItem', 'items.documents', 'project']);
 
         return view('admin.work-orders.show', [
             ...$this->formData($request->user()),
             'workOrder' => $workOrder,
+            'comments' => $comments,
         ]);
     }
 
@@ -156,11 +163,18 @@ class WorkOrderController extends Controller
     {
         $this->authorize('update', $workOrder);
 
-        $workOrder->load(['client', 'erb', 'radioLink', 'items.catalogItem', 'items.documents', 'comments.user', 'comments.documents', 'project']);
+        $comments = $workOrder->comments()
+            ->with(['user', 'documents'])
+            ->latest()
+            ->paginate(20)
+            ->withQueryString();
+
+        $workOrder->load(['client', 'erb', 'radioLink', 'items.catalogItem', 'items.documents', 'project']);
 
         return view('admin.work-orders.show', [
             ...$this->formData($request->user()),
             'workOrder' => $workOrder,
+            'comments' => $comments,
             'openEditModal' => true,
         ]);
     }

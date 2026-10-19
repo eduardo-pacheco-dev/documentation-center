@@ -321,3 +321,128 @@ document.addEventListener('click', (event) => {
         form.requestSubmit(trigger);
     });
 }, true);
+
+const DocumentPreview = (() => {
+    const IMAGE_EXTENSIONS = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'avif', 'bmp'];
+    const TEXT_EXTENSIONS = ['txt', 'md', 'json', 'csv', 'log', 'xml', 'html', 'css', 'js', 'php'];
+
+    const element = () => document.getElementById('preview-modal');
+
+    const extensionOf = (name) => {
+        const parts = (name || '').split('.');
+
+        return parts.length > 1 ? parts.pop().toLowerCase() : '';
+    };
+
+    const closeDropdowns = () => {
+        document.querySelectorAll('[data-dropdown-menu]:not(.hidden)').forEach((menu) => {
+            menu.classList.add('hidden');
+            menu.previousElementSibling?.setAttribute('aria-expanded', 'false');
+        });
+    };
+
+    const close = () => {
+        const modal = element();
+
+        if (!modal) {
+            return;
+        }
+
+        modal.classList.add('hidden');
+        document.body.classList.remove('overflow-hidden');
+        modal.querySelector('[data-preview-image]')?.removeAttribute('src');
+        modal.querySelector('[data-preview-frame]')?.removeAttribute('src');
+    };
+
+    const open = ({ url, name = '', mime = '', size = '' }) => {
+        const modal = element();
+
+        if (!modal || !url) {
+            return;
+        }
+
+        closeDropdowns();
+
+        const extension = extensionOf(name);
+        const image = modal.querySelector('[data-preview-image]');
+        const frame = modal.querySelector('[data-preview-frame]');
+        const text = modal.querySelector('[data-preview-text]');
+        const fallback = modal.querySelector('[data-preview-fallback]');
+
+        [image, frame, text, fallback].forEach((node) => node.classList.add('hidden'));
+        image.removeAttribute('src');
+        frame.removeAttribute('src');
+        text.textContent = '';
+
+        modal.querySelector('[data-preview-title]').textContent = name;
+        modal.querySelector('[data-preview-meta]').textContent = size;
+        modal.querySelector('[data-preview-download]').href = url;
+
+        if (mime.startsWith('image/') || IMAGE_EXTENSIONS.includes(extension)) {
+            image.src = url;
+            image.alt = name;
+            image.classList.remove('hidden');
+        } else if (mime === 'application/pdf' || extension === 'pdf') {
+            frame.src = url;
+            frame.classList.remove('hidden');
+        } else if (mime.startsWith('text/') || TEXT_EXTENSIONS.includes(extension)) {
+            text.classList.remove('hidden');
+
+            fetch(url, { credentials: 'same-origin', headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+                .then((response) => (response.ok ? response.text() : Promise.reject(new Error('Preview unavailable'))))
+                .then((content) => {
+                    text.textContent = content;
+                })
+                .catch(() => {
+                    text.classList.add('hidden');
+                    fallback.classList.remove('hidden');
+                });
+        } else {
+            fallback.classList.remove('hidden');
+        }
+
+        modal.classList.remove('hidden');
+        document.body.classList.add('overflow-hidden');
+    };
+
+    return { open, close };
+})();
+
+window.documentPreview = DocumentPreview;
+
+document.addEventListener('click', (event) => {
+    if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
+        return;
+    }
+
+    const trigger = event.target.closest('[data-preview-open]');
+
+    if (!trigger) {
+        return;
+    }
+
+    event.preventDefault();
+
+    DocumentPreview.open({
+        url: trigger.dataset.previewUrl,
+        name: trigger.dataset.previewName,
+        mime: trigger.dataset.previewMime,
+        size: trigger.dataset.previewSize,
+    });
+});
+
+document.addEventListener('click', (event) => {
+    if (!event.target.closest('#preview-modal [data-modal-close]')) {
+        return;
+    }
+
+    DocumentPreview.close();
+});
+
+document.addEventListener('keydown', (event) => {
+    const modal = document.getElementById('preview-modal');
+
+    if (event.key === 'Escape' && modal && !modal.classList.contains('hidden')) {
+        DocumentPreview.close();
+    }
+});
