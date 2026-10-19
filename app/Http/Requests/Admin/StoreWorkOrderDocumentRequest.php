@@ -43,8 +43,23 @@ class StoreWorkOrderDocumentRequest extends FormRequest
                 'required',
                 'file',
                 Rule::file()->types(['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'txt', 'csv', 'odt', 'ods', 'jpg', 'jpeg', 'png']),
-                'max:20480',
+                'max:102400',
             ],
+        ];
+    }
+
+    /**
+     * Get the validation error messages.
+     *
+     * @return array<string, string>
+     */
+    public function messages(): array
+    {
+        return [
+            'documents.required' => 'Selecione ao menos um arquivo para anexar.',
+            'documents.min' => 'Selecione ao menos um arquivo para anexar.',
+            'documents.max' => 'Você pode anexar no máximo 10 arquivos por envio.',
+            'documents.*.max' => 'Cada arquivo deve ter no máximo 100 MB.',
         ];
     }
 }

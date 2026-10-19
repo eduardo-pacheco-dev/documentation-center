@@ -206,6 +206,52 @@ it('validates the uploaded attachment type from the attachments section', functi
     expect($item->documents()->count())->toBe(0);
 });
 
+it('accepts attachments larger than the old 20 MB limit from the attachments section', function () {
+    Storage::fake('local');
+
+    $user = User::factory()->create();
+    $workOrder = WorkOrder::factory()->create(['user_id' => $user->getKey()]);
+
+    $this->actingAs($user)
+        ->post(route('admin.work-orders.documents.store', $workOrder), [
+            'documents' => [UploadedFile::fake()->create('laudo-grande.pdf', 30 * 1024, 'application/pdf')],
+        ])
+        ->assertRedirect(route('admin.work-orders.show', $workOrder))
+        ->assertSessionHas('status');
+
+    expect($workOrder->documents()->count())->toBe(1);
+});
+
+it('rejects attachments bigger than 100 MB from the attachments section', function () {
+    $user = User::factory()->create();
+    $workOrder = WorkOrder::factory()->create(['user_id' => $user->getKey()]);
+
+    $this->actingAs($user)
+        ->post(route('admin.work-orders.documents.store', $workOrder), [
+            'documents' => [UploadedFile::fake()->create('enorme.pdf', 101 * 1024, 'application/pdf')],
+        ])
+        ->assertSessionHasErrors(['documents.0' => 'Cada arquivo deve ter no máximo 100 MB.']);
+
+    expect($workOrder->documents()->count())->toBe(0);
+});
+
+it('accepts item attachments larger than the old 20 MB limit', function () {
+    Storage::fake('local');
+
+    $user = User::factory()->create();
+    $workOrder = WorkOrder::factory()->create(['user_id' => $user->getKey()]);
+    $item = $workOrder->items()->create(['description' => 'Item', 'quantity' => 1, 'unit_price' => 10, 'total' => 10]);
+
+    $this->actingAs($user)
+        ->post(route('admin.work-orders.items.documents.store', ['workOrder' => $workOrder, 'item' => $item]), [
+            'documents' => [UploadedFile::fake()->create('laudo-grande.pdf', 30 * 1024, 'application/pdf')],
+        ])
+        ->assertRedirect(route('admin.work-orders.show', ['workOrder' => $workOrder, 'item' => $item->getKey()]))
+        ->assertSessionHas('status');
+
+    expect($item->documents()->count())->toBe(1);
+});
+
 it('forbids a stranger from attaching from the attachments section', function () {
     $workOrder = WorkOrder::factory()->create();
     $item = $workOrder->items()->create(['description' => 'Item', 'quantity' => 1, 'unit_price' => 10, 'total' => 10]);

@@ -119,18 +119,64 @@
                     action="{{ route('admin.work-orders.items.documents.store', [$workOrder, $item]) }}"
                     enctype="multipart/form-data"
                     class="mt-3"
+                    x-data="documentPicker()"
+                    @dragover="onDragOver($event)"
+                    @dragleave="onDragLeave($event)"
+                    @drop="handleDrop($event)"
                 >
                     @csrf
                     <input type="hidden" name="item_id" value="{{ $item->getKey() }}">
 
-                    <div class="flex flex-col gap-3 sm:flex-row sm:items-center">
-                        <input
-                            type="file"
-                            name="documents[]"
-                            multiple
-                            accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.odt,.ods,.jpg,.jpeg,.png"
-                            class="block w-full text-sm text-gray-600 file:mr-3 file:rounded-lg file:border-0 file:bg-indigo-600 file:px-3 file:py-2 file:text-sm file:font-semibold file:text-white hover:file:bg-indigo-500 dark:text-gray-300"
-                        >
+                    <input
+                        type="file"
+                        name="documents[]"
+                        x-ref="documents"
+                        multiple
+                        accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.odt,.ods,.jpg,.jpeg,.png"
+                        class="sr-only"
+                        @change="handleSelect($event)"
+                    >
+
+                    <div
+                        role="button"
+                        tabindex="0"
+                        class="flex cursor-pointer flex-col items-center justify-center gap-1 rounded-xl border border-dashed px-4 py-6 text-center transition focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/40"
+                        :class="dragging
+                            ? 'border-indigo-400 bg-indigo-50/70 dark:border-indigo-500/60 dark:bg-indigo-500/10'
+                            : 'border-gray-300 hover:border-indigo-300 hover:bg-gray-50/70 dark:border-gray-700 dark:hover:border-indigo-500/40 dark:hover:bg-gray-800/40'"
+                        @click="$refs.documents.click()"
+                        @keydown.enter.prevent="$refs.documents.click()"
+                        @keydown.space.prevent="$refs.documents.click()"
+                    >
+                        <span class="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-indigo-50 text-indigo-500 dark:bg-indigo-500/10 dark:text-indigo-400">
+                            <x-icon name="arrow-up-tray" class="h-4 w-4" />
+                        </span>
+                        <p class="text-sm font-medium text-gray-700 dark:text-gray-200">Arraste os arquivos aqui ou clique para buscar</p>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">PDF, Office, imagens ou texto — até 100 MB por arquivo.</p>
+                    </div>
+
+                    <template x-if="files.length > 0">
+                        <ul class="mt-2 max-h-40 space-y-1 overflow-auto">
+                            <template x-for="file in files" :key="file.key">
+                                <li class="flex items-center gap-2 rounded-lg border border-gray-200/70 px-2.5 py-1.5 dark:border-gray-800">
+                                    <span class="min-w-0 flex-1 truncate text-xs font-medium text-gray-700 dark:text-gray-300" x-text="file.name"></span>
+                                    <span class="shrink-0 text-[10px] text-gray-400 dark:text-gray-500" x-text="formatSize(file.size)"></span>
+                                    <button
+                                        type="button"
+                                        class="shrink-0 rounded-md p-0.5 text-gray-400 transition hover:bg-red-50 hover:text-red-600 dark:text-gray-500 dark:hover:bg-red-950 dark:hover:text-red-400"
+                                        :aria-label="'Remover ' + file.name"
+                                        @click="removeFile(file.key)"
+                                    >
+                                        <x-icon name="x-mark" class="h-3.5 w-3.5" />
+                                    </button>
+                                </li>
+                            </template>
+                        </ul>
+                    </template>
+
+                    <p class="mt-1.5 text-xs text-red-600 dark:text-red-400" x-cloak x-show="error" x-text="error"></p>
+
+                    <div class="mt-3 flex justify-end">
                         <button
                             type="submit"
                             class="inline-flex shrink-0 items-center justify-center gap-1.5 rounded-xl bg-indigo-600 px-3.5 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-500"
@@ -139,7 +185,6 @@
                             Enviar
                         </button>
                     </div>
-                    <p class="mt-1.5 text-xs text-gray-500 dark:text-gray-400">PDF, Office, imagens ou texto — até 20 MB por arquivo.</p>
 
                     @if ($itemDocumentsErrors && $openItemId === $item->getKey())
                         @foreach ($errors->getMessages() as $key => $messages)

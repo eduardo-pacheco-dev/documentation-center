@@ -446,3 +446,107 @@ document.addEventListener('keydown', (event) => {
         DocumentPreview.close();
     }
 });
+
+window.documentPicker = window.documentPicker || function (options = {}) {
+    return {
+        files: [],
+        dragging: false,
+        error: '',
+        maxFiles: options.maxFiles ?? 10,
+        maxSize: options.maxSize ?? 100 * 1024 * 1024,
+
+        handleSelect(event) {
+            this.addFiles(event.target.files);
+        },
+
+        addFiles(list) {
+            this.error = '';
+
+            Array.from(list ?? []).forEach((file) => {
+                if (this.files.length >= this.maxFiles) {
+                    this.error = 'Você pode anexar no máximo ' + this.maxFiles + ' arquivos.';
+                    return;
+                }
+
+                if (file.size > this.maxSize) {
+                    this.error = file.name + ' ultrapassa o limite de ' + this.formatSize(this.maxSize) + '.';
+                    return;
+                }
+
+                if (this.files.some((item) => item.name === file.name && item.size === file.size)) {
+                    return;
+                }
+
+                this.files.push({
+                    key: file.name + '-' + file.size + '-' + this.files.length,
+                    name: file.name,
+                    size: file.size,
+                    file: file,
+                });
+            });
+
+            this.sync();
+        },
+
+        removeFile(key) {
+            const index = this.files.findIndex((item) => item.key === key);
+
+            if (index === -1) {
+                return;
+            }
+
+            this.files.splice(index, 1);
+            this.sync();
+        },
+
+        sync() {
+            const transfer = new DataTransfer();
+
+            this.files.forEach((item) => transfer.items.add(item.file));
+
+            this.$refs.documents.files = transfer.files;
+        },
+
+        onDragOver(event) {
+            if (! this.hasFiles(event)) {
+                return;
+            }
+
+            event.preventDefault();
+            this.dragging = true;
+        },
+
+        onDragLeave(event) {
+            if (! event.currentTarget.contains(event.relatedTarget)) {
+                this.dragging = false;
+            }
+        },
+
+        handleDrop(event) {
+            this.dragging = false;
+
+            if (! this.hasFiles(event)) {
+                return;
+            }
+
+            event.preventDefault();
+            this.addFiles(event.dataTransfer?.files);
+        },
+
+        hasFiles(event) {
+            return Array.from(event.dataTransfer?.types ?? []).includes('Files');
+        },
+
+        formatSize(bytes) {
+            if (bytes < 1024) {
+                return bytes + ' B';
+            }
+
+            if (bytes < 1024 * 1024) {
+                return Math.round(bytes / 1024) + ' KB';
+            }
+
+            return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+        },
+    };
+};
