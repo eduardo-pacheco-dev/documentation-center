@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 #[Fillable([
     'user_id',
@@ -50,5 +51,15 @@ class Comment extends Model
     public function workOrder(): BelongsTo
     {
         return $this->belongsTo(WorkOrder::class);
+    }
+
+    /**
+     * The images attached to the comment.
+     *
+     * @return HasMany<Document, $this>
+     */
+    public function documents(): HasMany
+    {
+        return $this->hasMany(Document::class)->latest();
     }
 }

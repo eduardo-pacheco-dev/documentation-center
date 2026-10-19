@@ -7,24 +7,38 @@ use App\Http\Requests\Admin\StoreWorkOrderCommentRequest;
 use App\Models\Comment;
 use App\Models\WorkOrder;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Facades\DB;
 
 class WorkOrderCommentController extends Controller
 {
     /**
-     * Add a comment to the work order.
+     * Store a comment, with its images, on the work order.
      */
     public function store(StoreWorkOrderCommentRequest $request, WorkOrder $workOrder): RedirectResponse
     {
-        $workOrder->comments()->create([
-            'user_id' => $request->user()->getKey(),
-            'body' => $request->validated('body'),
-        ]);
+        DB::transaction(function () use ($request, $workOrder): void {
+            $comment = $workOrder->comments()->create([
+                'user_id' => $request->user()->getKey(),
+                'body' => $request->validated('body') ?? '',
+            ]);
+
+            foreach ($request->file('images') ?? [] as $file) {
+                $comment->documents()->create([
+                    'user_id' => $request->user()->getKey(),
+                    'original_name' => $file->getClientOriginalName(),
+                    'path' => $file->store('documents'),
+                    'disk' => 'local',
+                    'mime_type' => $file->getMimeType(),
+                    'size' => $file->getSize(),
+                ]);
+            }
+        });
 
         return back()->with('status', 'Comentário adicionado com sucesso.');
     }
 
     /**
-     * Remove a comment from the work order.
+     * Remove a comment and its images from the work order.
      */
     public function destroy(WorkOrder $workOrder, Comment $comment): RedirectResponse
     {
@@ -32,7 +46,10 @@ class WorkOrderCommentController extends Controller
 
         abort_unless($comment->work_order_id === $workOrder->getKey(), 404);
 
-        $comment->delete();
+        DB::transaction(function () use ($comment): void {
+            $comment->documents()->delete();
+            $comment->delete();
+        });
 
         return back()->with('status', 'Comentário removido com sucesso.');
     }
