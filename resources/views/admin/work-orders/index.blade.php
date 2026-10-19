@@ -21,6 +21,16 @@
         </div>
 
         <div class="flex flex-wrap items-center gap-2">
+            <a
+                href="{{ route('admin.work-orders.export', array_filter(['search' => $search, 'status' => $status, 'sort' => $sort, 'direction' => $direction])) }}"
+                data-export-link
+                data-export-filename="ordens-de-servico.xlsx"
+                class="{{ $secondaryButton }}"
+            >
+                <x-icon name="arrow-down-tray" class="h-4 w-4" />
+                Exportar
+            </a>
+
             <button
                 type="button"
                 data-modal-open="work-order-import-modal"

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Enums\WorkOrderItemStatus;
 use App\Enums\WorkOrderStatus;
+use App\Exports\WorkOrdersExport;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\StoreWorkOrderRequest;
 use App\Http\Requests\Admin\UpdateWorkOrderDatesRequest;
@@ -20,6 +21,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
+use Maatwebsite\Excel\Facades\Excel;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class WorkOrderController extends Controller
 {
@@ -30,25 +33,7 @@ class WorkOrderController extends Controller
     {
         $this->authorize('viewAny', WorkOrder::class);
 
-        $search = (string) $request->query('search', '');
-
-        $statuses = array_column(WorkOrderStatus::cases(), 'value');
-
-        $status = in_array($request->query('status'), $statuses, true)
-            ? $request->query('status')
-            : null;
-
-        $sortableColumns = ['number', 'priority', 'status', 'opened_at', 'due_at', 'total', 'updated_at'];
-
-        if (in_array($request->query('sort'), $sortableColumns, true)) {
-            $sort = $request->query('sort');
-            $direction = in_array($request->query('direction'), ['asc', 'desc'], true)
-                ? $request->query('direction')
-                : ($sort === 'updated_at' ? 'desc' : 'asc');
-        } else {
-            $sort = 'updated_at';
-            $direction = 'desc';
-        }
+        ['search' => $search, 'status' => $status, 'sort' => $sort, 'direction' => $direction] = $this->resolveFilters($request);
 
         $perPage = in_array($request->integer('per_page'), [12, 24, 36], true)
             ? $request->integer('per_page')
@@ -86,6 +71,8 @@ class WorkOrderController extends Controller
             'workOrders' => $workOrders,
             'search' => $search,
             'status' => $status,
+            'sort' => $sort,
+            'direction' => $direction,
             'view' => $view,
             'perPage' => $perPage,
             'stats' => $stats,
@@ -101,6 +88,21 @@ class WorkOrderController extends Controller
         $this->authorize('create', WorkOrder::class);
 
         return view('admin.work-orders.create', $this->formData($request->user()));
+    }
+
+    /**
+     * Download the work orders, honoring the current list filters, as a spreadsheet.
+     */
+    public function export(Request $request): BinaryFileResponse
+    {
+        $this->authorize('viewAny', WorkOrder::class);
+
+        ['search' => $search, 'status' => $status, 'sort' => $sort, 'direction' => $direction] = $this->resolveFilters($request);
+
+        return Excel::download(
+            new WorkOrdersExport($request->user(), $search, $status, $sort, $direction),
+            'ordens-de-servico.xlsx',
+        );
     }
 
     /**
@@ -277,6 +279,41 @@ class WorkOrderController extends Controller
         return redirect()
             ->route('admin.work-orders.index')
             ->with('status', 'Ordem de serviço excluída com sucesso.');
+    }
+
+    /**
+     * Resolve the supported list filters and ordering from the request.
+     *
+     * @return array{search: string, status: ?string, sort: string, direction: string}
+     */
+    private function resolveFilters(Request $request): array
+    {
+        $search = (string) $request->query('search', '');
+
+        $statuses = array_column(WorkOrderStatus::cases(), 'value');
+
+        $status = in_array($request->query('status'), $statuses, true)
+            ? $request->query('status')
+            : null;
+
+        $sortableColumns = ['number', 'priority', 'status', 'opened_at', 'due_at', 'total', 'updated_at'];
+
+        if (in_array($request->query('sort'), $sortableColumns, true)) {
+            $sort = $request->query('sort');
+            $direction = in_array($request->query('direction'), ['asc', 'desc'], true)
+                ? $request->query('direction')
+                : ($sort === 'updated_at' ? 'desc' : 'asc');
+        } else {
+            $sort = 'updated_at';
+            $direction = 'desc';
+        }
+
+        return [
+            'search' => $search,
+            'status' => $status,
+            'sort' => $sort,
+            'direction' => $direction,
+        ];
     }
 
     /**

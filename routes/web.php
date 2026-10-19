@@ -232,6 +232,8 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
     Route::post('work-orders/import', [WorkOrderImportController::class, 'store'])->name('work-orders.import');
     Route::get('work-orders/import/template', [WorkOrderImportController::class, 'template'])->name('work-orders.import.template');
 
+    Route::get('work-orders/export', [WorkOrderController::class, 'export'])->name('work-orders.export');
+
     Route::resource('work-orders', WorkOrderController::class)
         ->parameters(['work-orders' => 'workOrder']);
 
