@@ -51,6 +51,8 @@ class CypressSeeder extends Seeder
 
         $this->seedMemberDashboard($member);
 
+        $this->seedWorkOrderClientOrders($administrator);
+
         $this->seedAgenda($administrator, $member);
     }
 
@@ -165,6 +167,39 @@ class CypressSeeder extends Seeder
         Erb::factory()->create(['user_id' => $member->getKey()]);
 
         ShortLink::factory()->create(['user_id' => $member->getKey()]);
+    }
+
+    /**
+     * Attach the optional client OS fixture to the newest administrator work order.
+     */
+    private function seedWorkOrderClientOrders(User $administrator): void
+    {
+        $workOrder = WorkOrder::query()
+            ->where('user_id', $administrator->getKey())
+            ->where('number', 'OS-1007')
+            ->first();
+
+        if ($workOrder === null) {
+            return;
+        }
+
+        $clientOrder = $workOrder->clientOrders()->create([
+            'number' => 'OS-CLI-1007',
+            'description' => 'OS do cliente vinculada ao item da OS.',
+        ]);
+
+        $workOrder->items()->create([
+            'work_order_client_order_id' => $clientOrder->getKey(),
+            'description' => 'Item com OS do cliente',
+            'quantity' => 1,
+            'unit_price' => 100,
+            'total' => 100,
+        ]);
+
+        $workOrder->update([
+            'client_os' => 'CLI-1007',
+            'oc' => 'OC-1007',
+        ]);
     }
 
     /**

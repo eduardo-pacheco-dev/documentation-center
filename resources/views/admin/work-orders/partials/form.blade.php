@@ -4,17 +4,38 @@
 
     $itemStatus = fn ($value): string => \App\Enums\WorkOrderItemStatus::tryFrom((string) $value)?->value ?? \App\Enums\WorkOrderItemStatus::Pending->value;
 
+    $clientOrders = $workOrder?->clientOrders ?? collect();
+    $clientOrderKeys = $clientOrders->values()->mapWithKeys(fn ($order, $index): array => [$order->getKey() => 'client-order-'.$index]);
+
+    $oldClientOrders = old('client_orders');
+
+    if (is_array($oldClientOrders)) {
+        $initialClientOrders = collect($oldClientOrders)->map(fn ($order, $key): array => [
+            'key' => (string) $key,
+            'number' => (string) ($order['number'] ?? ''),
+            'description' => (string) ($order['description'] ?? ''),
+        ])->values()->all();
+    } else {
+        $initialClientOrders = $clientOrders->values()->map(fn ($order, $index): array => [
+            'key' => 'client-order-'.$index,
+            'number' => $order->number,
+            'description' => $order->description,
+        ])->all();
+    }
+
     if (is_array($oldItems)) {
         $initialItems = array_values(array_map(fn ($item) => [
             'catalog_item_id' => (string) ($item['catalog_item_id'] ?? ''),
             'quantity' => $item['quantity'] ?? 1,
             'status' => $itemStatus($item['status'] ?? null),
+            'client_order_key' => (string) ($item['client_order_key'] ?? ''),
         ], $oldItems));
     } elseif ($workOrder) {
         $initialItems = $workOrder->items->map(fn ($item) => [
             'catalog_item_id' => (string) ($item->catalog_item_id ?? ''),
             'quantity' => (float) $item->quantity,
             'status' => $item->status->value,
+            'client_order_key' => (string) ($clientOrderKeys[$item->work_order_client_order_id] ?? ''),
         ])->values()->all();
     } else {
         $initialItems = [];
@@ -22,6 +43,12 @@
 
     $itemErrors = collect($errors->keys())
         ->filter(fn ($key) => str_starts_with($key, 'items.'))
+        ->flatMap(fn ($key) => $errors->get($key))
+        ->values()
+        ->all();
+
+    $clientOrderErrors = collect($errors->keys())
+        ->filter(fn ($key) => $key === 'client_orders' || str_starts_with($key, 'client_orders.'))
         ->flatMap(fn ($key) => $errors->get($key))
         ->values()
         ->all();
@@ -36,6 +63,25 @@
 
 <script type="application/json" id="work-order-catalog-data">@json($catalogData, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT)</script>
 <script type="application/json" id="work-order-initial-items">@json($initialItems, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT)</script>
+<script type="application/json" id="work-order-initial-client-orders">@json($initialClientOrders, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT)</script>
+
+<script>
+    document.addEventListener('alpine:init', () => {
+        Alpine.store('workOrderClientOrders', {
+            orders: JSON.parse(document.getElementById('work-order-initial-client-orders').textContent || '[]'),
+            add() {
+                this.orders.push({
+                    key: 'client-order-' + Math.random().toString(36).slice(2, 10),
+                    number: '',
+                    description: '',
+                });
+            },
+            remove(index) {
+                this.orders.splice(index, 1);
+            },
+        });
+    });
+</script>
 
 <div class="space-y-5">
     <div data-wizard-panel data-wizard-title="Identificação" class="{{ $panelClass(0) }}">
@@ -61,6 +107,40 @@
                 antes de abrir uma ordem de serviço.
             </p>
         @endif
+    </div>
+
+    <div class="grid gap-4 sm:grid-cols-2">
+        <div>
+            <label for="client_os" class="block text-sm font-medium text-gray-700 dark:text-gray-300">OS Cliente</label>
+            <input
+                type="text"
+                name="client_os"
+                id="client_os"
+                maxlength="60"
+                value="{{ old('client_os', $workOrder?->client_os) }}"
+                placeholder="Número da OS do cliente (opcional)"
+                class="mt-1 block w-full rounded-xl border border-gray-300 bg-white dark:border-gray-700 dark:bg-gray-900 px-3 py-2 text-sm shadow-sm transition focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30"
+            >
+            @error('client_os')
+                <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p>
+            @enderror
+        </div>
+
+        <div>
+            <label for="oc" class="block text-sm font-medium text-gray-700 dark:text-gray-300">OC (ordem complexa)</label>
+            <input
+                type="text"
+                name="oc"
+                id="oc"
+                maxlength="60"
+                value="{{ old('oc', $workOrder?->oc) }}"
+                placeholder="Número da OC (opcional)"
+                class="mt-1 block w-full rounded-xl border border-gray-300 bg-white dark:border-gray-700 dark:bg-gray-900 px-3 py-2 text-sm shadow-sm transition focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30"
+            >
+            @error('oc')
+                <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p>
+            @enderror
+        </div>
     </div>
 
     <div class="sm:col-span-2" x-data="{ binding: @js($binding) }">
@@ -147,7 +227,84 @@
     </div>
     </div>
 
-    <div data-wizard-panel data-wizard-title="Planejamento" class="{{ $panelClass(1) }}">
+    <div data-wizard-panel data-wizard-title="OS do cliente" class="{{ $panelClass(1) }}">
+    <div class="sm:col-span-2" x-data>
+        <div class="flex flex-wrap items-start justify-between gap-3">
+            <div>
+                <span class="block text-sm font-medium text-gray-700 dark:text-gray-300">OS do cliente</span>
+                <p class="mt-0.5 text-xs text-gray-500 dark:text-gray-400">Adicione as OS informadas pelo cliente e vincule cada item da OS a uma delas.</p>
+            </div>
+
+            <button
+                type="button"
+                @click="$store.workOrderClientOrders.add()"
+                class="inline-flex items-center gap-1.5 rounded-xl border border-dashed border-gray-300 px-3 py-1.5 text-xs font-semibold text-gray-500 transition hover:border-indigo-300 hover:text-indigo-600 dark:border-gray-700 dark:text-gray-400"
+            >
+                <x-icon name="plus" class="h-3.5 w-3.5" />
+                Adicionar OS do cliente
+            </button>
+        </div>
+
+        @if (! empty($clientOrderErrors))
+            <div class="mt-2 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-300">
+                <ul class="list-disc space-y-0.5 pl-4">
+                    @foreach ($clientOrderErrors as $message)
+                        <li>{{ $message }}</li>
+                    @endforeach
+                </ul>
+            </div>
+        @endif
+
+        <template x-if="$store.workOrderClientOrders.orders.length === 0">
+            <p class="mt-2 rounded-xl border border-dashed border-gray-200 bg-gray-50/50 px-3 py-4 text-center text-sm text-gray-500 dark:border-gray-800 dark:bg-gray-800/20 dark:text-gray-400">
+                Nenhuma OS do cliente adicionada.
+            </p>
+        </template>
+
+        <div class="mt-2 space-y-2">
+            <template x-for="(order, index) in $store.workOrderClientOrders.orders" :key="order.key">
+                <div class="flex flex-wrap items-start gap-3 rounded-xl border border-gray-200 p-3 dark:border-gray-800 sm:flex-nowrap">
+                    <div class="w-full sm:w-40">
+                        <label class="sr-only" x-bind:for="'client-order-number-' + order.key">OS do cliente</label>
+                        <input
+                            type="text"
+                            maxlength="60"
+                            placeholder="Número da OS"
+                            x-bind:id="'client-order-number-' + order.key"
+                            x-bind:name="'client_orders[' + order.key + '][number]'"
+                            x-model="order.number"
+                            class="w-full rounded-xl border border-gray-300 bg-white dark:border-gray-700 dark:bg-gray-900 px-2 py-1.5 text-sm shadow-sm transition focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30"
+                        >
+                    </div>
+
+                    <div class="min-w-0 flex-1">
+                        <label class="sr-only" x-bind:for="'client-order-description-' + order.key">Descrição</label>
+                        <input
+                            type="text"
+                            maxlength="2000"
+                            placeholder="Descrição"
+                            x-bind:id="'client-order-description-' + order.key"
+                            x-bind:name="'client_orders[' + order.key + '][description]'"
+                            x-model="order.description"
+                            class="w-full rounded-xl border border-gray-300 bg-white dark:border-gray-700 dark:bg-gray-900 px-2 py-1.5 text-sm shadow-sm transition focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30"
+                        >
+                    </div>
+
+                    <button
+                        type="button"
+                        @click="$store.workOrderClientOrders.remove(index)"
+                        class="rounded-lg p-1.5 text-gray-400 transition hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-500/15 dark:hover:text-red-400"
+                        aria-label="Remover OS do cliente"
+                    >
+                        <x-icon name="trash" class="h-4 w-4" />
+                    </button>
+                </div>
+            </template>
+        </div>
+    </div>
+    </div>
+
+    <div data-wizard-panel data-wizard-title="Planejamento" class="{{ $panelClass(2) }}">
     <div>
         <label for="priority" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Prioridade</label>
         <select
@@ -228,7 +385,7 @@
     </div>
     </div>
 
-    <div data-wizard-panel data-wizard-title="Itens" class="{{ $panelClass(2) }}">
+    <div data-wizard-panel data-wizard-title="Itens" class="{{ $panelClass(3) }}">
     <div
         class="sm:col-span-2"
         x-data="{
@@ -272,7 +429,7 @@
                 if (existing) {
                     existing.quantity = (Number(existing.quantity) || 0) + 1;
                 } else {
-                    this.items.push({ catalog_item_id: String(option.id), quantity: 1, status: 'pending' });
+                    this.items.push({ catalog_item_id: String(option.id), quantity: 1, status: 'pending', client_order_key: '' });
                 }
                 this.search = '';
                 this.openResults = false;
@@ -391,6 +548,21 @@
                             </select>
                         </div>
 
+                        <div>
+                            <label class="sr-only" x-bind:for="'item-client-order-' + index">OS do cliente</label>
+                            <select
+                                x-bind:id="'item-client-order-' + index"
+                                x-bind:name="'items[' + index + '][client_order_key]'"
+                                x-model="item.client_order_key"
+                                class="w-40 rounded-xl border border-gray-300 bg-white dark:border-gray-700 dark:bg-gray-900 px-2 py-1.5 text-sm shadow-sm transition focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30"
+                            >
+                                <option value="">Sem OS do cliente</option>
+                                <template x-for="order in $store.workOrderClientOrders.orders" :key="order.key">
+                                    <option :value="order.key" :selected="String(item.client_order_key) === String(order.key)" x-text="order.number || 'Nova OS do cliente'"></option>
+                                </template>
+                            </select>
+                        </div>
+
                         <span class="w-24 text-right text-sm font-semibold text-gray-900 dark:text-gray-100" x-text="money(lineTotal(item))"></span>
 
                         <button
@@ -413,7 +585,7 @@
     </div>
     </div>
 
-    <div data-wizard-panel data-wizard-title="Observações" class="{{ $panelClass(3) }}">
+    <div data-wizard-panel data-wizard-title="Observações" class="{{ $panelClass(4) }}">
     <div class="sm:col-span-2">
         <label for="notes" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Observações</label>
         <textarea

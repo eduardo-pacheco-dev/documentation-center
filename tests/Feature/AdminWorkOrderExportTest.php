@@ -44,6 +44,8 @@ it('downloads the work orders as an excel file filtered by search and status', f
         'client_id' => $client->getKey(),
         'erb_id' => $erb->getKey(),
         'number' => 'OS-9001',
+        'client_os' => 'CLI-0001',
+        'oc' => 'OC-77',
         'description' => 'Manutenção preventiva',
         'priority' => WorkOrderPriority::High,
         'status' => WorkOrderStatus::InProgress,
@@ -80,6 +82,8 @@ it('downloads the work orders as an excel file filtered by search and status', f
     expect($rows)->toHaveCount(2)
         ->and($rows[0])->toBe([
             'Número',
+            'OS Cliente',
+            'OC',
             'Cliente',
             'ERB',
             'Radio link',
@@ -94,18 +98,20 @@ it('downloads the work orders as an excel file filtered by search and status', f
             'Observações',
         ])
         ->and($rows[1][0])->toBe('OS-9001')
-        ->and($rows[1][1])->toBe('Alpha Telecom')
-        ->and($rows[1][2])->toBe('SITE-ALPHA')
-        ->and($rows[1][3])->toBeNull()
-        ->and($rows[1][4])->toBe('Manutenção preventiva')
-        ->and($rows[1][5])->toBe('Alta')
-        ->and($rows[1][6])->toBe('Em andamento')
-        ->and($rows[1][7])->toBe('10/01/2026')
-        ->and($rows[1][8])->toBe('20/01/2026')
-        ->and($rows[1][9])->toBeNull()
-        ->and((int) $rows[1][10])->toBe(1)
-        ->and((float) $rows[1][11])->toBe(1500.50)
-        ->and($rows[1][12])->toBe('Acesso liberado pela portaria.');
+        ->and($rows[1][1])->toBe('CLI-0001')
+        ->and($rows[1][2])->toBe('OC-77')
+        ->and($rows[1][3])->toBe('Alpha Telecom')
+        ->and($rows[1][4])->toBe('SITE-ALPHA')
+        ->and($rows[1][5])->toBeNull()
+        ->and($rows[1][6])->toBe('Manutenção preventiva')
+        ->and($rows[1][7])->toBe('Alta')
+        ->and($rows[1][8])->toBe('Em andamento')
+        ->and($rows[1][9])->toBe('10/01/2026')
+        ->and($rows[1][10])->toBe('20/01/2026')
+        ->and($rows[1][11])->toBeNull()
+        ->and((int) $rows[1][12])->toBe(1)
+        ->and((float) $rows[1][13])->toBe(1500.50)
+        ->and($rows[1][14])->toBe('Acesso liberado pela portaria.');
 });
 
 it('exports work orders owned by the authenticated user only', function () {

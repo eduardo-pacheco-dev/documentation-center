@@ -12,6 +12,7 @@
                 'catalog_item_id' => (string) ($item->catalog_item_id ?? ''),
                 'quantity' => (float) $item->quantity,
                 'status' => $item->status->value,
+                'work_order_client_order_id' => (string) ($item->work_order_client_order_id ?? ''),
             ])->all();
         }
 
@@ -19,6 +20,7 @@
             'catalog_item_id' => (string) ($item['catalog_item_id'] ?? ''),
             'quantity' => $item['quantity'] ?? 1,
             'status' => $itemStatus($item['status'] ?? null),
+            'work_order_client_order_id' => (string) ($item['work_order_client_order_id'] ?? ''),
         ], $rawEditorItems));
 
         $itemsErrors = collect($errors->keys())
@@ -36,6 +38,11 @@
         $itemsCompleted = $workOrder->items->filter(fn ($item) => $item->status->isCompleted())->count();
         $itemsProgress = $itemsTotal > 0 ? (int) round(($itemsCompleted / $itemsTotal) * 100) : 0;
         $itemsProgressLabel = $itemsCompleted.' de '.$itemsTotal.' '.($itemsTotal === 1 ? 'item concluído' : 'itens concluídos');
+
+        $clientOrdersData = $workOrder->clientOrders->map(fn ($order): array => [
+            'id' => (string) $order->getKey(),
+            'number' => $order->number,
+        ])->values()->all();
     @endphp
 
     <section class="relative overflow-hidden rounded-3xl bg-gradient-to-br from-indigo-600 via-indigo-600 to-violet-700 p-6 text-white shadow-xl shadow-indigo-600/10 sm:p-8">
@@ -170,13 +177,14 @@
     <div class="mt-6 grid gap-6 lg:grid-cols-3">
         <div class="space-y-6 lg:col-span-2">
             @can('update', $workOrder)
-                <script type="application/json" id="work-order-items-editor-data">@json(['catalog' => $catalogData, 'items' => $editorItems], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT)</script>
+                <script type="application/json" id="work-order-items-editor-data">@json(['catalog' => $catalogData, 'items' => $editorItems, 'clientOrders' => $clientOrdersData], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT)</script>
 
                 <section
                     class="rounded-2xl border border-gray-200/70 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900"
                     x-data="{
                         catalog: [],
                         items: [],
+                        clientOrders: [],
                         initial: [],
                         search: '',
                         openResults: false,
@@ -185,6 +193,7 @@
                             const data = JSON.parse(document.getElementById('work-order-items-editor-data').textContent);
                             this.catalog = data.catalog;
                             this.items = data.items;
+                            this.clientOrders = data.clientOrders ?? [];
                             this.initial = JSON.parse(JSON.stringify(data.items));
                         },
                         startEditing() {
@@ -378,6 +387,21 @@
                                             </select>
                                         </div>
 
+                                        <div>
+                                            <label class="sr-only" x-bind:for="'item-client-order-' + index">OS do cliente</label>
+                                            <select
+                                                x-bind:id="'item-client-order-' + index"
+                                                x-bind:name="'items[' + index + '][work_order_client_order_id]'"
+                                                x-model="item.work_order_client_order_id"
+                                                class="w-40 rounded-xl border border-gray-300 bg-white dark:border-gray-700 dark:bg-gray-900 px-2 py-1.5 text-sm shadow-sm transition focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30"
+                                            >
+                                                <option value="">Sem OS do cliente</option>
+                                                <template x-for="order in clientOrders" :key="order.id">
+                                                    <option :value="order.id" :selected="String(item.work_order_client_order_id) === String(order.id)" x-text="order.number"></option>
+                                                </template>
+                                            </select>
+                                        </div>
+
                                         <span class="w-24 text-right text-sm font-semibold text-gray-900 dark:text-gray-100" x-text="money(lineTotal(item))"></span>
 
                                         <button
@@ -448,6 +472,9 @@
                                                 @if ($item->catalogItem)
                                                     <span class="mt-0.5 block text-xs text-gray-400 dark:text-gray-500">{{ $item->catalogItem->name }}</span>
                                                 @endif
+                                                @if ($item->clientOrder)
+                                                    <span class="mt-0.5 block text-xs text-indigo-600 dark:text-indigo-400">OS cliente: {{ $item->clientOrder->number }}</span>
+                                                @endif
                                             </button>
                                         </td>
                                         <td class="whitespace-nowrap px-6 py-3">
@@ -517,6 +544,9 @@
                                                 {{ $item->description }}
                                                 @if ($item->catalogItem)
                                                     <span class="mt-0.5 block text-xs text-gray-400 dark:text-gray-500">{{ $item->catalogItem->name }}</span>
+                                                @endif
+                                                @if ($item->clientOrder)
+                                                    <span class="mt-0.5 block text-xs text-indigo-600 dark:text-indigo-400">OS cliente: {{ $item->clientOrder->number }}</span>
                                                 @endif
                                             </button>
                                         </td>
@@ -814,6 +844,51 @@
         </div>
 
         <div class="space-y-6">
+            @if ($workOrder->client_os || $workOrder->oc || $workOrder->clientOrders->isNotEmpty())
+                <section class="rounded-2xl border border-gray-200/70 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900">
+                    <div class="flex items-center gap-2 border-b border-gray-100 px-6 py-4 dark:border-gray-800">
+                        <span class="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-violet-50 text-violet-600 dark:bg-violet-500/10 dark:text-violet-400">
+                            <x-icon name="clipboard-document" class="h-4 w-4" />
+                        </span>
+                        <h2 class="text-sm font-semibold text-gray-900 dark:text-gray-100">OS do cliente</h2>
+                    </div>
+
+                    <div class="space-y-4 p-6 text-sm">
+                        <div class="grid gap-3 sm:grid-cols-2">
+                            <div>
+                                <p class="text-xs uppercase tracking-wide text-gray-400 dark:text-gray-500">OS Cliente</p>
+                                <p class="mt-1 font-medium text-gray-900 dark:text-gray-100">{{ $workOrder->client_os ?: '—' }}</p>
+                            </div>
+                            <div>
+                                <p class="text-xs uppercase tracking-wide text-gray-400 dark:text-gray-500">OC (ordem complexa)</p>
+                                <p class="mt-1 font-medium text-gray-900 dark:text-gray-100">{{ $workOrder->oc ?: '—' }}</p>
+                            </div>
+                        </div>
+
+                        @if ($workOrder->clientOrders->isNotEmpty())
+                            <ul class="space-y-2 border-t border-gray-100 pt-4 dark:border-gray-800">
+                                @foreach ($workOrder->clientOrders as $clientOrder)
+                                    @php
+                                        $assignedItems = $workOrder->items->where('work_order_client_order_id', $clientOrder->getKey());
+                                    @endphp
+                                    <li class="rounded-xl border border-gray-200 px-3 py-2 dark:border-gray-800">
+                                        <p class="font-semibold text-gray-900 dark:text-gray-100">{{ $clientOrder->number }}</p>
+                                        @if ($clientOrder->description)
+                                            <p class="mt-0.5 text-xs text-gray-500 dark:text-gray-400">{{ $clientOrder->description }}</p>
+                                        @endif
+                                        @if ($assignedItems->isNotEmpty())
+                                            <p class="mt-1 text-xs text-indigo-600 dark:text-indigo-400">
+                                                {{ $assignedItems->count() }} {{ $assignedItems->count() === 1 ? 'item vinculado' : 'itens vinculados' }}
+                                            </p>
+                                        @endif
+                                    </li>
+                                @endforeach
+                            </ul>
+                        @endif
+                    </div>
+                </section>
+            @endif
+
             @can('update', $workOrder)
                 <section
                     class="rounded-2xl border border-gray-200/70 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900"

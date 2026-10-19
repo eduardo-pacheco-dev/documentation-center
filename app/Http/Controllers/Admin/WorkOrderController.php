@@ -112,7 +112,8 @@ class WorkOrderController extends Controller
     {
         $attributes = $request->validated();
         $items = $attributes['items'];
-        unset($attributes['items']);
+        $clientOrders = $attributes['client_orders'] ?? [];
+        unset($attributes['items'], $attributes['client_orders']);
 
         $attributes['erb_id'] = $request->input('erb_id') ?: null;
         $attributes['radio_link_id'] = $request->input('radio_link_id') ?: null;
@@ -121,11 +122,12 @@ class WorkOrderController extends Controller
         $attributes['status'] = $status->value;
         $attributes['completed_at'] = $this->resolveCompletedAt($status, null);
 
-        $workOrder = DB::transaction(function () use ($request, $attributes, $items): WorkOrder {
+        $workOrder = DB::transaction(function () use ($request, $attributes, $items, $clientOrders): WorkOrder {
             $attributes['number'] = WorkOrder::generateNumber($request->user());
 
             $workOrder = $request->user()->workOrders()->create($attributes);
-            $workOrder->items()->createMany($this->normalizeItems($request->user(), $items));
+            $clientOrderIds = $this->syncClientOrders($workOrder, $clientOrders);
+            $workOrder->items()->createMany($this->normalizeItems($request->user(), $items, $clientOrderIds));
             $workOrder->update(['total' => $workOrder->items()->sum('total')]);
 
             return $workOrder;
@@ -149,7 +151,7 @@ class WorkOrderController extends Controller
             ->paginate(20)
             ->withQueryString();
 
-        $workOrder->load(['client', 'erb', 'radioLink', 'items.catalogItem', 'items.documents', 'project']);
+        $workOrder->load(['client', 'erb', 'radioLink', 'clientOrders', 'items.catalogItem', 'items.clientOrder', 'items.documents', 'project']);
 
         return view('admin.work-orders.show', [
             ...$this->formData($request->user()),
@@ -171,7 +173,7 @@ class WorkOrderController extends Controller
             ->paginate(20)
             ->withQueryString();
 
-        $workOrder->load(['client', 'erb', 'radioLink', 'items.catalogItem', 'items.documents', 'project']);
+        $workOrder->load(['client', 'erb', 'radioLink', 'clientOrders', 'items.catalogItem', 'items.clientOrder', 'items.documents', 'project']);
 
         return view('admin.work-orders.show', [
             ...$this->formData($request->user()),
@@ -188,7 +190,8 @@ class WorkOrderController extends Controller
     {
         $attributes = $request->validated();
         $items = $attributes['items'];
-        unset($attributes['items']);
+        $clientOrders = $attributes['client_orders'] ?? [];
+        unset($attributes['items'], $attributes['client_orders']);
 
         $attributes['erb_id'] = $request->input('erb_id') ?: null;
         $attributes['radio_link_id'] = $request->input('radio_link_id') ?: null;
@@ -197,11 +200,13 @@ class WorkOrderController extends Controller
         $attributes['status'] = $status->value;
         $attributes['completed_at'] = $this->resolveCompletedAt($status, $workOrder->completed_at);
 
-        DB::transaction(function () use ($request, $workOrder, $attributes, $items): void {
+        DB::transaction(function () use ($request, $workOrder, $attributes, $items, $clientOrders): void {
             $workOrder->update($attributes);
 
             $workOrder->items()->delete();
-            $workOrder->items()->createMany($this->normalizeItems($request->user(), $items));
+            $clientOrderIds = $this->syncClientOrders($workOrder, $clientOrders);
+
+            $workOrder->items()->createMany($this->normalizeItems($request->user(), $items, $clientOrderIds));
             $workOrder->update(['total' => $workOrder->items()->sum('total')]);
         });
 
@@ -352,18 +357,20 @@ class WorkOrderController extends Controller
      * Normalize the submitted line items and compute their totals.
      *
      * @param  array<int, array<string, mixed>>  $items
+     * @param  array<int, int>  $clientOrderIds
      * @return array<int, array<string, mixed>>
      */
-    private function normalizeItems(User $user, array $items): array
+    private function normalizeItems(User $user, array $items, array $clientOrderIds = []): array
     {
         $catalog = $user->catalogItems()->get(['id', 'name', 'unit', 'price'])->keyBy('id');
 
-        return array_map(function (array $item) use ($catalog): array {
+        return array_map(function (array $item) use ($catalog, $clientOrderIds): array {
             $catalogItem = $catalog->get($item['catalog_item_id']);
             $quantity = (float) $item['quantity'];
             $unitPrice = (float) ($catalogItem?->price ?? 0);
 
             return [
+                'work_order_client_order_id' => $this->resolveClientOrderId($item, $clientOrderIds),
                 'catalog_item_id' => $catalogItem?->getKey(),
                 'description' => $catalogItem?->name ?? 'Item',
                 'unit' => $catalogItem?->unit,
@@ -373,6 +380,51 @@ class WorkOrderController extends Controller
                 'status' => WorkOrderItemStatus::tryFrom((string) ($item['status'] ?? '')) ?? WorkOrderItemStatus::Pending,
             ];
         }, array_values($items));
+    }
+
+    /**
+     * Replace the client work orders of the work order and return the new ids.
+     *
+     * @param  array<int, array{number: string, description: ?string}>  $clientOrders
+     * @return array<int, int>
+     */
+    private function syncClientOrders(WorkOrder $workOrder, array $clientOrders): array
+    {
+        $workOrder->clientOrders()->delete();
+
+        $ids = [];
+
+        foreach ($clientOrders as $key => $clientOrder) {
+            $ids[(string) $key] = $workOrder->clientOrders()->create([
+                'number' => $clientOrder['number'],
+                'description' => $clientOrder['description'] ?? null,
+            ])->getKey();
+        }
+
+        return $ids;
+    }
+
+    /**
+     * Resolve the client work order assigned to a line item.
+     *
+     * @param  array<string, mixed>  $item
+     * @param  array<int, int>  $clientOrderIds
+     */
+    private function resolveClientOrderId(array $item, array $clientOrderIds): ?int
+    {
+        if (array_key_exists('work_order_client_order_id', $item)) {
+            return filled($item['work_order_client_order_id'])
+                ? (int) $item['work_order_client_order_id']
+                : null;
+        }
+
+        $index = $item['client_order_key'] ?? null;
+
+        if (! filled($index)) {
+            return null;
+        }
+
+        return $clientOrderIds[(string) $index] ?? null;
     }
 
     /**

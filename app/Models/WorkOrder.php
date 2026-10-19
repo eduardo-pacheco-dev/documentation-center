@@ -20,6 +20,8 @@ use Illuminate\Database\Eloquent\SoftDeletes;
     'erb_id',
     'radio_link_id',
     'number',
+    'client_os',
+    'oc',
     'description',
     'priority',
     'status',
@@ -74,6 +76,16 @@ class WorkOrder extends Model
     public function items(): HasMany
     {
         return $this->hasMany(WorkOrderItem::class);
+    }
+
+    /**
+     * The client work orders linked to this work order.
+     *
+     * @return HasMany<WorkOrderClientOrder, $this>
+     */
+    public function clientOrders(): HasMany
+    {
+        return $this->hasMany(WorkOrderClientOrder::class);
     }
 
     /**

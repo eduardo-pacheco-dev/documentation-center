@@ -46,6 +46,8 @@ class WorkOrdersExport implements FromQuery, WithHeadings, WithMapping
     {
         return [
             'Número',
+            'OS Cliente',
+            'OC',
             'Cliente',
             'ERB',
             'Radio link',
@@ -70,6 +72,8 @@ class WorkOrdersExport implements FromQuery, WithHeadings, WithMapping
     {
         return [
             $workOrder->number,
+            $workOrder->client_os ?? '',
+            $workOrder->oc ?? '',
             $workOrder->client?->name ?? '',
             $workOrder->erb ? ($workOrder->erb->site_id ?: $workOrder->erb->code) : '',
             $workOrder->radioLink?->code ?? '',
