@@ -99,6 +99,142 @@ EOF
     fi
 }
 
+# Raise the upload limits so the app's 100 MB attachments work in production.
+# PHP rejects anything bigger than upload_max_filesize/post_max_size and nginx
+# rejects the whole request with 413 before PHP runs when the body is bigger
+# than client_max_body_size (nginx defaults to 1 MB).
+# Both settings are applied as drop-in files/directives and only when needed,
+# so running the deploy twice keeps the server configuration stable.
+configure_upload_limits() {
+    local upload_max="${UPLOAD_MAX_SIZE:-100M}"
+    local post_max="${POST_MAX_SIZE:-128M}"
+    local body_size="${CLIENT_MAX_BODY_SIZE:-128m}"
+    local host="" site_conf="" socket php_version="" ini_written=0
+    local candidate dir target backup tmp
+
+    if [ "$(id -u)" -ne 0 ]; then
+        log "Warning: not running as root; skipping the PHP/nginx upload configuration"
+        log "Manually set upload_max_filesize=${upload_max} and post_max_size=${post_max} in php.ini, add 'client_max_body_size ${body_size};' to the vhost, then reload php-fpm and nginx"
+        return 0
+    fi
+
+    # Domain from APP_URL, used to locate the vhost file (e.g. sites-available/example.com.conf).
+    host="$(grep -E '^[[:space:]]*APP_URL[[:space:]]*=' "$env_file" | head -n 1 | sed -E 's/^[^=]*=[[:space:]]*//; s/["'"'"']//g; s#^[a-zA-Z0-9]+://##; s#/.*$##; s/:[0-9]+$//' || true)"
+
+    if [ -n "$host" ]; then
+        for candidate in \
+            "/etc/nginx/sites-available/${host}.conf" \
+            "/etc/nginx/sites-available/${host}" \
+            "/etc/nginx/sites-enabled/${host}.conf" \
+            "/etc/nginx/sites-enabled/${host}" \
+            "/etc/nginx/conf.d/${host}.conf"; do
+            if [ -f "$candidate" ]; then
+                site_conf="$candidate"
+                break
+            fi
+        done
+    fi
+
+    # ---- nginx ----
+    if ! command -v nginx >/dev/null 2>&1; then
+        log "nginx not found; skipping the client_max_body_size configuration"
+    elif [ -z "$site_conf" ]; then
+        log "Warning: no nginx vhost found for '${host}'; add 'client_max_body_size ${body_size};' to its server blocks manually"
+    else
+        log "Configuring the upload limit in $site_conf"
+        backup="$(mktemp)"
+        tmp="$(mktemp)"
+        cp "$site_conf" "$backup"
+
+        if grep -qE '^[[:space:]]*client_max_body_size[[:space:]]' "$site_conf"; then
+            sed -i -E "s|^([[:space:]]*)client_max_body_size[[:space:]]+[^;]*;|\1client_max_body_size ${body_size};|g" "$site_conf"
+            log "client_max_body_size updated to ${body_size}"
+        else
+            awk -v size="$body_size" '
+                /^[[:space:]]*server[[:space:]]*\{[[:space:]]*$/ {
+                    print
+                    print "        client_max_body_size " size ";"
+                    next
+                }
+                { print }
+            ' "$site_conf" > "$tmp"
+            cat "$tmp" > "$site_conf"
+            log "client_max_body_size ${body_size} added to every server block of the vhost"
+        fi
+
+        rm -f "$tmp"
+
+        if nginx -t >/dev/null 2>&1; then
+            if command -v systemctl >/dev/null 2>&1; then
+                systemctl reload nginx || nginx -s reload || log "Warning: could not reload nginx; reload it manually"
+            else
+                nginx -s reload || log "Warning: could not reload nginx; reload it manually"
+            fi
+
+            # grep (not -q) so it keeps reading the pipe: an early exit could
+            # break the pipeline under `set -o pipefail` when nginx -t is large.
+            if nginx -T 2>/dev/null | grep -E "client_max_body_size[[:space:]]+${body_size}" >/dev/null; then
+                log "nginx reloaded; the effective configuration uses client_max_body_size ${body_size}"
+            else
+                log "Warning: nginx reloaded, but client_max_body_size ${body_size} is not in the effective configuration - the vhost may not be enabled in sites-enabled"
+            fi
+        else
+            cat "$backup" > "$site_conf"
+            log "Warning: nginx rejected the edited vhost; the original file was restored - set 'client_max_body_size ${body_size};' manually"
+        fi
+
+        rm -f "$backup"
+    fi
+
+    # ---- PHP ----
+    # Version serving the vhost (fastcgi_pass unix:/var/run/php/php8.4-fpm.sock).
+    if [ -n "$site_conf" ]; then
+        socket="$(grep -oE 'php[0-9]+\.[0-9]+-fpm' "$site_conf" | head -n 1 || true)"
+        php_version="${socket#php}"
+        php_version="${php_version%-fpm}"
+    fi
+
+    if [ -z "$php_version" ]; then
+        php_version="$(php -r 'echo PHP_MAJOR_VERSION.".".PHP_MINOR_VERSION;' 2>/dev/null || true)"
+    fi
+
+    log "Setting upload_max_filesize=${upload_max} and post_max_size=${post_max} for PHP ${php_version:-unknown}"
+
+    for dir in "/etc/php/${php_version}/fpm/conf.d" "/etc/php/${php_version}/cli/conf.d" /etc/php.d /etc/php/conf.d; do
+        [ -d "$dir" ] || continue
+
+        target="$dir/99-documentation-center-uploads.ini"
+        printf 'upload_max_filesize = %s\npost_max_size = %s\n' "$upload_max" "$post_max" > "$target"
+        log "Upload limits written to $target"
+        ini_written=$((ini_written + 1))
+    done
+
+    if [ "$ini_written" -eq 0 ]; then
+        log "Warning: no PHP ini directory found; set upload_max_filesize=${upload_max} and post_max_size=${post_max} in php.ini and reload php-fpm"
+        return 0
+    fi
+
+    # php_admin_value in the pool wins over any ini file, so a value set there
+    # would silently keep the old limit.
+    if [ -n "$php_version" ] && grep -rqE 'php_admin_value\[upload_max_filesize\]' "/etc/php/${php_version}/fpm/pool.d" 2>/dev/null; then
+        log "Warning: the PHP-FPM pool sets upload_max_filesize via php_admin_value, which overrides the ini file - remove it from the pool config"
+    fi
+
+    if command -v systemctl >/dev/null 2>&1; then
+        if [ -n "$php_version" ] && systemctl reload "php${php_version}-fpm" >/dev/null 2>&1; then
+            log "Reloaded php${php_version}-fpm"
+        elif systemctl reload php-fpm >/dev/null 2>&1; then
+            log "Reloaded php-fpm"
+        else
+            log "Warning: could not reload php-fpm; restart it to apply the upload limits"
+        fi
+    else
+        log "systemctl not found; restart php-fpm to apply the upload limits"
+    fi
+
+    log "PHP reports upload_max_filesize=$(php -r 'echo ini_get("upload_max_filesize");' 2>/dev/null || true) post_max_size=$(php -r 'echo ini_get("post_max_size");' 2>/dev/null || true) (slow uploads may also need max_input_time/max_execution_time raised)"
+}
+
 command -v git >/dev/null 2>&1 || fail "git is not installed"
 command -v php >/dev/null 2>&1 || fail "php is not installed"
 command -v composer >/dev/null 2>&1 || fail "composer is not installed"
@@ -219,6 +355,9 @@ php artisan migrate --force
 
 log "Clearing the application cache"
 php artisan cache:clear
+
+log "Configuring PHP and nginx upload limits"
+configure_upload_limits
 
 log "Configuring the queue worker"
 configure_queue_worker
