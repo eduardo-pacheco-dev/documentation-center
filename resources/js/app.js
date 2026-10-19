@@ -452,8 +452,19 @@ window.documentPicker = window.documentPicker || function (options = {}) {
         files: [],
         dragging: false,
         error: '',
+        uploading: false,
         maxFiles: options.maxFiles ?? 10,
         maxSize: options.maxSize ?? 100 * 1024 * 1024,
+
+        startUpload(event) {
+            if (this.uploading) {
+                event.preventDefault();
+
+                return;
+            }
+
+            this.uploading = true;
+        },
 
         handleSelect(event) {
             this.addFiles(event.target.files);

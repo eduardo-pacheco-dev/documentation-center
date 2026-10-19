@@ -252,6 +252,25 @@ it('accepts item attachments larger than the old 20 MB limit', function () {
     expect($item->documents()->count())->toBe(1);
 });
 
+it('accepts zip and rar attachments from the attachments section', function () {
+    Storage::fake('local');
+
+    $user = User::factory()->create();
+    $workOrder = WorkOrder::factory()->create(['user_id' => $user->getKey()]);
+
+    $this->actingAs($user)
+        ->post(route('admin.work-orders.documents.store', $workOrder), [
+            'documents' => [
+                UploadedFile::fake()->create('pacote.zip', 200, 'application/zip'),
+                UploadedFile::fake()->create('backup.rar', 200, 'application/vnd.rar'),
+            ],
+        ])
+        ->assertRedirect(route('admin.work-orders.show', $workOrder))
+        ->assertSessionHas('status');
+
+    expect($workOrder->documents()->count())->toBe(2);
+});
+
 it('forbids a stranger from attaching from the attachments section', function () {
     $workOrder = WorkOrder::factory()->create();
     $item = $workOrder->items()->create(['description' => 'Item', 'quantity' => 1, 'unit_price' => 10, 'total' => 10]);

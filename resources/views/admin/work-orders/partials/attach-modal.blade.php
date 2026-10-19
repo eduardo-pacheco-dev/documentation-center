@@ -45,12 +45,27 @@
             method="POST"
             action="{{ route('admin.work-orders.documents.store', $workOrder) }}"
             enctype="multipart/form-data"
-            class="mt-5 space-y-4"
+            class="relative mt-5 space-y-4"
             x-data="documentPicker()"
             @dragover="onDragOver($event)"
             @dragleave="onDragLeave($event)"
             @drop="handleDrop($event)"
+            @submit="startUpload($event)"
         >
+            <div
+                x-cloak
+                x-show="uploading"
+                class="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 rounded-2xl bg-white/85 px-6 text-center backdrop-blur-sm dark:bg-gray-900/85"
+                role="status"
+                aria-live="polite"
+            >
+                <span class="inline-flex h-10 w-10 items-center justify-center rounded-full bg-indigo-50 text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-400">
+                    <x-icon name="arrow-path" class="h-5 w-5 animate-spin" />
+                </span>
+                <p class="text-sm font-semibold text-gray-900 dark:text-gray-100">Enviando arquivo…</p>
+                <p class="text-xs text-gray-500 dark:text-gray-400">Aguarde enquanto o arquivo é carregado.</p>
+            </div>
+
             @csrf
             <input type="hidden" name="modal" value="attach">
 
@@ -84,7 +99,7 @@
                     x-ref="documents"
                     multiple
                     required
-                    accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.odt,.ods,.jpg,.jpeg,.png"
+                    accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.odt,.ods,.jpg,.jpeg,.png,.zip,.rar"
                     class="sr-only"
                     @change="handleSelect($event)"
                 >
@@ -104,7 +119,7 @@
                         <x-icon name="arrow-up-tray" class="h-4 w-4" />
                     </span>
                     <p class="text-sm font-medium text-gray-700 dark:text-gray-200">Arraste os arquivos aqui ou clique para buscar</p>
-                    <p class="text-xs text-gray-500 dark:text-gray-400">PDF, Office, imagens ou texto — até 100 MB por arquivo.</p>
+                    <p class="text-xs text-gray-500 dark:text-gray-400">PDF, Office, imagens, texto, ZIP ou RAR — até 100 MB por arquivo.</p>
                 </div>
 
                 <template x-if="files.length > 0">
@@ -147,7 +162,8 @@
                 </button>
                 <button
                     type="submit"
-                    class="inline-flex items-center gap-1.5 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-500"
+                    :disabled="uploading"
+                    class="inline-flex items-center gap-1.5 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                     <x-icon name="arrow-up-tray" class="h-4 w-4" />
                     Enviar

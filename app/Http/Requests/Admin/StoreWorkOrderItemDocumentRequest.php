@@ -37,7 +37,7 @@ class StoreWorkOrderItemDocumentRequest extends FormRequest
             'documents.*' => [
                 'required',
                 'file',
-                Rule::file()->types(['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'txt', 'csv', 'odt', 'ods', 'jpg', 'jpeg', 'png']),
+                Rule::file()->types(['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'txt', 'csv', 'odt', 'ods', 'jpg', 'jpeg', 'png', 'zip', 'rar']),
                 'max:102400',
             ],
         ];
@@ -54,6 +54,7 @@ class StoreWorkOrderItemDocumentRequest extends FormRequest
             'documents.required' => 'Selecione ao menos um arquivo para anexar.',
             'documents.min' => 'Selecione ao menos um arquivo para anexar.',
             'documents.max' => 'Você pode anexar no máximo 10 arquivos por envio.',
+            'documents.*.mimes' => 'O arquivo deve ser PDF, Office, imagem, texto, ZIP ou RAR.',
             'documents.*.max' => 'Cada arquivo deve ter no máximo 100 MB.',
         ];
     }
