@@ -1,5 +1,9 @@
 <?php
 
+use App\Http\Controllers\Admin\AgendaCalendarController;
+use App\Http\Controllers\Admin\AgendaController;
+use App\Http\Controllers\Admin\AgendaEventController;
+use App\Http\Controllers\Admin\AgendaImportExportController;
 use App\Http\Controllers\Admin\BackupController;
 use App\Http\Controllers\Admin\CatalogItemController;
 use App\Http\Controllers\Admin\ClientContactController;
@@ -267,6 +271,31 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
     Route::resource('todo-lists', TodoListController::class)
         ->parameters(['todo-lists' => 'todoList'])
         ->only(['store', 'update', 'destroy']);
+
+    /*
+    | Agenda
+    */
+
+    Route::get('agenda', [AgendaController::class, 'index'])->name('agenda.index');
+    Route::get('agenda/feed', [AgendaController::class, 'feed'])->name('agenda.feed');
+    Route::get('agenda/free-busy', [AgendaController::class, 'freeBusy'])->name('agenda.free-busy');
+    Route::get('agenda/export', [AgendaImportExportController::class, 'export'])->name('agenda.export');
+    Route::post('agenda/import', [AgendaImportExportController::class, 'import'])->name('agenda.import');
+
+    Route::post('agenda/events', [AgendaEventController::class, 'store'])->name('agenda.events.store');
+    Route::put('agenda/events/{agendaEvent}', [AgendaEventController::class, 'update'])->name('agenda.events.update');
+    Route::delete('agenda/events/{agendaEvent}', [AgendaEventController::class, 'destroy'])->name('agenda.events.destroy');
+    Route::patch('agenda/events/{agendaEvent}/move', [AgendaController::class, 'move'])->name('agenda.events.move');
+    Route::post('agenda/events/{agendaEvent}/duplicate', [AgendaEventController::class, 'duplicate'])->name('agenda.events.duplicate');
+    Route::patch('agenda/events/{agendaEvent}/respond', [AgendaEventController::class, 'respond'])->name('agenda.events.respond');
+
+    Route::post('agenda/calendars', [AgendaCalendarController::class, 'store'])->name('agenda.calendars.store');
+    Route::put('agenda/calendars/{agendaCalendar}', [AgendaCalendarController::class, 'update'])->name('agenda.calendars.update');
+    Route::delete('agenda/calendars/{agendaCalendar}', [AgendaCalendarController::class, 'destroy'])->name('agenda.calendars.destroy');
+    Route::patch('agenda/calendars/{agendaCalendar}/visibility', [AgendaCalendarController::class, 'visibility'])->name('agenda.calendars.visibility');
+    Route::patch('agenda/calendars/{agendaCalendar}/default', [AgendaCalendarController::class, 'makeDefault'])->name('agenda.calendars.default');
+    Route::post('agenda/calendars/{agendaCalendar}/shares', [AgendaCalendarController::class, 'share'])->name('agenda.calendars.share');
+    Route::delete('agenda/calendars/{agendaCalendar}/shares/{share}', [AgendaCalendarController::class, 'unshare'])->name('agenda.calendars.unshare');
 
     /*
     | Projects

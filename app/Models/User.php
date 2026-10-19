@@ -165,6 +165,48 @@ class User extends Authenticatable
     }
 
     /**
+     * The agenda calendars owned by the user.
+     *
+     * @return HasMany<AgendaCalendar, $this>
+     */
+    public function agendaCalendars(): HasMany
+    {
+        return $this->hasMany(AgendaCalendar::class);
+    }
+
+    /**
+     * The agenda calendars shared with the user.
+     *
+     * @return BelongsToMany<AgendaCalendar, $this>
+     */
+    public function sharedAgendaCalendars(): BelongsToMany
+    {
+        return $this->belongsToMany(AgendaCalendar::class, 'agenda_calendar_shares')
+            ->withPivot('role')
+            ->withTimestamps();
+    }
+
+    /**
+     * The agenda events organized by the user.
+     *
+     * @return HasMany<AgendaEvent, $this>
+     */
+    public function agendaEvents(): HasMany
+    {
+        return $this->hasMany(AgendaEvent::class);
+    }
+
+    /**
+     * The agenda invitations received by the user.
+     *
+     * @return HasMany<AgendaEventAttendee, $this>
+     */
+    public function agendaAttendances(): HasMany
+    {
+        return $this->hasMany(AgendaEventAttendee::class);
+    }
+
+    /**
      * The project memberships held by the user.
      *
      * @return HasMany<ProjectMember, $this>

@@ -46,6 +46,7 @@
                                 ['url' => route('admin.catalog.index'), 'active' => 'admin.catalog.*', 'icon' => 'cube', 'label' => 'Catálogo'],
                                 ['url' => route('admin.work-orders.index'), 'active' => 'admin.work-orders.*', 'icon' => 'clipboard-document-list', 'label' => 'Ordens de serviço'],
                                 ['url' => route('admin.tasks.index'), 'active' => 'admin.tasks.*', 'icon' => 'check-circle', 'label' => 'Tarefas'],
+                                ['url' => route('admin.agenda.index'), 'active' => 'admin.agenda.*', 'icon' => 'calendar-days', 'label' => 'Agenda'],
 
                                 ['url' => route('admin.forms.index'), 'active' => 'admin.forms.*', 'icon' => 'document-check', 'label' => 'Formulários'],
                                 ['url' => route('admin.form-templates.index'), 'active' => 'admin.form-templates.*', 'icon' => 'document-duplicate', 'label' => 'Templates'],
