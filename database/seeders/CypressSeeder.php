@@ -2,7 +2,11 @@
 
 namespace Database\Seeders;
 
+use App\Enums\AgendaColor;
 use App\Enums\WorkOrderStatus;
+use App\Models\AgendaCalendar;
+use App\Models\AgendaCalendarShare;
+use App\Models\AgendaEvent;
 use App\Models\CatalogItem;
 use App\Models\Client;
 use App\Models\Colaborador;
@@ -46,6 +50,8 @@ class CypressSeeder extends Seeder
         $this->seedAdministratorDashboard($administrator);
 
         $this->seedMemberDashboard($member);
+
+        $this->seedAgenda($administrator, $member);
     }
 
     /**
@@ -159,6 +165,63 @@ class CypressSeeder extends Seeder
         Erb::factory()->create(['user_id' => $member->getKey()]);
 
         ShortLink::factory()->create(['user_id' => $member->getKey()]);
+    }
+
+    /**
+     * Create the agenda fixtures used by the end-to-end specs.
+     *
+     * The administrator owns twelve calendars so the sidebar list has to load
+     * its second page while scrolling. The member receives a read-only share of
+     * the administrator main calendar.
+     */
+    private function seedAgenda(User $administrator, User $member): void
+    {
+        $calendars = [];
+
+        foreach (range(1, 12) as $position) {
+            $calendars[] = AgendaCalendar::factory()->create([
+                'user_id' => $administrator->getKey(),
+                'name' => $position === 1
+                    ? 'Minha agenda'
+                    : 'Calendário '.str_pad((string) $position, 2, '0', STR_PAD_LEFT),
+                'description' => 'Calendário criado para os testes end-to-end.',
+                'color' => AgendaColor::cases()[($position - 1) % count(AgendaColor::cases())],
+                'is_default' => $position === 1,
+                'is_visible' => true,
+                'position' => $position,
+            ]);
+        }
+
+        $mainCalendar = $calendars[0];
+
+        AgendaEvent::factory()->forCalendar($mainCalendar)->create([
+            'title' => 'Reunião Cypress',
+            'description' => 'Evento determinístico usado pelos testes da agenda.',
+            'location' => 'Sala Cypress',
+            'start_at' => now()->setTime(10, 0),
+            'end_at' => now()->setTime(11, 0),
+        ]);
+
+        $memberCalendar = AgendaCalendar::factory()->create([
+            'user_id' => $member->getKey(),
+            'name' => 'Agenda do membro',
+            'description' => 'Agenda pessoal do usuário comum.',
+            'color' => AgendaColor::Sage,
+            'is_default' => true,
+            'is_visible' => true,
+            'position' => 1,
+        ]);
+
+        AgendaCalendarShare::factory()
+            ->for($mainCalendar, 'calendar')
+            ->for($member)
+            ->create();
+
+        AgendaEvent::factory()->forCalendar($memberCalendar)->create([
+            'title' => 'Compromisso do membro',
+            'start_at' => now()->setTime(14, 0),
+            'end_at' => now()->setTime(15, 0),
+        ]);
     }
 
     /**

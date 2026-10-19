@@ -1,0 +1,15 @@
+BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//Documentation Center//Cypress Fixture//PT-BR
+CALSCALE:GREGORIAN
+METHOD:PUBLISH
+BEGIN:VEVENT
+UID:cypress-imported-event@documentation-center
+DTSTAMP:20260101T000000Z
+DTSTART:20260115T090000Z
+DTEND:20260115T100000Z
+SUMMARY:Evento importado Cypress
+DESCRIPTION:Evento criado pelo teste de importação da agenda.
+LOCATION:Sala de importação
+END:VEVENT
+END:VCALENDAR
