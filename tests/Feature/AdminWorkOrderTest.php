@@ -144,6 +144,25 @@ it('shows the linked erb site id in the list', function () {
         ->assertSee('SITE-ABC-123');
 });
 
+it('offers to copy the erb site id from the work order header', function () {
+    $owner = User::factory()->create();
+    $client = ownedClient($owner);
+    $erb = Erb::factory()->create(['user_id' => $owner->getKey(), 'site_id' => 'SITE-ABC-123']);
+
+    $workOrder = WorkOrder::factory()->create([
+        'user_id' => $owner->getKey(),
+        'client_id' => $client->getKey(),
+        'erb_id' => $erb->getKey(),
+    ]);
+
+    $this->actingAs($owner)
+        ->get(route('admin.work-orders.show', $workOrder))
+        ->assertOk()
+        ->assertSee('data-copy="SITE-ABC-123"', false)
+        ->assertSee('data-copy-message="Site ID SITE-ABC-123 copiado"', false)
+        ->assertSee(route('admin.erbs.show', $erb), false);
+});
+
 it('shows the radio link ends as site a to site b in the list', function () {
     $owner = User::factory()->create();
     $client = ownedClient($owner);

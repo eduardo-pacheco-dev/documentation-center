@@ -322,6 +322,51 @@ document.addEventListener('click', (event) => {
     });
 }, true);
 
+// Elements carrying data-copy copy its value to the clipboard and report back
+// with a toast. The async clipboard API only exists in secure contexts, so fall
+// back to a hidden textarea (and finally to a prompt) elsewhere, e.g. over http.
+const copyToClipboard = async (value) => {
+    if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(value);
+
+        return;
+    }
+
+    const textarea = document.createElement('textarea');
+
+    textarea.value = value;
+    textarea.setAttribute('readonly', '');
+    textarea.style.position = 'fixed';
+    textarea.style.top = '-9999px';
+    textarea.style.opacity = '0';
+
+    document.body.appendChild(textarea);
+    textarea.select();
+
+    const copied = document.execCommand('copy');
+
+    textarea.remove();
+
+    if (!copied) {
+        throw new Error('Clipboard is unavailable');
+    }
+};
+
+document.addEventListener('click', async (event) => {
+    const trigger = event.target.closest('[data-copy]');
+
+    if (!trigger) {
+        return;
+    }
+
+    try {
+        await copyToClipboard(trigger.dataset.copy || '');
+        Toasts.success(trigger.dataset.copyMessage || 'Copiado para a área de transferência');
+    } catch (error) {
+        window.prompt('Copie:', trigger.dataset.copy || '');
+    }
+});
+
 const DocumentPreview = (() => {
     const IMAGE_EXTENSIONS = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'avif', 'bmp'];
     const TEXT_EXTENSIONS = ['txt', 'md', 'json', 'csv', 'log', 'xml', 'html', 'css', 'js', 'php'];

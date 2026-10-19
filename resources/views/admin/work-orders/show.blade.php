@@ -84,12 +84,26 @@
                         {{ $workOrder->client->name }}
                     </a>
                     @if ($workOrder->erb)
-                        <a
-                            href="{{ route('admin.erbs.show', $workOrder->erb) }}"
+                        @php
+                            $siteId = $workOrder->erb->site_id ?: $workOrder->erb->code;
+                        @endphp
+                        <button
+                            type="button"
+                            data-copy="{{ $siteId }}"
+                            data-copy-message="Site ID {{ $siteId }} copiado"
+                            title="Copiar Site ID"
                             class="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1 text-xs font-medium text-white/90 backdrop-blur transition hover:bg-white/20"
                         >
                             <x-icon name="signal" class="h-3.5 w-3.5" />
-                            {{ $workOrder->erb->site_id ?: $workOrder->erb->code }}
+                            {{ $siteId }}
+                        </button>
+                        <a
+                            href="{{ route('admin.erbs.show', $workOrder->erb) }}"
+                            title="Abrir a ERB"
+                            aria-label="Abrir a ERB"
+                            class="inline-flex h-6 items-center justify-center rounded-full bg-white/10 px-2 text-white/90 backdrop-blur transition hover:bg-white/20"
+                        >
+                            <x-icon name="arrow-top-right-on-square" class="h-3.5 w-3.5" />
                         </a>
                     @endif
                     @if ($workOrder->radioLink)
