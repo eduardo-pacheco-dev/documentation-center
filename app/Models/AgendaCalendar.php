@@ -93,6 +93,19 @@ class AgendaCalendar extends Model
     }
 
     /**
+     * Order the calendars the same way the sidebar lists them.
+     *
+     * @param  Builder<AgendaCalendar>  $query
+     */
+    public function scopeOrdered(Builder $query): void
+    {
+        $query->orderByDesc('is_default')
+            ->orderBy('position')
+            ->orderBy('name')
+            ->orderBy('id');
+    }
+
+    /**
      * Determine whether the calendar belongs to the given user.
      */
     public function isOwnedBy(User $user): bool

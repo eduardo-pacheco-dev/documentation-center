@@ -18,6 +18,45 @@ use Illuminate\Support\Facades\DB;
 class AgendaCalendarController extends Controller
 {
     /**
+     * The number of calendars loaded per page in the sidebar list.
+     */
+    public const PER_PAGE = 10;
+
+    /**
+     * Return the next page of calendars shown in the sidebar.
+     */
+    public function index(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        $perPage = min(max($request->integer('per_page', self::PER_PAGE), 1), 50);
+        $page = max($request->integer('page', 1), 1);
+
+        $calendars = AgendaCalendar::query()
+            ->accessibleBy($user)
+            ->with(['shares.user', 'user'])
+            ->ordered()
+            ->paginate($perPage, ['*'], 'page', $page);
+
+        $items = $calendars->getCollection()
+            ->map(fn (AgendaCalendar $calendar): array => [
+                'id' => $calendar->getKey(),
+                'html' => view('admin.agenda.partials.calendar-item', [
+                    'calendar' => $calendar,
+                    'user' => $user,
+                ])->render(),
+            ])
+            ->values()
+            ->all();
+
+        return response()->json([
+            'items' => $items,
+            'current_page' => $calendars->currentPage(),
+            'last_page' => $calendars->lastPage(),
+            'total' => $calendars->total(),
+        ]);
+    }
+
+    /**
      * Create a calendar owned by the authenticated user.
      */
     public function store(StoreAgendaCalendarRequest $request): RedirectResponse

@@ -7,6 +7,7 @@
         'duplicate' => route('admin.agenda.events.duplicate', ['agendaEvent' => '__ID__']),
         'respond' => route('admin.agenda.events.respond', ['agendaEvent' => '__ID__']),
         'freeBusy' => route('admin.agenda.free-busy'),
+        'calendarsIndex' => route('admin.agenda.calendars.index'),
         'today' => now()->toDateString(),
         'hourHeight' => \App\Services\Agenda\AgendaGridBuilder::HOUR_HEIGHT,
         'csrf' => csrf_token(),
@@ -461,24 +462,146 @@
             }
         });
 
-        document.querySelectorAll('[data-agenda-calendar-toggle]').forEach((checkbox) => {
-            checkbox.addEventListener('change', () => {
-                const current = new URLSearchParams(window.location.search);
-                const params = new URLSearchParams();
+        document.addEventListener('change', (event) => {
+            if (!event.target.matches('[data-agenda-calendar-toggle]')) {
+                return;
+            }
 
-                ['view', 'date', 'q'].forEach((key) => {
-                    if (current.get(key)) {
-                        params.set(key, current.get(key));
+            const current = new URLSearchParams(window.location.search);
+            const params = new URLSearchParams();
+
+            ['view', 'date', 'q'].forEach((key) => {
+                if (current.get(key)) {
+                    params.set(key, current.get(key));
+                }
+            });
+
+            document.querySelectorAll('[data-agenda-calendar-toggle]:checked').forEach((input) => {
+                params.append('calendars[]', input.value);
+            });
+
+            window.location.search = params.toString();
+        });
+
+        const calendarList = document.querySelector('[data-agenda-calendar-list]');
+
+        if (calendarList) {
+            const loadingIndicator = document.querySelector('[data-agenda-calendar-loading]');
+            const endIndicator = document.querySelector('[data-agenda-calendar-end]');
+            const sentinel = document.querySelector('[data-agenda-calendar-sentinel]');
+            const perPage = Number(calendarList.dataset.perPage) || 10;
+            let nextPage = Number(calendarList.dataset.nextPage) || 0;
+            let lastPage = Number(calendarList.dataset.lastPage) || 1;
+            let loading = false;
+            let ticking = false;
+
+            const selectedIds = () => new Set(
+                Array.from(document.querySelectorAll('[data-agenda-calendar-toggle]:checked')).map((input) => input.value),
+            );
+
+            const appendItem = (html, selected) => {
+                const template = document.createElement('template');
+                template.innerHTML = html.trim();
+
+                const item = template.content.firstElementChild;
+
+                if (!item) {
+                    return;
+                }
+
+                const checkbox = item.querySelector('[data-agenda-calendar-toggle]');
+
+                if (checkbox) {
+                    checkbox.checked = selected.has(checkbox.value);
+                }
+
+                calendarList.insertBefore(item, sentinel);
+            };
+
+            const showEnd = () => {
+                endIndicator?.classList.remove('hidden');
+            };
+
+            const loadMore = async () => {
+                if (loading || nextPage < 2 || nextPage > lastPage) {
+                    return;
+                }
+
+                loading = true;
+                loadingIndicator?.classList.remove('hidden');
+                loadingIndicator?.classList.add('flex');
+
+                try {
+                    const url = new URL(config.calendarsIndex, window.location.origin);
+
+                    url.searchParams.set('page', String(nextPage));
+                    url.searchParams.set('per_page', String(perPage));
+
+                    const response = await fetch(url, { headers: { Accept: 'application/json' } });
+
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}`);
+                    }
+
+                    const data = await response.json();
+                    const selected = selectedIds();
+
+                    (data.items ?? []).forEach((item) => appendItem(item.html, selected));
+
+                    lastPage = Number(data.last_page) || lastPage;
+                    nextPage = Number(data.current_page) + 1;
+                } catch (error) {
+                    nextPage = 0;
+
+                    if (endIndicator) {
+                        endIndicator.textContent = 'Não foi possível carregar mais calendários.';
+                    }
+
+                    showEnd();
+
+                    return;
+                } finally {
+                    loading = false;
+                    loadingIndicator?.classList.add('hidden');
+                    loadingIndicator?.classList.remove('flex');
+                }
+
+                if (nextPage > lastPage) {
+                    nextPage = 0;
+                    showEnd();
+
+                    return;
+                }
+
+                if (isNearBottom()) {
+                    loadMore();
+                }
+            };
+
+            const isNearBottom = () => calendarList.scrollTop + calendarList.clientHeight
+                >= calendarList.scrollHeight - 32;
+
+            calendarList.addEventListener('scroll', () => {
+                if (ticking) {
+                    return;
+                }
+
+                ticking = true;
+                window.requestAnimationFrame(() => {
+                    ticking = false;
+
+                    if (isNearBottom()) {
+                        loadMore();
                     }
                 });
+            }, { passive: true });
 
-                document.querySelectorAll('[data-agenda-calendar-toggle]:checked').forEach((input) => {
-                    params.append('calendars[]', input.value);
-                });
-
-                window.location.search = params.toString();
-            });
-        });
+            if (nextPage < 2) {
+                showEnd();
+            } else if (isNearBottom()) {
+                loadMore();
+            }
+        }
 
         const freeBusyButton = document.querySelector('[data-agenda-freebusy]');
 

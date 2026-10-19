@@ -21,7 +21,9 @@
         $cursor->addDay();
     }
 
-    $checkbox = 'h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 dark:border-gray-700 dark:bg-gray-900';
+    $pageSize = $calendarPageSize ?? 10;
+    $initialCalendars = $calendars->take($pageSize);
+    $hasMoreCalendars = $calendars->count() > $pageSize;
 @endphp
 
 <div class="rounded-2xl border border-gray-200/70 bg-white p-3 shadow-sm dark:border-gray-800 dark:bg-gray-900">
@@ -61,53 +63,29 @@
         </button>
     </div>
 
-    <div class="space-y-1.5">
-        @forelse ($calendars as $calendar)
-            <div class="flex items-center gap-2">
-                <input
-                    type="checkbox"
-                    class="{{ $checkbox }}"
-                    value="{{ $calendar->getKey() }}"
-                    data-agenda-calendar-toggle
-                    @checked(in_array($calendar->getKey(), $visibleCalendarIds, true))
-                >
-                <span class="h-3 w-3 shrink-0 rounded-full" style="background-color: {{ $calendar->color->hex() }}"></span>
-                <span class="flex-1 truncate text-sm text-gray-700 dark:text-gray-200">{{ $calendar->name }}</span>
-                @unless ($calendar->isOwnedBy($user))
-                    <span class="rounded-md bg-gray-100 px-1.5 py-0.5 text-[10px] font-semibold uppercase text-gray-500 dark:bg-gray-800 dark:text-gray-400">Compartilhado</span>
-                @endunless
-                @if ($calendar->canWrite($user))
-                    <button
-                        type="button"
-                        data-agenda-calendar-edit
-                        data-calendar="{{ json_encode([
-                            'id' => $calendar->getKey(),
-                            'name' => $calendar->name,
-                            'description' => $calendar->description,
-                            'color' => $calendar->color->value,
-                            'timezone' => $calendar->timezone,
-                            'is_default' => $calendar->is_default,
-                            'is_visible' => $calendar->is_visible,
-                            'is_owner' => $calendar->isOwnedBy($user),
-                            'can_delete' => $calendar->isOwnedBy($user),
-                            'default_reminders' => $calendar->defaultReminders(),
-                            'shares' => $calendar->shares->map(fn ($share) => [
-                                'id' => $share->getKey(),
-                                'email' => $share->user?->email,
-                                'name' => $share->user?->full_name,
-                                'role' => $share->role->value,
-                            ])->values()->all(),
-                        ]) }}"
-                        class="rounded-md p-1 text-gray-400 transition hover:text-indigo-600"
-                        title="Editar calendário"
-                    >
-                        <x-icon name="pencil-square" class="h-3.5 w-3.5" />
-                    </button>
-                @endif
-            </div>
+    <div
+        data-agenda-calendar-list
+        data-next-page="{{ $hasMoreCalendars ? 2 : 0 }}"
+        data-last-page="{{ max(1, (int) ceil($calendars->count() / $pageSize)) }}"
+        data-per-page="{{ $pageSize }}"
+        class="max-h-72 space-y-1.5 overflow-y-auto overscroll-contain pr-1 [scrollbar-width:thin]"
+    >
+        @forelse ($initialCalendars as $calendar)
+            @include('admin.agenda.partials.calendar-item', ['calendar' => $calendar, 'user' => $user])
         @empty
             <p class="text-sm text-gray-500 dark:text-gray-400">Nenhum calendário ainda.</p>
         @endforelse
+
+        <div data-agenda-calendar-sentinel class="h-px"></div>
+
+        <div data-agenda-calendar-loading class="hidden items-center justify-center gap-2 py-2 text-[11px] font-medium text-gray-400 dark:text-gray-500">
+            <x-icon name="arrow-path" class="h-3.5 w-3.5 animate-spin" />
+            Carregando…
+        </div>
+
+        <p data-agenda-calendar-end class="hidden py-1 text-center text-[11px] text-gray-400 dark:text-gray-500">
+            Todos os calendários carregados.
+        </p>
     </div>
 </div>
 

@@ -289,6 +289,7 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
     Route::post('agenda/events/{agendaEvent}/duplicate', [AgendaEventController::class, 'duplicate'])->name('agenda.events.duplicate');
     Route::patch('agenda/events/{agendaEvent}/respond', [AgendaEventController::class, 'respond'])->name('agenda.events.respond');
 
+    Route::get('agenda/calendars', [AgendaCalendarController::class, 'index'])->name('agenda.calendars.index');
     Route::post('agenda/calendars', [AgendaCalendarController::class, 'store'])->name('agenda.calendars.store');
     Route::put('agenda/calendars/{agendaCalendar}', [AgendaCalendarController::class, 'update'])->name('agenda.calendars.update');
     Route::delete('agenda/calendars/{agendaCalendar}', [AgendaCalendarController::class, 'destroy'])->name('agenda.calendars.destroy');

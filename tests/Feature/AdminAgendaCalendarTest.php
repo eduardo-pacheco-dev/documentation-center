@@ -191,3 +191,30 @@ it('hides a calendar from the grid when it is not selected', function () {
         ->assertOk()
         ->assertDontSee('Evento oculto');
 });
+
+it('renders only the first page of the calendar list', function () {
+    $user = User::factory()->create();
+    AgendaCalendar::factory()->count(12)->for($user)->create();
+
+    $response = $this->actingAs($user)->get('/admin/agenda')->assertOk();
+
+    expect(substr_count($response->getContent(), 'data-agenda-calendar-item'))->toBe(10)
+        ->and($response->getContent())->toContain('data-next-page="2"');
+});
+
+it('returns the next page of the calendar list as json', function () {
+    $user = User::factory()->create();
+    AgendaCalendar::factory()->count(12)->for($user)->create();
+
+    $this->actingAs($user)
+        ->getJson('/admin/agenda/calendars?page=2&per_page=5')
+        ->assertOk()
+        ->assertJsonPath('current_page', 2)
+        ->assertJsonPath('last_page', 3)
+        ->assertJsonPath('total', 12)
+        ->assertJsonCount(5, 'items');
+});
+
+it('requires authentication to page the calendar list', function () {
+    $this->getJson('/admin/agenda/calendars')->assertUnauthorized();
+});

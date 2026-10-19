@@ -88,6 +88,7 @@ class AgendaController extends Controller
                 ->pluck('id')
                 ->all(),
             'firstWeekday' => Carbon::MONDAY,
+            'calendarPageSize' => AgendaCalendarController::PER_PAGE,
         ]);
     }
 
@@ -205,9 +206,7 @@ class AgendaController extends Controller
         return AgendaCalendar::query()
             ->accessibleBy($user)
             ->with(['shares.user', 'user'])
-            ->orderByDesc('is_default')
-            ->orderBy('position')
-            ->orderBy('name')
+            ->ordered()
             ->get();
     }
 
