@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Enums\WorkOrderItemStatus;
 use App\Enums\WorkOrderStatus;
+use App\Exports\WorkOrdersCompleteExport;
 use App\Exports\WorkOrdersExport;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\StoreWorkOrderRequest;
@@ -96,9 +97,15 @@ class WorkOrderController extends Controller
 
         ['search' => $search, 'status' => $status, 'sort' => $sort, 'direction' => $direction] = $this->resolveFilters($request);
 
+        $complete = $request->query('mode') === 'completo';
+
+        $export = $complete
+            ? new WorkOrdersCompleteExport($request->user(), $search, $status, $sort, $direction)
+            : new WorkOrdersExport($request->user(), $search, $status, $sort, $direction);
+
         return Excel::download(
-            new WorkOrdersExport($request->user(), $search, $status, $sort, $direction),
-            'ordens-de-servico.xlsx',
+            $export,
+            $complete ? 'ordens-de-servico-completo.xlsx' : 'ordens-de-servico.xlsx',
         );
     }
 

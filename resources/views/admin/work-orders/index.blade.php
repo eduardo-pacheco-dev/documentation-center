@@ -21,15 +21,53 @@
         </div>
 
         <div class="flex flex-wrap items-center gap-2">
-            <a
-                href="{{ route('admin.work-orders.export', array_filter(['search' => $search, 'status' => $status, 'sort' => $sort, 'direction' => $direction])) }}"
-                data-export-link
-                data-export-filename="ordens-de-servico.xlsx"
-                class="{{ $secondaryButton }}"
-            >
-                <x-icon name="arrow-down-tray" class="h-4 w-4" />
-                Exportar
-            </a>
+            <div class="relative">
+                <button
+                    type="button"
+                    class="{{ $secondaryButton }}"
+                    aria-haspopup="true"
+                    aria-expanded="false"
+                    data-dropdown-toggle
+                >
+                    <x-icon name="arrow-down-tray" class="h-4 w-4" />
+                    Exportar
+                    <x-icon name="chevron-down" class="h-3.5 w-3.5" />
+                </button>
+
+                <div
+                    data-dropdown-menu
+                    class="absolute right-0 z-10 mt-1 hidden w-56 origin-top-right rounded-xl bg-white py-1 text-left shadow-lg ring-1 ring-gray-900/5 dark:bg-gray-900 dark:ring-white/10"
+                    role="menu"
+                >
+                    <a
+                        href="{{ route('admin.work-orders.export', array_filter(['search' => $search, 'status' => $status, 'sort' => $sort, 'direction' => $direction])) }}"
+                        data-export-link
+                        data-export-filename="ordens-de-servico.xlsx"
+                        class="flex items-start gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 dark:text-gray-200 dark:hover:bg-gray-800"
+                        role="menuitem"
+                    >
+                        <x-icon name="document-text" class="mt-0.5 h-4 w-4 shrink-0 text-gray-400 dark:text-gray-500" />
+                        <span>
+                            <span class="block font-medium">Simplificado</span>
+                            <span class="block text-xs text-gray-500 dark:text-gray-400">Uma linha por OS, como na listagem.</span>
+                        </span>
+                    </a>
+
+                    <a
+                        href="{{ route('admin.work-orders.export', array_filter(['search' => $search, 'status' => $status, 'sort' => $sort, 'direction' => $direction, 'mode' => 'completo'])) }}"
+                        data-export-link
+                        data-export-filename="ordens-de-servico-completo.xlsx"
+                        class="flex items-start gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 dark:text-gray-200 dark:hover:bg-gray-800"
+                        role="menuitem"
+                    >
+                        <x-icon name="rectangle-stack" class="mt-0.5 h-4 w-4 shrink-0 text-gray-400 dark:text-gray-500" />
+                        <span>
+                            <span class="block font-medium">Completo</span>
+                            <span class="block text-xs text-gray-500 dark:text-gray-400">Todos os dados da OS e uma linha por item.</span>
+                        </span>
+                    </a>
+                </div>
+            </div>
 
             <button
                 type="button"

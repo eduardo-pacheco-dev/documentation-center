@@ -117,6 +117,73 @@ it('downloads the work orders as an excel file filtered by search and status', f
         ->and($rows[1][15])->toBe('Acesso liberado pela portaria.');
 });
 
+it('exports a complete workbook with one row per work order item', function () {
+    $user = User::factory()->create();
+    $client = Client::factory()->create(['user_id' => $user->getKey(), 'name' => 'Alpha Telecom']);
+
+    $workOrder = WorkOrder::factory()->create([
+        'user_id' => $user->getKey(),
+        'client_id' => $client->getKey(),
+        'number' => 'OS-9001',
+        'client_os' => 'CLI-0001',
+        'oc' => '12345',
+        'chave' => 'CHV-001',
+    ]);
+
+    $workOrder->clientOrders()->create([
+        'number' => '9100',
+        'description' => 'OS cliente A',
+    ]);
+
+    $workOrder->items()->createMany([
+        [
+            'description' => 'Item A',
+            'client_os' => 'OS-A1',
+            'client_os_2' => 'OS-A2',
+            'unit' => 'un',
+            'quantity' => 2,
+            'unit_price' => 50,
+            'total' => 100,
+            'status' => 'completed',
+        ],
+        [
+            'description' => 'Item B',
+            'unit' => 'h',
+            'quantity' => 1,
+            'unit_price' => 30,
+            'total' => 30,
+            'status' => 'pending',
+        ],
+    ]);
+
+    $response = $this->actingAs($user)->get(route('admin.work-orders.export', ['mode' => 'completo']));
+
+    $response->assertOk();
+    $response->assertDownload('ordens-de-servico-completo.xlsx');
+
+    $rows = workOrderExportWorkbookRows($response->streamedContent());
+
+    expect($rows)->toHaveCount(3)
+        ->and($rows[0][16])->toBe('OS do cliente (lista)')
+        ->and($rows[0][17])->toBe('Item')
+        ->and($rows[0][23])->toBe('Subtotal do item')
+        ->and($rows[1][0])->toBe('OS-9001')
+        ->and($rows[1][16])->toBe('9100 - OS cliente A')
+        ->and($rows[1][17])->toBe('Item A')
+        ->and($rows[1][18])->toBe('OS-A1')
+        ->and($rows[1][19])->toBe('OS-A2')
+        ->and($rows[1][20])->toBe('un')
+        ->and((float) $rows[1][21])->toBe(2.0)
+        ->and((float) $rows[1][22])->toBe(50.0)
+        ->and((float) $rows[1][23])->toBe(100.0)
+        ->and($rows[1][24])->toBe('Concluído')
+        ->and($rows[2][0])->toBe('OS-9001')
+        ->and($rows[2][17])->toBe('Item B')
+        ->and($rows[2][18])->toBeNull()
+        ->and($rows[2][19])->toBeNull()
+        ->and($rows[2][24])->toBe('Pendente');
+});
+
 it('exports work orders owned by the authenticated user only', function () {
     $user = User::factory()->create();
     $other = User::factory()->create();
