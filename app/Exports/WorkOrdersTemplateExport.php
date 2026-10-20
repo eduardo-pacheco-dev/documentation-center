@@ -2,17 +2,37 @@
 
 namespace App\Exports;
 
+use App\Enums\WorkOrderPriority;
+use App\Enums\WorkOrderStatus;
+use App\Models\User;
 use Maatwebsite\Excel\Concerns\FromArray;
 use Maatwebsite\Excel\Concerns\WithColumnWidths;
 use Maatwebsite\Excel\Concerns\WithEvents;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\WithStyles;
 use Maatwebsite\Excel\Events\AfterSheet;
+use PhpOffice\PhpSpreadsheet\Cell\DataValidation;
 use PhpOffice\PhpSpreadsheet\Style\Fill;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 
 class WorkOrdersTemplateExport implements FromArray, WithColumnWidths, WithEvents, WithHeadings, WithStyles
 {
+    /**
+     * The client names available to the user.
+     *
+     * @var list<string>
+     */
+    private readonly array $clients;
+
+    public function __construct(private readonly User $user)
+    {
+        $this->clients = $user->clients()
+            ->orderBy('name')
+            ->pluck('name')
+            ->values()
+            ->all();
+    }
+
     /**
      * The heading row of the template.
      *
@@ -32,7 +52,7 @@ class WorkOrdersTemplateExport implements FromArray, WithColumnWidths, WithEvent
     {
         return [
             [
-                'Construtora Exemplo',
+                $this->clients[0] ?? 'Construtora Exemplo',
                 'SITE-00001',
                 '',
                 'Revisão completa do quadro de distribuição.',
@@ -129,7 +149,93 @@ class WorkOrdersTemplateExport implements FromArray, WithColumnWidths, WithEvent
                 $instructions->getColumnDimension('A')->setWidth(16);
                 $instructions->getColumnDimension('B')->setWidth(14);
                 $instructions->getColumnDimension('C')->setWidth(80);
+
+                $lists = $sheet->getParent()->createSheet()->setTitle('Listas');
+                $lists->setCellValue('A1', 'Clientes');
+                $lists->setCellValue('B1', 'Prioridades');
+                $lists->setCellValue('C1', 'Status');
+
+                $priorities = array_map(
+                    fn (WorkOrderPriority $priority): string => mb_strtolower($priority->label()),
+                    WorkOrderPriority::cases(),
+                );
+
+                $statuses = array_map(
+                    fn (WorkOrderStatus $status): string => mb_strtolower($status->label()),
+                    WorkOrderStatus::cases(),
+                );
+
+                if ($this->clients !== []) {
+                    $lists->fromArray(
+                        array_map(fn (string $client): array => [$client], $this->clients),
+                        null,
+                        'A2',
+                    );
+
+                    $this->applyListValidation(
+                        $sheet,
+                        'A2:A1000',
+                        'Listas!$A$2:$A$'.(count($this->clients) + 1),
+                        'Cliente inválido',
+                        'Selecione um cliente da lista.',
+                    );
+                }
+
+                $lists->fromArray(
+                    array_map(fn (string $priority): array => [$priority], $priorities),
+                    null,
+                    'B2',
+                );
+
+                $lists->fromArray(
+                    array_map(fn (string $status): array => [$status], $statuses),
+                    null,
+                    'C2',
+                );
+
+                $lists->setSheetState(Worksheet::SHEETSTATE_HIDDEN);
+
+                $this->applyListValidation(
+                    $sheet,
+                    'E2:E1000',
+                    'Listas!$B$2:$B$'.(count($priorities) + 1),
+                    'Prioridade inválida',
+                    'Selecione baixa, normal, alta ou urgente.',
+                );
+
+                $this->applyListValidation(
+                    $sheet,
+                    'F2:F1000',
+                    'Listas!$C$2:$C$'.(count($statuses) + 1),
+                    'Status inválido',
+                    'Selecione um status da lista.',
+                );
             },
         ];
+    }
+
+    /**
+     * Apply a dropdown list validation to the given range.
+     */
+    private function applyListValidation(
+        Worksheet $sheet,
+        string $range,
+        string $source,
+        string $title,
+        string $message,
+    ): void {
+        $validation = new DataValidation;
+        $validation->setType(DataValidation::TYPE_LIST);
+        $validation->setErrorStyle(DataValidation::STYLE_STOP);
+        $validation->setAllowBlank(true);
+        $validation->setShowErrorMessage(true);
+        $validation->setShowInputMessage(true);
+        $validation->setPromptTitle($title);
+        $validation->setPrompt($message);
+        $validation->setErrorTitle($title);
+        $validation->setError($message);
+        $validation->setFormula1($source);
+
+        $sheet->setDataValidation($range, $validation);
     }
 }

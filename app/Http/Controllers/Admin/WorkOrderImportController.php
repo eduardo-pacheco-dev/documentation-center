@@ -9,6 +9,7 @@ use App\Imports\WorkOrdersImport;
 use App\Models\WorkOrder;
 use App\Services\WorkOrders\WorkOrderBulkImporter;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Maatwebsite\Excel\Facades\Excel;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
@@ -33,10 +34,10 @@ class WorkOrderImportController extends Controller
     /**
      * Download the spreadsheet template used for the import.
      */
-    public function template(): BinaryFileResponse
+    public function template(Request $request): BinaryFileResponse
     {
         $this->authorize('create', WorkOrder::class);
 
-        return Excel::download(new WorkOrdersTemplateExport, 'modelo-ordens-de-servico.xlsx');
+        return Excel::download(new WorkOrdersTemplateExport($request->user()), 'modelo-ordens-de-servico.xlsx');
     }
 }

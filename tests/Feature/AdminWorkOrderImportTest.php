@@ -7,7 +7,10 @@ use App\Models\User;
 use App\Models\WorkOrder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
+use PhpOffice\PhpSpreadsheet\Cell\DataValidation;
+use PhpOffice\PhpSpreadsheet\Reader\Xlsx as XlsxReader;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 
 uses(RefreshDatabase::class);
@@ -261,13 +264,38 @@ it('rejects a file that is not an excel spreadsheet', function () {
     expect(WorkOrder::query()->count())->toBe(0);
 });
 
-it('downloads the import template', function () {
+it('downloads the import template with dropdown lists for client, priority and status', function () {
     $user = User::factory()->create();
+    Client::factory()->create(['user_id' => $user->getKey(), 'name' => 'Alpha Telecom']);
+    Client::factory()->create(['user_id' => $user->getKey(), 'name' => 'Beta Networks']);
+    Client::factory()->create(['name' => 'Cliente de outro usuário']);
 
     $response = $this->actingAs($user)->get(route('admin.work-orders.import.template'));
 
     $response->assertOk();
     $response->assertHeader('content-type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+
+    $path = tempnam(sys_get_temp_dir(), 'os-template').'.xlsx';
+    file_put_contents($path, $response->streamedContent());
+
+    $spreadsheet = (new XlsxReader)->load($path);
+    $sheet = $spreadsheet->getActiveSheet();
+    $lists = $spreadsheet->getSheetByName('Listas');
+
+    expect($sheet->getDataValidation('A2')->getType())->toBe(DataValidation::TYPE_LIST)
+        ->and($sheet->getDataValidation('A2')->getFormula1())->toBe('Listas!$A$2:$A$3')
+        ->and($sheet->getDataValidation('E2')->getType())->toBe(DataValidation::TYPE_LIST)
+        ->and($sheet->getDataValidation('E2')->getFormula1())->toBe('Listas!$B$2:$B$5')
+        ->and($sheet->getDataValidation('F2')->getType())->toBe(DataValidation::TYPE_LIST)
+        ->and($sheet->getDataValidation('F2')->getFormula1())->toBe('Listas!$C$2:$C$6')
+        ->and($lists)->not->toBeNull()
+        ->and($lists->getSheetState())->toBe(Worksheet::SHEETSTATE_HIDDEN)
+        ->and($lists->getCell('A2')->getValue())->toBe('Alpha Telecom')
+        ->and($lists->getCell('A3')->getValue())->toBe('Beta Networks')
+        ->and($lists->getCell('B2')->getValue())->toBe('baixa')
+        ->and($lists->getCell('C2')->getValue())->toBe('aberta');
+
+    @unlink($path);
 });
 
 it('requires authentication to import work orders', function () {
