@@ -228,6 +228,7 @@ class WorkOrdersTemplateExport implements FromArray, WithColumnWidths, WithEvent
         $validation->setType(DataValidation::TYPE_LIST);
         $validation->setErrorStyle(DataValidation::STYLE_STOP);
         $validation->setAllowBlank(true);
+        $validation->setShowDropDown(true);
         $validation->setShowErrorMessage(true);
         $validation->setShowInputMessage(true);
         $validation->setPromptTitle($title);

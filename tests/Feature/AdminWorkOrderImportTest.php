@@ -337,10 +337,13 @@ it('downloads the import template with dropdown lists for client, priority and s
     $lists = $spreadsheet->getSheetByName('Listas');
 
     expect($sheet->getDataValidation('A2')->getType())->toBe(DataValidation::TYPE_LIST)
+        ->and($sheet->getDataValidation('A2')->getShowDropDown())->toBeTrue()
         ->and($sheet->getDataValidation('A2')->getFormula1())->toBe('Listas!$A$2:$A$3')
         ->and($sheet->getDataValidation('E2')->getType())->toBe(DataValidation::TYPE_LIST)
+        ->and($sheet->getDataValidation('E2')->getShowDropDown())->toBeTrue()
         ->and($sheet->getDataValidation('E2')->getFormula1())->toBe('Listas!$B$2:$B$5')
         ->and($sheet->getDataValidation('F2')->getType())->toBe(DataValidation::TYPE_LIST)
+        ->and($sheet->getDataValidation('F2')->getShowDropDown())->toBeTrue()
         ->and($sheet->getDataValidation('F2')->getFormula1())->toBe('Listas!$C$2:$C$6')
         ->and($lists)->not->toBeNull()
         ->and($lists->getSheetState())->toBe(Worksheet::SHEETSTATE_HIDDEN)
