@@ -117,6 +117,59 @@ it('filters the work order list by search term and status', function () {
         ->assertDontSee('OS-5002');
 });
 
+it('searches work orders by site id, oc, chave and radio link endpoints', function () {
+    $owner = User::factory()->create();
+    $client = ownedClient($owner);
+
+    $erb = Erb::factory()->create(['user_id' => $owner->getKey(), 'site_id' => 'SITE-ERB-777']);
+    $erbA = Erb::factory()->create(['user_id' => $owner->getKey(), 'site_id' => 'SITE-LINK-A']);
+    $erbB = Erb::factory()->create(['user_id' => $owner->getKey(), 'site_id' => 'SITE-LINK-B']);
+    $radioLink = RadioLink::factory()->create([
+        'user_id' => $owner->getKey(),
+        'erb_a_id' => $erbA->getKey(),
+        'erb_b_id' => $erbB->getKey(),
+    ]);
+
+    WorkOrder::factory()->create([
+        'user_id' => $owner->getKey(),
+        'client_id' => $client->getKey(),
+        'erb_id' => $erb->getKey(),
+        'number' => 'OS-7101',
+    ]);
+    WorkOrder::factory()->create([
+        'user_id' => $owner->getKey(),
+        'client_id' => $client->getKey(),
+        'number' => 'OS-7102',
+        'oc' => '880011',
+    ]);
+    WorkOrder::factory()->create([
+        'user_id' => $owner->getKey(),
+        'client_id' => $client->getKey(),
+        'number' => 'OS-7103',
+        'chave' => 'CHV-7103',
+    ]);
+    WorkOrder::factory()->create([
+        'user_id' => $owner->getKey(),
+        'client_id' => $client->getKey(),
+        'radio_link_id' => $radioLink->getKey(),
+        'number' => 'OS-7104',
+    ]);
+
+    $cases = [
+        'SITE-ERB-777' => 'OS-7101',
+        '880011' => 'OS-7102',
+        'CHV-7103' => 'OS-7103',
+        'SITE-LINK-B' => 'OS-7104',
+    ];
+
+    foreach ($cases as $term => $number) {
+        $this->actingAs($owner)
+            ->get('/admin/work-orders?search='.urlencode($term))
+            ->assertOk()
+            ->assertSee($number);
+    }
+});
+
 it('renders the work order list in the alternate view modes', function () {
     $owner = User::factory()->create();
     $client = ownedClient($owner);

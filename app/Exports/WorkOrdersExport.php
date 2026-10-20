@@ -28,10 +28,7 @@ class WorkOrdersExport implements FromQuery, WithHeadings, WithMapping
             ->ownedBy($this->user)
             ->with(['client:id,name', 'erb:id,site_id,code', 'radioLink:id,code'])
             ->withCount('items')
-            ->when($this->search !== '', fn (Builder $query) => $query->where(fn (Builder $inner) => $inner
-                ->where('number', 'like', "%{$this->search}%")
-                ->orWhere('description', 'like', "%{$this->search}%")
-                ->orWhereHas('client', fn (Builder $client) => $client->where('name', 'like', "%{$this->search}%"))))
+            ->when($this->search !== '', fn (Builder $query) => $query->matching($this->search))
             ->when($this->status !== null, fn (Builder $query) => $query->where('status', $this->status))
             ->orderBy($this->sort, $this->direction)
             ->orderBy('id', $this->direction);

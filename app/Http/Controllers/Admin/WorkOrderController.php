@@ -43,10 +43,7 @@ class WorkOrderController extends Controller
             ->ownedBy($request->user())
             ->with(['client:id,name', 'erb:id,site_id,code', 'radioLink:id,code,erb_a_id,erb_b_id', 'radioLink.erbA:id,site_id,code', 'radioLink.erbB:id,site_id,code'])
             ->withCount('items')
-            ->when($search !== '', fn (Builder $query) => $query->where(fn (Builder $inner) => $inner
-                ->where('number', 'like', "%{$search}%")
-                ->orWhere('description', 'like', "%{$search}%")
-                ->orWhereHas('client', fn (Builder $client) => $client->where('name', 'like', "%{$search}%"))))
+            ->when($search !== '', fn (Builder $query) => $query->matching($search))
             ->when($status !== null, fn (Builder $query) => $query->where('status', $status))
             ->orderBy($sort, $direction)
             ->orderBy('id', $direction)

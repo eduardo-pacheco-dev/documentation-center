@@ -126,6 +126,32 @@ class WorkOrder extends Model
     }
 
     /**
+     * Filter the work orders by a search term.
+     */
+    public function scopeMatching(Builder $query, string $term): void
+    {
+        $query->where(function (Builder $query) use ($term): void {
+            $like = "%{$term}%";
+
+            $query->where('number', 'like', $like)
+                ->orWhere('description', 'like', $like)
+                ->orWhere('oc', 'like', $like)
+                ->orWhere('chave', 'like', $like)
+                ->orWhereHas('client', fn (Builder $client) => $client->where('name', 'like', $like))
+                ->orWhereHas('erb', fn (Builder $erb) => $erb
+                    ->where('site_id', 'like', $like)
+                    ->orWhere('code', 'like', $like))
+                ->orWhereHas('radioLink', fn (Builder $radioLink) => $radioLink
+                    ->whereHas('erbA', fn (Builder $erb) => $erb
+                        ->where('site_id', 'like', $like)
+                        ->orWhere('code', 'like', $like))
+                    ->orWhereHas('erbB', fn (Builder $erb) => $erb
+                        ->where('site_id', 'like', $like)
+                        ->orWhere('code', 'like', $like)));
+        });
+    }
+
+    /**
      * Generate the next sequential number for the user's work orders.
      */
     public static function generateNumber(User $user): string
