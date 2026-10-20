@@ -2,6 +2,7 @@
 
 namespace App\Exports;
 
+use App\Enums\WorkOrderItemStatus;
 use App\Enums\WorkOrderPriority;
 use App\Enums\WorkOrderStatus;
 use App\Models\User;
@@ -24,8 +25,10 @@ class WorkOrdersTemplateExport implements FromArray, WithColumnWidths, WithEvent
      */
     private readonly array $clients;
 
-    public function __construct(private readonly User $user)
-    {
+    public function __construct(
+        private readonly User $user,
+        private readonly bool $withItems = false,
+    ) {
         $this->clients = $user->clients()
             ->orderBy('name')
             ->pluck('name')
@@ -40,7 +43,20 @@ class WorkOrdersTemplateExport implements FromArray, WithColumnWidths, WithEvent
      */
     public function headings(): array
     {
-        return ['Cliente', 'ERB', 'Radio link', 'Descrição', 'Prioridade', 'Status', 'Abertura', 'Previsão', 'Observações', 'OC', 'CHAVE'];
+        $headings = ['Cliente', 'ERB', 'Radio link', 'Descrição', 'Prioridade', 'Status', 'Abertura', 'Previsão', 'Observações', 'OC', 'CHAVE'];
+
+        if ($this->withItems) {
+            $headings = [
+                ...$headings,
+                'Item',
+                'Quantidade',
+                'Status do item',
+                'OS cliente 1',
+                'OS cliente 2',
+            ];
+        }
+
+        return $headings;
     }
 
     /**
@@ -50,21 +66,32 @@ class WorkOrdersTemplateExport implements FromArray, WithColumnWidths, WithEvent
      */
     public function array(): array
     {
-        return [
-            [
-                $this->clients[0] ?? 'Construtora Exemplo',
-                'SITE-00001',
-                '',
-                'Revisão completa do quadro de distribuição.',
-                'alta',
-                'aberta',
-                '10/01/2026',
-                '24/01/2026',
-                'Acesso liberado pela portaria.',
-                '12345',
-                'CHAVE-00001',
-            ],
+        $row = [
+            $this->clients[0] ?? 'Construtora Exemplo',
+            'SITE-00001',
+            '',
+            'Revisão completa do quadro de distribuição.',
+            'alta',
+            'aberta',
+            '10/01/2026',
+            '24/01/2026',
+            'Acesso liberado pela portaria.',
+            '12345',
+            'CHAVE-00001',
         ];
+
+        if ($this->withItems) {
+            $row = [
+                ...$row,
+                'Troca de módulo',
+                1,
+                'pendente',
+                'OS-CLI-1',
+                'OS-CLI-2',
+            ];
+        }
+
+        return [$row];
     }
 
     /**
@@ -75,7 +102,7 @@ class WorkOrdersTemplateExport implements FromArray, WithColumnWidths, WithEvent
     public function styles(Worksheet $sheet): array
     {
         return [
-            'A1:K1' => [
+            'A1:'.($this->withItems ? 'P' : 'K').'1' => [
                 'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
                 'fill' => [
                     'fillType' => Fill::FILL_SOLID,
@@ -92,7 +119,7 @@ class WorkOrdersTemplateExport implements FromArray, WithColumnWidths, WithEvent
      */
     public function columnWidths(): array
     {
-        return [
+        $widths = [
             'A' => 24,
             'B' => 16,
             'C' => 14,
@@ -105,6 +132,19 @@ class WorkOrdersTemplateExport implements FromArray, WithColumnWidths, WithEvent
             'J' => 16,
             'K' => 16,
         ];
+
+        if ($this->withItems) {
+            $widths = [
+                ...$widths,
+                'L' => 32,
+                'M' => 12,
+                'N' => 16,
+                'O' => 16,
+                'P' => 16,
+            ];
+        }
+
+        return $widths;
     }
 
     /**
@@ -120,11 +160,15 @@ class WorkOrdersTemplateExport implements FromArray, WithColumnWidths, WithEvent
                 $sheet = $event->getSheet()->getDelegate();
                 $instructions = $sheet->getParent()->createSheet()->setTitle('Instruções');
 
-                $instructions->fromArray([
+                $instructionRows = [
                     ['Coluna', 'Obrigatória', 'Formato e observações'],
                     ['Cliente', 'Sim', 'Nome do cliente. Se não existir, será criado automaticamente.'],
-                    ['OC', 'Não', 'Número da OC (ordem complexa). Somente números. Deve ser único.'],
-                    ['CHAVE', 'Não', 'Chave da OS. Deve ser única.'],
+                    ['OC', $this->withItems ? 'Sim*' : 'Não', $this->withItems
+                        ? 'Número da OC (ordem complexa). Somente números. Deve ser único. Informe OC ou CHAVE para agrupar as linhas da mesma OS.'
+                        : 'Número da OC (ordem complexa). Somente números. Deve ser único.'],
+                    ['CHAVE', $this->withItems ? 'Sim*' : 'Não', $this->withItems
+                        ? 'Chave da OS. Deve ser única. Informe OC ou CHAVE para agrupar as linhas da mesma OS.'
+                        : 'Chave da OS. Deve ser única.'],
                     ['ERB', 'Não', 'Site ID ou código da ERB. Se não existir, será criada automaticamente. Preencha a ERB ou o Radio link, nunca ambos.'],
                     ['Radio link', 'Não', 'Código existente ou as pontas no formato "A dir B" / "A - B". Se o enlace não existir, será criado. Preencha a ERB ou o Radio link, nunca ambos.'],
                     ['Descrição', 'Não', 'Até 2000 caracteres.'],
@@ -133,7 +177,22 @@ class WorkOrdersTemplateExport implements FromArray, WithColumnWidths, WithEvent
                     ['Abertura', 'Sim', 'dd/mm/aaaa.'],
                     ['Previsão', 'Não', 'dd/mm/aaaa. Deve ser igual ou posterior à abertura.'],
                     ['Observações', 'Não', 'Até 2000 caracteres.'],
-                ]);
+                ];
+
+                if ($this->withItems) {
+                    $instructionRows = [
+                        ...$instructionRows,
+                        ['Item', 'Sim', 'Descrição do item. Cada linha representa um item. Repita a OC ou a CHAVE nas linhas da mesma OS.'],
+                        ['Quantidade', 'Sim', 'Maior que zero.'],
+                        ['Status do item', 'Não', 'pendente, em andamento, concluído, rejeitado ou cancelado. Padrão: pendente.'],
+                        ['OS cliente 1', 'Não', 'Primeira OS do cliente vinculada ao item.'],
+                        ['OS cliente 2', 'Não', 'Segunda OS do cliente vinculada ao item.'],
+                    ];
+                }
+
+                $instructions->fromArray($instructionRows);
+
+                $lastInstructionRow = count($instructionRows);
 
                 $instructions->getStyle('A1:C1')->applyFromArray([
                     'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
@@ -143,8 +202,8 @@ class WorkOrdersTemplateExport implements FromArray, WithColumnWidths, WithEvent
                     ],
                 ]);
 
-                $instructions->getStyle('A1:C12')->getAlignment()->setWrapText(true);
-                $instructions->getStyle('A2:C12')->getAlignment()->setVertical('top');
+                $instructions->getStyle("A1:C{$lastInstructionRow}")->getAlignment()->setWrapText(true);
+                $instructions->getStyle("A2:C{$lastInstructionRow}")->getAlignment()->setVertical('top');
 
                 $instructions->getColumnDimension('A')->setWidth(16);
                 $instructions->getColumnDimension('B')->setWidth(14);
@@ -193,6 +252,28 @@ class WorkOrdersTemplateExport implements FromArray, WithColumnWidths, WithEvent
                     null,
                     'C2',
                 );
+
+                if ($this->withItems) {
+                    $itemStatuses = array_map(
+                        fn (WorkOrderItemStatus $status): string => mb_strtolower($status->label()),
+                        WorkOrderItemStatus::cases(),
+                    );
+
+                    $lists->setCellValue('D1', 'Status dos itens');
+                    $lists->fromArray(
+                        array_map(fn (string $status): array => [$status], $itemStatuses),
+                        null,
+                        'D2',
+                    );
+
+                    $this->applyListValidation(
+                        $sheet,
+                        'N2:N1000',
+                        'Listas!$D$2:$D$'.(count($itemStatuses) + 1),
+                        'Status do item inválido',
+                        'Selecione um status da lista.',
+                    );
+                }
 
                 $lists->setSheetState(Worksheet::SHEETSTATE_HIDDEN);
 

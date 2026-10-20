@@ -40,6 +40,48 @@ function workOrderWorkbook(array $rows): UploadedFile
     );
 }
 
+/**
+ * Build an uploaded complete Excel workbook from the given data rows.
+ *
+ * @param  array<int, array<int, mixed>>  $rows  The data rows, excluding the heading.
+ */
+function completeWorkOrderWorkbook(array $rows): UploadedFile
+{
+    $headings = [
+        'Cliente',
+        'ERB',
+        'Radio link',
+        'Descrição',
+        'Prioridade',
+        'Status',
+        'Abertura',
+        'Previsão',
+        'Observações',
+        'OC',
+        'CHAVE',
+        'Item',
+        'Quantidade',
+        'Status do item',
+        'OS cliente 1',
+        'OS cliente 2',
+    ];
+
+    $spreadsheet = new Spreadsheet;
+    $spreadsheet->getActiveSheet()->fromArray([$headings, ...$rows]);
+
+    $path = tempnam(sys_get_temp_dir(), 'os-import-complete').'.xlsx';
+
+    (new Xlsx($spreadsheet))->save($path);
+
+    return new UploadedFile(
+        $path,
+        'ordens-de-servico-completo.xlsx',
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        null,
+        true,
+    );
+}
+
 it('imports work orders from an excel spreadsheet', function () {
     $user = User::factory()->create();
     Client::factory()->create(['user_id' => $user->getKey(), 'name' => 'Construtora Alfa']);
@@ -415,6 +457,126 @@ it('rejects duplicated oc or chave inside the spreadsheet', function () {
         ->assertSessionHasErrors('import');
 
     expect(WorkOrder::query()->count())->toBe(0);
+});
+
+it('imports a complete spreadsheet with a work order and its items', function () {
+    $user = User::factory()->create();
+    Client::factory()->create(['user_id' => $user->getKey(), 'name' => 'Construtora Alfa']);
+
+    $file = completeWorkOrderWorkbook([
+        ['Construtora Alfa', '', '', 'OS completa', 'alta', 'em andamento', '10/01/2026', '20/01/2026', '', '555', '', 'Item A', 2, 'pendente', 'CLI-A1', 'CLI-A2'],
+        ['Construtora Alfa', '', '', 'OS completa', 'alta', 'em andamento', '10/01/2026', '20/01/2026', '', '555', '', 'Item B', 1, 'em andamento', '', ''],
+    ]);
+
+    $this->actingAs($user)->post(route('admin.work-orders.import'), [
+        'file' => $file,
+        'mode' => 'completo',
+    ])->assertRedirect(route('admin.work-orders.index'));
+
+    $workOrder = WorkOrder::query()->sole();
+    $items = $workOrder->items()->orderBy('id')->get();
+
+    expect($workOrder->oc)->toBe('555')
+        ->and($workOrder->priority->value)->toBe('high')
+        ->and($workOrder->status->value)->toBe('in_progress')
+        ->and($items)->toHaveCount(2)
+        ->and($items[0]->description)->toBe('Item A')
+        ->and($items[0]->client_os)->toBe('CLI-A1')
+        ->and($items[0]->client_os_2)->toBe('CLI-A2')
+        ->and((float) $items[0]->total)->toBe(0.0)
+        ->and($items[1]->description)->toBe('Item B')
+        ->and($items[1]->status->value)->toBe('in_progress')
+        ->and((float) $workOrder->total)->toBe(0.0);
+});
+
+it('updates an existing work order and replaces its items on a complete import', function () {
+    $user = User::factory()->create();
+    $client = Client::factory()->create(['user_id' => $user->getKey(), 'name' => 'Construtora Alfa']);
+    $workOrder = WorkOrder::factory()->create([
+        'user_id' => $user->getKey(),
+        'client_id' => $client->getKey(),
+        'oc' => '777',
+        'description' => 'Descrição antiga',
+    ]);
+    $workOrder->items()->create(['description' => 'Item antigo', 'quantity' => 1, 'unit_price' => 5, 'total' => 5]);
+
+    $file = completeWorkOrderWorkbook([
+        ['Construtora Alfa', '', '', 'Descrição nova', 'normal', 'aberta', '11/01/2026', '', '', '777', '', 'Item novo A', 1, 'pendente', '', ''],
+        ['Construtora Alfa', '', '', 'Descrição nova', 'normal', 'aberta', '11/01/2026', '', '', '777', '', 'Item novo B', 2, 'rejeitado', '', ''],
+    ]);
+
+    $this->actingAs($user)->post(route('admin.work-orders.import'), [
+        'file' => $file,
+        'mode' => 'completo',
+    ])->assertRedirect(route('admin.work-orders.index'));
+
+    $workOrder->refresh();
+    $items = $workOrder->items()->orderBy('id')->get();
+
+    expect(WorkOrder::query()->count())->toBe(1)
+        ->and($workOrder->description)->toBe('Descrição nova')
+        ->and($items)->toHaveCount(2)
+        ->and($items[0]->description)->toBe('Item novo A')
+        ->and($items[1]->status->value)->toBe('rejected')
+        ->and((float) $workOrder->total)->toBe(0.0);
+});
+
+it('requires an oc or chave to group the rows of a complete import', function () {
+    $user = User::factory()->create();
+    Client::factory()->create(['user_id' => $user->getKey(), 'name' => 'Construtora Alfa']);
+
+    $file = completeWorkOrderWorkbook([
+        ['Construtora Alfa', '', '', '', 'normal', 'aberta', '10/01/2026', '', '', '', '', 'Item sem grupo', 1, 'pendente', '', ''],
+    ]);
+
+    $this->actingAs($user)
+        ->from(route('admin.work-orders.index'))
+        ->post(route('admin.work-orders.import'), [
+            'file' => $file,
+            'mode' => 'completo',
+        ])
+        ->assertSessionHasErrors('import');
+
+    expect(WorkOrder::query()->count())->toBe(0);
+});
+
+it('downloads the complete import template with the item columns', function () {
+    $user = User::factory()->create();
+    Client::factory()->create(['user_id' => $user->getKey(), 'name' => 'Alpha Telecom']);
+
+    $response = $this->actingAs($user)->get(route('admin.work-orders.import.template', ['mode' => 'completo']));
+
+    $response->assertOk();
+    $response->assertDownload('modelo-ordens-de-servico-completo.xlsx');
+
+    $path = tempnam(sys_get_temp_dir(), 'os-template-complete').'.xlsx';
+    file_put_contents($path, $response->streamedContent());
+
+    $spreadsheet = (new XlsxReader)->load($path);
+    $headings = $spreadsheet->getActiveSheet()->rangeToArray('A1:P1')[0];
+
+    expect($headings)->toBe([
+        'Cliente',
+        'ERB',
+        'Radio link',
+        'Descrição',
+        'Prioridade',
+        'Status',
+        'Abertura',
+        'Previsão',
+        'Observações',
+        'OC',
+        'CHAVE',
+        'Item',
+        'Quantidade',
+        'Status do item',
+        'OS cliente 1',
+        'OS cliente 2',
+    ])
+        ->and($spreadsheet->getActiveSheet()->getDataValidation('N2')->getType())->toBe(DataValidation::TYPE_LIST)
+        ->and($spreadsheet->getActiveSheet()->getDataValidation('N2')->getFormula1())->toBe('Listas!$D$2:$D$6');
+
+    @unlink($path);
 });
 
 it('rejects a file that is not an excel spreadsheet', function () {

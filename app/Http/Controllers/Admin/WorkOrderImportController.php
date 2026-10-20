@@ -8,6 +8,7 @@ use App\Http\Requests\Admin\ImportWorkOrdersRequest;
 use App\Imports\WorkOrdersImport;
 use App\Models\WorkOrder;
 use App\Services\WorkOrders\WorkOrderBulkImporter;
+use App\Services\WorkOrders\WorkOrderCompleteImporter;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Maatwebsite\Excel\Facades\Excel;
@@ -18,11 +19,16 @@ class WorkOrderImportController extends Controller
     /**
      * Import work orders from an uploaded spreadsheet.
      */
-    public function store(ImportWorkOrdersRequest $request, WorkOrderBulkImporter $importer): RedirectResponse
-    {
+    public function store(
+        ImportWorkOrdersRequest $request,
+        WorkOrderBulkImporter $simplified,
+        WorkOrderCompleteImporter $complete,
+    ): RedirectResponse {
         $sheets = Excel::toArray(new WorkOrdersImport, $request->file('file'));
 
-        $count = $importer->import($request->user(), $sheets[0] ?? []);
+        $count = $request->input('mode') === 'completo'
+            ? $complete->import($request->user(), $sheets[0] ?? [])
+            : $simplified->import($request->user(), $sheets[0] ?? []);
 
         return redirect()
             ->route('admin.work-orders.index')
@@ -38,6 +44,11 @@ class WorkOrderImportController extends Controller
     {
         $this->authorize('create', WorkOrder::class);
 
-        return Excel::download(new WorkOrdersTemplateExport($request->user()), 'modelo-ordens-de-servico.xlsx');
+        $complete = $request->query('mode') === 'completo';
+
+        return Excel::download(
+            new WorkOrdersTemplateExport($request->user(), $complete),
+            $complete ? 'modelo-ordens-de-servico-completo.xlsx' : 'modelo-ordens-de-servico.xlsx',
+        );
     }
 }

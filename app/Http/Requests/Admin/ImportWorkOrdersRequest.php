@@ -5,6 +5,7 @@ namespace App\Http\Requests\Admin;
 use App\Models\WorkOrder;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class ImportWorkOrdersRequest extends FormRequest
 {
@@ -25,6 +26,7 @@ class ImportWorkOrdersRequest extends FormRequest
     {
         return [
             'file' => ['required', 'file', 'mimes:xlsx,xls', 'max:5120'],
+            'mode' => ['nullable', Rule::in(['simplificado', 'completo'])],
         ];
     }
 

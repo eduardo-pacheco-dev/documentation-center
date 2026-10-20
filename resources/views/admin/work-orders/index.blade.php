@@ -69,14 +69,51 @@
                 </div>
             </div>
 
-            <button
-                type="button"
-                data-modal-open="work-order-import-modal"
-                class="{{ $secondaryButton }}"
-            >
-                <x-icon name="arrow-up-tray" class="h-4 w-4" />
-                Importar
-            </button>
+            <div class="relative">
+                <button
+                    type="button"
+                    class="{{ $secondaryButton }}"
+                    aria-haspopup="true"
+                    aria-expanded="false"
+                    data-dropdown-toggle
+                >
+                    <x-icon name="arrow-up-tray" class="h-4 w-4" />
+                    Importar
+                    <x-icon name="chevron-down" class="h-3.5 w-3.5" />
+                </button>
+
+                <div
+                    data-dropdown-menu
+                    class="absolute right-0 z-10 mt-1 hidden w-56 origin-top-right rounded-xl bg-white py-1 text-left shadow-lg ring-1 ring-gray-900/5 dark:bg-gray-900 dark:ring-white/10"
+                    role="menu"
+                >
+                    <button
+                        type="button"
+                        data-modal-open="work-order-import-modal"
+                        class="flex w-full items-start gap-2 px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 dark:text-gray-200 dark:hover:bg-gray-800"
+                        role="menuitem"
+                    >
+                        <x-icon name="document-text" class="mt-0.5 h-4 w-4 shrink-0 text-gray-400 dark:text-gray-500" />
+                        <span>
+                            <span class="block font-medium">Simplificado</span>
+                            <span class="block text-xs text-gray-500 dark:text-gray-400">Uma OS por linha.</span>
+                        </span>
+                    </button>
+
+                    <button
+                        type="button"
+                        data-modal-open="work-order-import-complete-modal"
+                        class="flex w-full items-start gap-2 px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 dark:text-gray-200 dark:hover:bg-gray-800"
+                        role="menuitem"
+                    >
+                        <x-icon name="rectangle-stack" class="mt-0.5 h-4 w-4 shrink-0 text-gray-400 dark:text-gray-500" />
+                        <span>
+                            <span class="block font-medium">Completo</span>
+                            <span class="block text-xs text-gray-500 dark:text-gray-400">Uma OS com seus itens.</span>
+                        </span>
+                    </button>
+                </div>
+            </div>
 
             <button
                 type="button"
@@ -635,6 +672,104 @@
         </div>
     </div>
 
+    <div
+        id="work-order-import-complete-modal"
+        class="fixed inset-0 z-50 hidden"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="work-order-import-complete-modal-title"
+        @if ($errors->any() && old('modal') === 'import-complete') data-open @endif
+    >
+        <div class="absolute inset-0 bg-gray-900/50 backdrop-blur-sm" data-modal-close></div>
+
+        <div class="absolute left-1/2 top-1/2 max-h-[90vh] w-full max-w-xl -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-2xl bg-white p-6 shadow-xl dark:bg-gray-900">
+            <div class="flex items-start justify-between gap-4">
+                <div>
+                    <h2 id="work-order-import-complete-modal-title" class="flex items-center gap-2 text-lg font-semibold text-gray-900 dark:text-gray-100">
+                        <x-icon name="rectangle-stack" class="h-5 w-5 text-gray-400 dark:text-gray-500" />
+                        Importar OS com itens
+                    </h2>
+                    <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Envie uma planilha com uma linha por item da OS.</p>
+                </div>
+
+                <button
+                    type="button"
+                    class="rounded-full p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-700 dark:text-gray-500 dark:hover:bg-gray-800"
+                    data-modal-close
+                >
+                    <span class="sr-only">Fechar</span>
+                    <x-icon name="x-mark" class="h-5 w-5" />
+                </button>
+            </div>
+
+            @if ($errors->any() && old('modal') === 'import-complete')
+                <div
+                    data-modal-error
+                    class="mt-4 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300"
+                >
+                    <p class="font-medium">Nenhuma OS foi importada. Corrija os itens abaixo e tente novamente:</p>
+
+                    <ul class="mt-2 list-disc space-y-1 pl-5">
+                        @forelse ($errors->get('import') as $message)
+                            <li>{{ $message }}</li>
+                        @empty
+                            <li>Verifique o arquivo enviado.</li>
+                        @endforelse
+                    </ul>
+                </div>
+            @endif
+
+            <div class="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-3 text-sm text-gray-600 dark:border-gray-800 dark:bg-gray-800/50 dark:text-gray-300">
+                <p>Colunas: <span class="font-medium">Cliente, ERB, Radio link, Descrição, Prioridade, Status, Abertura, Previsão, Observações, OC, CHAVE, Item, Quantidade, Status do item, OS cliente 1, OS cliente 2</span>.</p>
+                <p class="mt-1">Cada linha representa um item. Repita a <span class="font-medium">OC</span> ou a <span class="font-medium">CHAVE</span> nas linhas da mesma OS para agrupá-las.</p>
+                <p class="mt-1">Objetos ausentes (cliente, ERB e radio link) são criados automaticamente. Info: prioridade baixa, normal, alta ou urgente; status da OS aberta, em andamento, em espera, concluída ou cancelada; status do item pendente, em andamento, concluído, rejeitado ou cancelado.</p>
+                <a
+                    href="{{ route('admin.work-orders.import.template', ['mode' => 'completo']) }}"
+                    class="mt-2 inline-flex items-center gap-1 font-medium text-indigo-600 hover:text-indigo-500 dark:text-indigo-400 dark:hover:text-indigo-300"
+                >
+                    <x-icon name="arrow-down-tray" class="h-4 w-4" />
+                    Baixar modelo completo
+                </a>
+            </div>
+
+            <form method="POST" action="{{ route('admin.work-orders.import') }}" enctype="multipart/form-data" class="mt-5">
+                @csrf
+                <input type="hidden" name="modal" value="import-complete">
+                <input type="hidden" name="mode" value="completo">
+
+                <label for="import-complete-file" class="block text-sm font-medium text-gray-700 dark:text-gray-200">Planilha (.xlsx)</label>
+                <input
+                    type="file"
+                    name="file"
+                    id="import-complete-file"
+                    accept=".xlsx,.xls"
+                    required
+                    class="mt-1 block w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 file:mr-3 file:rounded-lg file:border-0 file:bg-indigo-600 file:px-3 file:py-1.5 file:text-sm file:font-semibold file:text-white hover:file:bg-indigo-500 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200"
+                >
+                @error('file')
+                    <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p>
+                @enderror
+
+                <div class="mt-6 flex justify-end gap-2 border-t border-gray-100 pt-4 dark:border-gray-800">
+                    <button
+                        type="button"
+                        class="{{ $secondaryButton }}"
+                        data-modal-close
+                    >
+                        Cancelar
+                    </button>
+                    <button
+                        type="submit"
+                        class="inline-flex items-center gap-1.5 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-500"
+                    >
+                        <x-icon name="arrow-up-tray" class="h-4 w-4" />
+                        Importar com itens
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <script>
         (function () {
             const params = new URLSearchParams(window.location.search);
@@ -764,6 +899,11 @@
         const workOrderImportModal = document.getElementById('work-order-import-modal');
         if (workOrderImportModal?.hasAttribute('data-open')) {
             openModal(workOrderImportModal);
+        }
+
+        const workOrderImportCompleteModal = document.getElementById('work-order-import-complete-modal');
+        if (workOrderImportCompleteModal?.hasAttribute('data-open')) {
+            openModal(workOrderImportCompleteModal);
         }
 
         const searchForm = document.querySelector('[data-search-form]');
