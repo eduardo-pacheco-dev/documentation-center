@@ -26,7 +26,6 @@ class UpdateEquipmentRequest extends FormRequest
     {
         return [
             'name' => ['required', 'string', 'max:255'],
-            'code' => ['nullable', 'string', 'max:60'],
             'manufacturer' => ['nullable', 'string', 'max:255'],
             'model' => ['nullable', 'string', 'max:255'],
             'category' => ['nullable', 'string', 'max:100'],

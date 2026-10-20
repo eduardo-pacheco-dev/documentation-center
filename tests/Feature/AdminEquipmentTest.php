@@ -66,6 +66,8 @@ it('renders the create form on the full page and inside the list modal', functio
         ->assertOk()
         ->assertSee('Cadastrar equipamento')
         ->assertDontSee('Número de série')
+        ->assertSee('Gerado automaticamente')
+        ->assertDontSee('name="code"', false)
         ->assertSee(route('admin.equipments.store'), false);
 
     $this->actingAs($user)
@@ -73,6 +75,13 @@ it('renders the create form on the full page and inside the list modal', functio
         ->assertOk()
         ->assertSee('data-modal-open="equipment-modal"', false)
         ->assertSee('id="equipment-modal"', false)
+        ->assertSee('data-wizard', false)
+        ->assertSee('data-wizard-panel', false)
+        ->assertSee('Identificação')
+        ->assertSee('Detalhes')
+        ->assertSee('Revisão')
+        ->assertSee('Gerado automaticamente')
+        ->assertDontSee('name="code"', false)
         ->assertSee(route('admin.equipments.store'), false);
 });
 
@@ -84,7 +93,9 @@ it('renders edit modals on the equipment list', function () {
         ->get('/admin/equipments')
         ->assertOk()
         ->assertSee('data-modal-open="equipment-edit-modal-'.$equipment->getKey().'"', false)
-        ->assertSee('id="equipment-edit-modal-'.$equipment->getKey().'"', false);
+        ->assertSee('id="equipment-edit-modal-'.$equipment->getKey().'"', false)
+        ->assertSee($equipment->code)
+        ->assertDontSee('name="code"', false);
 });
 
 it('creates an equipment owned by the authenticated user', function () {
@@ -122,6 +133,7 @@ it('generates a new sequential code for each equipment', function () {
 
     $this->actingAs($user)->post('/admin/equipments', [
         'name' => 'Segundo equipamento',
+        'code' => 'MANUAL-999',
     ])->assertRedirect();
 
     expect(Equipment::query()->latest('id')->firstOrFail()->code)->toBe('EQP-0002');
@@ -167,6 +179,7 @@ it('forbids a stranger from managing the equipment', function () {
 it('updates the equipment details', function () {
     $user = User::factory()->create();
     $equipment = Equipment::factory()->create(['user_id' => $user->getKey()]);
+    $originalCode = $equipment->code;
 
     $this->actingAs($user)->get("/admin/equipments/{$equipment->getKey()}/edit")->assertOk();
 
@@ -175,6 +188,7 @@ it('updates the equipment details', function () {
             'name' => 'Nome Atualizado',
             'manufacturer' => 'Novo Fabricante',
             'status' => 'maintenance',
+            'code' => 'MANUAL-999',
         ])
         ->assertSessionHas('status');
 
@@ -182,7 +196,8 @@ it('updates the equipment details', function () {
 
     expect($equipment->name)->toBe('Nome Atualizado')
         ->and($equipment->manufacturer)->toBe('Novo Fabricante')
-        ->and($equipment->status->value)->toBe('maintenance');
+        ->and($equipment->status->value)->toBe('maintenance')
+        ->and($equipment->code)->toBe($originalCode);
 });
 
 it('soft deletes the equipment', function () {
