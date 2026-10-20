@@ -83,7 +83,6 @@ class EquipmentSeeder extends Seeder
             [
                 'manufacturer' => $manufacturer,
                 'model' => $model,
-                'serial_number' => strtoupper(fake()->bothify('SN-####-????')),
                 'category' => $category,
                 'description' => ucfirst(fake('pt_BR')->sentence(12)),
                 'notes' => $index % 4 === 0 ? ucfirst(fake('pt_BR')->sentence(8)) : null,

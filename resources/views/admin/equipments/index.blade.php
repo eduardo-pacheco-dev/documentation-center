@@ -90,7 +90,7 @@
                     type="search"
                     name="search"
                     value="{{ $search }}"
-                    placeholder="Buscar por nome, código, fabricante, modelo ou série..."
+                    placeholder="Buscar por nome, código, fabricante, modelo ou categoria..."
                     class="block w-full rounded-xl border border-gray-300 bg-white py-2 pl-9 pr-3 text-sm shadow-sm transition focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
                     data-search-input
                 >
@@ -160,7 +160,6 @@
                             <x-sort-header column="name" label="Equipamento" icon="wrench-screwdriver" class="px-5 py-3.5" />
                             <x-sort-header column="manufacturer" label="Fabricante" class="px-5 py-3.5" />
                             <x-sort-header column="model" label="Modelo" class="px-5 py-3.5" />
-                            <th class="px-5 py-3.5 font-medium">Nº de série</th>
                             <x-sort-header column="category" label="Categoria" class="px-5 py-3.5" />
                             <th class="px-5 py-3.5 font-medium">Datasheets</th>
                             <x-sort-header column="status" label="Status" icon="flag" class="px-5 py-3.5" />
@@ -189,7 +188,6 @@
                                 </td>
                                 <td class="whitespace-nowrap px-5 py-4 text-gray-500 dark:text-gray-400">{{ $equipment->manufacturer ?? '—' }}</td>
                                 <td class="whitespace-nowrap px-5 py-4 text-gray-500 dark:text-gray-400">{{ $equipment->model ?? '—' }}</td>
-                                <td class="whitespace-nowrap px-5 py-4 text-gray-500 dark:text-gray-400">{{ $equipment->serial_number ?? '—' }}</td>
                                 <td class="whitespace-nowrap px-5 py-4 text-gray-500 dark:text-gray-400">{{ $equipment->category ?? '—' }}</td>
                                 <td class="whitespace-nowrap px-5 py-4">
                                     <span class="inline-flex items-center gap-1 text-gray-500 dark:text-gray-400">
@@ -209,7 +207,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td class="px-5 py-16 text-center" colspan="9">
+                                <td class="px-5 py-16 text-center" colspan="8">
                                     <span class="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-gray-100 text-gray-400 dark:bg-gray-800 dark:text-gray-500">
                                         <x-icon name="wrench-screwdriver" class="h-6 w-6" />
                                     </span>
@@ -285,11 +283,8 @@
                     </p>
 
                     <div class="mt-2 flex flex-wrap items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
-                        @if ($equipment->serial_number)
-                            <span>Série: {{ $equipment->serial_number }}</span>
-                        @endif
                         @if ($equipment->category)
-                            <span>&middot; {{ $equipment->category }}</span>
+                            <span>{{ $equipment->category }}</span>
                         @endif
                         <span>&middot; {{ $equipment->documents_count }} datasheet(s)</span>
                     </div>

@@ -90,20 +90,6 @@
         </div>
 
         <div>
-            <label for="serial_number{{ $fieldSuffix }}" class="{{ $labelClass }}">Número de série</label>
-            <input
-                type="text"
-                name="serial_number"
-                id="serial_number{{ $fieldSuffix }}"
-                value="{{ old('serial_number', $equipment?->serial_number) }}"
-                class="{{ $inputClass }}"
-            >
-            @error('serial_number')
-                <p class="{{ $errorClass }}">{{ $message }}</p>
-            @enderror
-        </div>
-
-        <div>
             <label for="status{{ $fieldSuffix }}" class="{{ $labelClass }}">Status</label>
             <select name="status" id="status{{ $fieldSuffix }}" class="{{ $inputClass }}">
                 @foreach ($statuses as $statusOption)

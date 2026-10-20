@@ -26,8 +26,8 @@ it('lists only the equipments the user owns', function () {
 it('filters the equipment list by search term', function () {
     $owner = User::factory()->create();
 
-    Equipment::factory()->create(['user_id' => $owner->getKey(), 'name' => 'Antena Alpha', 'serial_number' => 'SN-ALPHA']);
-    Equipment::factory()->create(['user_id' => $owner->getKey(), 'name' => 'Fonte Beta', 'serial_number' => 'SN-BETA']);
+    Equipment::factory()->create(['user_id' => $owner->getKey(), 'name' => 'Antena Alpha']);
+    Equipment::factory()->create(['user_id' => $owner->getKey(), 'name' => 'Fonte Beta']);
 
     $this->actingAs($owner)
         ->get('/admin/equipments?search=Alpha')
@@ -65,6 +65,7 @@ it('renders the create form on the full page and inside the list modal', functio
         ->get('/admin/equipments/create')
         ->assertOk()
         ->assertSee('Cadastrar equipamento')
+        ->assertDontSee('Número de série')
         ->assertSee(route('admin.equipments.store'), false);
 
     $this->actingAs($user)
@@ -94,7 +95,6 @@ it('creates an equipment owned by the authenticated user', function () {
         'category' => 'Rádio',
         'manufacturer' => 'Fabricante X',
         'model' => 'RX-1000',
-        'serial_number' => 'SN-123456',
         'description' => 'Rádio para consulta de campo.',
         'notes' => 'Datasheet disponível.',
     ]);
@@ -106,15 +106,13 @@ it('creates an equipment owned by the authenticated user', function () {
     expect($equipment->user_id)->toBe($user->getKey())
         ->and($equipment->name)->toBe('Rádio Base Alpha')
         ->and($equipment->code)->toBe('EQP-0001')
-        ->and($equipment->serial_number)->toBe('SN-123456')
         ->and($equipment->status->value)->toBe('active');
 
     $this->actingAs($user)
         ->get(route('admin.equipments.show', $equipment))
         ->assertOk()
         ->assertSee('Rádio Base Alpha')
-        ->assertSee('RX-1000')
-        ->assertSee('SN-123456');
+        ->assertSee('RX-1000');
 });
 
 it('generates a new sequential code for each equipment', function () {

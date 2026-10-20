@@ -18,7 +18,6 @@ use Illuminate\Database\Eloquent\SoftDeletes;
     'name',
     'manufacturer',
     'model',
-    'serial_number',
     'category',
     'description',
     'notes',
@@ -99,7 +98,6 @@ class Equipment extends Model
                 ->orWhere('code', 'like', $like)
                 ->orWhere('manufacturer', 'like', $like)
                 ->orWhere('model', 'like', $like)
-                ->orWhere('serial_number', 'like', $like)
                 ->orWhere('category', 'like', $like)
                 ->orWhere('description', 'like', $like);
         });

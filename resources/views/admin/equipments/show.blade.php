@@ -39,7 +39,7 @@
         </div>
     </div>
 
-    <div class="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+    <div class="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
         <div class="group relative overflow-hidden rounded-2xl border border-gray-200/70 bg-white p-5 shadow-sm transition duration-200 hover:-translate-y-0.5 hover:border-indigo-200 hover:shadow-lg hover:shadow-indigo-600/5 dark:border-gray-800 dark:bg-gray-900 dark:hover:border-indigo-500/40">
             <span class="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-400">
                 <x-icon name="building-office" class="h-5 w-5" />
@@ -53,13 +53,6 @@
             </span>
             <p class="mt-4 truncate text-xl font-semibold tracking-tight text-gray-900 dark:text-gray-100">{{ $equipment->model ?? '—' }}</p>
             <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Modelo</p>
-        </div>
-        <div class="group relative overflow-hidden rounded-2xl border border-gray-200/70 bg-white p-5 shadow-sm transition duration-200 hover:-translate-y-0.5 hover:border-emerald-200 hover:shadow-lg hover:shadow-emerald-600/5 dark:border-gray-800 dark:bg-gray-900 dark:hover:border-emerald-500/40">
-            <span class="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400">
-                <x-icon name="adjustments-horizontal" class="h-5 w-5" />
-            </span>
-            <p class="mt-4 truncate text-xl font-semibold tracking-tight text-gray-900 dark:text-gray-100">{{ $equipment->serial_number ?? '—' }}</p>
-            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Número de série</p>
         </div>
         <div class="group relative overflow-hidden rounded-2xl border border-gray-200/70 bg-white p-5 shadow-sm transition duration-200 hover:-translate-y-0.5 hover:border-amber-200 hover:shadow-lg hover:shadow-amber-600/5 dark:border-gray-800 dark:bg-gray-900 dark:hover:border-amber-500/40">
             <span class="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-amber-50 text-amber-600 dark:bg-amber-500/10 dark:text-amber-400">

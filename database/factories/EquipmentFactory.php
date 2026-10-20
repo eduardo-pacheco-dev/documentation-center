@@ -25,7 +25,6 @@ class EquipmentFactory extends Factory
             'name' => ucfirst(fake()->words(3, true)),
             'manufacturer' => fake()->company(),
             'model' => strtoupper(fake()->bothify('??-####')),
-            'serial_number' => strtoupper(fake()->bothify('SN-########')),
             'category' => fake()->randomElement(['Rádio', 'Antena', 'Fonte', 'Switch', 'Roteador', 'Bateria']),
             'description' => fake()->sentence(12),
             'notes' => fake()->optional()->sentence(8),
