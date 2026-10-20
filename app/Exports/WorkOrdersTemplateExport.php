@@ -122,7 +122,7 @@ class WorkOrdersTemplateExport implements FromArray, WithColumnWidths, WithEvent
 
                 $instructions->fromArray([
                     ['Coluna', 'Obrigatória', 'Formato e observações'],
-                    ['Cliente', 'Sim', 'Nome exatamente como cadastrado.'],
+                    ['Cliente', 'Sim', 'Nome do cliente. Se não existir, será criado automaticamente.'],
                     ['OC', 'Não', 'Número da OC (ordem complexa). Somente números. Deve ser único.'],
                     ['CHAVE', 'Não', 'Chave da OS. Deve ser única.'],
                     ['ERB', 'Não', 'Site ID ou código da ERB. Se não existir, será criada automaticamente. Preencha a ERB ou o Radio link, nunca ambos.'],
@@ -176,8 +176,9 @@ class WorkOrdersTemplateExport implements FromArray, WithColumnWidths, WithEvent
                         $sheet,
                         'A2:A1000',
                         'Listas!$A$2:$A$'.(count($this->clients) + 1),
-                        'Cliente inválido',
-                        'Selecione um cliente da lista.',
+                        'Cliente não cadastrado',
+                        'Selecione um cliente da lista ou digite um novo nome para criá-lo na importação.',
+                        DataValidation::STYLE_WARNING,
                     );
                 }
 
@@ -223,10 +224,11 @@ class WorkOrdersTemplateExport implements FromArray, WithColumnWidths, WithEvent
         string $source,
         string $title,
         string $message,
+        string $errorStyle = DataValidation::STYLE_STOP,
     ): void {
         $validation = new DataValidation;
         $validation->setType(DataValidation::TYPE_LIST);
-        $validation->setErrorStyle(DataValidation::STYLE_STOP);
+        $validation->setErrorStyle($errorStyle);
         $validation->setAllowBlank(true);
         $validation->setShowDropDown(true);
         $validation->setShowErrorMessage(true);

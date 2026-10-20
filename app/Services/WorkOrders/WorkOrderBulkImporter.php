@@ -25,9 +25,10 @@ class WorkOrderBulkImporter
      */
     public function import(User $user, array $rows): int
     {
-        $clients = $user->clients()
+        $clientIds = $user->clients()
             ->pluck('id', 'name')
-            ->mapWithKeys(fn ($id, $name): array => [mb_strtolower(trim((string) $name)) => $id]);
+            ->mapWithKeys(fn ($id, $name): array => [mb_strtolower(trim((string) $name)) => $id])
+            ->all();
 
         $radioLinks = $user->radioLinks()
             ->pluck('id', 'code')
@@ -71,11 +72,7 @@ class WorkOrderBulkImporter
 
             $data = $validator->validated();
 
-            $clientId = $clients[mb_strtolower((string) $data['cliente'])] ?? null;
-
-            if ($clientId === null) {
-                $errors[] = "Linha {$line}: o cliente \"{$data['cliente']}\" não foi encontrado.";
-            }
+            $clientName = trim((string) $data['cliente']);
 
             $erbRef = filled($data['erb'] ?? null) ? trim((string) $data['erb']) : null;
             $radioLinkRef = filled($data['radio_link'] ?? null) ? trim((string) $data['radio_link']) : null;
@@ -145,7 +142,7 @@ class WorkOrderBulkImporter
                 }
             }
 
-            if ($clientId === null || $priority === null || $status === null) {
+            if ($clientName === '' || $priority === null || $status === null) {
                 continue;
             }
 
@@ -180,7 +177,7 @@ class WorkOrderBulkImporter
 
             $prepared[] = [
                 'id' => $existing?->getKey(),
-                'client_id' => $clientId,
+                'client_name' => $clientName,
                 'erb_ref' => $erbRef,
                 'radio_link_ref' => $radioLinkRef,
                 'radio_link_endpoints' => $radioLinkEndpoints,
@@ -200,7 +197,7 @@ class WorkOrderBulkImporter
             throw ValidationException::withMessages(['import' => $errors]);
         }
 
-        return DB::transaction(function () use ($user, $prepared): int {
+        return DB::transaction(function () use ($user, $prepared, &$clientIds): int {
             $erbIds = [];
             $radioLinkIds = [];
 
@@ -208,6 +205,7 @@ class WorkOrderBulkImporter
 
             foreach ($prepared as $attributes) {
                 $id = $attributes['id'] ?? null;
+                $clientId = $this->resolveClientId($user, (string) $attributes['client_name'], $clientIds);
 
                 $erbId = $attributes['erb_ref'] !== null
                     ? $this->resolveErbId($user, (string) $attributes['erb_ref'], $erbIds)
@@ -228,11 +226,13 @@ class WorkOrderBulkImporter
 
                 unset(
                     $attributes['id'],
+                    $attributes['client_name'],
                     $attributes['erb_ref'],
                     $attributes['radio_link_ref'],
                     $attributes['radio_link_endpoints'],
                 );
 
+                $attributes['client_id'] = $clientId;
                 $attributes['erb_id'] = $erbId;
                 $attributes['radio_link_id'] = $radioLinkId;
 
@@ -253,6 +253,25 @@ class WorkOrderBulkImporter
 
             return count($prepared);
         });
+    }
+
+    /**
+     * Resolve a client by name, creating it when missing.
+     *
+     * @param  array<string, int>  $clientIds
+     */
+    private function resolveClientId(User $user, string $name, array &$clientIds): int
+    {
+        $name = trim($name);
+        $key = mb_strtolower($name);
+
+        if (isset($clientIds[$key])) {
+            return $clientIds[$key];
+        }
+
+        $client = $user->clients()->create(['name' => $name]);
+
+        return $clientIds[$key] = $client->getKey();
     }
 
     /**

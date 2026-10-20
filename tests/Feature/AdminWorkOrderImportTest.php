@@ -242,13 +242,29 @@ it('reuses an existing radio link with the endpoints reversed', function () {
         ->and(WorkOrder::query()->sole()->radio_link_id)->toBe($radioLink->getKey());
 });
 
+it('creates a missing client and links it to the work order', function () {
+    $user = User::factory()->create();
+
+    $file = workOrderWorkbook([
+        ['Novo Cliente Importado', '', '', '', 'normal', 'aberta', '10/01/2026', '', ''],
+    ]);
+
+    $this->actingAs($user)->post(route('admin.work-orders.import'), ['file' => $file])
+        ->assertRedirect(route('admin.work-orders.index'));
+
+    $client = Client::query()->where('user_id', $user->getKey())->where('name', 'Novo Cliente Importado')->sole();
+
+    expect($client->status->value)->toBe('active')
+        ->and(WorkOrder::query()->sole()->client_id)->toBe($client->getKey());
+});
+
 it('creates no work order when any row is invalid', function () {
     $user = User::factory()->create();
     Client::factory()->create(['user_id' => $user->getKey(), 'name' => 'Construtora Alfa']);
 
     $file = workOrderWorkbook([
         ['Construtora Alfa', '', '', '', 'normal', 'aberta', '10/01/2026', '', ''],
-        ['Cliente Inexistente', '', '', '', 'normal', 'aberta', '10/01/2026', '', ''],
+        ['Construtora Alfa', '', '', '', 'inexistente', 'aberta', '10/01/2026', '', ''],
     ]);
 
     $this->actingAs($user)
@@ -256,7 +272,8 @@ it('creates no work order when any row is invalid', function () {
         ->post(route('admin.work-orders.import'), ['file' => $file])
         ->assertSessionHasErrors('import');
 
-    expect(WorkOrder::query()->count())->toBe(0);
+    expect(WorkOrder::query()->count())->toBe(0)
+        ->and(Client::query()->count())->toBe(1);
 });
 
 it('accepts the on hold status label in the spreadsheet', function () {
@@ -431,6 +448,7 @@ it('downloads the import template with dropdown lists for client, priority and s
     $lists = $spreadsheet->getSheetByName('Listas');
 
     expect($sheet->getDataValidation('A2')->getType())->toBe(DataValidation::TYPE_LIST)
+        ->and($sheet->getDataValidation('A2')->getErrorStyle())->toBe(DataValidation::STYLE_WARNING)
         ->and($sheet->getDataValidation('A2')->getShowDropDown())->toBeTrue()
         ->and($sheet->getDataValidation('A2')->getFormula1())->toBe('Listas!$A$2:$A$3')
         ->and($sheet->getDataValidation('E2')->getType())->toBe(DataValidation::TYPE_LIST)
