@@ -28,7 +28,7 @@ function workOrderClientOrderFixtures(User $user): array
     return [$client, $catalogItem];
 }
 
-it('creates a work order with optional client OS data and assigns it to an item', function () {
+it('creates a work order with optional client OS data and an individual OS per item', function () {
     $user = User::factory()->create();
     [$client, $catalogItem] = workOrderClientOrderFixtures($user);
 
@@ -44,8 +44,8 @@ it('creates a work order with optional client OS data and assigns it to an item'
             'client-order-1' => ['number' => 'OS-CLI-2', 'description' => 'Segunda OS do cliente'],
         ],
         'items' => [
-            ['catalog_item_id' => $catalogItem->getKey(), 'quantity' => 1, 'client_order_key' => 'client-order-1'],
-            ['catalog_item_id' => $catalogItem->getKey(), 'quantity' => 2, 'client_order_key' => 'client-order-0'],
+            ['catalog_item_id' => $catalogItem->getKey(), 'quantity' => 1, 'client_os' => 'OS-ITEM-1'],
+            ['catalog_item_id' => $catalogItem->getKey(), 'quantity' => 2, 'client_os' => 'OS-ITEM-2'],
         ],
     ])->assertRedirect();
 
@@ -58,25 +58,25 @@ it('creates a work order with optional client OS data and assigns it to an item'
         ->and($clientOrders)->toHaveCount(2)
         ->and($clientOrders[0]->number)->toBe('OS-CLI-1')
         ->and($clientOrders[1]->number)->toBe('OS-CLI-2')
-        ->and($items[0]->work_order_client_order_id)->toBe($clientOrders[1]->getKey())
-        ->and($items[1]->work_order_client_order_id)->toBe($clientOrders[0]->getKey());
+        ->and($items[0]->client_os)->toBe('OS-ITEM-1')
+        ->and($items[1]->client_os)->toBe('OS-ITEM-2');
 
-    $this->actingAs($user)
-        ->get(route('admin.work-orders.show', $workOrder))
-        ->assertOk()
+    $response = $this->actingAs($user)->get(route('admin.work-orders.show', $workOrder));
+
+    $response->assertOk()
         ->assertSee('OS Cliente')
         ->assertSee('CLI-0001')
         ->assertSee('OC (ordem complexa)')
         ->assertSee('OC-77')
         ->assertSee('OS-CLI-1')
         ->assertSee('Primeira OS do cliente')
-        ->assertSee('1 item vinculado');
+        ->assertSee('OS cliente: OS-ITEM-1')
+        ->assertSee('OS cliente: OS-ITEM-2');
 
-    expect($this->actingAs($user)->get(route('admin.work-orders.show', $workOrder))->getContent())
-        ->toContain('"client_order_key":"client-order-1"');
+    expect($response->getContent())->toContain('"client_os":"OS-ITEM-1"');
 });
 
-it('replaces the client OS list and item assignments when updating the work order', function () {
+it('replaces the client OS list and the individual item OS when updating the work order', function () {
     $user = User::factory()->create();
     [$client, $catalogItem] = workOrderClientOrderFixtures($user);
 
@@ -85,9 +85,9 @@ it('replaces the client OS list and item assignments when updating the work orde
         'client_id' => $client->getKey(),
     ]);
 
-    $oldClientOrder = $workOrder->clientOrders()->create(['number' => 'OS-ANTIGA']);
+    $workOrder->clientOrders()->create(['number' => 'OS-ANTIGA']);
     $workOrder->items()->create([
-        'work_order_client_order_id' => $oldClientOrder->getKey(),
+        'client_os' => 'OS-ITEM-ANTIGA',
         'description' => 'Item antigo',
         'quantity' => 1,
         'unit_price' => 10,
@@ -106,7 +106,7 @@ it('replaces the client OS list and item assignments when updating the work orde
                 'client-order-1' => ['number' => 'OS-NOVA', 'description' => 'OS atualizada do cliente'],
             ],
             'items' => [
-                ['catalog_item_id' => $catalogItem->getKey(), 'quantity' => 3, 'client_order_key' => 'client-order-1'],
+                ['catalog_item_id' => $catalogItem->getKey(), 'quantity' => 3, 'client_os' => 'OS-ITEM-NOVA'],
             ],
         ])
         ->assertRedirect(route('admin.work-orders.show', $workOrder));
@@ -119,10 +119,10 @@ it('replaces the client OS list and item assignments when updating the work orde
         ->and($workOrder->oc)->toBe('OC-88')
         ->and(WorkOrderClientOrder::query()->count())->toBe(1)
         ->and($newClientOrder->number)->toBe('OS-NOVA')
-        ->and($item->work_order_client_order_id)->toBe($newClientOrder->getKey());
+        ->and($item->client_os)->toBe('OS-ITEM-NOVA');
 });
 
-it('assigns an existing client OS to the items from the details page', function () {
+it('updates the individual client OS of the items from the details page', function () {
     $user = User::factory()->create();
     [$client, $catalogItem] = workOrderClientOrderFixtures($user);
 
@@ -130,7 +130,6 @@ it('assigns an existing client OS to the items from the details page', function 
         'user_id' => $user->getKey(),
         'client_id' => $client->getKey(),
     ]);
-    $clientOrder = $workOrder->clientOrders()->create(['number' => 'OS-CLI-9']);
 
     $this->actingAs($user)
         ->put(route('admin.work-orders.items.update', $workOrder), [
@@ -138,37 +137,29 @@ it('assigns an existing client OS to the items from the details page', function 
                 [
                     'catalog_item_id' => $catalogItem->getKey(),
                     'quantity' => 2,
-                    'work_order_client_order_id' => $clientOrder->getKey(),
+                    'client_os' => 'OS-INLINE-9',
                 ],
             ],
         ])
         ->assertRedirect(route('admin.work-orders.show', $workOrder))
         ->assertSessionHasNoErrors();
 
-    expect($workOrder->items()->firstOrFail()->work_order_client_order_id)->toBe($clientOrder->getKey());
+    expect($workOrder->items()->firstOrFail()->client_os)->toBe('OS-INLINE-9');
 });
 
-it('rejects assigning a client OS that belongs to another work order', function () {
+it('accepts items without an individual client OS', function () {
     $user = User::factory()->create();
     [$client, $catalogItem] = workOrderClientOrderFixtures($user);
 
-    $workOrder = WorkOrder::factory()->create([
-        'user_id' => $user->getKey(),
+    $this->actingAs($user)->post('/admin/work-orders', [
         'client_id' => $client->getKey(),
-    ]);
-    $foreignClientOrder = WorkOrderClientOrder::factory()->create();
+        'priority' => 'normal',
+        'status' => 'open',
+        'opened_at' => '2026-01-10',
+        'items' => [
+            ['catalog_item_id' => $catalogItem->getKey(), 'quantity' => 1],
+        ],
+    ])->assertRedirect();
 
-    $this->actingAs($user)
-        ->from(route('admin.work-orders.show', $workOrder))
-        ->put(route('admin.work-orders.items.update', $workOrder), [
-            'items' => [
-                [
-                    'catalog_item_id' => $catalogItem->getKey(),
-                    'quantity' => 1,
-                    'work_order_client_order_id' => $foreignClientOrder->getKey(),
-                ],
-            ],
-        ])
-        ->assertRedirect(route('admin.work-orders.show', $workOrder))
-        ->assertSessionHasErrors('items.0.work_order_client_order_id');
+    expect(WorkOrder::query()->firstOrFail()->items()->firstOrFail()->client_os)->toBeNull();
 });

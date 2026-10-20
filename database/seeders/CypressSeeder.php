@@ -183,13 +183,13 @@ class CypressSeeder extends Seeder
             return;
         }
 
-        $clientOrder = $workOrder->clientOrders()->create([
+        $workOrder->clientOrders()->create([
             'number' => 'OS-CLI-1007',
             'description' => 'OS do cliente vinculada ao item da OS.',
         ]);
 
         $workOrder->items()->create([
-            'work_order_client_order_id' => $clientOrder->getKey(),
+            'client_os' => 'OS-CLI-1007',
             'description' => 'Item com OS do cliente',
             'quantity' => 1,
             'unit_price' => 100,

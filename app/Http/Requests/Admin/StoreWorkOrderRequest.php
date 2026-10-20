@@ -67,7 +67,7 @@ class StoreWorkOrderRequest extends FormRequest
             ],
             'items.*.quantity' => ['required', 'numeric', 'min:0.01', 'max:99999999.99'],
             'items.*.status' => ['nullable', new Enum(WorkOrderItemStatus::class)],
-            'items.*.client_order_key' => ['nullable', 'string', 'max:60'],
+            'items.*.client_os' => ['nullable', 'string', 'max:60'],
         ];
     }
 }

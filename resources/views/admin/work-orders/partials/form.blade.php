@@ -5,7 +5,6 @@
     $itemStatus = fn ($value): string => \App\Enums\WorkOrderItemStatus::tryFrom((string) $value)?->value ?? \App\Enums\WorkOrderItemStatus::Pending->value;
 
     $clientOrders = $workOrder?->clientOrders ?? collect();
-    $clientOrderKeys = $clientOrders->values()->mapWithKeys(fn ($order, $index): array => [$order->getKey() => 'client-order-'.$index]);
 
     $oldClientOrders = old('client_orders');
 
@@ -28,14 +27,14 @@
             'catalog_item_id' => (string) ($item['catalog_item_id'] ?? ''),
             'quantity' => $item['quantity'] ?? 1,
             'status' => $itemStatus($item['status'] ?? null),
-            'client_order_key' => (string) ($item['client_order_key'] ?? ''),
+            'client_os' => (string) ($item['client_os'] ?? ''),
         ], $oldItems));
     } elseif ($workOrder) {
         $initialItems = $workOrder->items->map(fn ($item) => [
             'catalog_item_id' => (string) ($item->catalog_item_id ?? ''),
             'quantity' => (float) $item->quantity,
             'status' => $item->status->value,
-            'client_order_key' => (string) ($clientOrderKeys[$item->work_order_client_order_id] ?? ''),
+            'client_os' => (string) ($item->client_os ?? ''),
         ])->values()->all();
     } else {
         $initialItems = [];
@@ -429,7 +428,7 @@
                 if (existing) {
                     existing.quantity = (Number(existing.quantity) || 0) + 1;
                 } else {
-                    this.items.push({ catalog_item_id: String(option.id), quantity: 1, status: 'pending', client_order_key: '' });
+                    this.items.push({ catalog_item_id: String(option.id), quantity: 1, status: 'pending', client_os: '' });
                 }
                 this.search = '';
                 this.openResults = false;
@@ -549,18 +548,16 @@
                         </div>
 
                         <div>
-                            <label class="sr-only" x-bind:for="'item-client-order-' + index">OS do cliente</label>
-                            <select
-                                x-bind:id="'item-client-order-' + index"
-                                x-bind:name="'items[' + index + '][client_order_key]'"
-                                x-model="item.client_order_key"
+                            <label class="sr-only" x-bind:for="'item-client-os-' + index">OS do cliente</label>
+                            <input
+                                type="text"
+                                maxlength="60"
+                                placeholder="OS do cliente"
+                                x-bind:id="'item-client-os-' + index"
+                                x-bind:name="'items[' + index + '][client_os]'"
+                                x-model="item.client_os"
                                 class="w-40 rounded-xl border border-gray-300 bg-white dark:border-gray-700 dark:bg-gray-900 px-2 py-1.5 text-sm shadow-sm transition focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30"
                             >
-                                <option value="">Sem OS do cliente</option>
-                                <template x-for="order in $store.workOrderClientOrders.orders" :key="order.key">
-                                    <option :value="order.key" :selected="String(item.client_order_key) === String(order.key)" x-text="order.number || 'Nova OS do cliente'"></option>
-                                </template>
-                            </select>
                         </div>
 
                         <span class="w-24 text-right text-sm font-semibold text-gray-900 dark:text-gray-100" x-text="money(lineTotal(item))"></span>

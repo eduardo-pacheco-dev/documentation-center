@@ -12,9 +12,9 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 #[Fillable([
     'work_order_id',
-    'work_order_client_order_id',
     'catalog_item_id',
     'description',
+    'client_os',
     'unit',
     'quantity',
     'unit_price',
@@ -40,14 +40,6 @@ class WorkOrderItem extends Model
     public function catalogItem(): BelongsTo
     {
         return $this->belongsTo(CatalogItem::class);
-    }
-
-    /**
-     * The client work order this line is assigned to, when any.
-     */
-    public function clientOrder(): BelongsTo
-    {
-        return $this->belongsTo(WorkOrderClientOrder::class, 'work_order_client_order_id');
     }
 
     /**

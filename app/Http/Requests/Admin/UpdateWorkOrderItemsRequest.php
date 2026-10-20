@@ -36,12 +36,7 @@ class UpdateWorkOrderItemsRequest extends FormRequest
             ],
             'items.*.quantity' => ['required', 'numeric', 'min:0.01', 'max:99999999.99'],
             'items.*.status' => ['nullable', new Enum(WorkOrderItemStatus::class)],
-            'items.*.work_order_client_order_id' => [
-                'nullable',
-                'integer',
-                Rule::exists('work_order_client_orders', 'id')
-                    ->where(fn ($query) => $query->where('work_order_id', $this->route('workOrder')->getKey())),
-            ],
+            'items.*.client_os' => ['nullable', 'string', 'max:60'],
         ];
     }
 }
