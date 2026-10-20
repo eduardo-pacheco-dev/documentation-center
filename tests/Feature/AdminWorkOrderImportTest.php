@@ -19,7 +19,7 @@ uses(RefreshDatabase::class);
  */
 function workOrderWorkbook(array $rows): UploadedFile
 {
-    $headings = ['Cliente', 'ERB', 'Radio link', 'Descrição', 'Prioridade', 'Status', 'Abertura', 'Previsão', 'Observações'];
+    $headings = ['Cliente', 'ERB', 'Radio link', 'Descrição', 'Prioridade', 'Status', 'Abertura', 'Previsão', 'Observações', 'OC', 'CHAVE'];
 
     $spreadsheet = new Spreadsheet;
     $spreadsheet->getActiveSheet()->fromArray([$headings, ...$rows]);
@@ -192,6 +192,61 @@ it('accepts the on hold status label in the spreadsheet', function () {
     $workOrder = WorkOrder::query()->sole();
 
     expect($workOrder->status->value)->toBe('on_hold');
+});
+
+it('imports the oc and chave columns', function () {
+    $user = User::factory()->create();
+    Client::factory()->create(['user_id' => $user->getKey(), 'name' => 'Construtora Alfa']);
+
+    $file = workOrderWorkbook([
+        ['Construtora Alfa', '', '', 'Revisão', 'normal', 'aberta', '10/01/2026', '', '', 'OC-123', 'CHV-456'],
+    ]);
+
+    $this->actingAs($user)->post(route('admin.work-orders.import'), ['file' => $file])
+        ->assertRedirect(route('admin.work-orders.index'));
+
+    $workOrder = WorkOrder::query()->sole();
+
+    expect($workOrder->oc)->toBe('OC-123')
+        ->and($workOrder->chave)->toBe('CHV-456');
+});
+
+it('rejects an oc or chave already used by another work order', function () {
+    $user = User::factory()->create();
+    Client::factory()->create(['user_id' => $user->getKey(), 'name' => 'Construtora Alfa']);
+    WorkOrder::factory()->create([
+        'user_id' => $user->getKey(),
+        'oc' => 'OC-EXISTENTE',
+        'chave' => 'CHV-EXISTENTE',
+    ]);
+
+    $file = workOrderWorkbook([
+        ['Construtora Alfa', '', '', '', 'normal', 'aberta', '10/01/2026', '', '', 'OC-EXISTENTE', 'CHV-EXISTENTE'],
+    ]);
+
+    $this->actingAs($user)
+        ->from(route('admin.work-orders.index'))
+        ->post(route('admin.work-orders.import'), ['file' => $file])
+        ->assertSessionHasErrors('import');
+
+    expect(WorkOrder::query()->count())->toBe(1);
+});
+
+it('rejects duplicated oc or chave inside the spreadsheet', function () {
+    $user = User::factory()->create();
+    Client::factory()->create(['user_id' => $user->getKey(), 'name' => 'Construtora Alfa']);
+
+    $file = workOrderWorkbook([
+        ['Construtora Alfa', '', '', '', 'normal', 'aberta', '10/01/2026', '', '', 'OC-REPETIDA', 'CHV-REPETIDA'],
+        ['Construtora Alfa', '', '', '', 'normal', 'aberta', '11/01/2026', '', '', 'OC-REPETIDA', 'CHV-REPETIDA'],
+    ]);
+
+    $this->actingAs($user)
+        ->from(route('admin.work-orders.index'))
+        ->post(route('admin.work-orders.import'), ['file' => $file])
+        ->assertSessionHasErrors('import');
+
+    expect(WorkOrder::query()->count())->toBe(0);
 });
 
 it('rejects a file that is not an excel spreadsheet', function () {

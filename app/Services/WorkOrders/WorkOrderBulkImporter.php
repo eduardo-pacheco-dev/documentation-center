@@ -45,6 +45,8 @@ class WorkOrderBulkImporter
 
         $prepared = [];
         $errors = [];
+        $seenOc = [];
+        $seenChave = [];
 
         foreach (array_values($rows) as $index => $row) {
             $line = $index + 2;
@@ -61,6 +63,8 @@ class WorkOrderBulkImporter
                 'abertura' => ['nullable'],
                 'previsao' => ['nullable'],
                 'observacoes' => ['nullable', 'string', 'max:2000'],
+                'oc' => ['nullable', 'string', 'max:60'],
+                'chave' => ['nullable', 'string', 'max:60'],
             ]);
 
             if ($validator->fails()) {
@@ -126,6 +130,37 @@ class WorkOrderBulkImporter
                 $errors[] = "Linha {$line}: a previsão de entrega deve ser posterior à abertura.";
             }
 
+            $oc = $this->identifier($data['oc'] ?? null);
+            $chave = $this->identifier($data['chave'] ?? null);
+
+            if ($oc !== null) {
+                $ocKey = mb_strtolower($oc);
+
+                if (isset($seenOc[$ocKey])) {
+                    $errors[] = "Linha {$line}: a OC \"{$oc}\" está repetida na planilha.";
+                } else {
+                    $seenOc[$ocKey] = true;
+                }
+
+                if (WorkOrder::withTrashed()->where('oc', $oc)->exists()) {
+                    $errors[] = "Linha {$line}: a OC \"{$oc}\" já está em uso.";
+                }
+            }
+
+            if ($chave !== null) {
+                $chaveKey = mb_strtolower($chave);
+
+                if (isset($seenChave[$chaveKey])) {
+                    $errors[] = "Linha {$line}: a CHAVE \"{$chave}\" está repetida na planilha.";
+                } else {
+                    $seenChave[$chaveKey] = true;
+                }
+
+                if (WorkOrder::withTrashed()->where('chave', $chave)->exists()) {
+                    $errors[] = "Linha {$line}: a CHAVE \"{$chave}\" já está em uso.";
+                }
+            }
+
             if ($clientId === null || $priority === null || $status === null || ($erbRef !== null && $erbId === null) || ($radioLinkRef !== null && $radioLinkId === null)) {
                 continue;
             }
@@ -134,6 +169,8 @@ class WorkOrderBulkImporter
                 'client_id' => $clientId,
                 'erb_id' => $erbId,
                 'radio_link_id' => $radioLinkId,
+                'oc' => $oc,
+                'chave' => $chave,
                 'description' => $data['descricao'] ?? null,
                 'priority' => $priority->value,
                 'status' => $status->value,
@@ -166,6 +203,14 @@ class WorkOrderBulkImporter
     private function hasValue(mixed $value): bool
     {
         return $value !== null && trim((string) $value) !== '';
+    }
+
+    /**
+     * Normalize an optional identifier cell.
+     */
+    private function identifier(mixed $value): ?string
+    {
+        return $this->hasValue($value) ? trim((string) $value) : null;
     }
 
     /**

@@ -20,7 +20,7 @@ class WorkOrdersTemplateExport implements FromArray, WithColumnWidths, WithEvent
      */
     public function headings(): array
     {
-        return ['Cliente', 'ERB', 'Radio link', 'Descrição', 'Prioridade', 'Status', 'Abertura', 'Previsão', 'Observações'];
+        return ['Cliente', 'ERB', 'Radio link', 'Descrição', 'Prioridade', 'Status', 'Abertura', 'Previsão', 'Observações', 'OC', 'CHAVE'];
     }
 
     /**
@@ -41,6 +41,8 @@ class WorkOrdersTemplateExport implements FromArray, WithColumnWidths, WithEvent
                 '10/01/2026',
                 '24/01/2026',
                 'Acesso liberado pela portaria.',
+                'OC-00001',
+                'CHAVE-00001',
             ],
         ];
     }
@@ -53,7 +55,7 @@ class WorkOrdersTemplateExport implements FromArray, WithColumnWidths, WithEvent
     public function styles(Worksheet $sheet): array
     {
         return [
-            'A1:I1' => [
+            'A1:K1' => [
                 'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
                 'fill' => [
                     'fillType' => Fill::FILL_SOLID,
@@ -80,6 +82,8 @@ class WorkOrdersTemplateExport implements FromArray, WithColumnWidths, WithEvent
             'G' => 12,
             'H' => 12,
             'I' => 34,
+            'J' => 16,
+            'K' => 16,
         ];
     }
 
@@ -99,6 +103,8 @@ class WorkOrdersTemplateExport implements FromArray, WithColumnWidths, WithEvent
                 $instructions->fromArray([
                     ['Coluna', 'Obrigatória', 'Formato e observações'],
                     ['Cliente', 'Sim', 'Nome exatamente como cadastrado.'],
+                    ['OC', 'Não', 'Número da OC (ordem complexa). Deve ser único.'],
+                    ['CHAVE', 'Não', 'Chave da OS. Deve ser única.'],
                     ['ERB', 'Não', 'Site ID ou código da ERB (ex.: SITE-00001, ERB-0001). Preencha a ERB ou o Radio link, nunca ambos.'],
                     ['Radio link', 'Não', 'Código do radio link (ex.: RL-00001). Preencha a ERB ou o Radio link, nunca ambos.'],
                     ['Descrição', 'Não', 'Até 2000 caracteres.'],
@@ -117,8 +123,8 @@ class WorkOrdersTemplateExport implements FromArray, WithColumnWidths, WithEvent
                     ],
                 ]);
 
-                $instructions->getStyle('A1:C11')->getAlignment()->setWrapText(true);
-                $instructions->getStyle('A2:C11')->getAlignment()->setVertical('top');
+                $instructions->getStyle('A1:C12')->getAlignment()->setWrapText(true);
+                $instructions->getStyle('A2:C12')->getAlignment()->setVertical('top');
 
                 $instructions->getColumnDimension('A')->setWidth(16);
                 $instructions->getColumnDimension('B')->setWidth(14);
