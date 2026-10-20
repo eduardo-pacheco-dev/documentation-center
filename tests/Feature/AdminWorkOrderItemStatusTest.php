@@ -28,6 +28,24 @@ it('updates the status of a single item', function () {
     expect($item->refresh()->status)->toBe(WorkOrderItemStatus::Completed);
 });
 
+it('accepts the rejected status', function () {
+    $user = User::factory()->create();
+    $workOrder = WorkOrder::factory()->create(['user_id' => $user->getKey()]);
+    $item = $workOrder->items()->create(['description' => 'Item', 'quantity' => 1, 'unit_price' => 10, 'total' => 10]);
+
+    $this->actingAs($user)
+        ->put(route('admin.work-orders.items.status.update', ['workOrder' => $workOrder, 'item' => $item]), ['status' => 'rejected'])
+        ->assertRedirect(route('admin.work-orders.show', ['workOrder' => $workOrder, 'item' => $item->getKey()]))
+        ->assertSessionHas('status');
+
+    expect($item->refresh()->status)->toBe(WorkOrderItemStatus::Rejected);
+
+    $this->actingAs($user)
+        ->get(route('admin.work-orders.show', $workOrder))
+        ->assertOk()
+        ->assertSee('Rejeitado');
+});
+
 it('validates the item status value', function () {
     $user = User::factory()->create();
     $workOrder = WorkOrder::factory()->create(['user_id' => $user->getKey()]);

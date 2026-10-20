@@ -7,6 +7,7 @@ enum WorkOrderItemStatus: string
     case Pending = 'pending';
     case InProgress = 'in_progress';
     case Completed = 'completed';
+    case Rejected = 'rejected';
     case Cancelled = 'cancelled';
 
     /**
@@ -18,6 +19,7 @@ enum WorkOrderItemStatus: string
             self::Pending => 'Pendente',
             self::InProgress => 'Em andamento',
             self::Completed => 'Concluído',
+            self::Rejected => 'Rejeitado',
             self::Cancelled => 'Cancelado',
         };
     }
