@@ -26,7 +26,13 @@ class WorkOrdersExport implements FromQuery, WithHeadings, WithMapping
     {
         return WorkOrder::query()
             ->ownedBy($this->user)
-            ->with(['client:id,name', 'erb:id,site_id,code', 'radioLink:id,code'])
+            ->with([
+                'client:id,name',
+                'erb:id,site_id,code',
+                'radioLink:id,code,erb_a_id,erb_b_id',
+                'radioLink.erbA:id,site_id,code',
+                'radioLink.erbB:id,site_id,code',
+            ])
             ->withCount('items')
             ->when($this->search !== '', fn (Builder $query) => $query->matching($this->search))
             ->when($this->status !== null, fn (Builder $query) => $query->where('status', $this->status))
@@ -75,7 +81,7 @@ class WorkOrdersExport implements FromQuery, WithHeadings, WithMapping
             $workOrder->chave ?? '',
             $workOrder->client?->name ?? '',
             $workOrder->erb ? ($workOrder->erb->site_id ?: $workOrder->erb->code) : '',
-            $workOrder->radioLink?->code ?? '',
+            $this->radioLinkLabel($workOrder),
             $workOrder->description ?? '',
             $workOrder->priority?->label() ?? '',
             $workOrder->status?->label() ?? '',
@@ -86,5 +92,30 @@ class WorkOrdersExport implements FromQuery, WithHeadings, WithMapping
             round((float) $workOrder->total, 2),
             $workOrder->notes ?? '',
         ];
+    }
+
+    /**
+     * The A and B ends of the radio link, when present.
+     */
+    private function radioLinkLabel(WorkOrder $workOrder): string
+    {
+        $radioLink = $workOrder->radioLink;
+
+        if ($radioLink === null) {
+            return '';
+        }
+
+        $endA = $radioLink->erbA
+            ? ($radioLink->erbA->site_id ?: $radioLink->erbA->code)
+            : null;
+        $endB = $radioLink->erbB
+            ? ($radioLink->erbB->site_id ?: $radioLink->erbB->code)
+            : null;
+
+        if ($endA === null && $endB === null) {
+            return $radioLink->code ?? '';
+        }
+
+        return ($endA ?? '?').' - '.($endB ?? '?');
     }
 }

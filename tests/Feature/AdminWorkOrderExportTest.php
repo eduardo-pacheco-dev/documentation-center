@@ -4,6 +4,7 @@ use App\Enums\WorkOrderPriority;
 use App\Enums\WorkOrderStatus;
 use App\Models\Client;
 use App\Models\Erb;
+use App\Models\RadioLink;
 use App\Models\User;
 use App\Models\WorkOrder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -182,6 +183,40 @@ it('exports a complete workbook with one row per work order item', function () {
         ->and($rows[2][18])->toBeNull()
         ->and($rows[2][19])->toBeNull()
         ->and($rows[2][24])->toBe('Pendente');
+});
+
+it('exports the radio link as its A and B ends in both modes', function () {
+    $user = User::factory()->create();
+    $client = Client::factory()->create(['user_id' => $user->getKey(), 'name' => 'Alpha Telecom']);
+    $endA = Erb::factory()->create(['user_id' => $user->getKey(), 'site_id' => 'SITE-END-A']);
+    $endB = Erb::factory()->create(['user_id' => $user->getKey(), 'site_id' => 'SITE-END-B']);
+    $radioLink = RadioLink::factory()->create([
+        'user_id' => $user->getKey(),
+        'erb_a_id' => $endA->getKey(),
+        'erb_b_id' => $endB->getKey(),
+        'code' => 'RL-00099',
+    ]);
+    $workOrder = WorkOrder::factory()->create([
+        'user_id' => $user->getKey(),
+        'client_id' => $client->getKey(),
+        'radio_link_id' => $radioLink->getKey(),
+    ]);
+    $workOrder->items()->create([
+        'description' => 'Item único',
+        'quantity' => 1,
+        'unit_price' => 10,
+        'total' => 10,
+    ]);
+
+    $simplified = workOrderExportWorkbookRows(
+        $this->actingAs($user)->get(route('admin.work-orders.export'))->streamedContent(),
+    );
+    $complete = workOrderExportWorkbookRows(
+        $this->actingAs($user)->get(route('admin.work-orders.export', ['mode' => 'completo']))->streamedContent(),
+    );
+
+    expect($simplified[1][6])->toBe('SITE-END-A - SITE-END-B')
+        ->and($complete[1][6])->toBe('SITE-END-A - SITE-END-B');
 });
 
 it('exports work orders owned by the authenticated user only', function () {
