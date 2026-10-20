@@ -29,16 +29,6 @@ class WorkOrderBulkImporter
             ->pluck('id', 'name')
             ->mapWithKeys(fn ($id, $name): array => [mb_strtolower(trim((string) $name)) => $id]);
 
-        $erbs = collect();
-
-        foreach ($user->erbs()->get(['id', 'site_id', 'code']) as $erb) {
-            foreach ([$erb->site_id, $erb->code] as $key) {
-                if (filled($key)) {
-                    $erbs->put(mb_strtoupper((string) $key), $erb->getKey());
-                }
-            }
-        }
-
         $radioLinks = $user->radioLinks()
             ->pluck('id', 'code')
             ->mapWithKeys(fn ($id, $code): array => [mb_strtoupper((string) $code) => $id]);
@@ -87,23 +77,21 @@ class WorkOrderBulkImporter
                 $errors[] = "Linha {$line}: o cliente \"{$data['cliente']}\" não foi encontrado.";
             }
 
-            $erbRef = $data['erb'] ?? null;
-            $radioLinkRef = $data['radio_link'] ?? null;
+            $erbRef = filled($data['erb'] ?? null) ? trim((string) $data['erb']) : null;
+            $radioLinkRef = filled($data['radio_link'] ?? null) ? trim((string) $data['radio_link']) : null;
 
             if ($erbRef !== null && $radioLinkRef !== null) {
                 $errors[] = "Linha {$line}: informe a ERB ou o radio link, não ambos.";
             }
 
-            $erbId = $erbRef !== null ? ($erbs[mb_strtoupper($erbRef)] ?? null) : null;
+            $radioLinkEndpoints = $radioLinkRef !== null ? $this->parseRadioLinkEndpoints($radioLinkRef) : null;
 
-            if ($erbRef !== null && $erbId === null) {
-                $errors[] = "Linha {$line}: a ERB \"{$erbRef}\" não foi encontrada.";
+            if ($radioLinkEndpoints !== null && strcasecmp($radioLinkEndpoints[0], $radioLinkEndpoints[1]) === 0) {
+                $errors[] = "Linha {$line}: as pontas do radio link devem ser diferentes.";
             }
 
-            $radioLinkId = $radioLinkRef !== null ? ($radioLinks[mb_strtoupper($radioLinkRef)] ?? null) : null;
-
-            if ($radioLinkRef !== null && $radioLinkId === null) {
-                $errors[] = "Linha {$line}: o radio link \"{$radioLinkRef}\" não foi encontrado.";
+            if ($radioLinkRef !== null && $radioLinkEndpoints === null && ! isset($radioLinks[mb_strtoupper($radioLinkRef)])) {
+                $errors[] = "Linha {$line}: o radio link \"{$radioLinkRef}\" não foi encontrado. Informe as pontas no formato \"A dir B\" ou \"A - B\".";
             }
 
             $priority = $this->parsePriority($data['prioridade'] ?? null);
@@ -157,7 +145,7 @@ class WorkOrderBulkImporter
                 }
             }
 
-            if ($clientId === null || $priority === null || $status === null || ($erbRef !== null && $erbId === null) || ($radioLinkRef !== null && $radioLinkId === null)) {
+            if ($clientId === null || $priority === null || $status === null) {
                 continue;
             }
 
@@ -193,8 +181,9 @@ class WorkOrderBulkImporter
             $prepared[] = [
                 'id' => $existing?->getKey(),
                 'client_id' => $clientId,
-                'erb_id' => $erbId,
-                'radio_link_id' => $radioLinkId,
+                'erb_ref' => $erbRef,
+                'radio_link_ref' => $radioLinkRef,
+                'radio_link_endpoints' => $radioLinkEndpoints,
                 'oc' => $oc,
                 'chave' => $chave,
                 'description' => $data['descricao'] ?? null,
@@ -212,9 +201,40 @@ class WorkOrderBulkImporter
         }
 
         return DB::transaction(function () use ($user, $prepared): int {
+            $erbIds = [];
+            $radioLinkIds = [];
+
+            $this->primeRelationCaches($user, $erbIds, $radioLinkIds);
+
             foreach ($prepared as $attributes) {
                 $id = $attributes['id'] ?? null;
-                unset($attributes['id']);
+
+                $erbId = $attributes['erb_ref'] !== null
+                    ? $this->resolveErbId($user, (string) $attributes['erb_ref'], $erbIds)
+                    : null;
+
+                $radioLinkId = null;
+
+                if (is_array($attributes['radio_link_endpoints'])) {
+                    [$endA, $endB] = $attributes['radio_link_endpoints'];
+
+                    $endAId = $this->resolveErbId($user, $endA, $erbIds);
+                    $endBId = $this->resolveErbId($user, $endB, $erbIds);
+
+                    $radioLinkId = $this->resolveRadioLinkId($user, $endAId, $endBId, $radioLinkIds);
+                } elseif ($attributes['radio_link_ref'] !== null) {
+                    $radioLinkId = $radioLinkIds[mb_strtoupper((string) $attributes['radio_link_ref'])] ?? null;
+                }
+
+                unset(
+                    $attributes['id'],
+                    $attributes['erb_ref'],
+                    $attributes['radio_link_ref'],
+                    $attributes['radio_link_endpoints'],
+                );
+
+                $attributes['erb_id'] = $erbId;
+                $attributes['radio_link_id'] = $radioLinkId;
 
                 if ($id !== null) {
                     WorkOrder::query()
@@ -233,6 +253,105 @@ class WorkOrderBulkImporter
 
             return count($prepared);
         });
+    }
+
+    /**
+     * Prime the lookup caches with the user's ERBs and radio links.
+     *
+     * @param  array<string, int>  $erbIds
+     * @param  array<string, int>  $radioLinkIds
+     */
+    private function primeRelationCaches(User $user, array &$erbIds, array &$radioLinkIds): void
+    {
+        foreach ($user->erbs()->get(['id', 'site_id', 'code', 'end_id']) as $erb) {
+            foreach ([$erb->site_id, $erb->code, $erb->end_id] as $key) {
+                if (filled($key)) {
+                    $erbIds[mb_strtoupper((string) $key)] = $erb->getKey();
+                }
+            }
+        }
+
+        foreach ($user->radioLinks()->get(['id', 'code', 'erb_a_id', 'erb_b_id']) as $radioLink) {
+            if (filled($radioLink->code)) {
+                $radioLinkIds[mb_strtoupper((string) $radioLink->code)] = $radioLink->getKey();
+            }
+
+            $radioLinkIds[$this->radioLinkKey((int) $radioLink->erb_a_id, (int) $radioLink->erb_b_id)] = $radioLink->getKey();
+        }
+    }
+
+    /**
+     * Resolve an ERB by its site id, code or end id, creating it when missing.
+     *
+     * @param  array<string, int>  $erbIds
+     */
+    private function resolveErbId(User $user, string $reference, array &$erbIds): int
+    {
+        $reference = trim($reference);
+        $key = mb_strtoupper($reference);
+
+        if (isset($erbIds[$key])) {
+            return $erbIds[$key];
+        }
+
+        $erb = $user->erbs()->create([
+            'site_id' => $reference,
+            'name' => $reference,
+        ]);
+
+        return $erbIds[$key] = $erb->getKey();
+    }
+
+    /**
+     * Resolve a radio link by its endpoints, creating it when missing.
+     *
+     * @param  array<string, int>  $radioLinkIds
+     */
+    private function resolveRadioLinkId(User $user, int $endAId, int $endBId, array &$radioLinkIds): int
+    {
+        $key = $this->radioLinkKey($endAId, $endBId);
+
+        if (isset($radioLinkIds[$key])) {
+            return $radioLinkIds[$key];
+        }
+
+        $radioLink = $user->radioLinks()->create([
+            'erb_a_id' => $endAId,
+            'erb_b_id' => $endBId,
+        ]);
+
+        return $radioLinkIds[$key] = $radioLink->getKey();
+    }
+
+    /**
+     * The cache key of a radio link regardless of its direction.
+     */
+    private function radioLinkKey(int $endAId, int $endBId): string
+    {
+        return min($endAId, $endBId).':'.max($endAId, $endBId);
+    }
+
+    /**
+     * Parse the endpoints of a radio link cell.
+     *
+     * @return array{0: string, 1: string}|null
+     */
+    private function parseRadioLinkEndpoints(string $value): ?array
+    {
+        $parts = preg_split('/\s+(?:dir|[-–—])\s+/iu', trim($value), 2);
+
+        if ($parts === false || count($parts) !== 2) {
+            return null;
+        }
+
+        $endA = trim($parts[0]);
+        $endB = trim($parts[1]);
+
+        if ($endA === '' || $endB === '') {
+            return null;
+        }
+
+        return [$endA, $endB];
     }
 
     /**

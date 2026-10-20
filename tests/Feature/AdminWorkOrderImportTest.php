@@ -130,12 +130,28 @@ it('rejects a row that fills both the erb and the radio link', function () {
     expect(WorkOrder::query()->count())->toBe(0);
 });
 
-it('rejects a row that references an unknown erb or radio link', function () {
+it('creates a missing erb and links it to the work order', function () {
     $user = User::factory()->create();
     Client::factory()->create(['user_id' => $user->getKey(), 'name' => 'Construtora Alfa']);
 
     $file = workOrderWorkbook([
         ['Construtora Alfa', 'SITE-999', '', '', 'normal', 'aberta', '10/01/2026', '', ''],
+    ]);
+
+    $this->actingAs($user)->post(route('admin.work-orders.import'), ['file' => $file])
+        ->assertRedirect(route('admin.work-orders.index'));
+
+    $erb = Erb::query()->where('user_id', $user->getKey())->where('site_id', 'SITE-999')->sole();
+
+    expect($erb->name)->toBe('SITE-999')
+        ->and(WorkOrder::query()->sole()->erb_id)->toBe($erb->getKey());
+});
+
+it('rejects an unknown radio link code without endpoints', function () {
+    $user = User::factory()->create();
+    Client::factory()->create(['user_id' => $user->getKey(), 'name' => 'Construtora Alfa']);
+
+    $file = workOrderWorkbook([
         ['Construtora Alfa', '', 'RL-99999', '', 'normal', 'aberta', '10/01/2026', '', ''],
     ]);
 
@@ -147,21 +163,83 @@ it('rejects a row that references an unknown erb or radio link', function () {
     expect(WorkOrder::query()->count())->toBe(0);
 });
 
-it('does not use an erb that belongs to another user', function () {
+it('creates a new erb instead of using one that belongs to another user', function () {
     $user = User::factory()->create();
     Client::factory()->create(['user_id' => $user->getKey(), 'name' => 'Construtora Alfa']);
-    Erb::factory()->create(['site_id' => 'SITE-010']);
+    $foreignErb = Erb::factory()->create(['site_id' => 'SITE-010']);
 
     $file = workOrderWorkbook([
         ['Construtora Alfa', 'SITE-010', '', '', 'normal', 'aberta', '10/01/2026', '', ''],
     ]);
 
-    $this->actingAs($user)
-        ->from(route('admin.work-orders.index'))
-        ->post(route('admin.work-orders.import'), ['file' => $file])
-        ->assertSessionHasErrors('import');
+    $this->actingAs($user)->post(route('admin.work-orders.import'), ['file' => $file])
+        ->assertRedirect(route('admin.work-orders.index'));
 
-    expect(WorkOrder::query()->count())->toBe(0);
+    $erb = Erb::query()->where('user_id', $user->getKey())->where('site_id', 'SITE-010')->sole();
+
+    expect($erb->getKey())->not->toBe($foreignErb->getKey())
+        ->and(WorkOrder::query()->sole()->erb_id)->toBe($erb->getKey());
+});
+
+it('creates the radio link and its endpoints from the dir separator', function () {
+    $user = User::factory()->create();
+    Client::factory()->create(['user_id' => $user->getKey(), 'name' => 'Construtora Alfa']);
+
+    $file = workOrderWorkbook([
+        ['Construtora Alfa', '', 'SITE-A dir SITE-B', '', 'normal', 'aberta', '10/01/2026', '', ''],
+    ]);
+
+    $this->actingAs($user)->post(route('admin.work-orders.import'), ['file' => $file])
+        ->assertRedirect(route('admin.work-orders.index'));
+
+    $workOrder = WorkOrder::query()->sole();
+    $radioLink = $workOrder->radioLink;
+
+    expect(Erb::query()->where('user_id', $user->getKey())->count())->toBe(2)
+        ->and($radioLink)->not->toBeNull()
+        ->and($radioLink->erbA->site_id)->toBe('SITE-A')
+        ->and($radioLink->erbB->site_id)->toBe('SITE-B')
+        ->and($workOrder->erb_id)->toBeNull();
+});
+
+it('creates the radio link and its endpoints from the dash separator', function () {
+    $user = User::factory()->create();
+    Client::factory()->create(['user_id' => $user->getKey(), 'name' => 'Construtora Alfa']);
+
+    $file = workOrderWorkbook([
+        ['Construtora Alfa', '', 'SITE-C - SITE-D', '', 'normal', 'aberta', '10/01/2026', '', ''],
+    ]);
+
+    $this->actingAs($user)->post(route('admin.work-orders.import'), ['file' => $file])
+        ->assertRedirect(route('admin.work-orders.index'));
+
+    $radioLink = WorkOrder::query()->sole()->radioLink;
+
+    expect($radioLink)->not->toBeNull()
+        ->and($radioLink->erbA->site_id)->toBe('SITE-C')
+        ->and($radioLink->erbB->site_id)->toBe('SITE-D');
+});
+
+it('reuses an existing radio link with the endpoints reversed', function () {
+    $user = User::factory()->create();
+    Client::factory()->create(['user_id' => $user->getKey(), 'name' => 'Construtora Alfa']);
+    $erbA = Erb::factory()->create(['user_id' => $user->getKey(), 'site_id' => 'SITE-A']);
+    $erbB = Erb::factory()->create(['user_id' => $user->getKey(), 'site_id' => 'SITE-B']);
+    $radioLink = RadioLink::factory()->create([
+        'user_id' => $user->getKey(),
+        'erb_a_id' => $erbA->getKey(),
+        'erb_b_id' => $erbB->getKey(),
+    ]);
+
+    $file = workOrderWorkbook([
+        ['Construtora Alfa', '', 'SITE-B dir SITE-A', '', 'normal', 'aberta', '10/01/2026', '', ''],
+    ]);
+
+    $this->actingAs($user)->post(route('admin.work-orders.import'), ['file' => $file])
+        ->assertRedirect(route('admin.work-orders.index'));
+
+    expect(RadioLink::query()->count())->toBe(1)
+        ->and(WorkOrder::query()->sole()->radio_link_id)->toBe($radioLink->getKey());
 });
 
 it('creates no work order when any row is invalid', function () {
