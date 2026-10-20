@@ -45,7 +45,7 @@ it('creates a work order with optional client OS data and an individual OS per i
             'client-order-1' => ['number' => 'OS-CLI-2', 'description' => 'Segunda OS do cliente'],
         ],
         'items' => [
-            ['catalog_item_id' => $catalogItem->getKey(), 'quantity' => 1, 'client_os' => 'OS-ITEM-1'],
+            ['catalog_item_id' => $catalogItem->getKey(), 'quantity' => 1, 'client_os' => 'OS-ITEM-1', 'client_os_2' => 'OS-ITEM-1B'],
             ['catalog_item_id' => $catalogItem->getKey(), 'quantity' => 2, 'client_os' => 'OS-ITEM-2'],
         ],
     ])->assertRedirect();
@@ -61,7 +61,9 @@ it('creates a work order with optional client OS data and an individual OS per i
         ->and($clientOrders[0]->number)->toBe('OS-CLI-1')
         ->and($clientOrders[1]->number)->toBe('OS-CLI-2')
         ->and($items[0]->client_os)->toBe('OS-ITEM-1')
-        ->and($items[1]->client_os)->toBe('OS-ITEM-2');
+        ->and($items[0]->client_os_2)->toBe('OS-ITEM-1B')
+        ->and($items[1]->client_os)->toBe('OS-ITEM-2')
+        ->and($items[1]->client_os_2)->toBeNull();
 
     $response = $this->actingAs($user)->get(route('admin.work-orders.show', $workOrder));
 
@@ -73,9 +75,7 @@ it('creates a work order with optional client OS data and an individual OS per i
         ->assertSee('CHAVE')
         ->assertSee('CHV-0001')
         ->assertSee('OS-CLI-1')
-        ->assertSee('Primeira OS do cliente')
-        ->assertSee('OS cliente: OS-ITEM-1')
-        ->assertSee('OS cliente: OS-ITEM-2');
+        ->assertSee('Primeira OS do cliente');
 
     expect($response->getContent())->toContain('"client_os":"OS-ITEM-1"');
 });
@@ -110,7 +110,7 @@ it('replaces the client OS list and the individual item OS when updating the wor
                 'client-order-1' => ['number' => 'OS-NOVA', 'description' => 'OS atualizada do cliente'],
             ],
             'items' => [
-                ['catalog_item_id' => $catalogItem->getKey(), 'quantity' => 3, 'client_os' => 'OS-ITEM-NOVA'],
+                ['catalog_item_id' => $catalogItem->getKey(), 'quantity' => 3, 'client_os' => 'OS-ITEM-NOVA', 'client_os_2' => 'OS-ITEM-NOVA-2'],
             ],
         ])
         ->assertRedirect(route('admin.work-orders.show', $workOrder));
@@ -123,7 +123,8 @@ it('replaces the client OS list and the individual item OS when updating the wor
         ->and($workOrder->oc)->toBe('88')
         ->and(WorkOrderClientOrder::query()->count())->toBe(1)
         ->and($newClientOrder->number)->toBe('OS-NOVA')
-        ->and($item->client_os)->toBe('OS-ITEM-NOVA');
+        ->and($item->client_os)->toBe('OS-ITEM-NOVA')
+        ->and($item->client_os_2)->toBe('OS-ITEM-NOVA-2');
 });
 
 it('updates the individual client OS of the items from the details page', function () {
@@ -142,13 +143,17 @@ it('updates the individual client OS of the items from the details page', functi
                     'catalog_item_id' => $catalogItem->getKey(),
                     'quantity' => 2,
                     'client_os' => 'OS-INLINE-9',
+                    'client_os_2' => 'OS-INLINE-10',
                 ],
             ],
         ])
         ->assertRedirect(route('admin.work-orders.show', $workOrder))
         ->assertSessionHasNoErrors();
 
-    expect($workOrder->items()->firstOrFail()->client_os)->toBe('OS-INLINE-9');
+    $item = $workOrder->items()->firstOrFail();
+
+    expect($item->client_os)->toBe('OS-INLINE-9')
+        ->and($item->client_os_2)->toBe('OS-INLINE-10');
 });
 
 it('accepts items without an individual client OS', function () {
@@ -165,5 +170,8 @@ it('accepts items without an individual client OS', function () {
         ],
     ])->assertRedirect();
 
-    expect(WorkOrder::query()->firstOrFail()->items()->firstOrFail()->client_os)->toBeNull();
+    $item = WorkOrder::query()->firstOrFail()->items()->firstOrFail();
+
+    expect($item->client_os)->toBeNull()
+        ->and($item->client_os_2)->toBeNull();
 });

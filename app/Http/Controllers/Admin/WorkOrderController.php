@@ -369,6 +369,7 @@ class WorkOrderController extends Controller
                 'catalog_item_id' => $catalogItem?->getKey(),
                 'description' => $catalogItem?->name ?? 'Item',
                 'client_os' => filled($item['client_os'] ?? null) ? (string) $item['client_os'] : null,
+                'client_os_2' => filled($item['client_os_2'] ?? null) ? (string) $item['client_os_2'] : null,
                 'unit' => $catalogItem?->unit,
                 'quantity' => $quantity,
                 'unit_price' => $unitPrice,

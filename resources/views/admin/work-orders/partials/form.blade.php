@@ -28,6 +28,7 @@
             'quantity' => $item['quantity'] ?? 1,
             'status' => $itemStatus($item['status'] ?? null),
             'client_os' => (string) ($item['client_os'] ?? ''),
+            'client_os_2' => (string) ($item['client_os_2'] ?? ''),
         ], $oldItems));
     } elseif ($workOrder) {
         $initialItems = $workOrder->items->map(fn ($item) => [
@@ -35,6 +36,7 @@
             'quantity' => (float) $item->quantity,
             'status' => $item->status->value,
             'client_os' => (string) ($item->client_os ?? ''),
+            'client_os_2' => (string) ($item->client_os_2 ?? ''),
         ])->values()->all();
     } else {
         $initialItems = [];
@@ -446,7 +448,7 @@
                 if (existing) {
                     existing.quantity = (Number(existing.quantity) || 0) + 1;
                 } else {
-                    this.items.push({ catalog_item_id: String(option.id), quantity: 1, status: 'pending', client_os: '' });
+                    this.items.push({ catalog_item_id: String(option.id), quantity: 1, status: 'pending', client_os: '', client_os_2: '' });
                 }
                 this.search = '';
                 this.openResults = false;
@@ -565,17 +567,31 @@
                             </select>
                         </div>
 
-                        <div>
-                            <label class="sr-only" x-bind:for="'item-client-os-' + index">OS do cliente</label>
-                            <input
-                                type="text"
-                                maxlength="60"
-                                placeholder="OS do cliente"
-                                x-bind:id="'item-client-os-' + index"
-                                x-bind:name="'items[' + index + '][client_os]'"
-                                x-model="item.client_os"
-                                class="w-40 rounded-xl border border-gray-300 bg-white dark:border-gray-700 dark:bg-gray-900 px-2 py-1.5 text-sm shadow-sm transition focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30"
-                            >
+                        <div class="space-y-1">
+                            <div>
+                                <label class="sr-only" x-bind:for="'item-client-os-' + index">OS do cliente 1</label>
+                                <input
+                                    type="text"
+                                    maxlength="60"
+                                    placeholder="OS do cliente 1"
+                                    x-bind:id="'item-client-os-' + index"
+                                    x-bind:name="'items[' + index + '][client_os]'"
+                                    x-model="item.client_os"
+                                    class="w-40 rounded-xl border border-gray-300 bg-white dark:border-gray-700 dark:bg-gray-900 px-2 py-1.5 text-sm shadow-sm transition focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30"
+                                >
+                            </div>
+                            <div>
+                                <label class="sr-only" x-bind:for="'item-client-os-2-' + index">OS do cliente 2</label>
+                                <input
+                                    type="text"
+                                    maxlength="60"
+                                    placeholder="OS do cliente 2"
+                                    x-bind:id="'item-client-os-2-' + index"
+                                    x-bind:name="'items[' + index + '][client_os_2]'"
+                                    x-model="item.client_os_2"
+                                    class="w-40 rounded-xl border border-gray-300 bg-white dark:border-gray-700 dark:bg-gray-900 px-2 py-1.5 text-sm shadow-sm transition focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30"
+                                >
+                            </div>
                         </div>
 
                         <span class="w-24 text-right text-sm font-semibold text-gray-900 dark:text-gray-100" x-text="money(lineTotal(item))"></span>

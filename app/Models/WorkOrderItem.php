@@ -15,6 +15,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
     'catalog_item_id',
     'description',
     'client_os',
+    'client_os_2',
     'unit',
     'quantity',
     'unit_price',
