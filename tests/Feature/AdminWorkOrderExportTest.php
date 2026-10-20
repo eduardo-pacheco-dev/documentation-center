@@ -45,7 +45,7 @@ it('downloads the work orders as an excel file filtered by search and status', f
         'erb_id' => $erb->getKey(),
         'number' => 'OS-9001',
         'client_os' => 'CLI-0001',
-        'oc' => 'OC-77',
+        'oc' => '77077',
         'chave' => 'CHV-001',
         'description' => 'Manutenção preventiva',
         'priority' => WorkOrderPriority::High,
@@ -101,7 +101,7 @@ it('downloads the work orders as an excel file filtered by search and status', f
         ])
         ->and($rows[1][0])->toBe('OS-9001')
         ->and($rows[1][1])->toBe('CLI-0001')
-        ->and($rows[1][2])->toBe('OC-77')
+        ->and($rows[1][2])->toBe('77077')
         ->and($rows[1][3])->toBe('CHV-001')
         ->and($rows[1][4])->toBe('Alpha Telecom')
         ->and($rows[1][5])->toBe('SITE-ALPHA')

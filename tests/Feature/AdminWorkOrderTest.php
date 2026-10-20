@@ -320,7 +320,7 @@ it('rejects a duplicate oc number', function () {
 
     $payload = [
         'client_id' => $client->getKey(),
-        'oc' => 'OC-UNICA',
+        'oc' => '9001',
         'priority' => 'normal',
         'status' => 'open',
         'opened_at' => '2026-01-10',
@@ -336,6 +336,27 @@ it('rejects a duplicate oc number', function () {
         ->assertSessionHasErrors('oc');
 
     expect(WorkOrder::query()->count())->toBe(1);
+});
+
+it('rejects a non numeric oc', function () {
+    $user = User::factory()->create();
+    $client = ownedClient($user);
+    $catalogItem = ownedCatalogItem($user);
+
+    $this->actingAs($user)
+        ->post('/admin/work-orders', [
+            'client_id' => $client->getKey(),
+            'oc' => 'OC-123',
+            'priority' => 'normal',
+            'status' => 'open',
+            'opened_at' => '2026-01-10',
+            'items' => [
+                ['catalog_item_id' => $catalogItem->getKey(), 'quantity' => 1],
+            ],
+        ])
+        ->assertSessionHasErrors('oc');
+
+    expect(WorkOrder::query()->count())->toBe(0);
 });
 
 it('rejects a duplicate chave', function () {
@@ -396,13 +417,13 @@ it('keeps the same oc number when updating the same work order', function () {
     $workOrder = WorkOrder::factory()->create([
         'user_id' => $user->getKey(),
         'client_id' => $client->getKey(),
-        'oc' => 'OC-EXISTENTE',
+        'oc' => '9002',
     ]);
 
     $this->actingAs($user)
         ->put(route('admin.work-orders.update', $workOrder), [
             'client_id' => $client->getKey(),
-            'oc' => 'OC-EXISTENTE',
+            'oc' => '9002',
             'priority' => 'normal',
             'status' => 'open',
             'opened_at' => '2026-01-10',
@@ -412,7 +433,7 @@ it('keeps the same oc number when updating the same work order', function () {
         ])
         ->assertSessionHasNoErrors();
 
-    expect($workOrder->refresh()->oc)->toBe('OC-EXISTENTE');
+    expect($workOrder->refresh()->oc)->toBe('9002');
 });
 
 it('forbids a stranger from managing the work order', function () {

@@ -52,6 +52,8 @@ class WorkOrderBulkImporter
             $line = $index + 2;
 
             $row = array_map(fn ($value) => is_string($value) ? trim($value) : $value, $row);
+            $row['oc'] = $this->identifier($row['oc'] ?? null);
+            $row['chave'] = $this->identifier($row['chave'] ?? null);
 
             $validator = Validator::make($row, [
                 'cliente' => ['required', 'string', 'max:255'],
@@ -63,8 +65,10 @@ class WorkOrderBulkImporter
                 'abertura' => ['nullable'],
                 'previsao' => ['nullable'],
                 'observacoes' => ['nullable', 'string', 'max:2000'],
-                'oc' => ['nullable', 'string', 'max:60'],
+                'oc' => ['nullable', 'string', 'max:60', 'regex:/^\d+$/'],
                 'chave' => ['nullable', 'string', 'max:60'],
+            ], [
+                'oc.regex' => 'a OC deve conter apenas números.',
             ]);
 
             if ($validator->fails()) {

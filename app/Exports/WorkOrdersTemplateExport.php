@@ -61,7 +61,7 @@ class WorkOrdersTemplateExport implements FromArray, WithColumnWidths, WithEvent
                 '10/01/2026',
                 '24/01/2026',
                 'Acesso liberado pela portaria.',
-                'OC-00001',
+                '12345',
                 'CHAVE-00001',
             ],
         ];
@@ -123,7 +123,7 @@ class WorkOrdersTemplateExport implements FromArray, WithColumnWidths, WithEvent
                 $instructions->fromArray([
                     ['Coluna', 'Obrigatória', 'Formato e observações'],
                     ['Cliente', 'Sim', 'Nome exatamente como cadastrado.'],
-                    ['OC', 'Não', 'Número da OC (ordem complexa). Deve ser único.'],
+                    ['OC', 'Não', 'Número da OC (ordem complexa). Somente números. Deve ser único.'],
                     ['CHAVE', 'Não', 'Chave da OS. Deve ser única.'],
                     ['ERB', 'Não', 'Site ID ou código da ERB (ex.: SITE-00001, ERB-0001). Preencha a ERB ou o Radio link, nunca ambos.'],
                     ['Radio link', 'Não', 'Código do radio link (ex.: RL-00001). Preencha a ERB ou o Radio link, nunca ambos.'],

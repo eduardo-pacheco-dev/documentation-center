@@ -35,7 +35,7 @@ it('creates a work order with optional client OS data and an individual OS per i
     $this->actingAs($user)->post('/admin/work-orders', [
         'client_id' => $client->getKey(),
         'client_os' => 'CLI-0001',
-        'oc' => 'OC-77',
+        'oc' => '77',
         'chave' => 'CHV-0001',
         'priority' => 'normal',
         'status' => 'open',
@@ -55,7 +55,7 @@ it('creates a work order with optional client OS data and an individual OS per i
     $items = $workOrder->items()->orderBy('id')->get();
 
     expect($workOrder->client_os)->toBe('CLI-0001')
-        ->and($workOrder->oc)->toBe('OC-77')
+        ->and($workOrder->oc)->toBe('77')
         ->and($workOrder->chave)->toBe('CHV-0001')
         ->and($clientOrders)->toHaveCount(2)
         ->and($clientOrders[0]->number)->toBe('OS-CLI-1')
@@ -69,7 +69,7 @@ it('creates a work order with optional client OS data and an individual OS per i
         ->assertSee('OS Cliente Principal')
         ->assertSee('CLI-0001')
         ->assertSee('OC (ordem complexa)')
-        ->assertSee('OC-77')
+        ->assertSee('77')
         ->assertSee('CHAVE')
         ->assertSee('CHV-0001')
         ->assertSee('OS-CLI-1')
@@ -102,7 +102,7 @@ it('replaces the client OS list and the individual item OS when updating the wor
         ->put(route('admin.work-orders.update', $workOrder), [
             'client_id' => $client->getKey(),
             'client_os' => 'CLI-0002',
-            'oc' => 'OC-88',
+            'oc' => '88',
             'priority' => 'high',
             'status' => 'open',
             'opened_at' => '2026-02-01',
@@ -120,7 +120,7 @@ it('replaces the client OS list and the individual item OS when updating the wor
     $item = $workOrder->items()->firstOrFail();
 
     expect($workOrder->client_os)->toBe('CLI-0002')
-        ->and($workOrder->oc)->toBe('OC-88')
+        ->and($workOrder->oc)->toBe('88')
         ->and(WorkOrderClientOrder::query()->count())->toBe(1)
         ->and($newClientOrder->number)->toBe('OS-NOVA')
         ->and($item->client_os)->toBe('OS-ITEM-NOVA');

@@ -49,7 +49,7 @@ class UpdateWorkOrderRequest extends FormRequest
             ],
             'description' => ['nullable', 'string', 'max:2000'],
             'client_os' => ['nullable', 'string', 'max:60'],
-            'oc' => ['nullable', 'string', 'max:60', Rule::unique('work_orders', 'oc')->ignore($this->route('workOrder'))],
+            'oc' => ['nullable', 'string', 'max:60', 'regex:/^\d+$/', Rule::unique('work_orders', 'oc')->ignore($this->route('workOrder'))],
             'chave' => ['nullable', 'string', 'max:60', Rule::unique('work_orders', 'chave')->ignore($this->route('workOrder'))],
             'client_orders' => ['nullable', 'array'],
             'client_orders.*.number' => ['required', 'string', 'max:60'],
@@ -68,6 +68,18 @@ class UpdateWorkOrderRequest extends FormRequest
             'items.*.quantity' => ['required', 'numeric', 'min:0.01', 'max:99999999.99'],
             'items.*.status' => ['nullable', new Enum(WorkOrderItemStatus::class)],
             'items.*.client_os' => ['nullable', 'string', 'max:60'],
+        ];
+    }
+
+    /**
+     * Get the validation error messages.
+     *
+     * @return array<string, string>
+     */
+    public function messages(): array
+    {
+        return [
+            'oc.regex' => 'A OC deve conter apenas números.',
         ];
     }
 }

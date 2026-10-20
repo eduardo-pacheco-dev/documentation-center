@@ -202,7 +202,7 @@ it('imports the oc and chave columns', function () {
     Client::factory()->create(['user_id' => $user->getKey(), 'name' => 'Construtora Alfa']);
 
     $file = workOrderWorkbook([
-        ['Construtora Alfa', '', '', 'Revisão', 'normal', 'aberta', '10/01/2026', '', '', 'OC-123', 'CHV-456'],
+        ['Construtora Alfa', '', '', 'Revisão', 'normal', 'aberta', '10/01/2026', '', '', '123', 'CHV-456'],
     ]);
 
     $this->actingAs($user)->post(route('admin.work-orders.import'), ['file' => $file])
@@ -210,7 +210,7 @@ it('imports the oc and chave columns', function () {
 
     $workOrder = WorkOrder::query()->sole();
 
-    expect($workOrder->oc)->toBe('OC-123')
+    expect($workOrder->oc)->toBe('123')
         ->and($workOrder->chave)->toBe('CHV-456');
 });
 
@@ -219,7 +219,7 @@ it('updates an existing work order when the oc matches', function () {
     Client::factory()->create(['user_id' => $user->getKey(), 'name' => 'Construtora Alfa']);
     $workOrder = WorkOrder::factory()->create([
         'user_id' => $user->getKey(),
-        'oc' => 'OC-EXISTENTE',
+        'oc' => '1001',
         'chave' => 'CHV-EXISTENTE',
         'description' => 'Descrição antiga',
         'priority' => 'low',
@@ -227,7 +227,7 @@ it('updates an existing work order when the oc matches', function () {
     ]);
 
     $file = workOrderWorkbook([
-        ['Construtora Alfa', '', '', 'Descrição atualizada', 'alta', 'em andamento', '10/01/2026', '20/01/2026', '', 'OC-EXISTENTE', 'CHV-EXISTENTE'],
+        ['Construtora Alfa', '', '', 'Descrição atualizada', 'alta', 'em andamento', '10/01/2026', '20/01/2026', '', '1001', 'CHV-EXISTENTE'],
     ]);
 
     $this->actingAs($user)->post(route('admin.work-orders.import'), ['file' => $file])
@@ -254,7 +254,7 @@ it('updates an existing work order when the chave matches', function () {
     ]);
 
     $file = workOrderWorkbook([
-        ['Construtora Alfa', '', '', 'Descrição pela chave', 'normal', 'aberta', '10/01/2026', '', '', 'OC-NOVA', 'CHV-EXISTENTE'],
+        ['Construtora Alfa', '', '', 'Descrição pela chave', 'normal', 'aberta', '10/01/2026', '', '', '2002', 'CHV-EXISTENTE'],
     ]);
 
     $this->actingAs($user)->post(route('admin.work-orders.import'), ['file' => $file])
@@ -263,8 +263,24 @@ it('updates an existing work order when the chave matches', function () {
     $workOrder->refresh();
 
     expect(WorkOrder::query()->count())->toBe(1)
-        ->and($workOrder->oc)->toBe('OC-NOVA')
+        ->and($workOrder->oc)->toBe('2002')
         ->and($workOrder->description)->toBe('Descrição pela chave');
+});
+
+it('rejects a non numeric oc in the spreadsheet', function () {
+    $user = User::factory()->create();
+    Client::factory()->create(['user_id' => $user->getKey(), 'name' => 'Construtora Alfa']);
+
+    $file = workOrderWorkbook([
+        ['Construtora Alfa', '', '', '', 'normal', 'aberta', '10/01/2026', '', '', 'OC-123', ''],
+    ]);
+
+    $this->actingAs($user)
+        ->from(route('admin.work-orders.index'))
+        ->post(route('admin.work-orders.import'), ['file' => $file])
+        ->assertSessionHasErrors('import');
+
+    expect(WorkOrder::query()->count())->toBe(0);
 });
 
 it('does not update a work order that belongs to another user', function () {
@@ -273,12 +289,12 @@ it('does not update a work order that belongs to another user', function () {
     Client::factory()->create(['user_id' => $user->getKey(), 'name' => 'Construtora Alfa']);
     WorkOrder::factory()->create([
         'user_id' => $other->getKey(),
-        'oc' => 'OC-EXISTENTE',
+        'oc' => '1001',
         'chave' => 'CHV-EXISTENTE',
     ]);
 
     $file = workOrderWorkbook([
-        ['Construtora Alfa', '', '', '', 'normal', 'aberta', '10/01/2026', '', '', 'OC-EXISTENTE', 'CHV-EXISTENTE'],
+        ['Construtora Alfa', '', '', '', 'normal', 'aberta', '10/01/2026', '', '', '1001', 'CHV-EXISTENTE'],
     ]);
 
     $this->actingAs($user)
@@ -294,8 +310,8 @@ it('rejects duplicated oc or chave inside the spreadsheet', function () {
     Client::factory()->create(['user_id' => $user->getKey(), 'name' => 'Construtora Alfa']);
 
     $file = workOrderWorkbook([
-        ['Construtora Alfa', '', '', '', 'normal', 'aberta', '10/01/2026', '', '', 'OC-REPETIDA', 'CHV-REPETIDA'],
-        ['Construtora Alfa', '', '', '', 'normal', 'aberta', '11/01/2026', '', '', 'OC-REPETIDA', 'CHV-REPETIDA'],
+        ['Construtora Alfa', '', '', '', 'normal', 'aberta', '10/01/2026', '', '', '3003', 'CHV-REPETIDA'],
+        ['Construtora Alfa', '', '', '', 'normal', 'aberta', '11/01/2026', '', '', '3003', 'CHV-REPETIDA'],
     ]);
 
     $this->actingAs($user)
