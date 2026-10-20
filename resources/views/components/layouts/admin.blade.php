@@ -44,6 +44,7 @@
                                 ['url' => route('admin.erbs.index'), 'active' => 'admin.erbs.*', 'icon' => 'signal', 'label' => 'ERBs'],
                                 ['url' => route('admin.radio-links.index'), 'active' => 'admin.radio-links.*', 'icon' => 'arrows-right-left', 'label' => 'Radio links'],
                                 ['url' => route('admin.catalog.index'), 'active' => 'admin.catalog.*', 'icon' => 'cube', 'label' => 'Catálogo'],
+                                ['url' => route('admin.equipments.index'), 'active' => 'admin.equipments.*', 'icon' => 'wrench-screwdriver', 'label' => 'Equipamentos'],
                                 ['url' => route('admin.work-orders.index'), 'active' => 'admin.work-orders.*', 'icon' => 'clipboard-document-list', 'label' => 'Ordens de serviço'],
                                 ['url' => route('admin.tasks.index'), 'active' => 'admin.tasks.*', 'icon' => 'check-circle', 'label' => 'Tarefas'],
                                 ['url' => route('admin.agenda.index'), 'active' => 'admin.agenda.*', 'icon' => 'calendar-days', 'label' => 'Agenda'],

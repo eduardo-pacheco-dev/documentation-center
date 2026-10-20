@@ -31,6 +31,7 @@ class DatabaseSeeder extends Seeder
         $this->call(FormResponseSeeder::class);
         $this->call(ClientSeeder::class);
         $this->call(CatalogItemSeeder::class);
+        $this->call(EquipmentSeeder::class);
         $this->call(ErbSeeder::class);
         $this->call(RadioLinkSeeder::class);
         $this->call(ColaboradorSeeder::class);

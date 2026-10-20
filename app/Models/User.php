@@ -115,6 +115,16 @@ class User extends Authenticatable
     }
 
     /**
+     * The equipments registered by the user.
+     *
+     * @return HasMany<Equipment, $this>
+     */
+    public function equipments(): HasMany
+    {
+        return $this->hasMany(Equipment::class);
+    }
+
+    /**
      * The work orders created by the user.
      *
      * @return HasMany<WorkOrder, $this>

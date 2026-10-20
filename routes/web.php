@@ -14,6 +14,8 @@ use App\Http\Controllers\Admin\ColaboradorController;
 use App\Http\Controllers\Admin\ColaboradorImportController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\DocumentController;
+use App\Http\Controllers\Admin\EquipmentController;
+use App\Http\Controllers\Admin\EquipmentDocumentController;
 use App\Http\Controllers\Admin\ErbAddressLookupController;
 use App\Http\Controllers\Admin\ErbCommentController;
 use App\Http\Controllers\Admin\ErbController;
@@ -155,6 +157,16 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
     */
 
     Route::resource('catalog', CatalogItemController::class)->parameters(['catalog' => 'catalogItem']);
+
+    /*
+    | Equipments
+    */
+
+    Route::resource('equipments', EquipmentController::class)
+        ->parameters(['equipments' => 'equipment']);
+    Route::resource('equipments.documents', EquipmentDocumentController::class)
+        ->parameters(['equipments' => 'equipment'])
+        ->only(['store', 'destroy']);
 
     /*
     | ERBs
