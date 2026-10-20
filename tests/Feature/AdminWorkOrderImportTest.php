@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\CatalogItem;
 use App\Models\Client;
 use App\Models\Erb;
 use App\Models\RadioLink;
@@ -543,6 +544,7 @@ it('requires an oc or chave to group the rows of a complete import', function ()
 it('downloads the complete import template with the item columns', function () {
     $user = User::factory()->create();
     Client::factory()->create(['user_id' => $user->getKey(), 'name' => 'Alpha Telecom']);
+    CatalogItem::factory()->create(['user_id' => $user->getKey(), 'name' => 'Cabo coaxial']);
 
     $response = $this->actingAs($user)->get(route('admin.work-orders.import.template', ['mode' => 'completo']));
 
@@ -574,7 +576,10 @@ it('downloads the complete import template with the item columns', function () {
         'OS cliente 2',
     ])
         ->and($spreadsheet->getActiveSheet()->getDataValidation('N2')->getType())->toBe(DataValidation::TYPE_LIST)
-        ->and($spreadsheet->getActiveSheet()->getDataValidation('N2')->getFormula1())->toBe('Listas!$D$2:$D$6');
+        ->and($spreadsheet->getActiveSheet()->getDataValidation('N2')->getFormula1())->toBe('Listas!$D$2:$D$6')
+        ->and($spreadsheet->getActiveSheet()->getDataValidation('L2')->getType())->toBe(DataValidation::TYPE_LIST)
+        ->and($spreadsheet->getActiveSheet()->getDataValidation('L2')->getFormula1())->toBe('Listas!$E$2:$E$2')
+        ->and($spreadsheet->getSheetByName('Listas')->getCell('E2')->getValue())->toBe('Cabo coaxial');
 
     @unlink($path);
 });

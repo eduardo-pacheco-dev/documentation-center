@@ -25,11 +25,24 @@ class WorkOrdersTemplateExport implements FromArray, WithColumnWidths, WithEvent
      */
     private readonly array $clients;
 
+    /**
+     * The catalog item names available to the user.
+     *
+     * @var list<string>
+     */
+    private readonly array $catalogItems;
+
     public function __construct(
         private readonly User $user,
         private readonly bool $withItems = false,
     ) {
         $this->clients = $user->clients()
+            ->orderBy('name')
+            ->pluck('name')
+            ->values()
+            ->all();
+
+        $this->catalogItems = $user->catalogItems()
             ->orderBy('name')
             ->pluck('name')
             ->values()
@@ -182,7 +195,7 @@ class WorkOrdersTemplateExport implements FromArray, WithColumnWidths, WithEvent
                 if ($this->withItems) {
                     $instructionRows = [
                         ...$instructionRows,
-                        ['Item', 'Sim', 'Descrição do item. Cada linha representa um item. Repita a OC ou a CHAVE nas linhas da mesma OS.'],
+                        ['Item', 'Sim', 'Selecione um item do catálogo ou digite uma descrição. Cada linha representa um item. Repita a OC ou a CHAVE nas linhas da mesma OS.'],
                         ['Quantidade', 'Sim', 'Maior que zero.'],
                         ['Status do item', 'Não', 'pendente, em andamento, concluído, rejeitado ou cancelado. Padrão: pendente.'],
                         ['OS cliente 1', 'Não', 'Primeira OS do cliente vinculada ao item.'],
@@ -265,6 +278,25 @@ class WorkOrdersTemplateExport implements FromArray, WithColumnWidths, WithEvent
                         null,
                         'D2',
                     );
+
+                    $lists->setCellValue('E1', 'Itens do catálogo');
+
+                    if ($this->catalogItems !== []) {
+                        $lists->fromArray(
+                            array_map(fn (string $item): array => [$item], $this->catalogItems),
+                            null,
+                            'E2',
+                        );
+
+                        $this->applyListValidation(
+                            $sheet,
+                            'L2:L1000',
+                            'Listas!$E$2:$E$'.(count($this->catalogItems) + 1),
+                            'Item não cadastrado',
+                            'Selecione um item do catálogo ou digite uma descrição.',
+                            DataValidation::STYLE_WARNING,
+                        );
+                    }
 
                     $this->applyListValidation(
                         $sheet,
