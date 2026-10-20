@@ -22,6 +22,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
     'number',
     'client_os',
     'oc',
+    'chave',
     'description',
     'priority',
     'status',

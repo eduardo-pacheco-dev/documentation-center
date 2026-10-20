@@ -108,7 +108,7 @@
         @endif
     </div>
 
-    <div class="grid gap-4 sm:grid-cols-2">
+    <div class="grid gap-4 sm:grid-cols-3">
         <div>
             <label for="client_os" class="block text-sm font-medium text-gray-700 dark:text-gray-300">OS Cliente Principal</label>
             <input
@@ -137,6 +137,22 @@
                 class="mt-1 block w-full rounded-xl border border-gray-300 bg-white dark:border-gray-700 dark:bg-gray-900 px-3 py-2 text-sm shadow-sm transition focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30"
             >
             @error('oc')
+                <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p>
+            @enderror
+        </div>
+
+        <div>
+            <label for="chave" class="block text-sm font-medium text-gray-700 dark:text-gray-300">CHAVE</label>
+            <input
+                type="text"
+                name="chave"
+                id="chave"
+                maxlength="60"
+                value="{{ old('chave', $workOrder?->chave) }}"
+                placeholder="Chave (opcional)"
+                class="mt-1 block w-full rounded-xl border border-gray-300 bg-white dark:border-gray-700 dark:bg-gray-900 px-3 py-2 text-sm shadow-sm transition focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30"
+            >
+            @error('chave')
                 <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p>
             @enderror
         </div>

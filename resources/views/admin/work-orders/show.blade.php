@@ -845,7 +845,7 @@
                     </div>
 
                     <div class="space-y-4 p-6 text-sm">
-                        <div class="grid gap-3 sm:grid-cols-2">
+                        <div class="grid gap-3 sm:grid-cols-3">
                             <div>
                                 <p class="text-xs uppercase tracking-wide text-gray-400 dark:text-gray-500">OS Cliente Principal</p>
                                 <p class="mt-1 font-medium text-gray-900 dark:text-gray-100">{{ $workOrder->client_os ?: '—' }}</p>
@@ -853,6 +853,10 @@
                             <div>
                                 <p class="text-xs uppercase tracking-wide text-gray-400 dark:text-gray-500">OC (ordem complexa)</p>
                                 <p class="mt-1 font-medium text-gray-900 dark:text-gray-100">{{ $workOrder->oc ?: '—' }}</p>
+                            </div>
+                            <div>
+                                <p class="text-xs uppercase tracking-wide text-gray-400 dark:text-gray-500">CHAVE</p>
+                                <p class="mt-1 font-medium text-gray-900 dark:text-gray-100">{{ $workOrder->chave ?: '—' }}</p>
                             </div>
                         </div>
 

@@ -36,6 +36,7 @@ it('creates a work order with optional client OS data and an individual OS per i
         'client_id' => $client->getKey(),
         'client_os' => 'CLI-0001',
         'oc' => 'OC-77',
+        'chave' => 'CHV-0001',
         'priority' => 'normal',
         'status' => 'open',
         'opened_at' => '2026-01-10',
@@ -55,6 +56,7 @@ it('creates a work order with optional client OS data and an individual OS per i
 
     expect($workOrder->client_os)->toBe('CLI-0001')
         ->and($workOrder->oc)->toBe('OC-77')
+        ->and($workOrder->chave)->toBe('CHV-0001')
         ->and($clientOrders)->toHaveCount(2)
         ->and($clientOrders[0]->number)->toBe('OS-CLI-1')
         ->and($clientOrders[1]->number)->toBe('OS-CLI-2')
@@ -68,6 +70,8 @@ it('creates a work order with optional client OS data and an individual OS per i
         ->assertSee('CLI-0001')
         ->assertSee('OC (ordem complexa)')
         ->assertSee('OC-77')
+        ->assertSee('CHAVE')
+        ->assertSee('CHV-0001')
         ->assertSee('OS-CLI-1')
         ->assertSee('Primeira OS do cliente')
         ->assertSee('OS cliente: OS-ITEM-1')

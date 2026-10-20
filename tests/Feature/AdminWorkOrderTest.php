@@ -313,6 +313,108 @@ it('rejects an item without a catalog item or a valid quantity', function () {
         ->assertSessionHasErrors(['items.0.catalog_item_id', 'items.0.quantity']);
 });
 
+it('rejects a duplicate oc number', function () {
+    $user = User::factory()->create();
+    $client = ownedClient($user);
+    $catalogItem = ownedCatalogItem($user);
+
+    $payload = [
+        'client_id' => $client->getKey(),
+        'oc' => 'OC-UNICA',
+        'priority' => 'normal',
+        'status' => 'open',
+        'opened_at' => '2026-01-10',
+        'items' => [
+            ['catalog_item_id' => $catalogItem->getKey(), 'quantity' => 1],
+        ],
+    ];
+
+    $this->actingAs($user)->post('/admin/work-orders', $payload)->assertRedirect();
+
+    $this->actingAs($user)
+        ->post('/admin/work-orders', $payload)
+        ->assertSessionHasErrors('oc');
+
+    expect(WorkOrder::query()->count())->toBe(1);
+});
+
+it('rejects a duplicate chave', function () {
+    $user = User::factory()->create();
+    $client = ownedClient($user);
+    $catalogItem = ownedCatalogItem($user);
+
+    $payload = [
+        'client_id' => $client->getKey(),
+        'chave' => 'CHAVE-UNICA',
+        'priority' => 'normal',
+        'status' => 'open',
+        'opened_at' => '2026-01-10',
+        'items' => [
+            ['catalog_item_id' => $catalogItem->getKey(), 'quantity' => 1],
+        ],
+    ];
+
+    $this->actingAs($user)->post('/admin/work-orders', $payload)->assertRedirect();
+
+    $this->actingAs($user)
+        ->post('/admin/work-orders', $payload)
+        ->assertSessionHasErrors('chave');
+
+    expect(WorkOrder::query()->count())->toBe(1);
+});
+
+it('keeps the same chave when updating the same work order', function () {
+    $user = User::factory()->create();
+    $client = ownedClient($user);
+    $catalogItem = ownedCatalogItem($user);
+    $workOrder = WorkOrder::factory()->create([
+        'user_id' => $user->getKey(),
+        'client_id' => $client->getKey(),
+        'chave' => 'CHAVE-EXISTENTE',
+    ]);
+
+    $this->actingAs($user)
+        ->put(route('admin.work-orders.update', $workOrder), [
+            'client_id' => $client->getKey(),
+            'chave' => 'CHAVE-EXISTENTE',
+            'priority' => 'normal',
+            'status' => 'open',
+            'opened_at' => '2026-01-10',
+            'items' => [
+                ['catalog_item_id' => $catalogItem->getKey(), 'quantity' => 1],
+            ],
+        ])
+        ->assertSessionHasNoErrors();
+
+    expect($workOrder->refresh()->chave)->toBe('CHAVE-EXISTENTE');
+});
+
+it('keeps the same oc number when updating the same work order', function () {
+    $user = User::factory()->create();
+    $client = ownedClient($user);
+    $catalogItem = ownedCatalogItem($user);
+    $workOrder = WorkOrder::factory()->create([
+        'user_id' => $user->getKey(),
+        'client_id' => $client->getKey(),
+        'oc' => 'OC-EXISTENTE',
+    ]);
+
+    $this->actingAs($user)
+        ->put(route('admin.work-orders.update', $workOrder), [
+            'client_id' => $client->getKey(),
+            'oc' => 'OC-EXISTENTE',
+            'priority' => 'normal',
+            'status' => 'open',
+            'opened_at' => '2026-01-10',
+            'items' => [
+                ['catalog_item_id' => $catalogItem->getKey(), 'quantity' => 1],
+            ],
+        ])
+        ->assertSessionHasNoErrors();
+
+    expect($workOrder->refresh()->oc)->toBe('OC-EXISTENTE');
+});
+
 it('forbids a stranger from managing the work order', function () {
     $stranger = User::factory()->create();
     $workOrder = WorkOrder::factory()->create();
