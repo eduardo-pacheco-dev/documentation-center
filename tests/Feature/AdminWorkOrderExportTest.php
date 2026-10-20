@@ -82,7 +82,7 @@ it('downloads the work orders as an excel file filtered by search and status', f
     expect($rows)->toHaveCount(2)
         ->and($rows[0])->toBe([
             'Número',
-            'OS Cliente',
+            'OS Cliente Principal',
             'OC',
             'Cliente',
             'ERB',

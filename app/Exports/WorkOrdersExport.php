@@ -46,7 +46,7 @@ class WorkOrdersExport implements FromQuery, WithHeadings, WithMapping
     {
         return [
             'Número',
-            'OS Cliente',
+            'OS Cliente Principal',
             'OC',
             'Cliente',
             'ERB',

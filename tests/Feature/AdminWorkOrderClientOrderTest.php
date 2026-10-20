@@ -64,7 +64,7 @@ it('creates a work order with optional client OS data and an individual OS per i
     $response = $this->actingAs($user)->get(route('admin.work-orders.show', $workOrder));
 
     $response->assertOk()
-        ->assertSee('OS Cliente')
+        ->assertSee('OS Cliente Principal')
         ->assertSee('CLI-0001')
         ->assertSee('OC (ordem complexa)')
         ->assertSee('OC-77')

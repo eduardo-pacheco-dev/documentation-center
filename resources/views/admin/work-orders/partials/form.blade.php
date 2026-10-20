@@ -110,14 +110,14 @@
 
     <div class="grid gap-4 sm:grid-cols-2">
         <div>
-            <label for="client_os" class="block text-sm font-medium text-gray-700 dark:text-gray-300">OS Cliente</label>
+            <label for="client_os" class="block text-sm font-medium text-gray-700 dark:text-gray-300">OS Cliente Principal</label>
             <input
                 type="text"
                 name="client_os"
                 id="client_os"
                 maxlength="60"
                 value="{{ old('client_os', $workOrder?->client_os) }}"
-                placeholder="Número da OS do cliente (opcional)"
+                placeholder="Número da OS principal do cliente (opcional)"
                 class="mt-1 block w-full rounded-xl border border-gray-300 bg-white dark:border-gray-700 dark:bg-gray-900 px-3 py-2 text-sm shadow-sm transition focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30"
             >
             @error('client_os')
