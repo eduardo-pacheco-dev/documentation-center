@@ -463,6 +463,12 @@ it('rejects duplicated oc or chave inside the spreadsheet', function () {
 it('imports a complete spreadsheet with a work order and its items', function () {
     $user = User::factory()->create();
     Client::factory()->create(['user_id' => $user->getKey(), 'name' => 'Construtora Alfa']);
+    $catalogItem = CatalogItem::factory()->create([
+        'user_id' => $user->getKey(),
+        'name' => 'Item A',
+        'unit' => 'un',
+        'price' => 50,
+    ]);
 
     $file = completeWorkOrderWorkbook([
         ['Construtora Alfa', '', '', 'OS completa', 'alta', 'em andamento', '10/01/2026', '20/01/2026', '', '555', '', 'Item A', 2, 'pendente', 'CLI-A1', 'CLI-A2'],
@@ -482,12 +488,17 @@ it('imports a complete spreadsheet with a work order and its items', function ()
         ->and($workOrder->status->value)->toBe('in_progress')
         ->and($items)->toHaveCount(2)
         ->and($items[0]->description)->toBe('Item A')
+        ->and($items[0]->catalog_item_id)->toBe($catalogItem->getKey())
+        ->and($items[0]->unit)->toBe('un')
         ->and($items[0]->client_os)->toBe('CLI-A1')
         ->and($items[0]->client_os_2)->toBe('CLI-A2')
-        ->and((float) $items[0]->total)->toBe(0.0)
+        ->and((float) $items[0]->unit_price)->toBe(50.0)
+        ->and((float) $items[0]->total)->toBe(100.0)
         ->and($items[1]->description)->toBe('Item B')
+        ->and($items[1]->catalog_item_id)->toBeNull()
         ->and($items[1]->status->value)->toBe('in_progress')
-        ->and((float) $workOrder->total)->toBe(0.0);
+        ->and((float) $items[1]->total)->toBe(0.0)
+        ->and((float) $workOrder->total)->toBe(100.0);
 });
 
 it('updates an existing work order and replaces its items on a complete import', function () {

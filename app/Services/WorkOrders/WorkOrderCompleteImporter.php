@@ -31,6 +31,10 @@ class WorkOrderCompleteImporter
             ->mapWithKeys(fn ($id, $name): array => [mb_strtolower(trim((string) $name)) => $id])
             ->all();
 
+        $catalogItems = $user->catalogItems()
+            ->get(['id', 'name', 'unit', 'price'])
+            ->keyBy(fn ($item): string => mb_strtolower(trim((string) $item->name)));
+
         $prepared = [];
         $errors = [];
 
@@ -128,6 +132,9 @@ class WorkOrderCompleteImporter
             }
 
             $quantity = (float) $data['quantidade'];
+            $itemName = trim((string) $data['item']);
+            $catalogItem = $catalogItems->get(mb_strtolower($itemName));
+            $unitPrice = round((float) ($catalogItem?->price ?? 0), 2);
 
             if ($priority === null || $status === null || $itemStatus === null) {
                 continue;
@@ -150,12 +157,14 @@ class WorkOrderCompleteImporter
                 'completed_at' => $status === WorkOrderStatus::Completed ? $openedAt->toDateString() : null,
                 'notes' => $data['observacoes'] ?? null,
                 'item' => [
-                    'description' => trim((string) $data['item']),
+                    'catalog_item_id' => $catalogItem?->getKey(),
+                    'description' => $catalogItem?->name ?? $itemName,
                     'client_os' => $this->identifier($data['os_cliente_1'] ?? null),
                     'client_os_2' => $this->identifier($data['os_cliente_2'] ?? null),
+                    'unit' => $catalogItem?->unit,
                     'quantity' => $quantity,
-                    'unit_price' => 0,
-                    'total' => 0,
+                    'unit_price' => $unitPrice,
+                    'total' => round($quantity * $unitPrice, 2),
                     'status' => $itemStatus->value,
                 ],
             ];
