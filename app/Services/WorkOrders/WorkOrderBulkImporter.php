@@ -141,10 +141,6 @@ class WorkOrderBulkImporter
                 } else {
                     $seenOc[$ocKey] = true;
                 }
-
-                if (WorkOrder::withTrashed()->where('oc', $oc)->exists()) {
-                    $errors[] = "Linha {$line}: a OC \"{$oc}\" já está em uso.";
-                }
             }
 
             if ($chave !== null) {
@@ -155,17 +151,43 @@ class WorkOrderBulkImporter
                 } else {
                     $seenChave[$chaveKey] = true;
                 }
-
-                if (WorkOrder::withTrashed()->where('chave', $chave)->exists()) {
-                    $errors[] = "Linha {$line}: a CHAVE \"{$chave}\" já está em uso.";
-                }
             }
 
             if ($clientId === null || $priority === null || $status === null || ($erbRef !== null && $erbId === null) || ($radioLinkRef !== null && $radioLinkId === null)) {
                 continue;
             }
 
+            $existingByOc = $oc !== null ? WorkOrder::query()->where('oc', $oc)->first() : null;
+            $existingByChave = $chave !== null ? WorkOrder::query()->where('chave', $chave)->first() : null;
+
+            if ($existingByOc !== null && $existingByChave !== null && ! $existingByOc->is($existingByChave)) {
+                $errors[] = "Linha {$line}: a OC e a CHAVE informadas pertencem a ordens de serviço diferentes.";
+
+                continue;
+            }
+
+            $existing = $existingByOc ?? $existingByChave;
+
+            if ($existing !== null && $existing->user_id !== $user->getKey()) {
+                $errors[] = "Linha {$line}: a OC ou CHAVE informada já está em uso por outra ordem de serviço.";
+
+                continue;
+            }
+
+            if ($oc !== null && $existingByOc === null && WorkOrder::withTrashed()->where('oc', $oc)->exists()) {
+                $errors[] = "Linha {$line}: a OC \"{$oc}\" já está em uso por uma ordem de serviço excluída.";
+
+                continue;
+            }
+
+            if ($chave !== null && $existingByChave === null && WorkOrder::withTrashed()->where('chave', $chave)->exists()) {
+                $errors[] = "Linha {$line}: a CHAVE \"{$chave}\" já está em uso por uma ordem de serviço excluída.";
+
+                continue;
+            }
+
             $prepared[] = [
+                'id' => $existing?->getKey(),
                 'client_id' => $clientId,
                 'erb_id' => $erbId,
                 'radio_link_id' => $radioLinkId,
@@ -178,7 +200,6 @@ class WorkOrderBulkImporter
                 'due_at' => $dueAt?->toDateString(),
                 'completed_at' => $status === WorkOrderStatus::Completed ? $openedAt->toDateString() : null,
                 'notes' => $data['observacoes'] ?? null,
-                'total' => 0,
             ];
         }
 
@@ -188,7 +209,20 @@ class WorkOrderBulkImporter
 
         return DB::transaction(function () use ($user, $prepared): int {
             foreach ($prepared as $attributes) {
+                $id = $attributes['id'] ?? null;
+                unset($attributes['id']);
+
+                if ($id !== null) {
+                    WorkOrder::query()
+                        ->where('user_id', $user->getKey())
+                        ->find($id)
+                        ?->update($attributes);
+
+                    continue;
+                }
+
                 $attributes['number'] = WorkOrder::generateNumber($user);
+                $attributes['total'] = 0;
 
                 $user->workOrders()->create($attributes);
             }

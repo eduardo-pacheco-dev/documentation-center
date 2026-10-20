@@ -27,8 +27,8 @@ class WorkOrderImportController extends Controller
         return redirect()
             ->route('admin.work-orders.index')
             ->with('status', $count === 1
-                ? '1 ordem de serviço importada com sucesso.'
-                : "{$count} ordens de serviço importadas com sucesso.");
+                ? '1 ordem de serviço importada ou atualizada com sucesso.'
+                : "{$count} ordens de serviço importadas ou atualizadas com sucesso.");
     }
 
     /**

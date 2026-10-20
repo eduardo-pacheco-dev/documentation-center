@@ -214,11 +214,65 @@ it('imports the oc and chave columns', function () {
         ->and($workOrder->chave)->toBe('CHV-456');
 });
 
-it('rejects an oc or chave already used by another work order', function () {
+it('updates an existing work order when the oc matches', function () {
     $user = User::factory()->create();
     Client::factory()->create(['user_id' => $user->getKey(), 'name' => 'Construtora Alfa']);
-    WorkOrder::factory()->create([
+    $workOrder = WorkOrder::factory()->create([
         'user_id' => $user->getKey(),
+        'oc' => 'OC-EXISTENTE',
+        'chave' => 'CHV-EXISTENTE',
+        'description' => 'Descrição antiga',
+        'priority' => 'low',
+        'status' => 'open',
+    ]);
+
+    $file = workOrderWorkbook([
+        ['Construtora Alfa', '', '', 'Descrição atualizada', 'alta', 'em andamento', '10/01/2026', '20/01/2026', '', 'OC-EXISTENTE', 'CHV-EXISTENTE'],
+    ]);
+
+    $this->actingAs($user)->post(route('admin.work-orders.import'), ['file' => $file])
+        ->assertRedirect(route('admin.work-orders.index'));
+
+    $workOrder->refresh();
+
+    expect(WorkOrder::query()->count())->toBe(1)
+        ->and($workOrder->description)->toBe('Descrição atualizada')
+        ->and($workOrder->priority->value)->toBe('high')
+        ->and($workOrder->status->value)->toBe('in_progress')
+        ->and($workOrder->opened_at->toDateString())->toBe('2026-01-10')
+        ->and($workOrder->due_at?->toDateString())->toBe('2026-01-20');
+});
+
+it('updates an existing work order when the chave matches', function () {
+    $user = User::factory()->create();
+    Client::factory()->create(['user_id' => $user->getKey(), 'name' => 'Construtora Alfa']);
+    $workOrder = WorkOrder::factory()->create([
+        'user_id' => $user->getKey(),
+        'oc' => null,
+        'chave' => 'CHV-EXISTENTE',
+        'description' => 'Descrição antiga',
+    ]);
+
+    $file = workOrderWorkbook([
+        ['Construtora Alfa', '', '', 'Descrição pela chave', 'normal', 'aberta', '10/01/2026', '', '', 'OC-NOVA', 'CHV-EXISTENTE'],
+    ]);
+
+    $this->actingAs($user)->post(route('admin.work-orders.import'), ['file' => $file])
+        ->assertRedirect(route('admin.work-orders.index'));
+
+    $workOrder->refresh();
+
+    expect(WorkOrder::query()->count())->toBe(1)
+        ->and($workOrder->oc)->toBe('OC-NOVA')
+        ->and($workOrder->description)->toBe('Descrição pela chave');
+});
+
+it('does not update a work order that belongs to another user', function () {
+    $user = User::factory()->create();
+    $other = User::factory()->create();
+    Client::factory()->create(['user_id' => $user->getKey(), 'name' => 'Construtora Alfa']);
+    WorkOrder::factory()->create([
+        'user_id' => $other->getKey(),
         'oc' => 'OC-EXISTENTE',
         'chave' => 'CHV-EXISTENTE',
     ]);
