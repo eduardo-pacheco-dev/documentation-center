@@ -39,3 +39,98 @@ html {
 
     --radius-s: 0.375rem;
 }
+
+@keyframes auth-fade-up {
+    from {
+        opacity: 0;
+        transform: translateY(16px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes auth-pop {
+    0% {
+        opacity: 0;
+        transform: scale(0.92);
+    }
+
+    60% {
+        opacity: 1;
+        transform: scale(1.02);
+    }
+
+    100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+@keyframes auth-float {
+    0%,
+    100% {
+        transform: translateY(0);
+    }
+
+    50% {
+        transform: translateY(-10px);
+    }
+}
+
+@keyframes auth-float-soft {
+    0%,
+    100% {
+        transform: translateY(0) rotate(0deg);
+    }
+
+    50% {
+        transform: translateY(8px) rotate(1.5deg);
+    }
+}
+
+@keyframes auth-glow {
+    0%,
+    100% {
+        opacity: 0.55;
+        transform: scale(1);
+    }
+
+    50% {
+        opacity: 0.9;
+        transform: scale(1.06);
+    }
+}
+
+.auth-reveal {
+    animation: auth-fade-up 0.7s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+    animation-delay: var(--auth-delay, 0ms);
+}
+
+.auth-logo {
+    animation: auth-pop 0.9s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.auth-float {
+    animation: auth-float 9s ease-in-out infinite;
+}
+
+.auth-float-soft {
+    animation: auth-float-soft 11s ease-in-out infinite;
+}
+
+.auth-glow {
+    animation: auth-glow 14s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .auth-reveal,
+    .auth-logo,
+    .auth-float,
+    .auth-float-soft,
+    .auth-glow {
+        animation: none !important;
+    }
+}

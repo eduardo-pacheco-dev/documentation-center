@@ -1,21 +1,21 @@
 <x-layouts.auth title="Entrar">
     <div aria-hidden="true" class="pointer-events-none absolute inset-0 hidden overflow-hidden lg:block">
-        <div class="absolute -left-28 bottom-16 h-80 w-80 rounded-full bg-brand-navy/10 blur-2xl"></div>
+        <div class="auth-glow absolute -left-28 bottom-16 h-80 w-80 rounded-full bg-brand-navy/10 blur-2xl"></div>
 
         <img
             src="{{ asset('images/auth/erb-illustration.svg') }}"
             alt=""
             aria-hidden="true"
-            class="absolute bottom-6 left-2 h-52 w-auto lg:bottom-10 lg:left-4 xl:h-64 2xl:bottom-16 2xl:left-[8%] 2xl:h-72"
+            class="auth-float absolute bottom-6 left-2 h-52 w-auto lg:bottom-10 lg:left-4 xl:h-64 2xl:bottom-16 2xl:left-[8%] 2xl:h-72"
         />
 
-        <div class="absolute -right-24 top-10 h-80 w-80 rounded-full bg-secondary-blue-400/10 blur-2xl"></div>
+        <div class="auth-glow absolute -right-24 top-10 h-80 w-80 rounded-full bg-secondary-blue-400/10 blur-2xl"></div>
 
         <img
             src="{{ asset('images/auth/satellite-illustration.svg') }}"
             alt=""
             aria-hidden="true"
-            class="absolute right-2 top-6 h-44 w-auto lg:right-4 lg:top-10 xl:h-56 2xl:right-[8%] 2xl:top-16 2xl:h-72"
+            class="auth-float-soft absolute right-2 top-6 h-44 w-auto lg:right-4 lg:top-10 xl:h-56 2xl:right-[8%] 2xl:top-16 2xl:h-72"
         />
     </div>
 
@@ -26,11 +26,11 @@
                 alt="AFL Engenharia"
                 width="640"
                 height="437"
-                class="h-24 w-auto object-contain mix-blend-multiply sm:h-28"
+                class="auth-logo h-24 w-auto object-contain mix-blend-multiply sm:h-28"
             />
 
-            <h1 class="mt-6 text-sb24 text-grey-15 sm:text-sb32">Entrar</h1>
-            <p class="mt-2 text-[15px] text-grey-45">para continuar na sua conta</p>
+            <h1 class="auth-reveal mt-6 text-sb24 text-grey-15 sm:text-sb32" style="--auth-delay: 120ms">Entrar</h1>
+            <p class="auth-reveal mt-2 text-[15px] text-grey-45" style="--auth-delay: 200ms">para continuar na sua conta</p>
         </div>
 
         @if (session('status'))
@@ -44,7 +44,7 @@
         <form method="POST" action="{{ route('login') }}" data-login-form class="mt-9 space-y-5">
             @csrf
 
-            <div>
+            <div class="auth-reveal" style="--auth-delay: 260ms">
                 <label for="email" class="mb-2 block text-sm font-semibold text-grey-15">E-mail</label>
                 <input
                     id="email"
@@ -64,7 +64,7 @@
                 @enderror
             </div>
 
-            <div>
+            <div class="auth-reveal" style="--auth-delay: 340ms">
                 <label for="password" class="mb-2 block text-sm font-semibold text-grey-15">Senha</label>
                 <div class="relative">
                     <input
@@ -84,7 +84,7 @@
                         aria-controls="password"
                         aria-pressed="false"
                         aria-label="Mostrar senha"
-                        class="absolute inset-y-0 right-1 flex w-11 items-center justify-center rounded-s text-grey-45 transition hover:text-grey-15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary-blue-400/40"
+                        class="absolute inset-y-0 right-1 flex w-11 items-center justify-center rounded-s text-grey-45 transition hover:text-grey-15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary-blue-400/40 active:scale-90"
                     >
                         <x-icon name="eye" data-password-icon="visible" class="h-5 w-5" />
                         <x-icon name="eye-slash" data-password-icon="hidden" class="hidden h-5 w-5" />
@@ -95,7 +95,7 @@
                 @enderror
             </div>
 
-            <label class="flex w-fit cursor-pointer items-center gap-2.5 text-sm text-grey-45">
+            <label class="auth-reveal flex w-fit cursor-pointer items-center gap-2.5 text-sm text-grey-45" style="--auth-delay: 420ms">
                 <input
                     type="checkbox"
                     name="remember"
@@ -108,13 +108,14 @@
             <button
                 type="submit"
                 data-login-submit
-                class="inline-flex w-full cursor-pointer items-center justify-center rounded-sm border border-transparent bg-secondary-blue-400 px-4 py-3 text-[15px] font-semibold text-white shadow-[0_8px_20px_rgba(31,115,232,0.24)] transition duration-200 hover:bg-secondary-blue-500 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-secondary-blue-400/25 disabled:cursor-not-allowed disabled:border-grey-80 disabled:bg-grey-90 disabled:text-grey-65 disabled:shadow-none"
+                style="--auth-delay: 500ms"
+                class="auth-reveal inline-flex w-full cursor-pointer items-center justify-center rounded-sm border border-transparent bg-secondary-blue-400 px-4 py-3 text-[15px] font-semibold text-white shadow-[0_8px_20px_rgba(31,115,232,0.24)] transition duration-200 hover:-translate-y-0.5 hover:bg-secondary-blue-500 hover:shadow-[0_12px_26px_rgba(31,115,232,0.3)] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-secondary-blue-400/25 active:translate-y-0 active:scale-[0.99] disabled:cursor-not-allowed disabled:border-grey-80 disabled:bg-grey-90 disabled:text-grey-65 disabled:shadow-none disabled:hover:translate-y-0"
             >
                 Continuar
             </button>
         </form>
 
-        <div class="mt-8 border-t border-grey-90 pt-6 text-center text-sm text-grey-45">
+        <div class="auth-reveal mt-8 border-t border-grey-90 pt-6 text-center text-sm text-grey-45" style="--auth-delay: 580ms">
             <p>
                 Não tem uma conta?
                 <a href="{{ route('register') }}" class="font-semibold text-secondary-blue-400 transition hover:text-secondary-blue-500 hover:underline">Cadastre-se</a>

@@ -2,6 +2,53 @@
     <title id="erbTitle">Estação rádio base</title>
     <desc id="erbDesc">Ilustração de linha de uma torre de telecomunicações com antenas setoriais, ondas de sinal e abrigo de equipamentos.</desc>
 
+    <style>
+        .erb-wave {
+            animation: erb-wave 3.6s ease-in-out infinite;
+        }
+
+        .erb-wave-2 {
+            animation-delay: 0.5s;
+        }
+
+        .erb-wave-3 {
+            animation-delay: 1s;
+        }
+
+        .erb-beacon {
+            animation: erb-beacon 2.4s ease-in-out infinite;
+        }
+
+        @keyframes erb-wave {
+            0%,
+            100% {
+                stroke-opacity: 0.2;
+            }
+
+            50% {
+                stroke-opacity: 0.85;
+            }
+        }
+
+        @keyframes erb-beacon {
+            0%,
+            100% {
+                fill-opacity: 0.35;
+            }
+
+            50% {
+                fill-opacity: 1;
+            }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .erb-wave,
+            .erb-beacon {
+                animation: none;
+            }
+        }
+    </style>
+
     <g transform="translate(0 40)" stroke="#0A1B3D" stroke-opacity="0.3" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <path d="M16 362h288" />
         <path d="M34 362c22-7 44-7 66 0M222 362c20-6 40-6 60 0" stroke-opacity="0.18" />
@@ -26,10 +73,10 @@
         <path d="M195 118l-24 5" />
 
         <path d="M160 36V16" />
-        <circle cx="160" cy="10" r="3" fill="#0A1B3D" fill-opacity="0.35" stroke="none" />
+        <circle class="erb-beacon" cx="160" cy="10" r="3" fill="#0A1B3D" fill-opacity="0.35" stroke="none" />
 
-        <path d="M118 20a46 46 0 0 1 84 0" stroke-opacity="0.4" />
-        <path d="M130 30a32 32 0 0 1 60 0" stroke-opacity="0.6" />
-        <path d="M142 40a18 18 0 0 1 36 0" />
+        <path class="erb-wave erb-wave-3" d="M118 20a46 46 0 0 1 84 0" stroke-opacity="0.4" />
+        <path class="erb-wave erb-wave-2" d="M130 30a32 32 0 0 1 60 0" stroke-opacity="0.6" />
+        <path class="erb-wave" d="M142 40a18 18 0 0 1 36 0" />
     </g>
 </svg>
