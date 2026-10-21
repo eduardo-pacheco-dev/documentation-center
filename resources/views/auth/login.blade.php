@@ -1,7 +1,7 @@
 <x-layouts.auth title="Sign in">
     <div aria-hidden="true" class="pointer-events-none absolute inset-0 hidden overflow-hidden lg:block">
-        <div class="absolute -left-28 top-16 h-80 w-80 rounded-full bg-brand-green/10 blur-2xl"></div>
-        <div class="absolute left-20 top-1/3 h-20 w-20 rotate-12 rounded-3xl border-2 border-brand-green/20"></div>
+        <div class="absolute -left-28 top-16 h-80 w-80 rounded-full bg-brand-navy/10 blur-2xl"></div>
+        <div class="absolute left-20 top-1/3 h-20 w-20 rotate-12 rounded-3xl border-2 border-brand-navy/20"></div>
         <svg class="absolute bottom-24 left-10 h-44 w-44 text-secondary-blue-400/20" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 100 100">
             <circle cx="50" cy="50" r="46" stroke="currentColor" stroke-width="1.5" stroke-dasharray="4 8" />
             <circle cx="50" cy="50" r="26" stroke="currentColor" stroke-width="1.5" />
@@ -10,7 +10,7 @@
 
         <div class="absolute -right-24 bottom-10 h-80 w-80 rounded-full bg-secondary-blue-400/10 blur-2xl"></div>
         <div class="absolute right-24 top-1/4 h-28 w-28 -rotate-12 rounded-full border-2 border-secondary-blue-400/20"></div>
-        <svg class="absolute right-12 bottom-28 h-40 w-40 text-brand-green/20" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 100 100">
+        <svg class="absolute right-12 bottom-28 h-40 w-40 text-brand-navy/20" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 100 100">
             <path d="M12 78c18 0 20-52 40-52s18 26 36 26" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
             <path d="M12 90c18 0 20-52 40-52s18 26 36 26" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-dasharray="3 7" />
         </svg>
@@ -18,17 +18,21 @@
 
     <div class="relative w-full max-w-[550px]">
         <div class="flex flex-col items-center text-center">
-            <span class="inline-flex h-[72px] w-[72px] items-center justify-center rounded-[22px] bg-brand-green text-white shadow-[0_14px_34px_rgba(0,168,45,0.28)] sm:h-[92px] sm:w-[92px] sm:rounded-[28px]">
-                <x-icon name="document-text" class="h-9 w-9 sm:h-11 sm:w-11" />
-            </span>
+            <img
+                src="{{ asset('images/auth/logo.jpg') }}"
+                alt="AFL Engenharia"
+                width="640"
+                height="437"
+                class="h-24 w-auto object-contain mix-blend-multiply sm:h-28"
+            />
 
-            <h1 class="mt-7 text-sb24 text-grey-15 sm:text-sb32">Sign in</h1>
+            <h1 class="mt-6 text-sb24 text-grey-15 sm:text-sb32">Sign in</h1>
             <p class="mt-2 text-[15px] text-grey-45">to continue to your account</p>
         </div>
 
         @if (session('status'))
             <noscript>
-                <div class="mt-7 rounded-s border border-brand-green/20 bg-brand-green/5 px-4 py-3 text-sm text-brand-green">
+                <div class="mt-7 rounded-s border border-brand-navy/20 bg-brand-navy/5 px-4 py-3 text-sm text-brand-navy">
                     {{ session('status') }}
                 </div>
             </noscript>
