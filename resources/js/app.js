@@ -643,23 +643,65 @@ const PasswordVisibility = (() => {
 })();
 
 const LoginForm = (() => {
-    const sync = (form) => {
-        const button = form.querySelector('[data-login-submit]');
+    const isEmailValid = (field) => field.value.trim() !== '' && field.checkValidity();
 
-        if (!button) {
+    const revealPassword = (form) => {
+        const step = form.querySelector('[data-password-step]');
+
+        if (!step || !step.hasAttribute('hidden')) {
             return;
         }
 
-        const fields = Array.from(form.querySelectorAll('[data-login-required]'));
+        step.removeAttribute('hidden');
+        step.classList.add('auth-reveal');
+    };
 
-        button.disabled = fields.some((field) => field.value.trim() === '');
+    const sync = (form) => {
+        const button = form.querySelector('[data-login-submit]');
+        const email = form.querySelector('#email');
+        const password = form.querySelector('#password');
+        const step = form.querySelector('[data-password-step]');
+
+        if (!button || !email) {
+            return;
+        }
+
+        const passwordVisible = step ? !step.hasAttribute('hidden') : true;
+        const passwordFilled = !password || password.value.trim() !== '';
+
+        button.disabled = !isEmailValid(email) || (passwordVisible && !passwordFilled);
+    };
+
+    const update = (form) => {
+        const email = form.querySelector('#email');
+        const password = form.querySelector('#password');
+        const step = form.querySelector('[data-password-step]');
+
+        if (!email || !step) {
+            sync(form);
+
+            return;
+        }
+
+        if (isEmailValid(email)) {
+            revealPassword(form);
+        } else if (email.value.trim() === '') {
+            step.setAttribute('hidden', '');
+            step.classList.remove('auth-reveal');
+
+            if (password) {
+                password.value = '';
+            }
+        }
+
+        sync(form);
     };
 
     document.addEventListener('input', (event) => {
         const form = event.target.closest('[data-login-form]');
 
         if (form) {
-            sync(form);
+            update(form);
         }
     });
 
@@ -667,12 +709,37 @@ const LoginForm = (() => {
         const form = event.target.closest('[data-login-form]');
 
         if (form) {
-            sync(form);
+            update(form);
         }
+    });
+
+    document.addEventListener('keydown', (event) => {
+        if (event.key !== 'Enter' || event.target.id !== 'email') {
+            return;
+        }
+
+        const form = event.target.closest('[data-login-form]');
+        const step = form ? form.querySelector('[data-password-step]') : null;
+
+        if (!step || step.hasAttribute('hidden')) {
+            return;
+        }
+
+        event.preventDefault();
+        form.querySelector('#password')?.focus();
     });
 
     document.addEventListener('submit', (event) => {
         if (!event.target.matches('[data-login-form]')) {
+            return;
+        }
+
+        const step = event.target.querySelector('[data-password-step]');
+
+        if (step && step.hasAttribute('hidden')) {
+            event.preventDefault();
+            update(event.target);
+
             return;
         }
 
@@ -685,7 +752,7 @@ const LoginForm = (() => {
         }
     });
 
-    document.querySelectorAll('[data-login-form]').forEach(sync);
+    document.querySelectorAll('[data-login-form]').forEach(update);
 
-    return { sync };
+    return { sync, update };
 })();
