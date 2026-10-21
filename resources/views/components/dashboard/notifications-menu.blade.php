@@ -5,7 +5,7 @@
         @click="notificationsOpen = !notificationsOpen"
         x-bind:aria-expanded="notificationsOpen"
     >
-        <span class="absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-rose-500 ring-2 ring-[#fafaf9] dark:ring-[#101010]"></span>
+        <span class="absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-rose-500 ring-2 ring-[#f4f4f2] dark:ring-[#171716]"></span>
     </x-ui.icon-button>
 
     <x-ui.dropdown show="notificationsOpen" close="notificationsOpen = false" class="right-0 top-full mt-2 w-80 overflow-hidden">

@@ -21,7 +21,7 @@
         @vite(['resources/css/app.css', 'resources/js/app.js'])
         <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.9/dist/cdn.min.js"></script>
     </head>
-    <body class="bg-[#fafaf9] text-gray-900 antialiased dark:bg-[#101010] dark:text-gray-100">
+    <body class="bg-[#f4f4f2] text-gray-900 antialiased dark:bg-[#171716] dark:text-gray-100">
         <div
             x-data="{
                 sidebarOpen: false,
@@ -43,9 +43,9 @@
 
             <x-dashboard.sidebar />
 
-            <div class="flex py-4 min-h-screen min-w-0 flex-col ">
+            <div class="mr-4 flex min-h-screen min-w-0 flex-1 flex-col py-4">
 
-                <main class="mx-auto w-full max-w-[1440px] flex-1 px-4 py-6 sm:px-6 sm:py-8 lg:px-8 bg-white rounded-xl">
+                <main class="w-full flex-1 rounded-xl bg-white px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
                     @if (session('status'))
                         <noscript>
                             <div class="mb-6 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800 dark:border-green-900 dark:bg-green-950 dark:text-green-300">

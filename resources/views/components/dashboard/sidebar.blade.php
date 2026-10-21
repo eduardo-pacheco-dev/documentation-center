@@ -29,7 +29,7 @@
 <aside
     x-bind:class="sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'"
     :style="sidebarExpanded ? 'width: 15rem' : 'width: 4.5rem'"
-    class="fixed inset-y-0 left-0 z-40 flex w-[72px] -translate-x-full flex-col gap-1 border-r border-gray-200/80 bg-[#f4f4f2] px-2 pt-4 pb-4 transition-[width,transform] duration-200 ease-out lg:sticky lg:top-0 lg:h-screen lg:translate-x-0 dark:border-white/10 dark:bg-[#171716]"
+    class="fixed inset-y-0 left-0 z-40 flex w-[72px] -translate-x-full flex-col gap-1 bg-[#f4f4f2] px-2 pt-4 pb-4 transition-[width,transform] duration-200 ease-out lg:sticky lg:top-0 lg:h-screen lg:translate-x-0 dark:bg-[#171716]"
     aria-label="Navegação principal"
 >
     <x-dashboard.brand />

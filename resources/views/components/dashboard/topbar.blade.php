@@ -1,6 +1,6 @@
 @props(['title' => 'Dashboard'])
 
-<header class="sticky top-0 z-20 border-b border-gray-200/80 bg-[#fafaf9]/85 backdrop-blur-md dark:border-white/10 dark:bg-[#101010]/85">
+<header class="sticky top-0 z-20 border-b border-gray-200/80 bg-[#f4f4f2]/85 backdrop-blur-md dark:border-white/10 dark:bg-[#171716]/85">
     <div class="mx-auto flex h-16 w-full max-w-[1440px] items-center gap-3 px-4 sm:px-6 lg:px-8">
         <x-ui.icon-button
             icon="bars-3"
