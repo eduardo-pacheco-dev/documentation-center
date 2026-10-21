@@ -43,10 +43,9 @@
 
             <x-dashboard.sidebar />
 
-            <div class="flex min-h-screen min-w-0 flex-col">
-                <x-dashboard.topbar :title="$title" />
+            <div class="flex py-4 min-h-screen min-w-0 flex-col ">
 
-                <main class="mx-auto w-full max-w-[1440px] flex-1 px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
+                <main class="mx-auto w-full max-w-[1440px] flex-1 px-4 py-6 sm:px-6 sm:py-8 lg:px-8 bg-white rounded-xl">
                     @if (session('status'))
                         <noscript>
                             <div class="mb-6 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800 dark:border-green-900 dark:bg-green-950 dark:text-green-300">
