@@ -365,3 +365,28 @@ test('the dashboard only surfaces the signed in user work orders', function () {
         ->assertSee('OS-8002')
         ->assertDontSee('OS-8003');
 });
+
+test('the dashboard monthly series only counts the user work orders from the last six months', function () {
+    $user = User::factory()->create();
+
+    WorkOrder::factory()->for($user)->create([
+        'created_at' => now()->startOfMonth()->addDay(),
+    ]);
+    WorkOrder::factory()->for($user)->create([
+        'created_at' => now()->startOfMonth()->subMonths(2)->addDay(),
+    ]);
+    WorkOrder::factory()->for($user)->create([
+        'created_at' => now()->startOfMonth()->subMonths(6)->addDay(),
+    ]);
+    WorkOrder::factory()->create([
+        'created_at' => now()->startOfMonth()->addDay(),
+    ]);
+
+    $this->actingAs($user)
+        ->get('/admin')
+        ->assertOk()
+        ->assertViewHas('monthlyWorkOrders', function (array $series): bool {
+            return count($series) === 6
+                && collect($series)->sum('count') === 2;
+        });
+});

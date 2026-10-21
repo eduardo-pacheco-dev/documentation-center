@@ -64,7 +64,35 @@ class DashboardController extends Controller
                 ->latest('created_at')
                 ->take(5)
                 ->get(),
+            'monthlyWorkOrders' => $this->monthlyWorkOrderSeries($user),
         ]);
+    }
+
+    /**
+     * Build the work order count series for the last six months.
+     *
+     * @return array<int, array{label: string, count: int}>
+     */
+    private function monthlyWorkOrderSeries(User $user): array
+    {
+        $currentMonth = now()->startOfMonth();
+
+        $counts = WorkOrder::query()
+            ->ownedBy($user)
+            ->where('created_at', '>=', $currentMonth->copy()->subMonths(5))
+            ->get(['created_at'])
+            ->countBy(fn (WorkOrder $workOrder): string => $workOrder->created_at->format('Y-m'));
+
+        return collect(range(5, 0))
+            ->map(function (int $offset) use ($counts, $currentMonth): array {
+                $month = $currentMonth->copy()->subMonths($offset);
+
+                return [
+                    'label' => $month->locale('pt_BR')->translatedFormat('M'),
+                    'count' => (int) $counts->get($month->format('Y-m'), 0),
+                ];
+            })
+            ->all();
     }
 
     /**
