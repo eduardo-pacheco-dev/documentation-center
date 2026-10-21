@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 440" fill="none" role="img" aria-labelledby="erbTitle erbDesc">
+    <title id="erbTitle">Estação rádio base</title>
+    <desc id="erbDesc">Ilustração de linha de uma torre de telecomunicações com antenas setoriais, ondas de sinal e abrigo de equipamentos.</desc>
+
+    <g transform="translate(0 40)" stroke="#0A1B3D" stroke-opacity="0.3" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M16 362h288" />
+        <path d="M34 362c22-7 44-7 66 0M222 362c20-6 40-6 60 0" stroke-opacity="0.18" />
+
+        <rect x="40" y="328" width="58" height="34" rx="3" />
+        <path d="M40 345h58" stroke-opacity="0.18" />
+        <path d="M52 338h10M52 344h10" stroke-opacity="0.3" />
+
+        <path d="M160 58 98 362M160 58l62 304" />
+        <path d="M149 110h22M137 164h46M126 218h68M114 272h92M102 326h116" />
+        <path d="M149 110l34 54M171 110l-34 54M137 164l45 54M183 164l-45 54M126 218l56 54M194 218l-56 54M114 272l55 54M206 272l-55 54" />
+
+        <path d="M136 88h48" />
+        <path d="M131 78v10M160 78v10M189 78v10" stroke-opacity="0.45" />
+
+        <rect x="126" y="54" width="10" height="24" rx="2" />
+        <rect x="155" y="46" width="10" height="32" rx="2" />
+        <rect x="184" y="54" width="10" height="24" rx="2" />
+        <path d="M138 62h17M167 58h17" stroke-opacity="0.5" />
+
+        <ellipse cx="208" cy="118" rx="13" ry="10" />
+        <path d="M195 118l-24 5" />
+
+        <path d="M160 36V16" />
+        <circle cx="160" cy="10" r="3" fill="#0A1B3D" fill-opacity="0.35" stroke="none" />
+
+        <path d="M118 20a46 46 0 0 1 84 0" stroke-opacity="0.4" />
+        <path d="M130 30a32 32 0 0 1 60 0" stroke-opacity="0.6" />
+        <path d="M142 40a18 18 0 0 1 36 0" />
+    </g>
+</svg>

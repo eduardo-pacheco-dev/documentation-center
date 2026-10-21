@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 310" fill="none" role="img" aria-labelledby="satTitle satDesc">
+    <title id="satTitle">Satélite de telecomunicações</title>
+    <desc id="satDesc">Ilustração de linha de um satélite com painéis solares em órbita, transmitindo sinal para a Terra.</desc>
+
+    <g stroke="#1F73E8" stroke-opacity="0.3" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <ellipse cx="180" cy="148" rx="154" ry="82" stroke-dasharray="4 9" stroke-opacity="0.22" transform="rotate(-12 180 148)" />
+
+        <path d="M18 300c40-62 96-94 162-94s122 32 162 94" fill="#1F73E8" fill-opacity="0.04" stroke-opacity="0.25" />
+        <path d="M88 258c26-14 58-22 92-22s66 8 92 22" stroke-opacity="0.12" />
+        <path d="M130 286c14-10 31-16 50-16s36 6 50 16" stroke-opacity="0.12" />
+        <path d="M180 206v94M138 214c-12 22-18 48-16 78M222 214c12 22 18 48 16 78" stroke-opacity="0.12" />
+
+        <path d="M218 196c16 20 24 34 27 50" stroke-dasharray="3 7" stroke-opacity="0.3" />
+        <path d="M138 196c-16 20-24 34-27 50" stroke-dasharray="3 7" stroke-opacity="0.18" />
+
+        <g transform="rotate(-12 180 138)">
+            <rect x="42" y="118" width="92" height="42" rx="3" />
+            <path d="M65 118v42M88 118v42M111 118v42M42 139h92" stroke-opacity="0.16" />
+            <rect x="226" y="118" width="92" height="42" rx="3" />
+            <path d="M249 118v42M272 118v42M295 118v42M226 139h92" stroke-opacity="0.16" />
+
+            <path d="M134 139h22M204 139h22" />
+
+            <rect x="156" y="104" width="48" height="70" rx="8" />
+            <path d="M156 126h48M156 152h48" stroke-opacity="0.18" />
+
+            <path d="M158 104V88a22 22 0 0 1 44 0v16" />
+            <path d="M180 66v10" />
+            <path d="M202 70a26 26 0 0 1 0 24" stroke-opacity="0.55" />
+            <path d="M212 62a40 40 0 0 1 0 40" stroke-opacity="0.3" />
+
+            <path d="M180 174v14" />
+            <circle cx="180" cy="194" r="3" fill="#1F73E8" fill-opacity="0.35" stroke="none" />
+            <path d="M156 166h-8M204 166h8" stroke-opacity="0.3" />
+        </g>
+
+        <path d="M44 54h12M50 48v12" stroke-opacity="0.25" />
+        <path d="M306 96h10M311 91v10" stroke-opacity="0.25" />
+    </g>
+</svg>

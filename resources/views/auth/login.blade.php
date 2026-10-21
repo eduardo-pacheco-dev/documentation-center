@@ -1,44 +1,22 @@
 <x-layouts.auth title="Entrar">
     <div aria-hidden="true" class="pointer-events-none absolute inset-0 hidden overflow-hidden lg:block">
-        <div class="absolute -left-28 top-16 h-80 w-80 rounded-full bg-brand-navy/10 blur-2xl"></div>
-        <div class="absolute left-20 top-1/3 h-20 w-20 rotate-12 rounded-3xl border-2 border-brand-navy/20"></div>
+        <div class="absolute -left-28 bottom-16 h-80 w-80 rounded-full bg-brand-navy/10 blur-2xl"></div>
 
-        <svg class="absolute left-2 top-1/2 h-52 w-52 -translate-y-1/2 text-brand-navy/25 lg:left-4 xl:left-[8%] xl:h-72 xl:w-72" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 200 240" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M72 36a40 40 0 0 1 56 0" opacity="0.45" />
-            <path d="M84 48a24 24 0 0 1 32 0" opacity="0.7" />
-            <path d="M93 60a10 10 0 0 1 14 0" />
-            <path d="M100 20v20" />
-            <circle cx="100" cy="15" r="2.5" />
-            <path d="M100 40 56 212M100 40l44 172" />
-            <path d="M87 90h26M78 124h44M70 158h60M61 192h78" />
-            <path d="M87 90l35 34M113 90l-35 34M78 124l52 34M122 124l-52 34M70 158l69 34M130 158l-69 34" />
-            <path d="M40 212h120" />
-            <path d="M30 70h10M35 65v10" opacity="0.35" />
-        </svg>
+        <img
+            src="{{ asset('images/auth/erb-illustration.svg') }}"
+            alt=""
+            aria-hidden="true"
+            class="absolute bottom-6 left-2 h-52 w-auto lg:bottom-10 lg:left-4 xl:h-64 2xl:bottom-16 2xl:left-[8%] 2xl:h-72"
+        />
 
-        <div class="absolute -right-24 bottom-10 h-80 w-80 rounded-full bg-secondary-blue-400/10 blur-2xl"></div>
-        <div class="absolute right-24 top-1/4 h-28 w-28 -rotate-12 rounded-full border-2 border-secondary-blue-400/20"></div>
+        <div class="absolute -right-24 top-10 h-80 w-80 rounded-full bg-secondary-blue-400/10 blur-2xl"></div>
 
-        <svg class="absolute right-2 top-1/2 h-52 w-52 -translate-y-1/2 text-secondary-blue-400/30 lg:right-4 xl:right-[8%] xl:h-72 xl:w-72" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 240 220" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-            <g transform="rotate(-14 120 112)">
-                <ellipse cx="120" cy="112" rx="106" ry="64" stroke-dasharray="3 8" opacity="0.5" />
-                <rect x="103" y="88" width="34" height="48" rx="6" />
-                <path d="M103 100h34M103 124h34" opacity="0.6" />
-                <rect x="34" y="96" width="58" height="32" rx="2" />
-                <path d="M48 96v32M63 96v32M78 96v32M34 112h58" opacity="0.6" />
-                <rect x="148" y="96" width="58" height="32" rx="2" />
-                <path d="M162 96v32M177 96v32M192 96v32M148 112h58" opacity="0.6" />
-                <path d="M92 112h11M137 112h11" />
-                <path d="M108 88V76a12 12 0 0 1 24 0v12" />
-                <path d="M120 58v6" />
-                <path d="M136 62a22 22 0 0 1 0 20" opacity="0.6" />
-                <path d="M146 54a36 36 0 0 1 0 36" opacity="0.4" />
-                <path d="M120 136v12" />
-                <circle cx="120" cy="152" r="2.5" />
-            </g>
-            <path d="M24 40h10M29 35v10" opacity="0.35" />
-            <path d="M206 178h10M211 173v10" opacity="0.35" />
-        </svg>
+        <img
+            src="{{ asset('images/auth/satellite-illustration.svg') }}"
+            alt=""
+            aria-hidden="true"
+            class="absolute right-2 top-6 h-44 w-auto lg:right-4 lg:top-10 xl:h-56 2xl:right-[8%] 2xl:top-16 2xl:h-72"
+        />
     </div>
 
     <div class="relative w-full max-w-[550px]">
