@@ -34,10 +34,10 @@
                 alt="AFL Engenharia"
                 width="640"
                 height="437"
-                class="auth-logo h-24 w-auto object-contain mix-blend-multiply sm:h-28"
+                class="auth-logo h-20 w-auto object-contain mix-blend-multiply sm:h-24 md:h-28"
             />
 
-            <h1 class="auth-reveal mt-6 text-sb24 text-grey-15 sm:text-sb32" style="--auth-delay: 120ms">Entrar</h1>
+            <h1 class="auth-reveal mt-5 text-sb24 text-grey-15 sm:mt-6 sm:text-sb32" style="--auth-delay: 120ms">Entrar</h1>
             <p class="auth-reveal mt-2 text-[15px] text-grey-45" style="--auth-delay: 200ms">para continuar na sua conta</p>
         </div>
 
@@ -49,7 +49,7 @@
             </noscript>
         @endif
 
-        <form method="POST" action="{{ route('login') }}" data-login-form class="mt-9 space-y-5">
+        <form method="POST" action="{{ route('login') }}" data-login-form class="mt-7 space-y-4 sm:mt-9 sm:space-y-5">
             @csrf
 
             <div class="auth-reveal" style="--auth-delay: 260ms">
@@ -65,14 +65,14 @@
                     autofocus
                     enterkeyhint="next"
                     @error('email') aria-invalid="true" aria-describedby="email-error" @enderror
-                    class="block w-full rounded-s border border-grey-80 bg-grey-100 py-3 pl-3 pr-2 text-[15px] text-grey-15 shadow-[0_1px_2px_rgba(31,31,31,0.04)] outline-none transition placeholder:text-grey-65 focus:border-secondary-blue-400 focus:ring-4 focus:ring-secondary-blue-400/15 @error('email') border-red-500 focus:border-red-500 focus:ring-red-500/15 @enderror"
+                    class="block w-full rounded-s border border-grey-80 bg-grey-100 py-3 pl-3 pr-2 text-base text-grey-15 shadow-[0_1px_2px_rgba(31,31,31,0.04)] outline-none transition placeholder:text-grey-65 focus:border-secondary-blue-400 focus:ring-4 focus:ring-secondary-blue-400/15 sm:text-[15px] @error('email') border-red-500 focus:border-red-500 focus:ring-red-500/15 @enderror"
                 />
                 @error('email')
                     <p id="email-error" class="mt-2 text-sm text-red-600">{{ $message }}</p>
                 @enderror
             </div>
 
-            <div data-password-step class="space-y-5" hidden>
+            <div data-password-step class="space-y-4 sm:space-y-5" hidden>
                 <div>
                     <label for="password" class="mb-2 block text-sm font-semibold text-grey-15">Senha</label>
                     <div class="relative">
@@ -85,7 +85,7 @@
                             required
                             enterkeyhint="go"
                             @error('password') aria-invalid="true" aria-describedby="password-error" @enderror
-                            class="block w-full rounded-s border border-grey-80 bg-grey-100 py-3 pl-3 pr-12 text-[15px] text-grey-15 shadow-[0_1px_2px_rgba(31,31,31,0.04)] outline-none transition placeholder:text-grey-65 focus:border-secondary-blue-400 focus:ring-4 focus:ring-secondary-blue-400/15 @error('password') border-red-500 focus:border-red-500 focus:ring-red-500/15 @enderror"
+                            class="block w-full rounded-s border border-grey-80 bg-grey-100 py-3 pl-3 pr-12 text-base text-grey-15 shadow-[0_1px_2px_rgba(31,31,31,0.04)] outline-none transition placeholder:text-grey-65 focus:border-secondary-blue-400 focus:ring-4 focus:ring-secondary-blue-400/15 sm:text-[15px] @error('password') border-red-500 focus:border-red-500 focus:ring-red-500/15 @enderror"
                         />
                         <button
                             type="button"
@@ -125,7 +125,7 @@
             </button>
         </form>
 
-        <div class="auth-reveal mt-8 border-t border-grey-90 pt-6 text-center text-sm text-grey-45" style="--auth-delay: 580ms">
+        <div class="auth-reveal mt-6 border-t border-grey-90 pt-6 text-center text-sm text-grey-45 sm:mt-8" style="--auth-delay: 580ms">
             <p>
                 Não tem uma conta?
                 <a href="{{ route('register') }}" class="font-semibold text-secondary-blue-400 transition hover:text-secondary-blue-500 hover:underline">Cadastre-se</a>
