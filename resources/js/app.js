@@ -619,7 +619,7 @@ const PasswordVisibility = (() => {
 
         input.type = isPassword ? 'text' : 'password';
         button.setAttribute('aria-pressed', isPassword ? 'true' : 'false');
-        button.setAttribute('aria-label', isPassword ? 'Hide password' : 'Show password');
+        button.setAttribute('aria-label', isPassword ? 'Ocultar senha' : 'Mostrar senha');
 
         const iconToHide = isPassword ? 'visible' : 'hidden';
 
