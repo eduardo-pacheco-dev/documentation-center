@@ -1,94 +1,139 @@
-<x-layouts.app title="Criar conta">
-    <div class="relative overflow-hidden rounded-3xl border border-gray-200/70 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900">
-        <div class="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-indigo-500 via-violet-500 to-sky-500"></div>
-        <div class="absolute -top-40 right-[-20%] h-80 w-80 rounded-full bg-indigo-500/10 blur-3xl dark:bg-indigo-500/20"></div>
-        <div class="absolute -bottom-40 left-[-20%] h-80 w-80 rounded-full bg-violet-500/10 blur-3xl dark:bg-violet-500/20"></div>
+<x-layouts.auth title="Criar conta">
+    <x-auth-illustrations />
 
-        <div class="relative p-8 sm:p-10">
-            <div class="flex flex-col items-center text-center">
-                <span class="inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-600 shadow-sm ring-1 ring-indigo-600/10 dark:bg-indigo-500/10 dark:text-indigo-400 dark:ring-indigo-400/20">
-                    <x-icon name="user-plus" class="h-7 w-7" />
-                </span>
-                <h1 class="mt-6 text-2xl font-semibold tracking-tight text-gray-900 dark:text-gray-100">Criar conta</h1>
-                <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">Cadastre-se para acessar o painel administrativo.</p>
+    <div class="relative w-full max-w-[550px]">
+        <div class="flex flex-col items-center text-center">
+            <img
+                src="{{ asset('images/auth/logo.jpg') }}"
+                alt="AFL Engenharia"
+                width="640"
+                height="437"
+                class="auth-logo h-20 w-auto object-contain mix-blend-multiply sm:h-24 md:h-28"
+            />
+
+            <h1 class="auth-reveal mt-5 text-sb24 text-grey-15 sm:mt-6 sm:text-sb32" style="--auth-delay: 120ms">Criar conta</h1>
+            <p class="auth-reveal mt-2 text-[15px] text-grey-45" style="--auth-delay: 200ms">para acessar o painel administrativo</p>
+        </div>
+
+        <form method="POST" action="{{ route('register') }}" class="mt-7 space-y-4 sm:mt-9 sm:space-y-5">
+            @csrf
+
+            <div class="auth-reveal" style="--auth-delay: 260ms">
+                <label for="name" class="mb-2 block text-sm font-semibold text-grey-15">Nome completo</label>
+                <input
+                    id="name"
+                    name="name"
+                    type="text"
+                    autocomplete="name"
+                    value="{{ old('name') }}"
+                    placeholder="Digite seu nome completo"
+                    required
+                    autofocus
+                    enterkeyhint="next"
+                    @error('name') aria-invalid="true" aria-describedby="name-error" @enderror
+                    class="block w-full rounded-s border border-grey-80 bg-grey-100 py-3 pl-3 pr-2 text-base text-grey-15 shadow-[0_1px_2px_rgba(31,31,31,0.04)] outline-none transition placeholder:text-grey-65 focus:border-secondary-blue-400 focus:ring-4 focus:ring-secondary-blue-400/15 sm:text-[15px] @error('name') border-red-500 focus:border-red-500 focus:ring-red-500/15 @enderror"
+                />
+                @error('name')
+                    <p id="name-error" class="mt-2 text-sm text-red-600">{{ $message }}</p>
+                @enderror
             </div>
 
-            <form method="POST" action="{{ route('register') }}" class="mt-8 space-y-5">
-                @csrf
+            <div class="auth-reveal" style="--auth-delay: 340ms">
+                <label for="email" class="mb-2 block text-sm font-semibold text-grey-15">E-mail</label>
+                <input
+                    id="email"
+                    name="email"
+                    type="email"
+                    autocomplete="email"
+                    value="{{ old('email') }}"
+                    placeholder="Digite seu e-mail"
+                    required
+                    enterkeyhint="next"
+                    @error('email') aria-invalid="true" aria-describedby="email-error" @enderror
+                    class="block w-full rounded-s border border-grey-80 bg-grey-100 py-3 pl-3 pr-2 text-base text-grey-15 shadow-[0_1px_2px_rgba(31,31,31,0.04)] outline-none transition placeholder:text-grey-65 focus:border-secondary-blue-400 focus:ring-4 focus:ring-secondary-blue-400/15 sm:text-[15px] @error('email') border-red-500 focus:border-red-500 focus:ring-red-500/15 @enderror"
+                />
+                @error('email')
+                    <p id="email-error" class="mt-2 text-sm text-red-600">{{ $message }}</p>
+                @enderror
+            </div>
 
-                <div>
-                    <label for="name" class="block text-sm font-medium text-gray-700 dark:text-gray-200">Nome completo</label>
-                    <input
-                        id="name"
-                        name="name"
-                        type="text"
-                        autocomplete="name"
-                        value="{{ old('name') }}"
-                        required
-                        autofocus
-                        class="mt-1 block w-full rounded-2xl border border-gray-300 bg-white px-3 py-2.5 text-sm shadow-sm transition placeholder:text-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 dark:border-gray-700 dark:bg-gray-900 dark:placeholder:text-gray-500 dark:focus:border-indigo-400 dark:focus:ring-indigo-400/30"
-                    />
-                    @error('name')
-                        <p class="mt-2 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
-                    @enderror
-                </div>
-
-                <div>
-                    <label for="email" class="block text-sm font-medium text-gray-700 dark:text-gray-200">E-mail</label>
-                    <input
-                        id="email"
-                        name="email"
-                        type="email"
-                        autocomplete="email"
-                        value="{{ old('email') }}"
-                        required
-                        class="mt-1 block w-full rounded-2xl border border-gray-300 bg-white px-3 py-2.5 text-sm shadow-sm transition placeholder:text-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 dark:border-gray-700 dark:bg-gray-900 dark:placeholder:text-gray-500 dark:focus:border-indigo-400 dark:focus:ring-indigo-400/30"
-                    />
-                    @error('email')
-                        <p class="mt-2 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
-                    @enderror
-                </div>
-
-                <div>
-                    <label for="password" class="block text-sm font-medium text-gray-700 dark:text-gray-200">Senha</label>
+            <div class="auth-reveal" style="--auth-delay: 420ms">
+                <label for="password" class="mb-2 block text-sm font-semibold text-grey-15">Senha</label>
+                <div class="relative">
                     <input
                         id="password"
                         name="password"
                         type="password"
                         autocomplete="new-password"
+                        placeholder="Crie uma senha"
                         required
-                        class="mt-1 block w-full rounded-2xl border border-gray-300 bg-white px-3 py-2.5 text-sm shadow-sm transition placeholder:text-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 dark:border-gray-700 dark:bg-gray-900 dark:placeholder:text-gray-500 dark:focus:border-indigo-400 dark:focus:ring-indigo-400/30"
+                        enterkeyhint="next"
+                        @error('password') aria-invalid="true" aria-describedby="password-error" @enderror
+                        class="block w-full rounded-s border border-grey-80 bg-grey-100 py-3 pl-3 pr-12 text-base text-grey-15 shadow-[0_1px_2px_rgba(31,31,31,0.04)] outline-none transition placeholder:text-grey-65 focus:border-secondary-blue-400 focus:ring-4 focus:ring-secondary-blue-400/15 sm:text-[15px] @error('password') border-red-500 focus:border-red-500 focus:ring-red-500/15 @enderror"
                     />
-                    @error('password')
-                        <p class="mt-2 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
-                    @enderror
+                    <button
+                        type="button"
+                        data-password-toggle="password"
+                        aria-controls="password"
+                        aria-pressed="false"
+                        aria-label="Mostrar senha"
+                        class="absolute inset-y-0 right-1 flex w-11 items-center justify-center rounded-s text-grey-45 transition hover:text-grey-15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary-blue-400/40 active:scale-90"
+                    >
+                        <x-icon name="eye" data-password-icon="visible" class="h-5 w-5" />
+                        <x-icon name="eye-slash" data-password-icon="hidden" class="hidden h-5 w-5" />
+                    </button>
                 </div>
+                @error('password')
+                    <p id="password-error" class="mt-2 text-sm text-red-600">{{ $message }}</p>
+                @enderror
+            </div>
 
-                <div>
-                    <label for="password_confirmation" class="block text-sm font-medium text-gray-700 dark:text-gray-200">Confirmar senha</label>
+            <div class="auth-reveal" style="--auth-delay: 500ms">
+                <label for="password_confirmation" class="mb-2 block text-sm font-semibold text-grey-15">Confirmar senha</label>
+                <div class="relative">
                     <input
                         id="password_confirmation"
                         name="password_confirmation"
                         type="password"
                         autocomplete="new-password"
+                        placeholder="Repita a senha"
                         required
-                        class="mt-1 block w-full rounded-2xl border border-gray-300 bg-white px-3 py-2.5 text-sm shadow-sm transition placeholder:text-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 dark:border-gray-700 dark:bg-gray-900 dark:placeholder:text-gray-500 dark:focus:border-indigo-400 dark:focus:ring-indigo-400/30"
+                        enterkeyhint="done"
+                        @error('password_confirmation') aria-invalid="true" aria-describedby="password-confirmation-error" @enderror
+                        class="block w-full rounded-s border border-grey-80 bg-grey-100 py-3 pl-3 pr-12 text-base text-grey-15 shadow-[0_1px_2px_rgba(31,31,31,0.04)] outline-none transition placeholder:text-grey-65 focus:border-secondary-blue-400 focus:ring-4 focus:ring-secondary-blue-400/15 sm:text-[15px] @error('password_confirmation') border-red-500 focus:border-red-500 focus:ring-red-500/15 @enderror"
                     />
+                    <button
+                        type="button"
+                        data-password-toggle="password_confirmation"
+                        aria-controls="password_confirmation"
+                        aria-pressed="false"
+                        aria-label="Mostrar senha"
+                        class="absolute inset-y-0 right-1 flex w-11 items-center justify-center rounded-s text-grey-45 transition hover:text-grey-15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary-blue-400/40 active:scale-90"
+                    >
+                        <x-icon name="eye" data-password-icon="visible" class="h-5 w-5" />
+                        <x-icon name="eye-slash" data-password-icon="hidden" class="hidden h-5 w-5" />
+                    </button>
                 </div>
+                @error('password_confirmation')
+                    <p id="password-confirmation-error" class="mt-2 text-sm text-red-600">{{ $message }}</p>
+                @enderror
+            </div>
 
-                <button
-                    type="submit"
-                    class="group relative inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-gray-900"
-                >
-                    <span>Criar conta</span>
-                    <x-icon name="arrow-right" class="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
-                </button>
-            </form>
+            <button
+                type="submit"
+                data-register-submit
+                style="--auth-delay: 580ms"
+                class="auth-reveal inline-flex w-full cursor-pointer items-center justify-center rounded-sm border border-transparent bg-secondary-blue-400 px-4 py-3 text-[15px] font-semibold text-white shadow-[0_8px_20px_rgba(31,115,232,0.24)] transition duration-200 hover:-translate-y-0.5 hover:bg-secondary-blue-500 hover:shadow-[0_12px_26px_rgba(31,115,232,0.3)] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-secondary-blue-400/25 active:translate-y-0 active:scale-[0.99] disabled:cursor-not-allowed disabled:border-grey-80 disabled:bg-grey-90 disabled:text-grey-65 disabled:shadow-none disabled:hover:translate-y-0"
+            >
+                Criar conta
+            </button>
+        </form>
 
-            <p class="mt-8 text-center text-sm text-gray-500 dark:text-gray-400">
+        <div class="auth-reveal mt-6 border-t border-grey-90 pt-6 text-center text-sm text-grey-45 sm:mt-8" style="--auth-delay: 660ms">
+            <p>
                 Já tem uma conta?
-                <a href="{{ route('login') }}" class="font-medium text-indigo-600 transition hover:text-indigo-500 dark:text-indigo-400 dark:hover:text-indigo-300">Entrar</a>
+                <a href="{{ route('login') }}" class="font-semibold text-secondary-blue-400 transition hover:text-secondary-blue-500 hover:underline">Entrar</a>
             </p>
         </div>
     </div>
-</x-layouts.app>
+</x-layouts.auth>
