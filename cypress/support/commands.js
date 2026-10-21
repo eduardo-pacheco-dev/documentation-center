@@ -31,12 +31,20 @@ Cypress.Commands.add('uiLogin', (email, password, { remember = false } = {}) => 
 });
 
 /**
- * Sign out through the account dropdown in the admin header.
+ * Sign out through the sidebar account menu.
  *
- * The dropdown is rendered by Alpine (loaded from a CDN), so the final click is
- * forced: it still submits the real form even if the menu never opened.
+ * On small viewports the sidebar starts behind the mobile menu trigger, so it
+ * has to be opened before the account menu is reachable.
  */
 Cypress.Commands.add('uiLogout', () => {
-    cy.get('header button:has(img)').click();
+    cy.get('body').then(($body) => {
+        const trigger = $body.find('button[aria-label="Abrir menu"]:visible');
+
+        if (trigger.length) {
+            cy.wrap(trigger).click();
+        }
+    });
+
+    cy.get('aside button[aria-label="Menu do usuário"]').click({ force: true });
     cy.get('form[action$="/logout"] button[type="submit"]').click({ force: true });
 });

@@ -13,7 +13,7 @@ export const loginForm = () => cy.get('form[action$="/login"]');
 /** The registration form. */
 export const registerForm = () => cy.get('form[action$="/register"]');
 
-/** The logout form inside the admin header dropdown. */
+/** The logout form inside the sidebar account menu. */
 export const logoutForm = () => cy.get('form[action$="/logout"]');
 
 // Dashboard.

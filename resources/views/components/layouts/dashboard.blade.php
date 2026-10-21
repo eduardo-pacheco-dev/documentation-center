@@ -44,6 +44,17 @@
             <x-dashboard.sidebar />
 
             <div class="mr-4 flex min-h-screen min-w-0 flex-1 flex-col py-4">
+                <div class="mb-2 flex items-center gap-2 px-1 lg:hidden">
+                    <button
+                        type="button"
+                        @click="sidebarOpen = true"
+                        aria-label="Abrir menu"
+                        class="inline-flex h-9 w-9 items-center justify-center rounded-lg text-gray-500 transition hover:bg-gray-200/70 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-white/10 dark:hover:text-white"
+                    >
+                        <x-icon name="bars-3" class="h-5 w-5" />
+                    </button>
+                    <span class="truncate text-sm font-semibold text-gray-700 dark:text-gray-200">{{ $title }}</span>
+                </div>
 
                 <main class="w-full flex-1 rounded-xl bg-white px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
                     @if (session('status'))
