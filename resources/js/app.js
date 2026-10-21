@@ -606,3 +606,86 @@ window.documentPicker = window.documentPicker || function (options = {}) {
         },
     };
 };
+
+const PasswordVisibility = (() => {
+    const toggle = (button) => {
+        const input = document.getElementById(button.dataset.passwordToggle);
+
+        if (!input) {
+            return;
+        }
+
+        const isPassword = input.type === 'password';
+
+        input.type = isPassword ? 'text' : 'password';
+        button.setAttribute('aria-pressed', isPassword ? 'true' : 'false');
+        button.setAttribute('aria-label', isPassword ? 'Hide password' : 'Show password');
+
+        const iconToHide = isPassword ? 'visible' : 'hidden';
+
+        button.querySelectorAll('[data-password-icon]').forEach((icon) => {
+            icon.classList.toggle('hidden', icon.dataset.passwordIcon === iconToHide);
+        });
+    };
+
+    document.addEventListener('click', (event) => {
+        const button = event.target.closest('[data-password-toggle]');
+
+        if (!button) {
+            return;
+        }
+
+        event.preventDefault();
+        toggle(button);
+    });
+
+    return { toggle };
+})();
+
+const LoginForm = (() => {
+    const sync = (form) => {
+        const button = form.querySelector('[data-login-submit]');
+
+        if (!button) {
+            return;
+        }
+
+        const fields = Array.from(form.querySelectorAll('[data-login-required]'));
+
+        button.disabled = fields.some((field) => field.value.trim() === '');
+    };
+
+    document.addEventListener('input', (event) => {
+        const form = event.target.closest('[data-login-form]');
+
+        if (form) {
+            sync(form);
+        }
+    });
+
+    document.addEventListener('change', (event) => {
+        const form = event.target.closest('[data-login-form]');
+
+        if (form) {
+            sync(form);
+        }
+    });
+
+    document.addEventListener('submit', (event) => {
+        if (!event.target.matches('[data-login-form]')) {
+            return;
+        }
+
+        sync(event.target);
+
+        const button = event.target.querySelector('[data-login-submit]');
+
+        if (button) {
+            button.disabled = true;
+        }
+    });
+
+    document.querySelectorAll('[data-login-form]').forEach(sync);
+
+    return { sync };
+})();

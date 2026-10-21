@@ -68,6 +68,12 @@
         </svg>
     @break
 
+    @case('eye-slash')
+        <svg {{ $attributes->merge(['class' => 'h-4 w-4']) }} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M3 3l18 18M10.584 10.587a2.25 2.25 0 0 0 3.182 3.183M9.363 5.365A9.466 9.466 0 0 1 12 5.25c4.638 0 8.573 3.007 9.963 7.178a1.012 1.012 0 0 1 0 .639 10.47 10.47 0 0 1-2.54 4.09M6.228 6.228A10.46 10.46 0 0 0 2.037 11.36a1.012 1.012 0 0 0 0 .639c1.39 4.17 5.325 7.178 9.963 7.178 1.53 0 2.98-.33 4.29-.926"/>
+        </svg>
+    @break
+
     @case('document')
         <svg {{ $attributes->merge(['class' => 'h-4 w-4']) }} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
             <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z"/>
