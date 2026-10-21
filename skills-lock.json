@@ -1,6 +1,12 @@
 {
   "version": 1,
   "skills": {
+    "SVG Logo Designer": {
+      "source": "rknall/claude-skills",
+      "sourceType": "github",
+      "skillPath": "svg-logo-designer/SKILL.md",
+      "computedHash": "a4733318997e024c77f9bc585581d924d8444d45295e21ef0d77bd569fcbafd9"
+    },
     "api-design-principles": {
       "source": "wshobson/agents",
       "sourceType": "github",
@@ -12,6 +18,12 @@
       "sourceType": "github",
       "skillPath": "skills/clean-code/SKILL.md",
       "computedHash": "ecb074627f5814074396754dd684002fdd1b9635ce08e9d2bccb692ef829b78a"
+    },
+    "create-svg-illustrations": {
+      "source": "narumiruna/skills",
+      "sourceType": "github",
+      "skillPath": "skills/optional/create-svg-illustrations/SKILL.md",
+      "computedHash": "3c021274b5c070e293a1ee5dcff97a06c1b5337729a631515e33f5109ce2226e"
     },
     "design-system": {
       "source": "nextlevelbuilder/ui-ux-pro-max-skill",

@@ -78,6 +78,32 @@ test('registration requires a unique email and a confirmed password', function (
     $this->assertGuest();
 });
 
+test('login page displays field validation errors', function () {
+    $response = $this->followingRedirects()->from('/login')->post('/login', [
+        'email' => 'not-an-email',
+        'password' => '',
+    ]);
+
+    $response->assertOk();
+    $response->assertSee('value="not-an-email"', false);
+    $response->assertSee('id="email-error"', false);
+    $response->assertSee('aria-invalid="true"', false);
+});
+
+test('registration page displays field validation errors', function () {
+    $response = $this->followingRedirects()->from('/register')->post('/register', [
+        'name' => '',
+        'email' => 'not-an-email',
+        'password' => 'password',
+        'password_confirmation' => 'different-password',
+    ]);
+
+    $response->assertOk();
+    $response->assertSee('id="name-error"', false);
+    $response->assertSee('id="email-error"', false);
+    $response->assertSee('id="password-error"', false);
+});
+
 test('users can log out', function () {
     $user = User::factory()->create();
 
