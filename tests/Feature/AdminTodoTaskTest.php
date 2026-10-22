@@ -151,7 +151,8 @@ it('creates a task inside one of the user lists', function () {
             'due_at' => today()->toDateString(),
             'is_important' => '1',
         ])
-        ->assertRedirect(route('admin.tasks.index'));
+        ->assertRedirect(route('admin.tasks.index'))
+        ->assertSessionHas('status', 'Tarefa criada com sucesso.');
 
     $this->assertDatabaseHas('todo_tasks', [
         'user_id' => $user->getKey(),

@@ -173,7 +173,7 @@ class TodoTaskController extends Controller
             'position' => (int) $list->tasks()->max('position') + 1,
         ]);
 
-        return back()->with('status', 'Tarefa criada.');
+        return back()->with('status', 'Tarefa criada com sucesso.');
     }
 
     /**
