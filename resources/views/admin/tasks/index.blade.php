@@ -217,7 +217,7 @@
                     </div>
                 @else
                     <div class="{{ $panel }} overflow-hidden">
-                        <ul class="divide-y divide-gray-100 dark:divide-white/10">
+                        <ul class="max-h-[24rem] divide-y divide-gray-100 overflow-y-auto dark:divide-white/10">
                             @foreach ($tasks as $task)
                                 @include('admin.tasks.partials.task-row', ['task' => $task])
                             @endforeach
@@ -242,7 +242,7 @@
                             </span>
                         </button>
 
-                        <ul x-show="open" x-cloak class="divide-y divide-gray-100 border-t border-gray-100 dark:divide-white/10 dark:border-white/10">
+                        <ul x-show="open" x-cloak class="max-h-[24rem] divide-y divide-gray-100 overflow-y-auto border-t border-gray-100 dark:divide-white/10 dark:border-white/10">
                             @foreach ($completedTasks as $task)
                                 @include('admin.tasks.partials.task-row', ['task' => $task])
                             @endforeach
