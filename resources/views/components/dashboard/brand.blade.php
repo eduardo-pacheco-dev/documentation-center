@@ -1,7 +1,7 @@
 <div class="mb-2 flex w-full items-center gap-2" :class="sidebarExpanded ? 'justify-start' : 'justify-center'">
     <a
         href="{{ route('admin.dashboard') }}"
-        class="inline-flex h-11 w-14 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm transition hover:border-gray-300 dark:border-white/10 dark:bg-white dark:hover:border-white/20"
+        class="inline-flex h-11 w-14 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-gray-200 bg-white transition hover:border-gray-300 dark:border-white/10 dark:bg-white dark:hover:border-white/20"
         aria-label="AFL Engenharia"
     >
         <img

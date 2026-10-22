@@ -9,6 +9,6 @@
     };
 @endphp
 
-<span {{ $attributes->class(['pointer-events-none absolute z-50 whitespace-nowrap rounded-lg bg-gray-900 px-2.5 py-1.5 text-xs font-medium text-white opacity-0 shadow-lg transition group-hover:opacity-100 dark:bg-white dark:text-gray-900', $position]) }}>
+<span {{ $attributes->class(['pointer-events-none absolute z-50 whitespace-nowrap rounded-lg bg-gray-900 px-2.5 py-1.5 text-xs font-medium text-white opacity-0 transition group-hover:opacity-100 dark:bg-white dark:text-gray-900', $position]) }}>
     {{ $slot }}
 </span>

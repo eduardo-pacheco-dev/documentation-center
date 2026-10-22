@@ -7,7 +7,7 @@
 >
     <div class="absolute inset-0 bg-gray-900/50" data-modal-close></div>
 
-    <div class="absolute left-1/2 top-1/2 flex max-h-[90vh] w-full max-w-4xl -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-2xl bg-white shadow-xl dark:bg-gray-900">
+    <div class="absolute left-1/2 top-1/2 flex max-h-[90vh] w-full max-w-4xl -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-2xl bg-white dark:bg-gray-900">
         <div class="flex items-start justify-between gap-4 border-b border-gray-200 px-5 py-4 dark:border-gray-800">
             <div class="min-w-0">
                 <h2 id="preview-modal-title" data-preview-title class="truncate text-sm font-semibold text-gray-900 dark:text-gray-100"></h2>

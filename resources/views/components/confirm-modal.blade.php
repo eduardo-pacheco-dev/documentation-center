@@ -7,7 +7,7 @@
 >
     <div class="absolute inset-0 bg-gray-900/50" data-confirm-cancel></div>
 
-    <div class="absolute left-1/2 top-1/2 w-full max-w-md -translate-x-1/2 -translate-y-1/2 rounded-xl bg-white p-5 shadow-xl dark:bg-gray-900">
+    <div class="absolute left-1/2 top-1/2 w-full max-w-md -translate-x-1/2 -translate-y-1/2 rounded-xl bg-white p-5 dark:bg-gray-900">
         <div class="flex items-start gap-3">
             <span class="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-red-50 text-red-600 dark:bg-red-500/10 dark:text-red-400">
                 <x-icon name="exclamation-triangle" class="h-5 w-5" />
