@@ -4,7 +4,7 @@
     use App\Enums\AgendaReminderMethod;
 
     $label = 'block text-sm font-medium text-gray-700 dark:text-gray-300';
-    $input = 'mt-1 w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 shadow-sm transition focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200';
+    $input = 'mt-1 w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 transition focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200';
     $timezones = [
         'America/Sao_Paulo' => 'Brasília (GMT-3)',
         'America/Manaus' => 'Manaus (GMT-4)',
@@ -33,7 +33,7 @@
 >
     <div class="absolute inset-0 bg-gray-900/50" data-modal-close></div>
 
-    <div class="absolute left-1/2 top-1/2 max-h-[92vh] w-full max-w-lg -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-2xl bg-white p-5 shadow-xl dark:bg-gray-900">
+    <div class="absolute left-1/2 top-1/2 max-h-[92vh] w-full max-w-lg -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-2xl bg-white p-5 dark:bg-gray-900">
         <div class="flex items-start justify-between gap-3">
             <h2 id="agenda-calendar-modal-title" data-agenda-calendar-title class="text-base font-semibold text-gray-900 dark:text-gray-100">Novo calendário</h2>
             <button type="button" data-modal-close class="rounded-lg p-1 text-gray-400 transition hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800" aria-label="Fechar">
@@ -74,12 +74,12 @@
                 <div>
                     <label for="agenda-calendar-reminder-method" class="{{ $label }}">Lembrete padrão</label>
                     <div class="mt-1 flex items-center gap-2">
-                        <select id="agenda-calendar-reminder-method" name="default_reminders[0][method]" class="w-full rounded-xl border border-gray-300 bg-white px-2 py-2 text-sm text-gray-700 shadow-sm dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200">
+                        <select id="agenda-calendar-reminder-method" name="default_reminders[0][method]" class="w-full rounded-xl border border-gray-300 bg-white px-2 py-2 text-sm text-gray-700 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200">
                             @foreach (AgendaReminderMethod::cases() as $method)
                                 <option value="{{ $method->value }}">{{ $method->label() }}</option>
                             @endforeach
                         </select>
-                        <input type="number" min="0" max="40320" name="default_reminders[0][minutes_before]" placeholder="Min" class="w-24 rounded-xl border border-gray-300 bg-white px-2 py-2 text-sm text-gray-700 shadow-sm dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200">
+                        <input type="number" min="0" max="40320" name="default_reminders[0][minutes_before]" placeholder="Min" class="w-24 rounded-xl border border-gray-300 bg-white px-2 py-2 text-sm text-gray-700 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200">
                     </div>
                 </div>
             </div>
@@ -98,17 +98,17 @@
 
             <div class="flex flex-wrap items-center justify-between gap-2 border-t border-gray-100 pt-4 dark:border-gray-800">
                 <div class="flex items-center gap-2">
-                    <button type="submit" class="inline-flex items-center gap-1.5 rounded-2xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-500">
+                    <button type="submit" class="inline-flex items-center gap-1.5 rounded-2xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-indigo-500">
                         <x-icon name="check" class="h-4 w-4" />
                         Salvar
                     </button>
-                    <button type="button" data-modal-close class="inline-flex items-center gap-1.5 rounded-xl border border-gray-200/70 bg-white px-3.5 py-2 text-sm font-semibold text-gray-700 shadow-sm transition hover:border-indigo-200 hover:text-indigo-600 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-200">
+                    <button type="button" data-modal-close class="inline-flex items-center gap-1.5 rounded-xl border border-gray-200/70 bg-white px-3.5 py-2 text-sm font-semibold text-gray-700 transition hover:border-indigo-200 hover:text-indigo-600 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-200">
                         Cancelar
                     </button>
                 </div>
 
                 <div class="flex items-center gap-2" data-agenda-calendar-admin hidden>
-                    <button type="submit" form="agenda-calendar-default-form" class="rounded-xl border border-gray-200/70 bg-white px-3 py-2 text-xs font-semibold text-gray-600 shadow-sm transition hover:text-indigo-600 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-300">
+                    <button type="submit" form="agenda-calendar-default-form" class="rounded-xl border border-gray-200/70 bg-white px-3 py-2 text-xs font-semibold text-gray-600 transition hover:text-indigo-600 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-300">
                         Tornar padrão
                     </button>
                     <button type="submit" form="agenda-calendar-delete-form" class="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs font-semibold text-red-600 transition hover:bg-red-100 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-400">
@@ -134,8 +134,8 @@
 
             <form data-agenda-calendar-share-form method="POST" action="#" class="mt-3 flex flex-wrap items-center gap-2">
                 @csrf
-                <input type="email" name="email" placeholder="email@exemplo.com" required class="min-w-0 flex-1 rounded-xl border border-gray-300 bg-white px-2.5 py-1.5 text-sm text-gray-700 shadow-sm dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200">
-                <select name="role" class="rounded-xl border border-gray-300 bg-white px-2 py-1.5 text-sm text-gray-700 shadow-sm dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200">
+                <input type="email" name="email" placeholder="email@exemplo.com" required class="min-w-0 flex-1 rounded-xl border border-gray-300 bg-white px-2.5 py-1.5 text-sm text-gray-700 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200">
+                <select name="role" class="rounded-xl border border-gray-300 bg-white px-2 py-1.5 text-sm text-gray-700 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200">
                     @foreach (AgendaCalendarRole::assignable() as $role)
                         <option value="{{ $role->value }}">{{ $role->label() }}</option>
                     @endforeach

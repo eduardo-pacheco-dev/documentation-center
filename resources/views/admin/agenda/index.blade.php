@@ -78,7 +78,7 @@
                         name="q"
                         value="{{ $search }}"
                         placeholder="Buscar eventos"
-                        class="w-44 rounded-xl border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-700 shadow-sm transition focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200"
+                        class="w-44 rounded-xl border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-700 transition focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200"
                     >
                 </form>
 

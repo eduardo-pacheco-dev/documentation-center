@@ -2,7 +2,7 @@
     $weekdayLabels = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'];
 @endphp
 
-<div class="overflow-hidden rounded-2xl border border-gray-200/70 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900">
+<div class="overflow-hidden rounded-2xl border border-gray-200/70 bg-white dark:border-gray-800 dark:bg-gray-900">
     <div class="grid grid-cols-7 border-b border-gray-200/70 bg-gray-50/60 text-center text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:border-gray-800 dark:bg-gray-950/40 dark:text-gray-400">
         @foreach ($weekdayLabels as $label)
             <div class="px-2 py-2">{{ $label }}</div>

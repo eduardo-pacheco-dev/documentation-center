@@ -26,7 +26,7 @@
     $hasMoreCalendars = $calendars->count() > $pageSize;
 @endphp
 
-<div class="rounded-2xl border border-gray-200/70 bg-white p-3 shadow-sm dark:border-gray-800 dark:bg-gray-900">
+<div class="rounded-2xl border border-gray-200/70 bg-white p-3 dark:border-gray-800 dark:bg-gray-900">
     <div class="mb-2 flex items-center justify-between">
         <p class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
             {{ ucfirst($date->locale('pt_BR')->translatedFormat('F \d\e Y')) }}
@@ -55,7 +55,7 @@
     </div>
 </div>
 
-<div class="rounded-2xl border border-gray-200/70 bg-white p-3 shadow-sm dark:border-gray-800 dark:bg-gray-900">
+<div class="rounded-2xl border border-gray-200/70 bg-white p-3 dark:border-gray-800 dark:bg-gray-900">
     <div class="mb-2 flex items-center justify-between">
         <p class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Meus calendários</p>
         <button type="button" data-agenda-calendar-create class="rounded-md p-1 text-gray-400 transition hover:text-indigo-600" title="Novo calendário">
@@ -90,11 +90,11 @@
 </div>
 
 @if ($writableCalendarIds !== [])
-    <div class="rounded-2xl border border-gray-200/70 bg-white p-3 shadow-sm dark:border-gray-800 dark:bg-gray-900">
+    <div class="rounded-2xl border border-gray-200/70 bg-white p-3 dark:border-gray-800 dark:bg-gray-900">
         <p class="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Importar (.ics)</p>
         <form method="POST" action="{{ route('admin.agenda.import') }}" enctype="multipart/form-data" class="space-y-2">
             @csrf
-            <select name="agenda_calendar_id" class="w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 shadow-sm dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200">
+            <select name="agenda_calendar_id" class="w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200">
                 @foreach ($calendars->whereIn('id', $writableCalendarIds) as $calendar)
                     <option value="{{ $calendar->getKey() }}">{{ $calendar->name }}</option>
                 @endforeach
@@ -105,7 +105,7 @@
     </div>
 @endif
 
-<div class="rounded-2xl border border-gray-200/70 bg-white p-3 shadow-sm dark:border-gray-800 dark:bg-gray-900">
+<div class="rounded-2xl border border-gray-200/70 bg-white p-3 dark:border-gray-800 dark:bg-gray-900">
     <div class="mb-2 flex items-center justify-between">
         <p class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Disponibilidade</p>
         <button type="button" data-agenda-freebusy class="rounded-md p-1 text-gray-400 transition hover:text-indigo-600" title="Ver horários ocupados">

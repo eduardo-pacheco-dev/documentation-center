@@ -4,7 +4,7 @@
 
 <div class="space-y-4">
     @forelse ($grouped as $day => $items)
-        <div class="overflow-hidden rounded-2xl border border-gray-200/70 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900">
+        <div class="overflow-hidden rounded-2xl border border-gray-200/70 bg-white dark:border-gray-800 dark:bg-gray-900">
             <div class="border-b border-gray-200/70 bg-gray-50/60 px-4 py-2 text-sm font-semibold text-gray-700 dark:border-gray-800 dark:bg-gray-950/40 dark:text-gray-200">
                 {{ ucfirst(\Illuminate\Support\Carbon::parse($day)->locale('pt_BR')->translatedFormat('l, d \d\e F \d\e Y')) }}
             </div>

@@ -7,7 +7,7 @@
     use App\Enums\AgendaTransparency;
 
     $label = 'block text-sm font-medium text-gray-700 dark:text-gray-300';
-    $input = 'mt-1 w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 shadow-sm transition focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200';
+    $input = 'mt-1 w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 transition focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200';
     $writableCalendars = $calendars->whereIn('id', $writableCalendarIds);
     $weekdayOptions = [1 => 'Seg', 2 => 'Ter', 3 => 'Qua', 4 => 'Qui', 5 => 'Sex', 6 => 'Sáb', 7 => 'Dom'];
 @endphp
@@ -21,7 +21,7 @@
 >
     <div class="absolute inset-0 bg-gray-900/50" data-modal-close></div>
 
-    <div class="absolute left-1/2 top-1/2 max-h-[92vh] w-full max-w-2xl -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-2xl bg-white p-5 shadow-xl dark:bg-gray-900">
+    <div class="absolute left-1/2 top-1/2 max-h-[92vh] w-full max-w-2xl -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-2xl bg-white p-5 dark:bg-gray-900">
         <div class="flex items-start justify-between gap-3">
             <div>
                 <h2 id="agenda-event-modal-title" data-agenda-event-title class="text-base font-semibold text-gray-900 dark:text-gray-100">Novo evento</h2>
@@ -243,17 +243,17 @@
 
             <div class="flex flex-wrap items-center justify-between gap-2 border-t border-gray-100 pt-4 dark:border-gray-800">
                 <div class="flex items-center gap-2">
-                    <button type="submit" class="inline-flex items-center gap-1.5 rounded-2xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-500">
+                    <button type="submit" class="inline-flex items-center gap-1.5 rounded-2xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-indigo-500">
                         <x-icon name="check" class="h-4 w-4" />
                         Salvar
                     </button>
-                    <button type="button" data-modal-close class="inline-flex items-center gap-1.5 rounded-xl border border-gray-200/70 bg-white px-3.5 py-2 text-sm font-semibold text-gray-700 shadow-sm transition hover:border-indigo-200 hover:text-indigo-600 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-200">
+                    <button type="button" data-modal-close class="inline-flex items-center gap-1.5 rounded-xl border border-gray-200/70 bg-white px-3.5 py-2 text-sm font-semibold text-gray-700 transition hover:border-indigo-200 hover:text-indigo-600 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-200">
                         Cancelar
                     </button>
                 </div>
 
                 <div class="flex items-center gap-2" data-agenda-event-admin hidden>
-                    <button type="button" data-agenda-duplicate class="rounded-xl border border-gray-200/70 bg-white px-3 py-2 text-xs font-semibold text-gray-600 shadow-sm transition hover:text-indigo-600 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-300">
+                    <button type="button" data-agenda-duplicate class="rounded-xl border border-gray-200/70 bg-white px-3 py-2 text-xs font-semibold text-gray-600 transition hover:text-indigo-600 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-300">
                         Duplicar
                     </button>
                     <button type="button" data-agenda-delete class="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs font-semibold text-red-600 transition hover:bg-red-100 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-400">
@@ -290,20 +290,20 @@
 
 <template data-agenda-reminder-template>
     <div class="flex items-center gap-2" data-agenda-reminder-row>
-        <select name="reminders[__INDEX__][method]" class="w-40 rounded-xl border border-gray-300 bg-white px-2 py-1.5 text-sm text-gray-700 shadow-sm dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200">
+        <select name="reminders[__INDEX__][method]" class="w-40 rounded-xl border border-gray-300 bg-white px-2 py-1.5 text-sm text-gray-700 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200">
             @foreach (AgendaReminderMethod::cases() as $method)
                 <option value="{{ $method->value }}">{{ $method->label() }}</option>
             @endforeach
         </select>
-        <input type="number" min="0" max="40320" name="reminders[__INDEX__][minutes_before]" placeholder="Minutos antes" class="w-full rounded-xl border border-gray-300 bg-white px-2 py-1.5 text-sm text-gray-700 shadow-sm dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200">
+        <input type="number" min="0" max="40320" name="reminders[__INDEX__][minutes_before]" placeholder="Minutos antes" class="w-full rounded-xl border border-gray-300 bg-white px-2 py-1.5 text-sm text-gray-700 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200">
         <button type="button" data-agenda-remove-reminder class="rounded-lg p-1.5 text-gray-400 transition hover:text-red-600"><x-icon name="x-mark" class="h-4 w-4" /></button>
     </div>
 </template>
 
 <template data-agenda-attachment-template>
     <div class="grid gap-2 sm:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)_auto]" data-agenda-attachment-row>
-        <input type="text" name="attachments[__INDEX__][title]" placeholder="Título" class="rounded-xl border border-gray-300 bg-white px-2 py-1.5 text-sm text-gray-700 shadow-sm dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200">
-        <input type="url" name="attachments[__INDEX__][url]" placeholder="https://" class="rounded-xl border border-gray-300 bg-white px-2 py-1.5 text-sm text-gray-700 shadow-sm dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200">
+        <input type="text" name="attachments[__INDEX__][title]" placeholder="Título" class="rounded-xl border border-gray-300 bg-white px-2 py-1.5 text-sm text-gray-700 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200">
+        <input type="url" name="attachments[__INDEX__][url]" placeholder="https://" class="rounded-xl border border-gray-300 bg-white px-2 py-1.5 text-sm text-gray-700 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200">
         <button type="button" data-agenda-remove-attachment class="rounded-lg p-1.5 text-gray-400 transition hover:text-red-600"><x-icon name="x-mark" class="h-4 w-4" /></button>
     </div>
 </template>

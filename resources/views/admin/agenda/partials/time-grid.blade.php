@@ -4,7 +4,7 @@
     $single = count($columns) === 1;
 @endphp
 
-<div class="overflow-hidden rounded-2xl border border-gray-200/70 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900">
+<div class="overflow-hidden rounded-2xl border border-gray-200/70 bg-white dark:border-gray-800 dark:bg-gray-900">
     <div class="flex border-b border-gray-200/70 bg-gray-50/60 dark:border-gray-800 dark:bg-gray-950/40">
         <div class="w-14 shrink-0"></div>
         @foreach ($columns as $day)
@@ -52,7 +52,7 @@
                         data-agenda-draggable
                         data-event='@json($occurrence->toModalPayload())'
                         style="top: {{ $segment['top'] }}px; height: {{ $segment['height'] }}px; left: calc({{ $segment['left'] }}% + 2px); width: calc({{ $segment['width'] }}% - 4px); background-color: {{ $hex }}26; border-left: 3px solid {{ $hex }};"
-                        class="absolute overflow-hidden rounded-md px-1 py-0.5 text-left text-[11px] font-medium text-gray-700 shadow-sm transition hover:brightness-95 dark:text-gray-100 {{ $occurrence->isCancelled() ? 'line-through opacity-60' : '' }}"
+                        class="absolute overflow-hidden rounded-md px-1 py-0.5 text-left text-[11px] font-medium text-gray-700 transition hover:brightness-95 dark:text-gray-100 {{ $occurrence->isCancelled() ? 'line-through opacity-60' : '' }}"
                     >
                         <span class="font-semibold">{{ $occurrence->start->format('H:i') }}</span>
                         {{ $occurrence->title() }}
