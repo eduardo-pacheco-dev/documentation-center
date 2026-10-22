@@ -24,6 +24,22 @@
                 @foreach ($day['all_day'] as $occurrence)
                     @include('admin.agenda.partials.event-chip', ['occurrence' => $occurrence])
                 @endforeach
+
+                @php $dayTasks = $tasksByDay[$day['date']->toDateString()] ?? collect(); @endphp
+
+                @foreach ($dayTasks->take(3) as $task)
+                    <a
+                        href="{{ route('admin.tasks.index', ['view' => 'all', 'search' => $task->title]) }}"
+                        class="block truncate rounded-md border-l-[3px] border-indigo-400 bg-indigo-50 px-1 py-0.5 text-[10px] font-medium text-indigo-700 transition hover:bg-indigo-100 dark:bg-indigo-500/10 dark:text-indigo-300"
+                        title="Tarefa: {{ $task->title }}"
+                    >
+                        {{ $task->title }}
+                    </a>
+                @endforeach
+
+                @if ($dayTasks->count() > 3)
+                    <span class="block px-1 text-[10px] font-semibold text-indigo-600 dark:text-indigo-400">+{{ $dayTasks->count() - 3 }} tarefas</span>
+                @endif
             </div>
         @endforeach
     </div>

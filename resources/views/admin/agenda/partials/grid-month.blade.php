@@ -33,6 +33,18 @@
                 </div>
 
                 <div class="flex min-h-0 flex-1 flex-col gap-0.5 overflow-hidden">
+                    @php $dayTasks = $tasksByDay[$day['date']->toDateString()] ?? collect(); @endphp
+
+                    @foreach ($dayTasks->take(2) as $task)
+                        <a
+                            href="{{ route('admin.tasks.index', ['view' => 'all', 'search' => $task->title]) }}"
+                            class="block truncate rounded-md border-l-[3px] border-indigo-400 bg-indigo-50 px-1.5 py-0.5 text-left text-[11px] font-medium text-indigo-700 transition hover:bg-indigo-100 dark:bg-indigo-500/10 dark:text-indigo-300"
+                            title="Tarefa: {{ $task->title }}"
+                        >
+                            {{ $task->title }}
+                        </a>
+                    @endforeach
+
                     @foreach (collect($day['occurrences'])->take(3) as $occurrence)
                         @include('admin.agenda.partials.event-chip', ['occurrence' => $occurrence])
                     @endforeach

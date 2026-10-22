@@ -417,6 +417,23 @@ it('splits the event modal into paginated steps', function () {
         ->assertSee('data-agenda-event-tasks', false);
 });
 
+it('shows due tasks on the agenda automatically', function () {
+    $user = User::factory()->create();
+    $list = todoListFor($user);
+
+    todoTaskIn($list, [
+        'title' => 'Tarefa com vencimento',
+        'due_at' => Carbon::parse('2026-03-02 09:00:00'),
+    ]);
+
+    foreach (['day', 'list', 'month'] as $view) {
+        $this->actingAs($user)
+            ->get("/admin/agenda?view={$view}&date=2026-03-02")
+            ->assertOk()
+            ->assertSee('Tarefa com vencimento');
+    }
+});
+
 it('exposes only the signed in user tasks in the agenda payload', function () {
     $user = User::factory()->create();
     $calendar = AgendaCalendar::factory()->for($user)->create();

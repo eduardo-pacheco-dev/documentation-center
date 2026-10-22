@@ -9,6 +9,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\MoveAgendaEventRequest;
 use App\Models\AgendaCalendar;
 use App\Models\AgendaEvent;
+use App\Models\TodoTask;
 use App\Models\User;
 use App\Services\Agenda\AgendaEventExpander;
 use App\Services\Agenda\AgendaEventSynchronizer;
@@ -69,6 +70,17 @@ class AgendaController extends Controller
         $occurrences = $this->occurrences($visible, $rangeStart, $rangeEnd);
         $search = trim((string) $request->input('q'));
 
+        $agendaTasks = TodoTask::query()
+            ->where('user_id', $user->getKey())
+            ->incomplete()
+            ->whereNotNull('due_at')
+            ->whereBetween('due_at', [$rangeStart->copy()->startOfDay(), $rangeEnd->copy()->endOfDay()])
+            ->with('todoList')
+            ->orderBy('due_at')
+            ->get();
+
+        $tasksByDay = $agendaTasks->groupBy(fn (TodoTask $task): string => $task->due_at->toDateString());
+
         if ($search !== '') {
             $occurrences = $this->filterBySearch($occurrences, $search);
         }
@@ -103,6 +115,8 @@ class AgendaController extends Controller
             'rangeEnd' => $rangeEnd,
             'occurrences' => $occurrences,
             'listPaginator' => $listPaginator,
+            'agendaTasks' => $agendaTasks,
+            'tasksByDay' => $tasksByDay,
             'days' => $this->grid->build($occurrences, $rangeStart, $rangeEnd),
             'search' => $search,
             'canCreate' => $calendars->contains(fn (AgendaCalendar $calendar): bool => $calendar->canWrite($user)),
