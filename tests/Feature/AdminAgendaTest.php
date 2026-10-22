@@ -399,6 +399,22 @@ it('paginates the agenda list when it exceeds the page size', function () {
         ->assertSee('Evento 12');
 });
 
+it('splits the event modal into paginated steps', function () {
+    $user = User::factory()->create();
+
+    $this->actingAs($user)
+        ->get('/admin/agenda')
+        ->assertOk()
+        ->assertSee('data-agenda-step-tab="1"', false)
+        ->assertSee('data-agenda-step-tab="2"', false)
+        ->assertSee('data-agenda-step-tab="3"', false)
+        ->assertSee('data-agenda-step="1"', false)
+        ->assertSee('data-agenda-step="2"', false)
+        ->assertSee('data-agenda-step="3"', false)
+        ->assertSee('data-agenda-step-next', false)
+        ->assertSee('data-agenda-step-prev', false);
+});
+
 it('exposes the color palette through the calendar color enum', function () {
     expect(AgendaColor::cases())->toHaveCount(11)
         ->and(AgendaColor::Tomato->hex())->toStartWith('#');

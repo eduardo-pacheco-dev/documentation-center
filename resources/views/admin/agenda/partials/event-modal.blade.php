@@ -32,6 +32,18 @@
             </button>
         </div>
 
+        <div class="mt-4 flex items-center gap-1 rounded-xl border border-gray-200 bg-gray-50 p-1 text-xs font-semibold dark:border-gray-800 dark:bg-gray-950/40">
+            <button type="button" data-agenda-step-tab="1" data-active="true" class="flex-1 rounded-lg px-2 py-1.5 text-gray-500 transition data-[active=true]:bg-indigo-600 data-[active=true]:text-white dark:text-gray-400">
+                1. Detalhes
+            </button>
+            <button type="button" data-agenda-step-tab="2" data-active="false" class="flex-1 rounded-lg px-2 py-1.5 text-gray-500 transition data-[active=true]:bg-indigo-600 data-[active=true]:text-white dark:text-gray-400">
+                2. Repetição
+            </button>
+            <button type="button" data-agenda-step-tab="3" data-active="false" class="flex-1 rounded-lg px-2 py-1.5 text-gray-500 transition data-[active=true]:bg-indigo-600 data-[active=true]:text-white dark:text-gray-400">
+                3. Extras
+            </button>
+        </div>
+
         <form
             data-agenda-event-form
             data-store-url="{{ route('admin.agenda.events.store') }}"
@@ -44,7 +56,8 @@
             <input type="hidden" name="timezone" value="{{ config('app.timezone') }}">
             <input type="hidden" name="recurrence_id" data-agenda-recurrence-id>
 
-            <div class="grid gap-4 sm:grid-cols-[minmax(0,1fr)_14rem]">
+            <div data-agenda-step="1" class="space-y-4">
+                <div class="grid gap-4 sm:grid-cols-[minmax(0,1fr)_14rem]">
                 <div>
                     <label for="agenda-event-title-field" class="{{ $label }}">Título</label>
                     <input id="agenda-event-title-field" data-agenda-field="title" type="text" name="title" required maxlength="255" class="{{ $input }}">
@@ -133,7 +146,9 @@
                     @endforeach
                 </div>
             </div>
+            </div>
 
+            <div data-agenda-step="2" class="space-y-4" hidden>
             <fieldset class="rounded-xl border border-gray-200 p-3 dark:border-gray-800">
                 <legend class="px-1 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Repetição</legend>
                 <div class="grid gap-3 sm:grid-cols-3">
@@ -222,7 +237,9 @@
                     </label>
                 </div>
             </fieldset>
+            </div>
 
+            <div data-agenda-step="3" class="space-y-4" hidden>
             <fieldset class="rounded-xl border border-gray-200 p-3 dark:border-gray-800">
                 <legend class="px-1 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Lembretes</legend>
                 <div data-agenda-reminders class="space-y-2"></div>
@@ -240,15 +257,22 @@
                     Adicionar anexo
                 </button>
             </fieldset>
+            </div>
 
             <div class="flex flex-wrap items-center justify-between gap-2 border-t border-gray-100 pt-4 dark:border-gray-800">
-                <div class="flex items-center gap-2">
-                    <button type="submit" class="inline-flex items-center gap-1.5 rounded-2xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-indigo-500">
-                        <x-icon name="check" class="h-4 w-4" />
-                        Salvar
-                    </button>
+                <div class="flex flex-wrap items-center gap-2">
                     <button type="button" data-modal-close class="inline-flex items-center gap-1.5 rounded-xl border border-gray-200/70 bg-white px-3.5 py-2 text-sm font-semibold text-gray-700 transition hover:border-indigo-200 hover:text-indigo-600 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-200">
                         Cancelar
+                    </button>
+                    <button type="button" data-agenda-step-prev style="display: none;" class="inline-flex items-center gap-1.5 rounded-xl border border-gray-200/70 bg-white px-3.5 py-2 text-sm font-semibold text-gray-700 transition hover:border-indigo-200 hover:text-indigo-600 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-200">
+                        Anterior
+                    </button>
+                    <button type="button" data-agenda-step-next class="inline-flex items-center gap-1.5 rounded-xl bg-indigo-600 px-3.5 py-2 text-sm font-semibold text-white transition hover:bg-indigo-500">
+                        Próximo
+                    </button>
+                    <button type="submit" data-agenda-step-submit style="display: none;" class="inline-flex items-center gap-1.5 rounded-xl bg-indigo-600 px-3.5 py-2 text-sm font-semibold text-white transition hover:bg-indigo-500">
+                        <x-icon name="check" class="h-4 w-4" />
+                        Salvar
                     </button>
                 </div>
 

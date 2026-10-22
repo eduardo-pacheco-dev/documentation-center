@@ -50,6 +50,53 @@
         const untilWrap = eventModal.querySelector('[data-agenda-repeat-until]');
         const countWrap = eventModal.querySelector('[data-agenda-repeat-count]');
         const weekdaysWrap = eventModal.querySelector('[data-agenda-repeat-weekdays]');
+        const stepSections = Array.from(eventModal.querySelectorAll('[data-agenda-step]'));
+        const stepTabs = Array.from(eventModal.querySelectorAll('[data-agenda-step-tab]'));
+        const stepPrev = eventModal.querySelector('[data-agenda-step-prev]');
+        const stepNext = eventModal.querySelector('[data-agenda-step-next]');
+        const stepSubmit = eventModal.querySelector('[data-agenda-step-submit]');
+        let eventStep = 1;
+
+        const setEventStep = (step) => {
+            eventStep = Math.min(stepSections.length, Math.max(1, step));
+
+            stepSections.forEach((section) => {
+                section.hidden = Number(section.dataset.agendaStep) !== eventStep;
+            });
+
+            stepTabs.forEach((tab) => {
+                tab.dataset.active = String(Number(tab.dataset.agendaStepTab) === eventStep);
+            });
+
+            if (stepPrev) {
+                stepPrev.style.display = eventStep === 1 ? 'none' : 'inline-flex';
+            }
+
+            if (stepNext) {
+                stepNext.style.display = eventStep === stepSections.length ? 'none' : 'inline-flex';
+            }
+
+            if (stepSubmit) {
+                stepSubmit.style.display = eventStep === stepSections.length ? 'inline-flex' : 'none';
+            }
+        };
+
+        stepTabs.forEach((tab) => {
+            tab.addEventListener('click', () => setEventStep(Number(tab.dataset.agendaStepTab)));
+        });
+
+        stepPrev?.addEventListener('click', () => setEventStep(eventStep - 1));
+        stepNext?.addEventListener('click', () => setEventStep(eventStep + 1));
+
+        eventForm.addEventListener('invalid', (event) => {
+            const section = event.target.closest('[data-agenda-step]');
+
+            if (section) {
+                setEventStep(Number(section.dataset.agendaStep));
+            }
+        }, true);
+
+        setEventStep(1);
 
         const statusLabels = { needs_action: 'Sem resposta', declined: 'Não vou', tentative: 'Talvez', accepted: 'Vou' };
         const statusClasses = {
@@ -178,6 +225,7 @@
         const fillEventModal = (payload, date) => {
             currentEvent = payload;
             eventForm.reset();
+            setEventStep(1);
             remindersContainer.innerHTML = '';
             attachmentsContainer.innerHTML = '';
             attendeeList.innerHTML = '';
