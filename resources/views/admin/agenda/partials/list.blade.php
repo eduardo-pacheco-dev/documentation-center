@@ -38,4 +38,10 @@
             Nenhum evento encontrado no período.
         </div>
     @endforelse
+
+    @if (isset($listPaginator) && $listPaginator->hasPages())
+        <div class="rounded-2xl border border-gray-200/70 bg-white px-4 py-3 dark:border-gray-800 dark:bg-gray-900">
+            <x-pagination :paginator="$listPaginator" />
+        </div>
+    @endif
 </div>

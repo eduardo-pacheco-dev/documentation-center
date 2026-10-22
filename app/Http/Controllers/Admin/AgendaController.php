@@ -17,6 +17,7 @@ use App\Services\Agenda\AgendaOccurrence;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\View\View;
@@ -72,6 +73,27 @@ class AgendaController extends Controller
             $occurrences = $this->filterBySearch($occurrences, $search);
         }
 
+        $listPaginator = null;
+
+        if ($view === 'list') {
+            $allOccurrences = collect($occurrences);
+            $perPage = 10;
+            $page = max(1, $request->integer('page', 1));
+
+            $listPaginator = new LengthAwarePaginator(
+                $allOccurrences->forPage($page, $perPage)->values()->all(),
+                $allOccurrences->count(),
+                $perPage,
+                $page,
+                [
+                    'path' => $request->url(),
+                    'query' => $request->query(),
+                ],
+            );
+
+            $occurrences = $listPaginator->items();
+        }
+
         return view('admin.agenda.index', [
             'calendars' => $calendars,
             'visibleCalendarIds' => $visible->pluck('id')->all(),
@@ -80,6 +102,7 @@ class AgendaController extends Controller
             'rangeStart' => $rangeStart,
             'rangeEnd' => $rangeEnd,
             'occurrences' => $occurrences,
+            'listPaginator' => $listPaginator,
             'days' => $this->grid->build($occurrences, $rangeStart, $rangeEnd),
             'search' => $search,
             'canCreate' => $calendars->contains(fn (AgendaCalendar $calendar): bool => $calendar->canWrite($user)),

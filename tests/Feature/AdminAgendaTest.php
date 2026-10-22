@@ -373,6 +373,32 @@ it('filters events by the search term', function () {
         ->assertDontSee('Outro evento');
 });
 
+it('paginates the agenda list when it exceeds the page size', function () {
+    $user = User::factory()->create();
+    $calendar = AgendaCalendar::factory()->for($user)->create();
+
+    foreach (range(1, 12) as $index) {
+        AgendaEvent::factory()->forCalendar($calendar)->create([
+            'title' => "Evento {$index}",
+            'start_at' => Carbon::parse('2026-03-02 10:00:00')->addMinutes($index),
+            'end_at' => Carbon::parse('2026-03-02 10:30:00')->addMinutes($index),
+        ]);
+    }
+
+    $this->actingAs($user)
+        ->get('/admin/agenda?view=list&date=2026-03-02')
+        ->assertOk()
+        ->assertSee('Página 1 de 2')
+        ->assertSee('Evento 1')
+        ->assertDontSee('Evento 12');
+
+    $this->actingAs($user)
+        ->get('/admin/agenda?view=list&date=2026-03-02&page=2')
+        ->assertOk()
+        ->assertSee('Página 2 de 2')
+        ->assertSee('Evento 12');
+});
+
 it('exposes the color palette through the calendar color enum', function () {
     expect(AgendaColor::cases())->toHaveCount(11)
         ->and(AgendaColor::Tomato->hex())->toStartWith('#');
