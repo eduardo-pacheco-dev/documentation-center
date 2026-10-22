@@ -12,6 +12,19 @@ it('requires an authenticated user to open the tasks area', function () {
     $this->get('/admin/tasks')->assertRedirect('/login');
 });
 
+it('offers a modal to create a task', function () {
+    $user = User::factory()->create();
+    todoListFor($user);
+
+    $this->actingAs($user)
+        ->get('/admin/tasks')
+        ->assertOk()
+        ->assertSee('id="task-create-modal"', false)
+        ->assertSee('Nova tarefa')
+        ->assertSee('Criar tarefa')
+        ->assertSee(route('admin.tasks.store'), false);
+});
+
 it('shows the tasks of My Day by default', function () {
     $user = User::factory()->create();
     $list = todoListFor($user);

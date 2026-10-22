@@ -82,11 +82,22 @@
             <button
                 type="button"
                 data-modal-open="task-list-modal"
-                class="{{ $primaryButton }}"
+                class="{{ $secondaryButton }}"
             >
                 <x-icon name="plus" class="h-4 w-4" />
                 Nova lista
             </button>
+
+            @if ($lists->isNotEmpty())
+                <button
+                    type="button"
+                    data-modal-open="task-create-modal"
+                    class="{{ $primaryButton }}"
+                >
+                    <x-icon name="plus" class="h-4 w-4" />
+                    Nova tarefa
+                </button>
+            @endif
         </div>
     </div>
 
@@ -294,6 +305,7 @@
     </div>
 
     @include('admin.tasks.partials.task-modal', ['lists' => $lists])
+    @include('admin.tasks.partials.task-create-modal', ['lists' => $lists, 'activeList' => $activeList, 'view' => $view])
     @include('admin.tasks.partials.list-modal')
     @include('admin.tasks.partials.scripts')
 </x-layouts.admin>

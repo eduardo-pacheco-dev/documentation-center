@@ -19,6 +19,7 @@
         };
 
         const taskModal = document.getElementById('task-detail-modal');
+        const taskCreateModal = document.getElementById('task-create-modal');
         const listModal = document.getElementById('task-list-modal');
         const stepTemplate = document.querySelector('[data-task-step-template]');
 
@@ -137,6 +138,8 @@
 
                 if (modal === taskModal) {
                     fillTaskModal(opener);
+                } else if (modal === taskCreateModal) {
+                    modal.querySelector('[name="title"]')?.focus();
                 } else if (modal === listModal) {
                     fillListModal(opener);
                 }
@@ -156,6 +159,7 @@
         document.addEventListener('keydown', (event) => {
             if (event.key === 'Escape') {
                 closeModal(taskModal);
+                closeModal(taskCreateModal);
                 closeModal(listModal);
             }
         });
