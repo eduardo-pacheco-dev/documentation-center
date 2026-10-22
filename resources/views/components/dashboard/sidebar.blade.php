@@ -1,29 +1,9 @@
 @php
-    $primaryNav = [
-        ['url' => route('admin.dashboard'), 'active' => 'admin.dashboard', 'icon' => 'home', 'label' => 'Início'],
-        ['url' => route('admin.projects.index'), 'active' => 'admin.projects.*', 'icon' => 'briefcase', 'label' => 'Projetos'],
-        ['url' => route('admin.work-orders.index'), 'active' => 'admin.work-orders.*', 'icon' => 'clipboard-document-list', 'label' => 'Ordens de serviço'],
-        ['url' => route('admin.clients.index'), 'active' => 'admin.clients.*', 'icon' => 'building-office', 'label' => 'Clientes'],
-        ['url' => route('admin.files.index'), 'active' => 'admin.files.*', 'icon' => 'document-text', 'label' => 'Arquivos'],
-        ['url' => route('admin.agenda.index'), 'active' => 'admin.agenda.*', 'icon' => 'calendar-days', 'label' => 'Agenda'],
-        ['url' => route('admin.tasks.index'), 'active' => 'admin.tasks.*', 'icon' => 'check-circle', 'label' => 'Tarefas'],
-        ['url' => route('admin.forms.index'), 'active' => 'admin.forms.*', 'icon' => 'document-check', 'label' => 'Formulários'],
-    ];
+    use App\Enums\AdminModule;
 
-    $moduleNav = [
-        ['url' => route('admin.erbs.index'), 'active' => 'admin.erbs.*', 'icon' => 'signal', 'label' => 'ERBs'],
-        ['url' => route('admin.radio-links.index'), 'active' => 'admin.radio-links.*', 'icon' => 'arrows-right-left', 'label' => 'Radio links'],
-        ['url' => route('admin.catalog.index'), 'active' => 'admin.catalog.*', 'icon' => 'cube', 'label' => 'Catálogo'],
-        ['url' => route('admin.equipments.index'), 'active' => 'admin.equipments.*', 'icon' => 'wrench-screwdriver', 'label' => 'Equipamentos'],
-        ['url' => route('admin.links.index'), 'active' => 'admin.links.*', 'icon' => 'link', 'label' => 'Links'],
-        ['url' => route('admin.colaboradores.index'), 'active' => 'admin.colaboradores.*', 'icon' => 'user', 'label' => 'Colaboradores'],
-        ['url' => route('admin.form-templates.index'), 'active' => 'admin.form-templates.*', 'icon' => 'document-duplicate', 'label' => 'Templates'],
-    ];
-
-    if (auth()->user()->is_admin) {
-        $moduleNav[] = ['url' => route('admin.backups.index'), 'active' => 'admin.backups.*', 'icon' => 'rectangle-stack', 'label' => 'Backups'];
-        $moduleNav[] = ['url' => route('admin.users.index'), 'active' => 'admin.users.*', 'icon' => 'users', 'label' => 'Usuários'];
-    }
+    $enabledModules = AdminModule::enabledFor(auth()->user());
+    $primaryNav = array_filter($enabledModules, fn (AdminModule $module): bool => $module->isPrimary());
+    $moduleNav = array_filter($enabledModules, fn (AdminModule $module): bool => ! $module->isPrimary());
 @endphp
 
 <aside
@@ -37,19 +17,21 @@
     <x-dashboard.quick-action />
 
     <nav class="flex w-full flex-1 flex-col gap-1 overflow-y-auto pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-        @foreach ($primaryNav as $item)
+        @foreach ($primaryNav as $module)
             <x-dashboard.sidebar-item
-                :href="$item['url']"
-                :icon="$item['icon']"
-                :label="$item['label']"
-                :module="$item['label']"
-                :active="request()->routeIs($item['active'])"
+                :href="route($module->routeName())"
+                :icon="$module->icon()"
+                :label="$module->label()"
+                :module="$module->label()"
+                :active="request()->routeIs($module->activePattern())"
             />
         @endforeach
     </nav>
 
     <div class="flex w-full flex-col gap-1 border-t border-gray-200/80 pt-2 dark:border-white/10">
-        <x-dashboard.modules-menu :items="$moduleNav" />
+        @if (count($moduleNav) > 0)
+            <x-dashboard.modules-menu :items="$moduleNav" />
+        @endif
 
         <x-dashboard.sidebar-item
             :href="route('settings')"

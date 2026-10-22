@@ -2,11 +2,14 @@
     $money = fn (float $value): string => 'R$ '.number_format($value, 2, ',', '.');
 
     $stats = [
-        ['label' => 'Clientes', 'value' => $counts['clients'], 'icon' => 'building-office', 'url' => route('admin.clients.index'), 'caption' => 'Cadastrados na base'],
-        ['label' => 'OS abertas', 'value' => $counts['openWorkOrders'], 'icon' => 'clipboard-document-list', 'url' => route('admin.work-orders.index', ['status' => 'open']), 'caption' => 'Aguardando atendimento'],
-        ['label' => 'Projetos ativos', 'value' => $counts['projects'], 'icon' => 'briefcase', 'url' => route('admin.projects.index'), 'caption' => 'Em execução'],
-        ['label' => 'Arquivos', 'value' => $counts['documents'], 'icon' => 'document-text', 'url' => route('admin.files.index'), 'caption' => 'Documentos armazenados'],
+        ['module' => 'clients', 'label' => 'Clientes', 'value' => $counts['clients'], 'icon' => 'building-office', 'url' => route('admin.clients.index'), 'caption' => 'Cadastrados na base'],
+        ['module' => 'work-orders', 'label' => 'OS abertas', 'value' => $counts['openWorkOrders'], 'icon' => 'clipboard-document-list', 'url' => route('admin.work-orders.index', ['status' => 'open']), 'caption' => 'Aguardando atendimento'],
+        ['module' => 'projects', 'label' => 'Projetos ativos', 'value' => $counts['projects'], 'icon' => 'briefcase', 'url' => route('admin.projects.index'), 'caption' => 'Em execução'],
+        ['module' => 'files', 'label' => 'Arquivos', 'value' => $counts['documents'], 'icon' => 'document-text', 'url' => route('admin.files.index'), 'caption' => 'Documentos armazenados'],
     ];
+
+    $enabledModules = auth()->user()->enabledModules();
+    $stats = array_values(array_filter($stats, fn (array $stat): bool => in_array($stat['module'], $enabledModules, true)));
 
     $statusBreakdown = [
         ['key' => 'open', 'label' => 'Aberta', 'count' => $statusCounts['open'], 'dot' => 'bg-blue-500', 'stroke' => 'stroke-blue-500'],
@@ -48,11 +51,13 @@
     $chartTotal = collect($monthlyWorkOrders)->sum('count');
 
     $quickActions = [
-        ['label' => 'Nova ordem de serviço', 'icon' => 'clipboard-document-list', 'url' => route('admin.work-orders.create')],
-        ['label' => 'Novo cliente', 'icon' => 'building-office', 'url' => route('admin.clients.create')],
-        ['label' => 'Novo projeto', 'icon' => 'briefcase', 'url' => route('admin.projects.create')],
-        ['label' => 'Enviar arquivo', 'icon' => 'arrow-up-tray', 'url' => route('admin.files.index')],
+        ['module' => 'work-orders', 'label' => 'Nova ordem de serviço', 'icon' => 'clipboard-document-list', 'url' => route('admin.work-orders.create')],
+        ['module' => 'clients', 'label' => 'Novo cliente', 'icon' => 'building-office', 'url' => route('admin.clients.create')],
+        ['module' => 'projects', 'label' => 'Novo projeto', 'icon' => 'briefcase', 'url' => route('admin.projects.create')],
+        ['module' => 'files', 'label' => 'Enviar arquivo', 'icon' => 'arrow-up-tray', 'url' => route('admin.files.index')],
     ];
+
+    $quickActions = array_values(array_filter($quickActions, fn (array $action): bool => in_array($action['module'], $enabledModules, true)));
 @endphp
 
 <x-layouts.dashboard title="Dashboard">
@@ -70,13 +75,15 @@
                 <x-icon name="calendar-days" class="h-4 w-4" />
                 {{ now()->locale('pt_BR')->translatedFormat('d \d\e M, Y') }}
             </span>
-            <a
-                href="{{ route('admin.work-orders.create') }}"
-                class="inline-flex h-9 items-center gap-1.5 rounded-xl bg-gray-900 px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-gray-800 dark:bg-white dark:text-gray-900 dark:hover:bg-gray-200"
-            >
-                <x-icon name="plus" class="h-4 w-4" />
-                Nova OS
-            </a>
+            @if (auth()->user()->hasModule('work-orders'))
+                <a
+                    href="{{ route('admin.work-orders.create') }}"
+                    class="inline-flex h-9 items-center gap-1.5 rounded-xl bg-gray-900 px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-gray-800 dark:bg-white dark:text-gray-900 dark:hover:bg-gray-200"
+                >
+                    <x-icon name="plus" class="h-4 w-4" />
+                    Nova OS
+                </a>
+            @endif
         </div>
     </div>
 
@@ -100,8 +107,9 @@
         @endforeach
     </div>
 
-    <div class="mt-4 grid gap-4 lg:grid-cols-3">
-        <section class="rounded-2xl border border-gray-200/80 bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)] sm:p-6 lg:col-span-2 dark:border-white/10 dark:bg-[#171716]">
+    @if (auth()->user()->hasModule('work-orders'))
+        <div class="mt-4 grid gap-4 lg:grid-cols-3">
+            <section class="rounded-2xl border border-gray-200/80 bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)] sm:p-6 lg:col-span-2 dark:border-white/10 dark:bg-[#171716]">
             <div class="flex flex-wrap items-start justify-between gap-3">
                 <div>
                     <h2 class="text-base font-semibold text-gray-900 dark:text-white">Ordens de serviço</h2>
@@ -230,10 +238,12 @@
                 @endforeach
             </div>
         </section>
-    </div>
+        </div>
+    @endif
 
     <div class="mt-4 grid gap-4 lg:grid-cols-3">
-        <section class="overflow-hidden rounded-2xl border border-gray-200/80 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)] lg:col-span-2 dark:border-white/10 dark:bg-[#171716]">
+        @if (auth()->user()->hasModule('work-orders'))
+            <section class="overflow-hidden rounded-2xl border border-gray-200/80 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)] lg:col-span-2 dark:border-white/10 dark:bg-[#171716]">
             <div class="flex items-center justify-between gap-3 border-b border-gray-100 px-5 py-4 dark:border-white/10">
                 <div>
                     <h2 class="text-base font-semibold text-gray-900 dark:text-white">Ordens de serviço recentes</h2>
@@ -277,33 +287,37 @@
                     </table>
                 </div>
             @endif
-        </section>
+            </section>
+        @endif
 
         <div class="flex flex-col gap-4">
-            <section class="overflow-hidden rounded-2xl border border-gray-200/80 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)] dark:border-white/10 dark:bg-[#171716]">
-                <div class="flex items-center justify-between gap-3 border-b border-gray-100 px-5 py-4 dark:border-white/10">
-                    <h2 class="text-base font-semibold text-gray-900 dark:text-white">Arquivos recentes</h2>
-                    <a href="{{ route('admin.files.index') }}" class="text-xs font-medium text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">Ver todos</a>
-                </div>
+            @if (auth()->user()->hasModule('files'))
+                <section class="overflow-hidden rounded-2xl border border-gray-200/80 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)] dark:border-white/10 dark:bg-[#171716]">
+                    <div class="flex items-center justify-between gap-3 border-b border-gray-100 px-5 py-4 dark:border-white/10">
+                        <h2 class="text-base font-semibold text-gray-900 dark:text-white">Arquivos recentes</h2>
+                        <a href="{{ route('admin.files.index') }}" class="text-xs font-medium text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">Ver todos</a>
+                    </div>
 
-                <div class="divide-y divide-gray-100 dark:divide-white/10">
-                    @forelse ($recentDocuments as $document)
-                        <div class="flex items-center gap-3 px-5 py-3">
-                            <x-file-type-icon :name="$document->original_name" size="xs" />
-                            <div class="min-w-0 flex-1">
-                                <p class="truncate text-sm font-medium text-gray-900 dark:text-gray-100" title="{{ $document->original_name }}">{{ $document->original_name }}</p>
-                                <p class="mt-0.5 text-xs text-gray-400 dark:text-gray-500">{{ Number::fileSize($document->size) }}</p>
+                    <div class="divide-y divide-gray-100 dark:divide-white/10">
+                        @forelse ($recentDocuments as $document)
+                            <div class="flex items-center gap-3 px-5 py-3">
+                                <x-file-type-icon :name="$document->original_name" size="xs" />
+                                <div class="min-w-0 flex-1">
+                                    <p class="truncate text-sm font-medium text-gray-900 dark:text-gray-100" title="{{ $document->original_name }}">{{ $document->original_name }}</p>
+                                    <p class="mt-0.5 text-xs text-gray-400 dark:text-gray-500">{{ Number::fileSize($document->size) }}</p>
+                                </div>
+                                <x-relative-time :value="$document->created_at" class="shrink-0 text-[11px] text-gray-400 dark:text-gray-500" />
                             </div>
-                            <x-relative-time :value="$document->created_at" class="shrink-0 text-[11px] text-gray-400 dark:text-gray-500" />
-                        </div>
-                    @empty
-                        <p class="px-5 py-8 text-center text-sm text-gray-500 dark:text-gray-400">Nenhum arquivo enviado.</p>
-                    @endforelse
-                </div>
-            </section>
+                        @empty
+                            <p class="px-5 py-8 text-center text-sm text-gray-500 dark:text-gray-400">Nenhum arquivo enviado.</p>
+                        @endforelse
+                    </div>
+                </section>
+            @endif
 
-            <section class="rounded-2xl border border-gray-200/80 bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)] dark:border-white/10 dark:bg-[#171716]">
-                <h2 class="text-base font-semibold text-gray-900 dark:text-white">Ações rápidas</h2>
+            @if (count($quickActions) > 0)
+                <section class="rounded-2xl border border-gray-200/80 bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)] dark:border-white/10 dark:bg-[#171716]">
+                    <h2 class="text-base font-semibold text-gray-900 dark:text-white">Ações rápidas</h2>
                 <div class="mt-3 grid grid-cols-2 gap-2">
                     @foreach ($quickActions as $action)
                         <a
@@ -316,6 +330,7 @@
                     @endforeach
                 </div>
             </section>
+            @endif
         </div>
     </div>
 </x-layouts.dashboard>

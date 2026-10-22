@@ -18,18 +18,18 @@
         <p class="px-1 pb-2 text-[11px] font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">Módulos</p>
 
         <div class="grid grid-cols-2 gap-1">
-            @foreach ($items as $item)
+            @foreach ($items as $module)
                 <a
-                    href="{{ $item['url'] }}"
-                    data-module="{{ \Illuminate\Support\Str::slug($item['label']) }}"
+                    href="{{ route($module->routeName()) }}"
+                    data-module="{{ \Illuminate\Support\Str::slug($module->label()) }}"
                     @class([
                         'flex items-center gap-2 rounded-xl px-2.5 py-2 text-xs font-medium transition',
-                        'bg-gray-100 text-gray-900 dark:bg-white/10 dark:text-white' => request()->routeIs($item['active']),
-                        'text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-white/5 dark:hover:text-white' => ! request()->routeIs($item['active']),
+                        'bg-gray-100 text-gray-900 dark:bg-white/10 dark:text-white' => request()->routeIs($module->activePattern()),
+                        'text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-white/5 dark:hover:text-white' => ! request()->routeIs($module->activePattern()),
                     ])
                 >
-                    <x-icon :name="$item['icon']" class="h-4 w-4 shrink-0" />
-                    <span class="truncate">{{ $item['label'] }}</span>
+                    <x-icon :name="$module->icon()" class="h-4 w-4 shrink-0" />
+                    <span class="truncate">{{ $module->label() }}</span>
                 </a>
             @endforeach
         </div>

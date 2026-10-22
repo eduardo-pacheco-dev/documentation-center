@@ -2,7 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\AdminModule;
 use App\Http\Requests\DeleteAccountRequest;
+use App\Http\Requests\UpdateModulesRequest;
 use App\Http\Requests\UpdatePasswordRequest;
 use App\Http\Requests\UpdateThemeRequest;
 use Illuminate\Http\RedirectResponse;
@@ -15,9 +17,28 @@ class SettingsController extends Controller
      */
     public function show(): View
     {
+        $user = auth()->user();
+
         return view('settings.show', [
-            'user' => auth()->user(),
+            'user' => $user,
+            'modules' => AdminModule::toggleableFor($user),
+            'enabledModules' => array_map(
+                fn (AdminModule $module): string => $module->value,
+                AdminModule::enabledFor($user),
+            ),
         ]);
+    }
+
+    /**
+     * Save the modules enabled for the authenticated user.
+     */
+    public function updateModules(UpdateModulesRequest $request): RedirectResponse
+    {
+        $request->user()->update([
+            'enabled_modules' => array_values($request->validated('modules') ?? []),
+        ]);
+
+        return back()->with('status', 'Módulos atualizados com sucesso.');
     }
 
     /**

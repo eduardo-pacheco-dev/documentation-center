@@ -7,7 +7,7 @@
             <nav
                 x-data="{
                     active: 'aparencia',
-                    sections: ['aparencia', 'senha', 'conta'],
+                    sections: ['aparencia', 'modulos', 'senha', 'conta'],
                     init() {
                         const hash = window.location.hash.slice(1);
 
@@ -43,6 +43,17 @@
                     class="whitespace-nowrap rounded-md px-3 py-2 text-sm font-medium"
                 >
                     Aparência
+                </a>
+
+                <a
+                    href="#modulos"
+                    @click="active = 'modulos'"
+                    :class="active === 'modulos'
+                        ? 'bg-gray-100 text-gray-900 dark:bg-gray-800 dark:text-white'
+                        : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-gray-100'"
+                    class="whitespace-nowrap rounded-md px-3 py-2 text-sm font-medium"
+                >
+                    Módulos
                 </a>
 
                 <a
@@ -167,6 +178,58 @@
                     class="mt-4 rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-700 dark:bg-white dark:text-gray-900 dark:hover:bg-gray-200"
                 >
                     Salvar aparência
+                </button>
+            </form>
+
+            <form
+                id="modulos"
+                method="POST"
+                action="{{ route('settings.modules.update') }}"
+                class="scroll-mt-6 rounded-xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-800 dark:bg-gray-900"
+            >
+                @csrf
+                @method('PUT')
+
+                <h2 class="text-sm font-semibold">Módulos</h2>
+                <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                    Escolha quais módulos aparecem no menu lateral. O Início permanece sempre ativo.
+                </p>
+
+                @error('modules')
+                    <p class="mt-2 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
+                @enderror
+
+                @error('modules.*')
+                    <p class="mt-2 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
+                @enderror
+
+                <div class="mt-4 grid gap-2 sm:grid-cols-2">
+                    @foreach ($modules as $module)
+                        <label class="flex cursor-pointer items-start gap-3 rounded-xl border border-gray-200 p-3 transition hover:border-gray-300 dark:border-gray-800 dark:hover:border-gray-700">
+                            <input
+                                type="checkbox"
+                                name="modules[]"
+                                value="{{ $module->value }}"
+                                @checked(in_array($module->value, $enabledModules, true))
+                                class="mt-0.5 h-4 w-4 shrink-0 rounded border-gray-300 accent-gray-900 focus:ring-gray-900/20 dark:border-gray-600 dark:bg-gray-800"
+                            >
+
+                            <span class="min-w-0">
+                                <span class="flex items-center gap-2 text-sm font-medium text-gray-800 dark:text-gray-100">
+                                    <x-icon :name="$module->icon()" class="h-4 w-4 text-gray-400 dark:text-gray-500" />
+                                    {{ $module->label() }}
+                                </span>
+                                <span class="mt-0.5 block text-xs text-gray-500 dark:text-gray-400">Exibir no menu lateral</span>
+                            </span>
+                        </label>
+                    @endforeach
+                </div>
+
+                <button
+                    type="submit"
+                    class="mt-4 rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-700 dark:bg-white dark:text-gray-900 dark:hover:bg-gray-200"
+                >
+                    Salvar módulos
                 </button>
             </form>
 

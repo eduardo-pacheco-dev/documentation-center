@@ -22,13 +22,15 @@
 
             <x-dashboard.notifications-menu />
 
-            <a
-                href="{{ route('admin.work-orders.create') }}"
-                class="hidden h-9 items-center gap-1.5 rounded-xl bg-gray-900 px-3.5 text-sm font-semibold text-white shadow-sm transition hover:bg-gray-800 sm:inline-flex dark:bg-white dark:text-gray-900 dark:hover:bg-gray-200"
-            >
-                <x-icon name="plus" class="h-4 w-4" />
-                Nova OS
-            </a>
+            @if (auth()->user()->hasModule(\App\Enums\AdminModule::WorkOrders->value))
+                <a
+                    href="{{ route('admin.work-orders.create') }}"
+                    class="hidden h-9 items-center gap-1.5 rounded-xl bg-gray-900 px-3.5 text-sm font-semibold text-white shadow-sm transition hover:bg-gray-800 sm:inline-flex dark:bg-white dark:text-gray-900 dark:hover:bg-gray-200"
+                >
+                    <x-icon name="plus" class="h-4 w-4" />
+                    Nova OS
+                </a>
+            @endif
         </div>
     </div>
 </header>
