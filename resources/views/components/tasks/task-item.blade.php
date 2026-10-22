@@ -1,3 +1,9 @@
+@props([
+    'task',
+    'activeList' => null,
+    'sort' => 'manual',
+])
+
 @php
     $isCompleted = $task->isCompleted();
 
@@ -102,7 +108,7 @@
                 </span>
             @endif
 
-            @if (($activeList ?? null) === null && $task->todoList !== null)
+            @if ($activeList === null && $task->todoList !== null)
                 <span class="inline-flex items-center gap-1.5 text-gray-500 dark:text-gray-400">
                     <span class="h-2 w-2 rounded-full {{ $task->todoList->color->dotClasses() }}"></span>
                     {{ $task->todoList->name }}
@@ -154,7 +160,7 @@
                 @click.outside="open = false"
                 class="absolute right-0 z-20 mt-1 w-44 rounded-xl border border-gray-200 bg-white py-1 dark:border-white/10 dark:bg-[#1c1c1b]"
             >
-                @if (($sort ?? 'manual') === 'manual' && ! $isCompleted)
+                @if ($sort === 'manual' && ! $isCompleted)
                     <form method="POST" action="{{ route('admin.tasks.move', $task) }}">
                         @csrf
                         @method('PATCH')

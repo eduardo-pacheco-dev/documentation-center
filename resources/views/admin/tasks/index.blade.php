@@ -48,213 +48,100 @@
         'search' => $search,
         'sort' => $sort === 'manual' ? null : $sort,
     ]);
-
-    $panel = 'rounded-3xl border border-gray-200/80 bg-white dark:border-white/10 dark:bg-[#171716]';
-    $primaryButton = 'inline-flex h-10 items-center justify-center gap-1.5 rounded-xl bg-indigo-600 px-4 text-sm font-semibold text-white transition hover:bg-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:ring-offset-2 dark:focus:ring-offset-[#171716]';
-    $secondaryButton = 'inline-flex h-10 items-center justify-center gap-1.5 rounded-xl border border-gray-200 bg-white px-4 text-sm font-semibold text-gray-600 transition hover:border-indigo-200 hover:text-indigo-600 dark:border-white/10 dark:bg-white/[0.03] dark:text-gray-300 dark:hover:border-indigo-500/40 dark:hover:text-indigo-300';
 @endphp
 
 <x-layouts.admin title="Tarefas">
-    <div class="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
-        <div class="flex items-start gap-4">
-            <span class="hidden h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-600 sm:inline-flex dark:bg-indigo-500/10 dark:text-indigo-400">
-                <x-icon name="check-circle" class="h-6 w-6" />
-            </span>
+    <x-ui.page-header
+        category="Produtividade"
+        title="Tarefas"
+        description="Organize listas, planeje o dia e acompanhe suas etapas."
+        icon="check-circle"
+    >
+        <x-ui.action
+            :href="route('admin.tasks.export', $exportQuery)"
+            variant="secondary"
+            icon="arrow-down-tray"
+            data-export-link
+            data-export-filename="tarefas.xlsx"
+        >
+            Exportar Excel
+        </x-ui.action>
 
-            <div>
-                <p class="text-[11px] font-semibold uppercase tracking-[0.18em] text-indigo-600 dark:text-indigo-400">Produtividade</p>
-                <h1 class="mt-1 text-2xl font-semibold tracking-tight text-gray-900 sm:text-3xl dark:text-white">Tarefas</h1>
-                <p class="mt-1.5 max-w-xl text-sm text-gray-500 dark:text-gray-400">Organize listas, planeje o dia e acompanhe suas etapas.</p>
-            </div>
-        </div>
+        <x-ui.action
+            type="button"
+            variant="secondary"
+            icon="plus"
+            data-modal-open="task-list-modal"
+        >
+            Nova lista
+        </x-ui.action>
 
-        <div class="flex flex-wrap items-center gap-2">
-            <a
-                href="{{ route('admin.tasks.export', $exportQuery) }}"
-                data-export-link
-                data-export-filename="tarefas.xlsx"
-                class="{{ $secondaryButton }}"
-            >
-                <x-icon name="arrow-down-tray" class="h-4 w-4" />
-                Exportar Excel
-            </a>
-
-            <button
-                type="button"
-                data-modal-open="task-list-modal"
-                class="{{ $secondaryButton }}"
-            >
-                <x-icon name="plus" class="h-4 w-4" />
-                Nova lista
-            </button>
-
-            @if ($lists->isNotEmpty())
-                <button
-                    type="button"
-                    data-modal-open="task-create-modal"
-                    class="{{ $primaryButton }}"
-                >
-                    <x-icon name="plus" class="h-4 w-4" />
-                    Nova tarefa
-                </button>
-            @endif
-        </div>
-    </div>
+        @if ($lists->isNotEmpty())
+            <x-ui.action type="button" icon="plus" data-modal-open="task-create-modal">
+                Nova tarefa
+            </x-ui.action>
+        @endif
+    </x-ui.page-header>
 
     <div class="mt-7 grid gap-6 lg:grid-cols-[18rem_minmax(0,1fr)] lg:items-start">
-        @include('admin.tasks.partials.sidebar', ['listPayloadFor' => $listPayloadFor])
+        <x-tasks.sidebar
+            :counts="$counts"
+            :view="$view"
+            :lists="$lists"
+            :active-list="$activeList"
+            :list-counts="$listCounts"
+            :list-payload-for="$listPayloadFor"
+        />
 
         <section class="min-w-0 space-y-4">
-            <div class="{{ $panel }} overflow-hidden">
-                <div class="flex flex-col gap-4 p-5 sm:flex-row sm:items-start sm:justify-between sm:p-6">
-                    <div class="flex min-w-0 items-start gap-3">
-                        <span class="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl {{ $activeList !== null ? $activeList->color->softClasses() : 'bg-indigo-50 text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-400' }}">
-                            <x-icon :name="$viewMeta['icon']" class="h-5 w-5" />
-                        </span>
-
-                        <div class="min-w-0">
-                            <div class="flex flex-wrap items-center gap-2">
-                                <h2 class="text-xl font-semibold tracking-tight text-gray-900 dark:text-white">{{ $viewMeta['title'] }}</h2>
-                                <span class="inline-flex min-w-6 items-center justify-center rounded-full bg-indigo-50 px-2.5 py-0.5 text-xs font-semibold text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-300">
-                                    {{ $tasks->count() }}
-                                </span>
-                            </div>
-                            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">{{ $viewMeta['description'] }}</p>
-                        </div>
-                    </div>
-
-                    <div class="flex flex-wrap items-center gap-2 sm:shrink-0">
-                        @if ($activeList !== null)
-                            <button
-                                type="button"
-                                data-modal-open="task-list-modal"
-                                data-list='@json($listPayloadFor($activeList))'
-                                class="{{ $secondaryButton }}"
-                            >
-                                <x-icon name="pencil-square" class="h-4 w-4" />
-                                Editar lista
-                            </button>
-                        @endif
-
-                        <form method="GET" action="{{ route('admin.tasks.index') }}" class="flex items-center gap-2">
-                            @foreach ($scopeHidden as $name => $value)
-                                <input type="hidden" name="{{ $name }}" value="{{ $value }}">
-                            @endforeach
-                            @if ($search !== '')
-                                <input type="hidden" name="search" value="{{ $search }}">
-                            @endif
-
-                            <label for="task-sort" class="sr-only">Ordenar por</label>
-                            <div class="relative">
-                                <select
-                                    id="task-sort"
-                                    name="sort"
-                                    data-auto-submit
-                                    class="h-10 appearance-none rounded-xl border border-gray-200 bg-gray-50 pl-3 pr-9 text-sm font-medium text-gray-600 transition focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 dark:border-white/10 dark:bg-white/[0.03] dark:text-gray-300"
-                                >
-                                    @foreach ($sortOptions as $value => $label)
-                                        <option value="{{ $value }}" @selected($sort === $value)>{{ $label }}</option>
-                                    @endforeach
-                                </select>
-                                <span class="pointer-events-none absolute inset-y-0 right-3 flex items-center text-gray-400">
-                                    <x-icon name="chevron-down" class="h-4 w-4" />
-                                </span>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-
-                <form method="GET" action="{{ route('admin.tasks.index') }}" class="flex flex-wrap items-center gap-2 border-t border-gray-100 px-5 py-3 sm:px-6 dark:border-white/10">
-                    @foreach ($scopeHidden as $name => $value)
-                        <input type="hidden" name="{{ $name }}" value="{{ $value }}">
-                    @endforeach
-                    @if ($sort !== 'manual')
-                        <input type="hidden" name="sort" value="{{ $sort }}">
-                    @endif
-
-                    <div class="relative min-w-0 flex-1">
-                        <span class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400 dark:text-gray-500">
-                            <x-icon name="magnifying-glass" class="h-4 w-4" />
-                        </span>
-                        <input
-                            type="search"
-                            name="search"
-                            value="{{ $search }}"
-                            placeholder="Pesquisar tarefas..."
-                            class="h-10 w-full rounded-xl border border-gray-200 bg-gray-50 pl-9 pr-3 text-sm text-gray-700 outline-none transition placeholder:text-gray-400 focus:border-indigo-500 focus:bg-white focus:ring-2 focus:ring-indigo-500/15 dark:border-white/10 dark:bg-white/[0.03] dark:text-gray-200 dark:placeholder:text-gray-500 dark:focus:bg-white/5"
-                        >
-                    </div>
-
-                    <button type="submit" class="{{ $secondaryButton }}">Pesquisar</button>
-
-                    @if ($search !== '')
-                        <a href="{{ route('admin.tasks.index', $scopeHidden) }}" class="px-2 text-sm font-medium text-gray-500 transition hover:text-indigo-600 dark:text-gray-400 dark:hover:text-indigo-300">Limpar</a>
-                    @endif
-                </form>
-            </div>
+            <x-tasks.view-card
+                :view-meta="$viewMeta"
+                :task-count="$tasks->count()"
+                :active-list="$activeList"
+                :sort="$sort"
+                :sort-options="$sortOptions"
+                :search="$search"
+                :scope-hidden="$scopeHidden"
+                :list-payload-for="$listPayloadFor"
+            />
 
             @if ($lists->isEmpty())
-                <div class="{{ $panel }} px-6 py-16 text-center sm:py-20">
-                    <span class="relative mx-auto inline-flex h-16 w-16 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-400">
-                        <x-icon name="clipboard-document-list" class="h-7 w-7" />
-                    </span>
-                    <h3 class="mt-5 text-base font-semibold text-gray-900 dark:text-white">Crie a sua primeira lista</h3>
-                    <p class="mx-auto mt-1.5 max-w-sm text-sm text-gray-500 dark:text-gray-400">As listas agrupam tarefas como Trabalho, Casa ou Compras.</p>
-                    <button type="button" data-modal-open="task-list-modal" class="{{ $primaryButton }} mt-5">
-                        <x-icon name="plus" class="h-4 w-4" />
-                        Nova lista
-                    </button>
+                <div class="rounded-3xl border border-gray-200/80 bg-white dark:border-white/10 dark:bg-[#171716]">
+                    <x-ui.empty-state
+                        icon="clipboard-document-list"
+                        title="Crie a sua primeira lista"
+                        description="As listas agrupam tarefas como Trabalho, Casa ou Compras."
+                        tone="indigo"
+                        shape="square"
+                    >
+                        <x-ui.action type="button" icon="plus" class="mt-5" data-modal-open="task-list-modal">
+                            Nova lista
+                        </x-ui.action>
+                    </x-ui.empty-state>
                 </div>
             @else
                 @if ($tasks->isEmpty())
-                    <div class="{{ $panel }} px-6 py-16 text-center sm:py-20">
-                        <span class="relative mx-auto inline-flex h-16 w-16 items-center justify-center rounded-full bg-gray-50 text-gray-400 dark:bg-white/[0.04] dark:text-gray-500">
-                            <span class="absolute inset-0 rounded-full border border-dashed border-gray-200 dark:border-white/10"></span>
-                            <x-icon :name="$viewMeta['icon']" class="h-7 w-7" />
-                        </span>
-                        <h3 class="mt-5 text-base font-semibold text-gray-900 dark:text-white">{{ $emptyMessage }}</h3>
-                        <p class="mx-auto mt-1.5 max-w-sm text-sm text-gray-500 dark:text-gray-400">Use o botão “Nova tarefa” para começar.</p>
+                    <div class="rounded-3xl border border-gray-200/80 bg-white dark:border-white/10 dark:bg-[#171716]">
+                        <x-ui.empty-state
+                            :icon="$viewMeta['icon']"
+                            :title="$emptyMessage"
+                            description="Use o botão “Nova tarefa” para começar."
+                        />
                     </div>
                 @else
-                    <div class="{{ $panel }} overflow-hidden">
-                        <ul class="max-h-[24rem] divide-y divide-gray-100 overflow-y-auto dark:divide-white/10">
-                            @foreach ($tasks as $task)
-                                @include('admin.tasks.partials.task-row', ['task' => $task])
-                            @endforeach
-                        </ul>
-                    </div>
+                    <x-tasks.task-list :tasks="$tasks" :active-list="$activeList" :sort="$sort" />
                 @endif
 
                 @if ($completedTasks->isNotEmpty())
-                    <div class="{{ $panel }} overflow-hidden" x-data="{ open: false }">
-                        <button
-                            type="button"
-                            @click="open = !open"
-                            class="flex w-full items-center justify-between gap-3 px-5 py-4 text-left transition hover:bg-gray-50/70 dark:hover:bg-white/[0.03]"
-                        >
-                            <span class="flex items-center gap-2 text-sm font-semibold text-gray-700 dark:text-gray-200">
-                                <x-icon name="check-circle" class="h-4 w-4 text-gray-400" />
-                                Concluídas
-                                <span class="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-500 dark:bg-white/10 dark:text-gray-300">{{ $completedTasks->count() }}</span>
-                            </span>
-                            <span class="text-gray-400 transition-transform" :class="open ? 'rotate-180' : ''">
-                                <x-icon name="chevron-down" class="h-4 w-4" />
-                            </span>
-                        </button>
-
-                        <ul x-show="open" x-cloak class="max-h-[24rem] divide-y divide-gray-100 overflow-y-auto border-t border-gray-100 dark:divide-white/10 dark:border-white/10">
-                            @foreach ($completedTasks as $task)
-                                @include('admin.tasks.partials.task-row', ['task' => $task])
-                            @endforeach
-                        </ul>
-                    </div>
+                    <x-tasks.completed-list :tasks="$completedTasks" :active-list="$activeList" :sort="$sort" />
                 @endif
             @endif
         </section>
     </div>
 
-    @include('admin.tasks.partials.task-modal', ['lists' => $lists, 'agendaEvents' => $agendaEvents])
-    @include('admin.tasks.partials.task-create-modal', ['lists' => $lists, 'agendaEvents' => $agendaEvents, 'activeList' => $activeList, 'view' => $view])
-    @include('admin.tasks.partials.list-modal')
+    <x-tasks.detail-modal :lists="$lists" :agenda-events="$agendaEvents" />
+    <x-tasks.create-modal :lists="$lists" :agenda-events="$agendaEvents" :active-list="$activeList" :view="$view" />
+    <x-tasks.list-modal />
+
     @include('admin.tasks.partials.scripts')
 </x-layouts.admin>
