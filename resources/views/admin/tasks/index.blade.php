@@ -206,57 +206,6 @@
                     </button>
                 </div>
             @else
-                @if ($view !== 'completed')
-                    <form
-                        method="POST"
-                        action="{{ route('admin.tasks.store') }}"
-                        class="{{ $panel }} flex flex-col gap-2 p-3 sm:flex-row sm:items-center"
-                    >
-                        @csrf
-                        @if ($activeList !== null)
-                            <input type="hidden" name="todo_list_id" value="{{ $activeList->getKey() }}">
-                        @endif
-
-                        @if ($view === 'my_day')
-                            <input type="hidden" name="my_day" value="1">
-                        @endif
-                        @if ($view === 'important')
-                            <input type="hidden" name="is_important" value="1">
-                        @endif
-
-                        <span class="hidden h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600 sm:inline-flex dark:bg-indigo-500/10 dark:text-indigo-400">
-                            <x-icon name="plus" class="h-4 w-4" />
-                        </span>
-
-                        <input
-                            type="text"
-                            name="title"
-                            required
-                            maxlength="255"
-                            placeholder="Adicionar uma tarefa"
-                            class="h-10 min-w-0 flex-1 rounded-xl border border-transparent bg-gray-50 px-3 text-sm text-gray-700 outline-none transition placeholder:text-gray-400 focus:border-indigo-500 focus:bg-white focus:ring-2 focus:ring-indigo-500/15 dark:bg-white/[0.04] dark:text-gray-100 dark:placeholder:text-gray-500"
-                        >
-
-                        @if ($activeList === null)
-                            <label for="task-compose-list" class="sr-only">Lista</label>
-                            <select
-                                id="task-compose-list"
-                                name="todo_list_id"
-                                class="h-10 rounded-xl border border-gray-200 bg-white px-3 text-sm text-gray-600 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/15 sm:w-44 dark:border-white/10 dark:bg-white/[0.03] dark:text-gray-300"
-                            >
-                                @foreach ($lists as $list)
-                                    <option value="{{ $list->getKey() }}" @selected($activeList?->is($list))>{{ $list->name }}</option>
-                                @endforeach
-                            </select>
-                        @endif
-
-                        <button type="submit" class="{{ $primaryButton }}">
-                            <x-icon name="plus" class="h-4 w-4" />
-                            Adicionar
-                        </button>
-                    </form>
-                @endif
-
                 @if ($tasks->isEmpty())
                     <div class="{{ $panel }} px-6 py-16 text-center sm:py-20">
                         <span class="relative mx-auto inline-flex h-16 w-16 items-center justify-center rounded-full bg-gray-50 text-gray-400 dark:bg-white/[0.04] dark:text-gray-500">
@@ -264,7 +213,7 @@
                             <x-icon :name="$viewMeta['icon']" class="h-7 w-7" />
                         </span>
                         <h3 class="mt-5 text-base font-semibold text-gray-900 dark:text-white">{{ $emptyMessage }}</h3>
-                        <p class="mx-auto mt-1.5 max-w-sm text-sm text-gray-500 dark:text-gray-400">Adicione uma tarefa acima para começar.</p>
+                        <p class="mx-auto mt-1.5 max-w-sm text-sm text-gray-500 dark:text-gray-400">Use o botão “Nova tarefa” para começar.</p>
                     </div>
                 @else
                     <div class="{{ $panel }} overflow-hidden">
