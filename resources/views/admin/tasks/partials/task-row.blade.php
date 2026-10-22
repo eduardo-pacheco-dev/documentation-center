@@ -35,7 +35,7 @@
 
 <li
     data-task='@json($payload)'
-    class="group flex items-start gap-3 px-4 py-3 transition hover:bg-gray-50/70 dark:hover:bg-gray-800/40"
+    class="group flex items-start gap-3 px-5 py-4 transition hover:bg-gray-50/70 dark:hover:bg-white/[0.03]"
 >
     <form method="POST" action="{{ route('admin.tasks.toggle', $task) }}" class="mt-0.5 shrink-0">
         @csrf
@@ -55,7 +55,7 @@
             <button
                 type="button"
                 data-modal-open="task-detail-modal"
-                class="min-w-0 flex-1 text-left text-sm font-medium {{ $isCompleted ? 'text-gray-400 line-through dark:text-gray-500' : 'text-gray-800 dark:text-gray-100' }}"
+                class="min-w-0 flex-1 text-left text-[15px] font-medium {{ $isCompleted ? 'text-gray-400 line-through dark:text-gray-500' : 'text-gray-800 dark:text-gray-100' }}"
             >
                 {{ $task->title }}
             </button>
@@ -67,7 +67,7 @@
 
         <div class="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
             @if ($dueLabel !== null)
-                <span class="inline-flex items-center gap-1 {{ $task->isOverdue() ? 'font-medium text-red-600 dark:text-red-400' : 'text-gray-500 dark:text-gray-400' }}">
+                <span class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 {{ $task->isOverdue() ? 'bg-red-50 font-medium text-red-600 dark:bg-red-500/10 dark:text-red-400' : 'bg-gray-100 text-gray-500 dark:bg-white/5 dark:text-gray-400' }}">
                     <x-icon name="calendar-days" class="h-3.5 w-3.5" />
                     {{ $dueLabel }}
                 </span>
@@ -103,7 +103,7 @@
         </div>
     </div>
 
-    <div class="flex shrink-0 items-center gap-0.5 opacity-0 transition focus-within:opacity-100 group-hover:opacity-100">
+    <div class="flex shrink-0 items-center gap-0.5 opacity-100 transition focus-within:opacity-100 lg:opacity-0 lg:group-hover:opacity-100">
         <form method="POST" action="{{ route('admin.tasks.my-day', $task) }}">
             @csrf
             @method('PATCH')
@@ -144,7 +144,7 @@
                 x-show="open"
                 x-cloak
                 @click.outside="open = false"
-                class="absolute right-0 z-20 mt-1 w-44 rounded-xl border border-gray-200 bg-white py-1 shadow-lg dark:border-gray-800 dark:bg-gray-900"
+                class="absolute right-0 z-20 mt-1 w-44 rounded-xl border border-gray-200 bg-white py-1 dark:border-white/10 dark:bg-[#1c1c1b]"
             >
                 @if (($sort ?? 'manual') === 'manual' && ! $isCompleted)
                     <form method="POST" action="{{ route('admin.tasks.move', $task) }}">

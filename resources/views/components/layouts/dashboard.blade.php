@@ -56,7 +56,7 @@
                     <span class="truncate text-sm font-semibold text-gray-700 dark:text-gray-200">{{ $title }}</span>
                 </div>
 
-                <main class="w-full flex-1 rounded-xl bg-white px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
+                <main class="w-full flex-1 rounded-xl bg-white px-4 py-6 sm:px-6 sm:py-8 lg:px-8 dark:bg-[#101010]">
                     @if (session('status'))
                         <noscript>
                             <div class="mb-6 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800 dark:border-green-900 dark:bg-green-950 dark:text-green-300">
