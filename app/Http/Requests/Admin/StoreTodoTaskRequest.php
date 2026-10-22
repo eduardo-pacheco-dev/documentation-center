@@ -3,7 +3,9 @@
 namespace App\Http\Requests\Admin;
 
 use App\Enums\TodoRepeat;
+use App\Models\AgendaEvent;
 use App\Models\TodoTask;
+use Closure;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -32,6 +34,24 @@ class StoreTodoTaskRequest extends FormRequest
                 'required',
                 'integer',
                 Rule::exists('todo_lists', 'id')->where('user_id', $this->user()->getKey()),
+            ],
+            'agenda_event_id' => [
+                'nullable',
+                'integer',
+                function (string $attribute, mixed $value, Closure $fail): void {
+                    if ($value === null || $value === '') {
+                        return;
+                    }
+
+                    $exists = AgendaEvent::query()
+                        ->accessibleBy($this->user())
+                        ->whereKey($value)
+                        ->exists();
+
+                    if (! $exists) {
+                        $fail('O evento selecionado não está disponível.');
+                    }
+                },
             ],
             'notes' => ['nullable', 'string', 'max:5000'],
             'due_at' => ['nullable', 'date'],

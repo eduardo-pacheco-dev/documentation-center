@@ -16,6 +16,7 @@ use Illuminate\Support\Carbon;
 #[Fillable([
     'user_id',
     'todo_list_id',
+    'agenda_event_id',
     'title',
     'notes',
     'due_at',
@@ -45,6 +46,14 @@ class TodoTask extends Model
     public function todoList(): BelongsTo
     {
         return $this->belongsTo(TodoList::class);
+    }
+
+    /**
+     * The agenda event linked to the task.
+     */
+    public function agendaEvent(): BelongsTo
+    {
+        return $this->belongsTo(AgendaEvent::class);
     }
 
     /**

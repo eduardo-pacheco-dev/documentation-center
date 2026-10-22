@@ -79,6 +79,7 @@
             taskModal.querySelector('[data-task-step-form]').action = task.step_store_url ?? '#';
             taskModal.querySelector('[data-task-title]').value = task.title ?? '';
             taskModal.querySelector('[data-task-list]').value = task.list_id ?? '';
+            taskModal.querySelector('[data-task-agenda-event]').value = task.agenda_event_id ?? '';
             taskModal.querySelector('[data-task-due]').value = task.due_at ?? '';
             taskModal.querySelector('[data-task-remind]').value = task.remind_at ?? '';
             taskModal.querySelector('[data-task-repeat]').value = task.repeat_type ?? 'none';

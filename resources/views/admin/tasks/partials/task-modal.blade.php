@@ -64,6 +64,16 @@
                 </div>
             </div>
 
+            <div>
+                <label for="task-detail-agenda-event" class="{{ $fieldLabel }}">Evento da agenda</label>
+                <select id="task-detail-agenda-event" data-task-agenda-event name="agenda_event_id" class="{{ $fieldInput }}">
+                    <option value="">Sem vínculo</option>
+                    @foreach ($agendaEvents as $event)
+                        <option value="{{ $event->getKey() }}">{{ $event->title }} — {{ $event->start_at->format('d/m/Y H:i') }}</option>
+                    @endforeach
+                </select>
+            </div>
+
             <div class="grid gap-3 sm:grid-cols-2">
                 <div>
                     <label for="task-detail-due" class="{{ $fieldLabel }}">Vencimento</label>

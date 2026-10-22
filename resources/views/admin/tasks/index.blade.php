@@ -253,8 +253,8 @@
         </section>
     </div>
 
-    @include('admin.tasks.partials.task-modal', ['lists' => $lists])
-    @include('admin.tasks.partials.task-create-modal', ['lists' => $lists, 'activeList' => $activeList, 'view' => $view])
+    @include('admin.tasks.partials.task-modal', ['lists' => $lists, 'agendaEvents' => $agendaEvents])
+    @include('admin.tasks.partials.task-create-modal', ['lists' => $lists, 'agendaEvents' => $agendaEvents, 'activeList' => $activeList, 'view' => $view])
     @include('admin.tasks.partials.list-modal')
     @include('admin.tasks.partials.scripts')
 </x-layouts.admin>

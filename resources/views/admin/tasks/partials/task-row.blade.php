@@ -15,6 +15,7 @@
     $payload = [
         'title' => $task->title,
         'list_id' => $task->todo_list_id,
+        'agenda_event_id' => $task->agenda_event_id,
         'due_at' => $task->due_at?->toDateString(),
         'remind_at' => $task->remind_at?->format('Y-m-d\TH:i'),
         'repeat_type' => $task->repeat_type->value,
@@ -70,6 +71,13 @@
                 <span class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 {{ $task->isOverdue() ? 'bg-red-50 font-medium text-red-600 dark:bg-red-500/10 dark:text-red-400' : 'bg-gray-100 text-gray-500 dark:bg-white/5 dark:text-gray-400' }}">
                     <x-icon name="calendar-days" class="h-3.5 w-3.5" />
                     {{ $dueLabel }}
+                </span>
+            @endif
+
+            @if ($task->agendaEvent !== null)
+                <span class="inline-flex items-center gap-1 rounded-full bg-indigo-50 px-2 py-0.5 text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-300">
+                    <x-icon name="calendar-days" class="h-3.5 w-3.5" />
+                    {{ $task->agendaEvent->title }}
                 </span>
             @endif
 

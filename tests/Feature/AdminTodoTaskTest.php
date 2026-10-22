@@ -1,6 +1,8 @@
 <?php
 
 use App\Enums\TodoRepeat;
+use App\Models\AgendaCalendar;
+use App\Models\AgendaEvent;
 use App\Models\TodoList;
 use App\Models\TodoTask;
 use App\Models\User;
@@ -22,6 +24,7 @@ it('offers a modal to create a task', function () {
         ->assertSee('id="task-create-modal"', false)
         ->assertSee('Nova tarefa')
         ->assertSee('Criar tarefa')
+        ->assertSee('name="agenda_event_id"', false)
         ->assertSee(route('admin.tasks.store'), false);
 });
 
@@ -160,6 +163,49 @@ it('creates a task inside one of the user lists', function () {
         'title' => 'Nova tarefa',
         'is_important' => true,
         'completed_at' => null,
+    ]);
+});
+
+it('links a task to an agenda event', function () {
+    $user = User::factory()->create();
+    $list = todoListFor($user);
+    $calendar = AgendaCalendar::factory()->for($user)->create();
+    $event = AgendaEvent::factory()->forCalendar($calendar)->create(['title' => 'Reunião de planejamento']);
+
+    $this->actingAs($user)
+        ->from(route('admin.tasks.index'))
+        ->post(route('admin.tasks.store'), [
+            'title' => 'Preparar pauta da reunião',
+            'todo_list_id' => $list->getKey(),
+            'agenda_event_id' => $event->getKey(),
+        ])
+        ->assertRedirect(route('admin.tasks.index'));
+
+    $task = $list->tasks()->firstOrFail();
+
+    expect($task->agenda_event_id)->toBe($event->getKey())
+        ->and($task->agendaEvent->is($event))->toBeTrue();
+});
+
+it('rejects an agenda event that belongs to another user', function () {
+    $user = User::factory()->create();
+    $list = todoListFor($user);
+    $other = User::factory()->create();
+    $calendar = AgendaCalendar::factory()->for($other)->create();
+    $event = AgendaEvent::factory()->forCalendar($calendar)->create();
+
+    $this->actingAs($user)
+        ->from(route('admin.tasks.index'))
+        ->post(route('admin.tasks.store'), [
+            'title' => 'Tarefa inválida',
+            'todo_list_id' => $list->getKey(),
+            'agenda_event_id' => $event->getKey(),
+        ])
+        ->assertSessionHasErrors('agenda_event_id');
+
+    $this->assertDatabaseMissing('todo_tasks', [
+        'title' => 'Tarefa inválida',
+        'user_id' => $user->getKey(),
     ]);
 });
 

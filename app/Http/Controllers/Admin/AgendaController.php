@@ -265,7 +265,7 @@ class AgendaController extends Controller
         $events = AgendaEvent::query()
             ->whereIn('agenda_calendar_id', $calendars->pluck('id'))
             ->overlapping($from, $to)
-            ->with(['calendar', 'attendees', 'reminders', 'exceptions', 'user'])
+            ->with(['calendar', 'attendees', 'reminders', 'exceptions', 'user', 'tasks'])
             ->get();
 
         return $this->expander->expandMany($events, $from, $to);

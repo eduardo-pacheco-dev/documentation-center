@@ -241,6 +241,12 @@
 
             <div data-agenda-step="3" class="space-y-4" hidden>
             <fieldset class="rounded-xl border border-gray-200 p-3 dark:border-gray-800">
+                <legend class="px-1 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Tarefas vinculadas</legend>
+                <div data-agenda-event-tasks class="space-y-1.5"></div>
+                <p data-agenda-event-tasks-empty class="text-xs text-gray-500 dark:text-gray-400">Nenhuma tarefa vinculada a este evento.</p>
+            </fieldset>
+
+            <fieldset class="rounded-xl border border-gray-200 p-3 dark:border-gray-800">
                 <legend class="px-1 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Lembretes</legend>
                 <div data-agenda-reminders class="space-y-2"></div>
                 <button type="button" data-agenda-add-reminder class="mt-2 inline-flex items-center gap-1.5 rounded-lg border border-dashed border-gray-300 px-2.5 py-1.5 text-xs font-semibold text-gray-500 transition hover:border-indigo-300 hover:text-indigo-600 dark:border-gray-700 dark:text-gray-400">
@@ -330,4 +336,11 @@
         <input type="url" name="attachments[__INDEX__][url]" placeholder="https://" class="rounded-xl border border-gray-300 bg-white px-2 py-1.5 text-sm text-gray-700 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200">
         <button type="button" data-agenda-remove-attachment class="rounded-lg p-1.5 text-gray-400 transition hover:text-red-600"><x-icon name="x-mark" class="h-4 w-4" /></button>
     </div>
+</template>
+
+<template data-agenda-task-template>
+    <a class="flex items-center gap-2 rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700 transition hover:border-indigo-200 hover:text-indigo-600 dark:border-gray-800 dark:text-gray-300 dark:hover:border-indigo-500/40 dark:hover:text-indigo-300">
+        <span data-agenda-task-status class="w-4 shrink-0 text-center text-xs font-semibold"></span>
+        <span data-agenda-task-title class="truncate"></span>
+    </a>
 </template>

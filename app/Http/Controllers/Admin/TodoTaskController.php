@@ -7,6 +7,7 @@ use App\Exports\TodoTasksExport;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\StoreTodoTaskRequest;
 use App\Http\Requests\Admin\UpdateTodoTaskRequest;
+use App\Models\AgendaEvent;
 use App\Models\TodoList;
 use App\Models\TodoTask;
 use App\Models\User;
@@ -77,8 +78,34 @@ class TodoTaskController extends Controller
             ->groupBy('todo_list_id')
             ->pluck('aggregate', 'todo_list_id');
 
+        $agendaEvents = AgendaEvent::query()
+            ->accessibleBy($user)
+            ->where('end_at', '>=', now()->subMonth())
+            ->orderBy('start_at')
+            ->limit(200)
+            ->get(['id', 'agenda_calendar_id', 'title', 'start_at']);
+
+        $linkedEventIds = $tasks->pluck('agenda_event_id')
+            ->merge($completedTasks->pluck('agenda_event_id'))
+            ->filter()
+            ->unique();
+
+        if ($linkedEventIds->isNotEmpty()) {
+            $linkedEvents = AgendaEvent::query()
+                ->accessibleBy($user)
+                ->whereIn('id', $linkedEventIds)
+                ->get(['id', 'agenda_calendar_id', 'title', 'start_at']);
+
+            $agendaEvents = $agendaEvents
+                ->merge($linkedEvents)
+                ->unique('id')
+                ->sortBy('start_at')
+                ->values();
+        }
+
         return view('admin.tasks.index', [
             'lists' => $lists,
+            'agendaEvents' => $agendaEvents,
             'activeList' => $activeList,
             'view' => $view,
             'sort' => $sort,
@@ -164,6 +191,8 @@ class TodoTaskController extends Controller
         $list->tasks()->create([
             'user_id' => $user->getKey(),
             'title' => $request->validated('title'),
+            'todo_list_id' => $list->getKey(),
+            'agenda_event_id' => $request->validated('agenda_event_id'),
             'notes' => $request->validated('notes'),
             'due_at' => $request->validated('due_at'),
             'remind_at' => $request->validated('remind_at'),
@@ -186,6 +215,7 @@ class TodoTaskController extends Controller
         $attributes = [
             'title' => $request->validated('title'),
             'todo_list_id' => $listId,
+            'agenda_event_id' => $request->validated('agenda_event_id'),
             'notes' => $request->validated('notes'),
             'due_at' => $request->validated('due_at'),
             'remind_at' => $request->validated('remind_at'),
@@ -311,7 +341,7 @@ class TodoTaskController extends Controller
     {
         $query = TodoTask::query()
             ->where('user_id', $user->getKey())
-            ->with(['todoList', 'steps']);
+            ->with(['todoList', 'steps', 'agendaEvent']);
 
         if ($completed !== null) {
             $completed ? $query->completed() : $query->incomplete();

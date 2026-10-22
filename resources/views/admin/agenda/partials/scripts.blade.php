@@ -45,6 +45,9 @@
         const adminWrap = eventModal.querySelector('[data-agenda-event-admin]');
         const reminderTemplate = document.querySelector('[data-agenda-reminder-template]');
         const attachmentTemplate = document.querySelector('[data-agenda-attachment-template]');
+        const taskTemplate = document.querySelector('[data-agenda-task-template]');
+        const eventTasksContainer = eventModal.querySelector('[data-agenda-event-tasks]');
+        const eventTasksEmpty = eventModal.querySelector('[data-agenda-event-tasks-empty]');
         const frequencySelect = eventModal.querySelector('[data-agenda-field="repeat_frequency"]');
         const endModeSelect = eventModal.querySelector('[data-agenda-field="repeat_end_mode"]');
         const untilWrap = eventModal.querySelector('[data-agenda-repeat-until]');
@@ -98,8 +101,7 @@
 
         setEventStep(1);
 
-        const statusLabels = { needs_action: 'Sem resposta', declined: 'Não vou', tentative: 'Talvez', accepted: 'Vou' };
-        const statusClasses = {
+        const statusLabels = { needs_action: 'Sem resposta', declined: 'Não vou', tentative: 'Talvez', accepted: 'Vou' };        const statusClasses = {
             needs_action: 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300',
             declined: 'bg-red-50 text-red-600 dark:bg-red-500/10 dark:text-red-400',
             tentative: 'bg-amber-50 text-amber-600 dark:bg-amber-500/10 dark:text-amber-400',
@@ -111,6 +113,42 @@
         let reminderIndex = 0;
         let attachmentIndex = 0;
         let dragEndedAt = 0;
+
+        const renderEventTasks = (tasks = []) => {
+            if (!eventTasksContainer) {
+                return;
+            }
+
+            eventTasksContainer.innerHTML = '';
+
+            if (eventTasksEmpty) {
+                eventTasksEmpty.hidden = tasks.length > 0;
+            }
+
+            if (!taskTemplate) {
+                return;
+            }
+
+            tasks.forEach((task) => {
+                const node = taskTemplate.content.firstElementChild.cloneNode(true);
+                node.href = task.url;
+
+                const title = node.querySelector('[data-agenda-task-title]');
+                const status = node.querySelector('[data-agenda-task-status]');
+
+                if (title) {
+                    title.textContent = task.title;
+                }
+
+                if (status) {
+                    status.textContent = task.completed ? '✓' : '•';
+                    status.classList.toggle('text-green-500', Boolean(task.completed));
+                    status.classList.toggle('text-gray-400', !task.completed);
+                }
+
+                eventTasksContainer.appendChild(node);
+            });
+        };
 
         const openModal = (modal) => {
             if (!modal) {
@@ -229,6 +267,7 @@
             remindersContainer.innerHTML = '';
             attachmentsContainer.innerHTML = '';
             attendeeList.innerHTML = '';
+            renderEventTasks(payload?.tasks ?? []);
             reminderIndex = 0;
             attachmentIndex = 0;
 

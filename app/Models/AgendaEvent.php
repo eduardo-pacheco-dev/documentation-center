@@ -90,6 +90,16 @@ class AgendaEvent extends Model
     }
 
     /**
+     * The tasks linked to the event.
+     *
+     * @return HasMany<TodoTask, $this>
+     */
+    public function tasks(): HasMany
+    {
+        return $this->hasMany(TodoTask::class);
+    }
+
+    /**
      * Determine whether the event repeats.
      */
     public function isRecurring(): bool
@@ -149,6 +159,16 @@ class AgendaEvent extends Model
     public function attachmentList(): array
     {
         return array_values($this->attachments ?? []);
+    }
+
+    /**
+     * Limit the query to the events the user can access.
+     *
+     * @param  Builder<AgendaEvent>  $query
+     */
+    public function scopeAccessibleBy(Builder $query, User $user): void
+    {
+        $query->whereHas('calendar', fn (Builder $query) => $query->accessibleBy($user));
     }
 
     /**

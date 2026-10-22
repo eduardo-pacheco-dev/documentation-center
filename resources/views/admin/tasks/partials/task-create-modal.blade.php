@@ -62,6 +62,16 @@
             </div>
 
             <div>
+                <label for="task-create-agenda-event" class="{{ $fieldLabel }}">Evento da agenda</label>
+                <select id="task-create-agenda-event" name="agenda_event_id" class="{{ $fieldInput }}">
+                    <option value="">Sem vínculo</option>
+                    @foreach ($agendaEvents as $event)
+                        <option value="{{ $event->getKey() }}">{{ $event->title }} — {{ $event->start_at->format('d/m/Y H:i') }}</option>
+                    @endforeach
+                </select>
+            </div>
+
+            <div>
                 <label for="task-create-notes" class="{{ $fieldLabel }}">Notas</label>
                 <textarea
                     id="task-create-notes"

@@ -162,6 +162,16 @@ final readonly class AgendaOccurrence
             'is_organizer' => $user !== null && $event->isOrganizer($user),
             'attendee_status' => $attendee?->status->value,
             'can_respond' => $attendee !== null,
+            'tasks' => $event->tasks
+                ->filter(fn ($task): bool => $user !== null && $task->user_id === $user->getKey())
+                ->map(fn ($task): array => [
+                    'id' => $task->getKey(),
+                    'title' => $task->title,
+                    'completed' => $task->isCompleted(),
+                    'url' => route('admin.tasks.index', ['view' => 'all', 'search' => $task->title]),
+                ])
+                ->values()
+                ->all(),
         ];
     }
 

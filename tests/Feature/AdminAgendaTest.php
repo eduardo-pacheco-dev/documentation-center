@@ -412,7 +412,37 @@ it('splits the event modal into paginated steps', function () {
         ->assertSee('data-agenda-step="2"', false)
         ->assertSee('data-agenda-step="3"', false)
         ->assertSee('data-agenda-step-next', false)
-        ->assertSee('data-agenda-step-prev', false);
+        ->assertSee('data-agenda-step-prev', false)
+        ->assertSee('Tarefas vinculadas')
+        ->assertSee('data-agenda-event-tasks', false);
+});
+
+it('exposes only the signed in user tasks in the agenda payload', function () {
+    $user = User::factory()->create();
+    $calendar = AgendaCalendar::factory()->for($user)->create();
+    $event = AgendaEvent::factory()->forCalendar($calendar)->create([
+        'title' => 'Reunião com tarefas',
+        'start_at' => Carbon::parse('2026-03-02 10:00:00'),
+        'end_at' => Carbon::parse('2026-03-02 11:00:00'),
+    ]);
+
+    $list = todoListFor($user);
+    todoTaskIn($list, [
+        'title' => 'Minha tarefa vinculada',
+        'agenda_event_id' => $event->getKey(),
+    ]);
+
+    $otherList = todoListFor(User::factory()->create());
+    todoTaskIn($otherList, [
+        'title' => 'Tarefa de outro usuário',
+        'agenda_event_id' => $event->getKey(),
+    ]);
+
+    $this->actingAs($user)
+        ->get('/admin/agenda?view=day&date=2026-03-02')
+        ->assertOk()
+        ->assertSee('Minha tarefa vinculada')
+        ->assertDontSee('Tarefa de outro usuário');
 });
 
 it('exposes the color palette through the calendar color enum', function () {
