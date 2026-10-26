@@ -34,7 +34,7 @@ class UpdateFormRequest extends FormRequest
     {
         return [
             'project_id' => [
-                'required',
+                'nullable',
                 'integer',
                 Rule::exists('projects', 'id')->where(fn ($query) => $query
                     ->where('user_id', $this->user()?->getKey())

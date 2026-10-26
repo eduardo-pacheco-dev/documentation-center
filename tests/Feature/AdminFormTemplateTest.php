@@ -411,7 +411,9 @@ it('shows the template selector when creating a form', function () {
         ->assertOk()
         ->assertSee('name="template_id"', false)
         ->assertSee('Registro fotográfico padrão')
-        ->assertSee('data-template-type="Registro Fotográfico"', false);
+        ->assertSee('data-template-type="Registro Fotográfico"', false)
+        ->assertSee('Sem projeto')
+        ->assertSee('Definido pelo template selecionado.');
 });
 
 it('applies a template structure when creating a form', function () {
@@ -443,6 +445,31 @@ it('applies a template structure when creating a form', function () {
     $form = Form::query()->firstOrFail();
 
     expect($form->steps)->toBe($steps);
+    expect($form->type)->toBe('Checklist');
+});
+
+it('follows the template type when creating a form without a project', function () {
+    $user = User::factory()->create();
+
+    $template = FormTemplate::factory()->create([
+        'name' => 'Template de laudo',
+        'type' => 'Laudo Técnico',
+    ]);
+
+    $this->actingAs($user)
+        ->post(route('admin.forms.store'), [
+            'name' => 'Laudo sem projeto',
+            'type' => 'Checklist',
+            'status' => 'Pendente',
+            'template_id' => $template->getKey(),
+        ])
+        ->assertRedirect()
+        ->assertSessionHasNoErrors();
+
+    $form = Form::query()->firstOrFail();
+
+    expect($form->project_id)->toBeNull();
+    expect($form->type)->toBe('Laudo Técnico');
 });
 
 it('rejects creating a form from a template that does not exist', function () {

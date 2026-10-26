@@ -26,15 +26,15 @@ class StoreFormRequest extends FormRequest
     {
         return [
             'project_id' => [
-                'required',
+                'nullable',
                 'integer',
                 Rule::exists('projects', 'id')->where(fn ($query) => $query
                     ->where('user_id', $this->user()?->getKey())
                     ->whereNull('deleted_at')),
             ],
             'name' => ['required', 'string', 'max:255'],
-            'type' => ['required', 'string', 'max:255'],
-            'status' => ['required', 'string', 'max:40'],
+            'type' => ['nullable', 'string', 'max:255'],
+            'status' => ['nullable', 'string', 'max:40'],
             'template_id' => ['sometimes', 'nullable', 'integer', Rule::exists('form_templates', 'id')],
             'steps_json' => ['sometimes', 'nullable', 'json'],
             'fields_json' => ['sometimes', 'nullable', 'json'],

@@ -113,6 +113,49 @@ it('creates a form owned by the authenticated user with its steps', function () 
     $this->get(route('admin.forms.edit', $form))->assertOk()->assertSee('Registro Fotográfico Completo');
 });
 
+it('creates a form without a project and defaults the status to pending', function () {
+    $user = User::factory()->create();
+
+    $this->actingAs($user)
+        ->post('/admin/forms', [
+            'name' => 'Registro sem projeto',
+        ])
+        ->assertRedirect();
+
+    $form = Form::query()->firstOrFail();
+
+    expect($form->project_id)->toBeNull();
+    expect($form->status)->toBe('Pendente');
+    expect($form->type)->toBe('Registro Fotográfico');
+});
+
+it('selects the pending status by default even when it is not first', function () {
+    $user = User::factory()->create([
+        'form_settings' => ['statuses' => ['Em análise', 'Pendente', 'Concluído']],
+    ]);
+
+    $this->actingAs($user)
+        ->get('/admin/forms/create')
+        ->assertOk()
+        ->assertSee('<option value="Pendente" selected>', false);
+});
+
+it('clears the project when updating a form without one', function () {
+    $user = User::factory()->create();
+    $form = Form::factory()->create(['user_id' => $user->getKey()]);
+
+    $this->actingAs($user)
+        ->put(route('admin.forms.update', $form), [
+            'project_id' => '',
+            'name' => 'Formulário sem projeto',
+            'type' => 'Checklist',
+            'status' => 'Pendente',
+        ])
+        ->assertRedirect();
+
+    expect($form->fresh()->project_id)->toBeNull();
+});
+
 it('updates a form and its steps', function () {
     $user = User::factory()->create();
     $project = Project::factory()->for($user)->create();

@@ -60,6 +60,8 @@ class FormController extends Controller
             ? $request->query('view')
             : $settings->defaultView();
 
+        $templates = FormTemplate::query()->orderBy('name')->get(['id', 'name', 'type']);
+
         return view('admin.forms.index', [
             'forms' => $forms,
             'projects' => $request->user()->projects()->orderBy('name')->get(['id', 'code', 'name']),
@@ -67,9 +69,12 @@ class FormController extends Controller
             'status' => $status,
             'view' => $view,
             'perPage' => $perPage,
-            'types' => $this->mergeOptions($settings->types(), $this->existingValues($request->user(), 'type')),
+            'types' => $this->mergeOptions(
+                $settings->types(),
+                [...$this->existingValues($request->user(), 'type'), ...$templates->pluck('type')->all()],
+            ),
             'statuses' => $this->mergeOptions($settings->statuses(), $this->existingValues($request->user(), 'status')),
-            'templates' => FormTemplate::query()->orderBy('name')->get(['id', 'name', 'type']),
+            'templates' => $templates,
             'defaultTemplateId' => $settings->defaultTemplateId(),
         ]);
     }
@@ -83,11 +88,13 @@ class FormController extends Controller
 
         $settings = FormModuleSettings::for($request->user());
 
+        $templates = FormTemplate::query()->orderBy('name')->get(['id', 'name', 'type']);
+
         return view('admin.forms.create', [
             'projects' => $request->user()->projects()->orderBy('name')->get(['id', 'code', 'name']),
-            'types' => $settings->types(),
+            'types' => $this->mergeOptions($settings->types(), $templates->pluck('type')->all()),
             'statuses' => $settings->statuses(),
-            'templates' => FormTemplate::query()->orderBy('name')->get(['id', 'name', 'type']),
+            'templates' => $templates,
             'defaultTemplateId' => $settings->defaultTemplateId(),
         ]);
     }
@@ -99,15 +106,21 @@ class FormController extends Controller
     {
         $attributes = $request->validated();
 
+        $template = isset($attributes['template_id'])
+            ? FormTemplate::query()->find($attributes['template_id'])
+            : null;
+
         $steps = $request->filled('steps_json')
             ? json_decode($request->input('steps_json'), true)
-            : $this->templateSteps($attributes['template_id'] ?? null);
+            : ($template?->steps ?? []);
+
+        $defaultType = FormModuleSettings::for($request->user())->types()[0] ?? FormModuleSettings::DEFAULT_TYPES[0];
 
         $form = $request->user()->forms()->create([
-            'project_id' => $attributes['project_id'],
+            'project_id' => $attributes['project_id'] ?? null,
             'name' => $attributes['name'],
-            'type' => $attributes['type'],
-            'status' => $attributes['status'],
+            'type' => $template?->type ?: (($attributes['type'] ?? null) ?: $defaultType),
+            'status' => ($attributes['status'] ?? null) ?: 'Pendente',
             'steps' => $steps,
             'fields' => $request->filled('fields_json') ? json_decode($request->input('fields_json'), true) : [],
         ]);
@@ -130,20 +143,6 @@ class FormController extends Controller
             'form' => $form,
             'steps' => $form->steps ?? [],
         ]);
-    }
-
-    /**
-     * Resolve the starting structure from an optional template.
-     *
-     * @return array<int, array<string, mixed>>
-     */
-    private function templateSteps(?int $templateId): array
-    {
-        if ($templateId === null) {
-            return [];
-        }
-
-        return FormTemplate::query()->find($templateId)?->steps ?? [];
     }
 
     /**
@@ -208,7 +207,7 @@ class FormController extends Controller
         $attributes = $request->validated();
 
         $form->update([
-            'project_id' => $attributes['project_id'],
+            'project_id' => $attributes['project_id'] ?? null,
             'name' => $attributes['name'],
             'type' => $attributes['type'],
             'status' => $attributes['status'],
