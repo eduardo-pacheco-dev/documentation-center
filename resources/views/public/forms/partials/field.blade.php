@@ -170,29 +170,25 @@
                 @break
 
             @case('image')
-                @if (! empty($existingImages))
-                    <div class="mb-3 flex flex-wrap gap-2">
-                        @foreach ($existingImages as $image)
-                            <a
-                                href="{{ $image }}"
-                                target="_blank"
-                                rel="noopener"
-                                class="block overflow-hidden rounded-lg ring-1 ring-gray-200 dark:ring-gray-800"
-                            >
-                                <img src="{{ $image }}" alt="{{ $label }}" loading="lazy" class="h-16 w-24 object-cover">
-                            </a>
-                        @endforeach
-                    </div>
-                @else
-                    <div class="mb-3 flex h-16 w-16 items-center justify-center rounded-lg border border-dashed border-gray-300 text-xs font-medium text-gray-400 dark:border-gray-700 dark:text-gray-500">
-                        Vazio
-                    </div>
-                @endif
+                <div class="mb-3 flex flex-wrap items-center gap-2" data-image-field>
+                    @forelse ($existingImages as $image)
+                        <a
+                            href="{{ $image }}"
+                            target="_blank"
+                            rel="noopener"
+                            class="block h-16 w-16 overflow-hidden rounded-lg ring-1 ring-gray-200 dark:ring-gray-800"
+                        >
+                            <img src="{{ $image }}" alt="{{ $label }}" loading="lazy" class="h-full w-full object-cover">
+                        </a>
+                    @empty
+                        <div class="flex h-16 w-16 items-center justify-center rounded-lg border border-dashed border-gray-300 text-xs font-medium text-gray-400 dark:border-gray-700 dark:text-gray-500">
+                            Vazio
+                        </div>
+                    @endforelse
 
-                <div class="flex flex-wrap items-center gap-2" data-image-field>
-                    <label class="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200 dark:hover:bg-gray-800">
+                    <label class="inline-flex h-16 w-16 cursor-pointer flex-col items-center justify-center gap-1 rounded-lg border border-gray-300 bg-white px-1 text-center text-[11px] font-medium leading-tight text-gray-700 transition hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200 dark:hover:bg-gray-800">
                         <x-icon name="photo" class="h-4 w-4" />
-                        Escolher imagens
+                        Galeria
 
                         <input
                             data-image-input
@@ -204,7 +200,7 @@
                         >
                     </label>
 
-                    <label class="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200 dark:hover:bg-gray-800">
+                    <label class="inline-flex h-16 w-16 cursor-pointer flex-col items-center justify-center gap-1 rounded-lg border border-gray-300 bg-white px-1 text-center text-[11px] font-medium leading-tight text-gray-700 transition hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200 dark:hover:bg-gray-800">
                         <x-icon name="camera" class="h-4 w-4" />
                         Tirar foto
 
