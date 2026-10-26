@@ -17,6 +17,14 @@
             <h1 class="mt-1 flex items-center gap-2 text-2xl font-semibold tracking-tight text-gray-900 dark:text-gray-100">
                 <x-icon name="document-duplicate" class="h-6 w-6 text-gray-400 dark:text-gray-500" />
                 Templates de formulário
+                <a
+                    href="{{ route('admin.forms.settings.edit') }}"
+                    title="Configurações do módulo"
+                    aria-label="Configurações do módulo de formulários"
+                    class="ml-1 inline-flex h-8 w-8 items-center justify-center rounded-xl text-gray-400 transition hover:bg-gray-100 hover:text-indigo-600 dark:text-gray-500 dark:hover:bg-gray-800 dark:hover:text-indigo-400"
+                >
+                    <x-icon name="cog-6-tooth" class="h-5 w-5" />
+                </a>
             </h1>
             <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Estruturas reutilizáveis compartilhadas com todos os usuários.</p>
         </div>

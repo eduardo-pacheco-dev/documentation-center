@@ -25,6 +25,16 @@ it('lists templates shared by every user', function () {
         ->assertSee('Checklist de segurança');
 });
 
+it('shows the forms module settings shortcut next to the templates title', function () {
+    $user = User::factory()->create();
+
+    $this->actingAs($user)
+        ->get(route('admin.form-templates.index'))
+        ->assertOk()
+        ->assertSee('href="'.route('admin.forms.settings.edit').'"', false)
+        ->assertSee('Configurações do módulo de formulários');
+});
+
 it('filters the templates list by search term', function () {
     $user = User::factory()->create();
 
