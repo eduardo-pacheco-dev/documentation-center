@@ -212,6 +212,18 @@ it('stores a compressed thumbnail alongside each uploaded image', function () {
         ->toBeLessThan(filesize(Storage::disk('public')->path('forms/'.$form->getKey().'/'.basename($field['images'][0]))));
 });
 
+it('renders the image preview modal on the public form', function () {
+    $form = Form::factory()->create(['status' => 'Pendente', 'steps' => publicFormSteps()]);
+
+    $this->get(URL::signedRoute('public.forms.fill', ['form' => $form->getKey()]))
+        ->assertOk()
+        ->assertSee('data-image-modal', false)
+        ->assertSee('data-image-modal-prev', false)
+        ->assertSee('data-image-modal-next', false)
+        ->assertSee('data-image-modal-original', false)
+        ->assertSee('Fechar pré-visualização');
+});
+
 it('finishes an incomplete submission without uploading the photos again', function () {
     Storage::fake('public');
 

@@ -1146,11 +1146,16 @@ const ImagePreviews = (() => {
         image.src = source;
     });
 
-    const append = (container, url, alt) => {
+    const append = (container, url, alt, fullUrl = null) => {
         const item = document.createElement('div');
 
         item.dataset.imagePreviewItem = '';
         item.dataset.objectUrl = url;
+
+        if (fullUrl) {
+            item.dataset.previewUrl = fullUrl;
+        }
+
         item.className = 'h-16 w-16 overflow-hidden rounded-lg ring-1 ring-gray-200 dark:ring-gray-800';
 
         const image = document.createElement('img');
@@ -1177,6 +1182,10 @@ const ImagePreviews = (() => {
         container.querySelectorAll('[data-image-preview-item]').forEach((item) => {
             if (item.dataset.objectUrl) {
                 URL.revokeObjectURL(item.dataset.objectUrl);
+            }
+
+            if (item.dataset.previewUrl) {
+                URL.revokeObjectURL(item.dataset.previewUrl);
             }
 
             item.remove();
@@ -1208,7 +1217,7 @@ const ImagePreviews = (() => {
 
         urls.forEach((url, index) => {
             if (url) {
-                append(container, url, files[index].name);
+                append(container, url, files[index].name, URL.createObjectURL(files[index]));
             }
         });
     };
@@ -1221,6 +1230,162 @@ const ImagePreviews = (() => {
     });
 
     return { render };
+})();
+
+// Public image thumbnails open an in-page preview instead of a new tab.
+// Existing images use the full-size URL stored in the link, while local
+// selections open the original file picked by the user. The previous/next
+// controls only walk through the images of the same field.
+const ImageModal = (() => {
+    const modal = document.querySelector('[data-image-modal]');
+
+    if (!modal) {
+        return { open: () => {}, close: () => {} };
+    }
+
+    const image = modal.querySelector('[data-image-modal-image]');
+    const title = modal.querySelector('[data-image-modal-title]');
+    const counter = modal.querySelector('[data-image-modal-counter]');
+    const original = modal.querySelector('[data-image-modal-original]');
+    const previous = modal.querySelector('[data-image-modal-prev]');
+    const next = modal.querySelector('[data-image-modal-next]');
+    const closeButton = modal.querySelector('[data-image-modal-close]');
+
+    let items = [];
+    let index = 0;
+    let lastFocus = null;
+
+    const info = (item) => {
+        const thumbnail = item.querySelector('img');
+        const url = item.matches('[data-image-existing]')
+            ? item.getAttribute('href')
+            : item.dataset.previewUrl || item.dataset.objectUrl || thumbnail?.getAttribute('src');
+
+        return {
+            url: url || '',
+            caption: thumbnail?.alt || '',
+        };
+    };
+
+    const isOpen = () => !modal.classList.contains('hidden');
+
+    const render = () => {
+        const current = info(items[index]);
+
+        image.src = current.url;
+        image.alt = current.caption;
+        title.textContent = current.caption;
+        counter.textContent = items.length > 1 ? `${index + 1} de ${items.length}` : '';
+        original.href = current.url;
+
+        previous.hidden = items.length < 2;
+        next.hidden = items.length < 2;
+    };
+
+    const move = (step) => {
+        if (items.length < 2) {
+            return;
+        }
+
+        index = (index + step + items.length) % items.length;
+        render();
+    };
+
+    const open = (item) => {
+        const container = item.closest('[data-image-thumbnails]');
+
+        if (!container) {
+            return;
+        }
+
+        items = Array.from(container.querySelectorAll('[data-image-existing], [data-image-preview-item]'));
+
+        const position = items.indexOf(item);
+
+        if (position < 0) {
+            return;
+        }
+
+        index = position;
+        lastFocus = document.activeElement;
+        render();
+
+        modal.classList.remove('hidden');
+        document.body.classList.add('overflow-hidden');
+        closeButton?.focus();
+    };
+
+    const close = () => {
+        if (!isOpen()) {
+            return;
+        }
+
+        modal.classList.add('hidden');
+        document.body.classList.remove('overflow-hidden');
+        image.removeAttribute('src');
+        items = [];
+        lastFocus?.focus?.();
+        lastFocus = null;
+    };
+
+    document.addEventListener('click', (event) => {
+        if (
+            event.defaultPrevented
+            || event.button !== 0
+            || event.metaKey
+            || event.ctrlKey
+            || event.shiftKey
+            || event.altKey
+        ) {
+            return;
+        }
+
+        const trigger = event.target.closest('[data-image-existing], [data-image-preview-item]');
+
+        if (!trigger || !trigger.closest('[data-image-thumbnails]')) {
+            return;
+        }
+
+        event.preventDefault();
+        open(trigger);
+    });
+
+    modal.addEventListener('click', (event) => {
+        if (event.target.closest('[data-image-modal-close]')) {
+            close();
+
+            return;
+        }
+
+        if (event.target.closest('[data-image-modal-prev]')) {
+            move(-1);
+
+            return;
+        }
+
+        if (event.target.closest('[data-image-modal-next]')) {
+            move(1);
+        }
+    });
+
+    document.addEventListener('keydown', (event) => {
+        if (!isOpen()) {
+            return;
+        }
+
+        if (event.key === 'Escape') {
+            event.preventDefault();
+            close();
+        } else if (event.key === 'ArrowLeft') {
+            event.preventDefault();
+            move(-1);
+        } else if (event.key === 'ArrowRight') {
+            event.preventDefault();
+            move(1);
+        }
+    });
+
+    return { open, close };
 })();
 
 // Public image fields save the new photos automatically while the form is
