@@ -142,6 +142,21 @@
                             style="width: {{ $sectionCount > 0 ? (int) round((($initialStep + 1) / $sectionCount) * 100) : 0 }}%"
                         ></div>
                     </div>
+
+                    <div class="mt-3 flex flex-wrap items-center gap-1.5">
+                        @for ($index = 0; $index < $sectionCount; $index++)
+                            <button
+                                type="button"
+                                data-form-step-go="{{ $index }}"
+                                data-state="{{ $index === $initialStep ? 'current' : ($index < $initialStep ? 'complete' : 'upcoming') }}"
+                                @if ($index === $initialStep) aria-current="step" @endif
+                                aria-label="Ir para a etapa {{ $index + 1 }}"
+                                class="flex h-7 min-w-7 items-center justify-center rounded-full px-1.5 text-xs font-semibold transition data-[state=current]:bg-gray-900 data-[state=current]:text-white dark:data-[state=current]:bg-white dark:data-[state=current]:text-gray-900 data-[state=complete]:bg-green-100 data-[state=complete]:text-green-700 dark:data-[state=complete]:bg-green-950/60 dark:data-[state=complete]:text-green-300 data-[state=upcoming]:bg-gray-200 data-[state=upcoming]:text-gray-500 dark:data-[state=upcoming]:bg-gray-800 dark:data-[state=upcoming]:text-gray-400"
+                            >
+                                {{ $index + 1 }}
+                            </button>
+                        @endfor
+                    </div>
                 </div>
 
                 @foreach ($steps as $stepIndex => $step)

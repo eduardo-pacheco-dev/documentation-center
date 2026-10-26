@@ -441,6 +441,8 @@ it('presents each section as a step in the public form', function () {
         ->assertSee('data-form-step-prev', false)
         ->assertSee('data-form-step-next', false)
         ->assertSee('data-form-step-submit', false)
+        ->assertSee('data-form-step-go="0"', false)
+        ->assertSee('data-form-step-go="1"', false)
         ->assertSee('Etapa')
         ->assertSee('Próximo')
         ->assertSee('Enviar respostas');

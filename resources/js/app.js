@@ -845,6 +845,7 @@ const FormSteps = (() => {
         const currentLabel = form.querySelector('[data-form-step-current]');
         const titleLabel = form.querySelector('[data-form-step-title]');
         const bar = form.querySelector('[data-form-step-bar]');
+        const goButtons = Array.from(form.querySelectorAll('[data-form-step-go]'));
         const initial = Number.parseInt(form.dataset.formInitialStep ?? '0', 10);
         let current = Number.isNaN(initial) ? 0 : Math.min(Math.max(initial, 0), steps.length - 1);
 
@@ -886,6 +887,16 @@ const FormSteps = (() => {
                 submit.hidden = current < steps.length - 1;
             }
 
+            goButtons.forEach((button, index) => {
+                button.dataset.state = index === current ? 'current' : (index < current ? 'complete' : 'upcoming');
+
+                if (index === current) {
+                    button.setAttribute('aria-current', 'step');
+                } else {
+                    button.removeAttribute('aria-current');
+                }
+            });
+
             form.dataset.formCurrentStep = String(current);
 
             if (scroll) {
@@ -894,6 +905,12 @@ const FormSteps = (() => {
         };
 
         previous?.addEventListener('click', () => show(current - 1, true));
+
+        goButtons.forEach((button) => {
+            button.addEventListener('click', () => {
+                show(Number.parseInt(button.dataset.formStepGo ?? '0', 10), true);
+            });
+        });
 
         next?.addEventListener('click', () => {
             const invalid = invalidControl(steps[current]);
