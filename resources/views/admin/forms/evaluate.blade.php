@@ -381,6 +381,29 @@
                                                         Nenhuma foto enviada.
                                                     </p>
                                                 @endif
+                                            @elseif (($field['type'] ?? null) === 'file')
+                                                @if (!empty($field['files']))
+                                                    <div class="flex flex-col gap-2">
+                                                        @foreach ($field['files'] as $index => $file)
+                                                            @php($name = $field['fileNames'][$index] ?? basename(parse_url($file, PHP_URL_PATH) ?: $file))
+                                                            <a
+                                                                href="{{ $file }}"
+                                                                target="_blank"
+                                                                rel="noopener"
+                                                                class="flex items-center gap-2 rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700 transition hover:bg-gray-50 dark:border-gray-800 dark:text-gray-200 dark:hover:bg-gray-800/60"
+                                                            >
+                                                                <x-file-type-icon :name="$name" size="xs" />
+                                                                <span class="min-w-0 flex-1 truncate">{{ $name }}</span>
+                                                                <x-icon name="arrow-down-tray" class="h-4 w-4 shrink-0 text-gray-400" />
+                                                            </a>
+                                                        @endforeach
+                                                    </div>
+                                                @else
+                                                    <p class="flex items-center gap-2 rounded-lg border border-dashed border-gray-300 px-3 py-3 text-sm text-gray-500 dark:border-gray-700 dark:text-gray-400">
+                                                        <x-icon name="paper-clip" class="h-4 w-4" />
+                                                        Nenhum arquivo enviado.
+                                                    </p>
+                                                @endif
                                             @else
                                                 <div class="whitespace-pre-wrap rounded-lg bg-gray-50 px-3 py-2 text-sm text-gray-700 dark:bg-gray-800/50 dark:text-gray-200">
                                                     {{ ($field['value'] ?? null) ?: '—' }}

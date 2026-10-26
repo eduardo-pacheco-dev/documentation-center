@@ -184,7 +184,8 @@ it('shows the blank template creation page', function () {
         ->assertSee('sticky bottom-0 mt-4', false)
         ->assertSee('lg:grid-cols-[20rem_minmax(0,1fr)]', false)
         ->assertSee('<aside', false)
-        ->assertSee('Dados do template');
+        ->assertSee('Dados do template')
+        ->assertSee("{ value: 'file', label: 'Arquivo' }", false);
 });
 
 it('creates a blank template without needing a form first', function () {
@@ -210,6 +211,27 @@ it('creates a blank template without needing a form first', function () {
     expect($template->name)->toBe('Template do zero');
     expect($template->type)->toBe('Checklist');
     expect($template->steps)->toBe($steps);
+});
+
+it('accepts a file field in the template structure', function () {
+    $user = User::factory()->create();
+
+    $steps = [
+        ['id' => 'S1', 'title' => 'Anexos', 'fields' => [
+            ['id' => 'F1-1', 'type' => 'file', 'label' => 'Laudo técnico', 'required' => true],
+        ]],
+    ];
+
+    $this->actingAs($user)
+        ->post(route('admin.form-templates.store'), [
+            'name' => 'Template com anexo',
+            'type' => 'Laudo Técnico',
+            'steps_json' => json_encode($steps),
+        ])
+        ->assertRedirect(route('admin.form-templates.index'))
+        ->assertSessionHasNoErrors();
+
+    expect(FormTemplate::query()->firstOrFail()->steps)->toBe($steps);
 });
 
 it('creates an empty template when no structure is submitted', function () {

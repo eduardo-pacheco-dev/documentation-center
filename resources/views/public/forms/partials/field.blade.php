@@ -10,6 +10,8 @@
     $errorKey = 'answers.'.$fieldId;
     $oldValue = old($errorKey, $field['value'] ?? '');
     $existingImages = $field['images'] ?? [];
+    $existingFiles = $field['files'] ?? [];
+    $fileName = fn ($file, $index) => $field['fileNames'][$index] ?? basename(parse_url((string) $file, PHP_URL_PATH) ?: (string) $file);
     $inputClass = 'block w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm transition focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100';
     $id = 'field-'.$fieldId;
 @endphp
@@ -190,6 +192,34 @@
                 >
                 @break
 
+            @case('file')
+                @if (! empty($existingFiles))
+                    <ul class="mb-3 divide-y divide-gray-100 rounded-lg border border-gray-200 dark:divide-gray-800 dark:border-gray-800">
+                        @foreach ($existingFiles as $index => $file)
+                            <li>
+                                <a
+                                    href="{{ $file }}"
+                                    target="_blank"
+                                    rel="noopener"
+                                    class="flex items-center gap-2 px-3 py-2 text-sm text-indigo-600 transition hover:bg-gray-50 dark:text-indigo-400 dark:hover:bg-gray-800/60"
+                                >
+                                    <x-icon name="paper-clip" class="h-4 w-4 shrink-0" />
+                                    <span class="truncate">{{ $fileName($file, $index) }}</span>
+                                </a>
+                            </li>
+                        @endforeach
+                    </ul>
+                @endif
+
+                <input
+                    id="{{ $id }}"
+                    type="file"
+                    name="answers[{{ $fieldId }}][]"
+                    multiple
+                    class="block w-full text-sm text-gray-600 file:mr-3 file:rounded-md file:border-0 file:bg-gray-100 file:px-3 file:py-2 file:text-sm file:font-medium file:text-gray-700 hover:file:bg-gray-200 dark:text-gray-300 dark:file:bg-gray-800 dark:file:text-gray-200 dark:hover:file:bg-gray-700"
+                >
+                @break
+
             @default
                 <input
                     id="{{ $id }}"
@@ -206,7 +236,7 @@
         <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
     @enderror
 
-    @if ($type === 'image')
+    @if (in_array($type, ['image', 'file'], true))
         @error($errorKey.'.*')
             <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
         @enderror

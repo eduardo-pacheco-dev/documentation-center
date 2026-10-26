@@ -230,6 +230,7 @@
                 { value: 'dropdown', label: 'Lista suspensa' },
                 { value: 'scale', label: 'Escala linear' },
                 { value: 'image', label: 'Imagem / foto' },
+                { value: 'file', label: 'Arquivo' },
             ],
 
             typeBadges: {
@@ -243,6 +244,7 @@
                 dropdown: 'Lista',
                 scale: 'Escala',
                 image: 'Foto',
+                file: 'Arquivo',
             },
 
             init() {

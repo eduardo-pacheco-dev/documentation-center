@@ -16,7 +16,7 @@ use OpenApi\Attributes as OA;
     title: 'Campo do formulário',
     properties: [
         new OA\Property(property: 'id', type: 'string', example: 'F1-1'),
-        new OA\Property(property: 'type', type: 'string', enum: ['text', 'textarea', 'number', 'date', 'time', 'radio', 'checkbox', 'dropdown', 'scale', 'image'], example: 'text'),
+        new OA\Property(property: 'type', type: 'string', enum: ['text', 'textarea', 'number', 'date', 'time', 'radio', 'checkbox', 'dropdown', 'scale', 'image', 'file'], example: 'text'),
         new OA\Property(property: 'label', type: 'string', example: 'Área registrada'),
         new OA\Property(property: 'required', type: 'boolean', nullable: true, example: false),
         new OA\Property(property: 'help', type: 'string', nullable: true, example: 'Informe a área exata vistoriada.'),
@@ -27,6 +27,8 @@ use OpenApi\Attributes as OA;
         new OA\Property(property: 'scaleMaxLabel', type: 'string', nullable: true, example: 'Concordo'),
         new OA\Property(property: 'value', type: 'string', nullable: true, example: 'Galpão A'),
         new OA\Property(property: 'images', type: 'array', nullable: true, items: new OA\Items(type: 'string', format: 'uri')),
+        new OA\Property(property: 'files', type: 'array', nullable: true, description: 'URLs dos arquivos enviados para os tipos image e file.', items: new OA\Items(type: 'string', format: 'uri')),
+        new OA\Property(property: 'fileNames', type: 'array', nullable: true, description: 'Nomes originais dos arquivos enviados.', items: new OA\Items(type: 'string')),
         new OA\Property(property: 'status', type: 'string', nullable: true, enum: ['aprovado', 'reprovado', 'pendente', 'enviado', 'nao_aplicavel']),
     ],
 )]

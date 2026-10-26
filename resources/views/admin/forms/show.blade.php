@@ -2,10 +2,13 @@
     $steps = $steps ?? [];
 
     $answeredFields = collect($steps)->flatMap(fn ($step) => collect($step['fields'] ?? [])->filter(
-        fn ($field) => filled($field['value'] ?? null) || ! empty($field['images'] ?? []),
+        fn ($field) => filled($field['value'] ?? null) || ! empty($field['images'] ?? []) || ! empty($field['files'] ?? []),
     ));
     $hasResponses = $answeredFields->isNotEmpty();
     $answeredCount = $answeredFields->count();
+
+    $fileName = fn (array $field, string $file, int $index) => $field['fileNames'][$index]
+        ?? basename(parse_url($file, PHP_URL_PATH) ?: $file);
 
     $typeLabels = [
         'text' => 'Texto curto',
@@ -18,6 +21,7 @@
         'dropdown' => 'Lista suspensa',
         'scale' => 'Escala linear',
         'image' => 'Imagem / foto',
+        'file' => 'Arquivo',
     ];
 @endphp
 
@@ -110,7 +114,7 @@
             <div class="mt-4 space-y-4">
                 @foreach ($steps as $step)
                     @php($answered = collect($step['fields'] ?? [])->filter(
-                        fn ($field) => filled($field['value'] ?? null) || ! empty($field['images'] ?? []),
+                        fn ($field) => filled($field['value'] ?? null) || ! empty($field['images'] ?? []) || ! empty($field['files'] ?? []),
                     ))
 
                     @if ($answered->isNotEmpty())
@@ -163,6 +167,24 @@
                                                                 </a>
                                                             @empty
                                                                 <span class="text-sm text-gray-500 dark:text-gray-400">Nenhuma foto.</span>
+                                                            @endforelse
+                                                        </div>
+                                                    @elseif (($field['type'] ?? null) === 'file')
+                                                        <div class="flex flex-col gap-2">
+                                                            @forelse (($field['files'] ?? []) as $index => $file)
+                                                                @php($name = $fileName($field, $file, $index))
+                                                                <a
+                                                                    href="{{ $file }}"
+                                                                    target="_blank"
+                                                                    rel="noopener"
+                                                                    class="flex items-center gap-2 rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700 transition hover:bg-gray-50 dark:border-gray-800 dark:text-gray-200 dark:hover:bg-gray-800/60"
+                                                                >
+                                                                    <x-file-type-icon :name="$name" size="xs" />
+                                                                    <span class="min-w-0 flex-1 truncate">{{ $name }}</span>
+                                                                    <x-icon name="arrow-down-tray" class="h-4 w-4 shrink-0 text-gray-400" />
+                                                                </a>
+                                                            @empty
+                                                                <span class="text-sm text-gray-500 dark:text-gray-400">Nenhum arquivo.</span>
                                                             @endforelse
                                                         </div>
                                                     @else

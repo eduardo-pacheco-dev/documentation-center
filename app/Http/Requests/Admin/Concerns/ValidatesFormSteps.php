@@ -22,6 +22,7 @@ trait ValidatesFormSteps
         'dropdown',
         'scale',
         'image',
+        'file',
     ];
 
     /**

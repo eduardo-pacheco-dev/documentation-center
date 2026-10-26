@@ -46,15 +46,20 @@ class FormFillController extends Controller
         $validator->after(function (LaravelValidator $validator) use ($request, $steps): void {
             foreach ($steps as $step) {
                 foreach ($step['fields'] ?? [] as $field) {
-                    if (($field['type'] ?? null) !== 'image' || ! ($field['required'] ?? false)) {
+                    $type = $field['type'] ?? null;
+
+                    if (! in_array($type, ['image', 'file'], true) || ! ($field['required'] ?? false)) {
                         continue;
                     }
 
                     $fieldId = (string) ($field['id'] ?? '');
                     $uploads = $request->file('answers.'.$fieldId);
                     $uploads = is_array($uploads) ? array_filter($uploads) : array_filter([$uploads]);
+                    $existing = $type === 'image'
+                        ? ($field['images'] ?? [])
+                        : ($field['files'] ?? []);
 
-                    if (empty($field['images'] ?? []) && $uploads === []) {
+                    if ($existing === [] && $uploads === []) {
                         $validator->errors()->add(
                             'answers.'.$fieldId,
                             'O campo "'.(($field['label'] ?? null) ?: $fieldId).'" é obrigatório.',
@@ -106,6 +111,13 @@ class FormFillController extends Controller
                 if ($type === 'image') {
                     $rules[$key] = ['nullable', 'array', 'max:5'];
                     $rules[$key.'.*'] = ['image', 'max:5120'];
+
+                    continue;
+                }
+
+                if ($type === 'file') {
+                    $rules[$key] = ['nullable', 'array', 'max:5'];
+                    $rules[$key.'.*'] = ['file', 'max:10240'];
 
                     continue;
                 }
@@ -209,6 +221,7 @@ class FormFillController extends Controller
             'date' => 'O campo :attribute deve conter uma data válida.',
             'date_format' => 'O campo :attribute deve conter um horário válido.',
             'image' => 'O campo :attribute deve conter uma imagem válida.',
+            'file' => 'O campo :attribute deve conter um arquivo válido.',
             'max' => 'O campo :attribute excede o limite permitido.',
             'in' => 'O valor selecionado em :attribute é inválido.',
             'min' => 'O valor de :attribute deve ser no mínimo :min.',
@@ -234,6 +247,16 @@ class FormFillController extends Controller
 
                 if (($field['type'] ?? null) === 'image') {
                     $steps[$stepIndex]['fields'][$fieldIndex] = $this->applyImages(
+                        $form,
+                        $field,
+                        $request->file('answers.'.$fieldId),
+                    );
+
+                    continue;
+                }
+
+                if (($field['type'] ?? null) === 'file') {
+                    $steps[$stepIndex]['fields'][$fieldIndex] = $this->applyFiles(
                         $form,
                         $field,
                         $request->file('answers.'.$fieldId),
@@ -283,6 +306,38 @@ class FormFillController extends Controller
 
         $field['images'] = array_values($images);
         $field['status'] = $images !== [] ? 'enviado' : 'pendente';
+
+        return $field;
+    }
+
+    /**
+     * Append the uploaded files to the field and update its status.
+     *
+     * @param  array<string, mixed>  $field
+     * @return array<string, mixed>
+     */
+    private function applyFiles(Form $form, array $field, mixed $uploads): array
+    {
+        $files = $field['files'] ?? [];
+        $names = $field['fileNames'] ?? [];
+        $uploads = is_array($uploads) ? $uploads : ($uploads === null ? [] : [$uploads]);
+
+        foreach ($uploads as $upload) {
+            if (! $upload instanceof UploadedFile) {
+                continue;
+            }
+
+            $path = $upload->store('forms/'.$form->getKey(), 'public');
+
+            if ($path !== false) {
+                $files[] = Storage::disk('public')->url($path);
+                $names[] = $upload->getClientOriginalName();
+            }
+        }
+
+        $field['files'] = array_values($files);
+        $field['fileNames'] = array_values($names);
+        $field['status'] = $files !== [] ? 'enviado' : 'pendente';
 
         return $field;
     }

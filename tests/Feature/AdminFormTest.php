@@ -234,6 +234,34 @@ it('shows the application answers in read only mode', function () {
         ->assertSee('Galpão A');
 });
 
+it('shows the files uploaded to a form field', function () {
+    $user = User::factory()->create();
+    $form = Form::factory()->create([
+        'user_id' => $user->getKey(),
+        'steps' => [[
+            'id' => 'S1',
+            'title' => 'Anexos',
+            'fields' => [
+                [
+                    'id' => 'F1-1',
+                    'type' => 'file',
+                    'label' => 'Laudo técnico',
+                    'files' => ['https://example.test/storage/forms/1/laudo.pdf'],
+                    'fileNames' => ['laudo-tecnico.pdf'],
+                    'status' => 'enviado',
+                ],
+            ],
+        ]],
+    ]);
+
+    $this->actingAs($user)
+        ->get(route('admin.forms.show', $form))
+        ->assertOk()
+        ->assertSee('Arquivo')
+        ->assertSee('laudo-tecnico.pdf')
+        ->assertSee('https://example.test/storage/forms/1/laudo.pdf', false);
+});
+
 it('forbids viewing a form the user does not own', function () {
     $form = Form::factory()->create();
 

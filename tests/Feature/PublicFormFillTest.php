@@ -140,6 +140,49 @@ it('stores the images uploaded through the public link', function () {
     Storage::disk('public')->assertExists('forms/'.$form->getKey().'/'.basename($images[0]));
 });
 
+it('stores the files uploaded through the public link', function () {
+    Storage::fake('public');
+
+    $steps = publicFormSteps();
+    $steps[1]['fields'][] = ['id' => 'F2-6', 'type' => 'file', 'label' => 'Laudo técnico', 'required' => false, 'files' => [], 'status' => 'pendente'];
+
+    $form = Form::factory()->create(['status' => 'Pendente', 'steps' => $steps]);
+
+    $this->post(URL::signedRoute('public.forms.submit', ['form' => $form->getKey()]), [
+        'answers' => [
+            'F1-1' => 'Galpão A',
+            'F1-3' => '2026-10-25',
+            'F2-1' => 'Conforme',
+            'F2-6' => [UploadedFile::fake()->create('laudo.pdf', 120, 'application/pdf')],
+        ],
+    ])->assertRedirect()->assertSessionHasNoErrors();
+
+    $form->refresh();
+    $field = $form->steps[1]['fields'][5];
+
+    expect($field['files'])->toHaveCount(1);
+    expect($field['files'][0])->toContain('/storage/forms/'.$form->getKey().'/');
+    expect($field['fileNames'])->toBe(['laudo.pdf']);
+    expect($field['status'])->toBe('enviado');
+
+    Storage::disk('public')->assertExists('forms/'.$form->getKey().'/'.basename($field['files'][0]));
+});
+
+it('requires a file when the file field is mandatory and none exists', function () {
+    $steps = publicFormSteps();
+    $steps[1]['fields'][] = ['id' => 'F2-6', 'type' => 'file', 'label' => 'Laudo técnico', 'required' => true, 'files' => [], 'status' => 'pendente'];
+
+    $form = Form::factory()->create(['steps' => $steps]);
+
+    $this->post(URL::signedRoute('public.forms.submit', ['form' => $form->getKey()]), [
+        'answers' => [
+            'F1-1' => 'Galpão A',
+            'F1-3' => '2026-10-25',
+            'F2-1' => 'Conforme',
+        ],
+    ])->assertSessionHasErrors('answers.F2-6');
+});
+
 it('requires an image when the image field is mandatory and none exists', function () {
     $steps = publicFormSteps();
     $steps[1]['fields'][4]['required'] = true;
