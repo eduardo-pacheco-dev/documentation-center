@@ -1,11 +1,21 @@
 @php
     $steps = $steps ?? [];
+    $responses = $responses ?? collect();
+    $selectedResponse = $selectedResponse ?? null;
+
+    $countAnswers = fn ($stepList) => collect($stepList ?? [])->flatMap(fn ($step) => collect($step['fields'] ?? [])->filter(
+        fn ($field) => filled($field['value'] ?? null) || ! empty($field['images'] ?? []) || ! empty($field['files'] ?? []),
+    ))->count();
 
     $answeredFields = collect($steps)->flatMap(fn ($step) => collect($step['fields'] ?? [])->filter(
         fn ($field) => filled($field['value'] ?? null) || ! empty($field['images'] ?? []) || ! empty($field['files'] ?? []),
     ));
     $hasResponses = $answeredFields->isNotEmpty();
     $answeredCount = $answeredFields->count();
+
+    $evaluateRoute = $selectedResponse
+        ? route('admin.forms.evaluate', ['form' => $form, 'response' => $selectedResponse])
+        : route('admin.forms.evaluate', $form);
 
     $fileName = fn (array $field, string $file, int $index) => $field['fileNames'][$index]
         ?? basename(parse_url($file, PHP_URL_PATH) ?: $file);
@@ -51,6 +61,11 @@
                             {{ $form->type }}
                         </span>
 
+                        <span class="inline-flex items-center gap-1.5 text-gray-500 dark:text-gray-400">
+                            <x-icon name="rectangle-stack" class="h-4 w-4" />
+                            {{ $form->allows_multiple_responses ? 'Múltiplas respostas' : 'Resposta única' }}
+                        </span>
+
                         @if ($form->project)
                             <a href="{{ route('admin.projects.show', $form->project) }}" class="inline-flex items-center gap-1.5 font-medium text-indigo-600 hover:text-indigo-500 dark:text-indigo-400">
                                 <x-icon name="briefcase" class="h-4 w-4" />
@@ -76,7 +91,7 @@
                 </a>
 
                 <a
-                    href="{{ route('admin.forms.evaluate', $form) }}"
+                    href="{{ $evaluateRoute }}"
                     class="inline-flex items-center gap-1.5 rounded-md border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200 dark:hover:bg-gray-800"
                 >
                     <x-icon name="document-check" class="h-4 w-4" />
@@ -94,6 +109,67 @@
         </div>
     </div>
 
+    @if ($responses->isNotEmpty())
+        <div class="mt-6">
+            <div class="flex items-center gap-2">
+                <h2 class="flex items-center gap-2 text-base font-semibold text-gray-900 dark:text-gray-100">
+                    <x-icon name="rectangle-stack" class="h-5 w-5 text-gray-400 dark:text-gray-500" />
+                    Histórico de respostas
+                </h2>
+                <span class="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600 dark:bg-gray-800 dark:text-gray-300">
+                    {{ $responses->count() }}
+                </span>
+            </div>
+            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                Cada envio fica registrado com autor, data e as avaliações realizadas.
+            </p>
+
+            <div class="mt-4 overflow-hidden rounded-lg border border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900">
+                <div class="divide-y divide-gray-100 dark:divide-gray-800">
+                    @foreach ($responses as $response)
+                        @php($isSelected = $selectedResponse?->is($response) === true)
+
+                        <div class="flex flex-wrap items-center justify-between gap-3 px-4 py-3 {{ $isSelected ? 'bg-gray-50 dark:bg-gray-800/40' : '' }}">
+                            <div class="min-w-0">
+                                <div class="flex flex-wrap items-center gap-2">
+                                    <x-form-status :status="$response->status" />
+                                    <span class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                        Resposta #{{ $loop->iteration }}
+                                    </span>
+                                    <x-relative-time :value="$response->submitted_at ?? $response->created_at" class="text-xs text-gray-500 dark:text-gray-400" />
+                                </div>
+                                <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                                    {{ $response->user?->name ?? 'Link externo' }}
+                                    &middot; {{ $countAnswers($response->steps) }} {{ $countAnswers($response->steps) === 1 ? 'resposta preenchida' : 'respostas preenchidas' }}
+                                    @if ($response->evaluations_count > 0)
+                                        &middot; {{ $response->evaluations_count }} {{ $response->evaluations_count === 1 ? 'avaliação' : 'avaliações' }}
+                                    @endif
+                                </p>
+                            </div>
+
+                            <div class="flex shrink-0 items-center gap-2">
+                                <a
+                                    href="{{ route('admin.forms.show', ['form' => $form, 'response' => $response]) }}"
+                                    class="inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm font-medium {{ $isSelected ? 'text-gray-500 dark:text-gray-400' : 'text-indigo-600 hover:text-indigo-500 dark:text-indigo-400' }}"
+                                >
+                                    <x-icon name="eye" class="h-4 w-4" />
+                                    Ver
+                                </a>
+                                <a
+                                    href="{{ route('admin.forms.evaluate', ['form' => $form, 'response' => $response]) }}"
+                                    class="inline-flex items-center gap-1.5 rounded-md border border-gray-300 px-2.5 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-100 dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-800"
+                                >
+                                    <x-icon name="document-check" class="h-4 w-4" />
+                                    Avaliar
+                                </a>
+                            </div>
+                        </div>
+                    @endforeach
+                </div>
+            </div>
+        </div>
+    @endif
+
     <div class="mt-6">
         <div class="flex items-center gap-2">
             <h2 class="flex items-center gap-2 text-base font-semibold text-gray-900 dark:text-gray-100">
@@ -107,7 +183,12 @@
             @endif
         </div>
         <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
-            Valores, status e fotos preenchidos pelos técnicos. Essas informações são somente leitura.
+            @if ($selectedResponse)
+                Exibindo a resposta #{{ $responses->search(fn ($response) => $response->is($selectedResponse)) + 1 }} enviada
+                {{ $selectedResponse->submitted_at?->diffForHumans() ?? 'anteriormente' }}. Essas informações são somente leitura.
+            @else
+                Valores, status e fotos preenchidos pelos técnicos. Essas informações são somente leitura.
+            @endif
         </p>
 
         @if ($hasResponses)

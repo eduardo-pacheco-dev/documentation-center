@@ -1,5 +1,7 @@
 <x-layouts.admin :title="'Avaliação '.$form->code">
     @php
+        $response = $response ?? null;
+        $currentStatus = $response?->status ?? $form->status;
         $sections = is_array($steps) ? $steps : [];
         $sectionCount = count($sections);
         $parecerIndex = $sectionCount;
@@ -16,7 +18,10 @@
             'meta' => count($step['fields'] ?? []).' '.(count($step['fields'] ?? []) === 1 ? 'pergunta' : 'perguntas'),
         ])->values()->all();
         $navItems[] = ['index' => $parecerIndex, 'title' => 'Parecer', 'meta' => 'Resultado e observações'];
-        $initialStatus = old('status', in_array($form->status, ['Aprovado', 'Reprovado'], true) ? $form->status : '');
+        $initialStatus = old('status', in_array($currentStatus, ['Aprovado', 'Reprovado'], true) ? $currentStatus : '');
+        $showRoute = $response
+            ? route('admin.forms.show', ['form' => $form, 'response' => $response])
+            : route('admin.forms.show', $form);
     @endphp
 
     <div class="flex flex-wrap items-start justify-between gap-4">
@@ -29,8 +34,13 @@
                 {{ $form->code }} &middot; {{ $form->name }}
             </p>
             <div class="mt-2 flex flex-wrap items-center gap-3">
-                <x-form-status :status="$form->status" />
+                <x-form-status :status="$currentStatus" />
                 <span class="text-sm text-gray-500 dark:text-gray-400">{{ $form->type }}</span>
+                @if ($response)
+                    <span class="text-sm text-gray-500 dark:text-gray-400">
+                        Resposta enviada {{ $response->submitted_at?->diffForHumans() ?? 'anteriormente' }}
+                    </span>
+                @endif
                 @if ($form->user)
                     <span class="text-sm text-gray-500 dark:text-gray-400">Por {{ $form->user->name }}</span>
                 @endif
@@ -45,7 +55,7 @@
         <div class="flex flex-wrap items-center gap-2">
             @can('view', $form)
                 <a
-                    href="{{ route('admin.forms.show', $form) }}"
+                    href="{{ $showRoute }}"
                     class="inline-flex items-center gap-1.5 rounded-md border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200 dark:hover:bg-gray-800"
                 >
                     <x-icon name="eye" class="h-4 w-4" />
@@ -208,6 +218,10 @@
         @keydown.arrow-left.window="! rejectModal && go(-1)"
     >
         @csrf
+
+        @if ($response)
+            <input type="hidden" name="form_response_id" value="{{ $response->getKey() }}">
+        @endif
 
         <input type="hidden" name="image_decisions_json" :value="JSON.stringify(imageDecisions)">
 

@@ -121,6 +121,7 @@ class FormController extends Controller
             'name' => $attributes['name'],
             'type' => $template?->type ?: (($attributes['type'] ?? null) ?: $defaultType),
             'status' => ($attributes['status'] ?? null) ?: 'Pendente',
+            'allows_multiple_responses' => (bool) ($attributes['allows_multiple_responses'] ?? false),
             'steps' => $steps,
             'fields' => $request->filled('fields_json') ? json_decode($request->input('fields_json'), true) : [],
         ]);
@@ -139,9 +140,25 @@ class FormController extends Controller
 
         $form->load('project:id,code,name', 'user:id,name');
 
+        $responses = $form->responses()
+            ->with('user:id,name')
+            ->withCount('evaluations')
+            ->latest('submitted_at')
+            ->latest('id')
+            ->get();
+
+        $requestedResponse = $request->integer('response');
+        $selectedResponse = $requestedResponse > 0
+            ? $responses->firstWhere('id', $requestedResponse)
+            : $responses->first();
+
+        abort_if($requestedResponse > 0 && $selectedResponse === null, 404);
+
         return view('admin.forms.show', [
             'form' => $form,
-            'steps' => $form->steps ?? [],
+            'steps' => $selectedResponse?->steps ?? ($responses->isEmpty() ? ($form->steps ?? []) : []),
+            'responses' => $responses,
+            'selectedResponse' => $selectedResponse,
         ]);
     }
 
@@ -211,6 +228,7 @@ class FormController extends Controller
             'name' => $attributes['name'],
             'type' => $attributes['type'],
             'status' => $attributes['status'],
+            'allows_multiple_responses' => (bool) ($attributes['allows_multiple_responses'] ?? $form->allows_multiple_responses),
             'steps' => $request->filled('steps_json') ? json_decode($request->input('steps_json'), true) : $form->steps,
             'fields' => $request->filled('fields_json') ? json_decode($request->input('fields_json'), true) : $form->fields,
         ]);

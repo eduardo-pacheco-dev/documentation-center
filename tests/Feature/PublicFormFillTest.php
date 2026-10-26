@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\Form;
+use App\Models\FormResponse;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
@@ -220,4 +221,135 @@ it('does not expose the public form through an unsigned post route', function ()
     ])->assertForbidden();
 
     expect($form->fresh()->steps)->toBe(publicFormSteps());
+});
+
+it('updates the same response when the form accepts a single response', function () {
+    $form = Form::factory()->create([
+        'status' => 'Pendente',
+        'allows_multiple_responses' => false,
+        'steps' => publicFormSteps(),
+    ]);
+
+    $this->post(URL::signedRoute('public.forms.submit', ['form' => $form->getKey()]), [
+        'answers' => [
+            'F1-1' => 'Galpão A',
+            'F1-3' => '2026-10-25',
+            'F2-1' => 'Conforme',
+        ],
+    ])->assertRedirect();
+
+    $response = FormResponse::query()->firstOrFail();
+
+    $this->post(URL::signedRoute('public.forms.submit', ['form' => $form->getKey()]), [
+        'answers' => [
+            'F1-1' => 'Galpão B',
+            'F1-3' => '2026-10-26',
+            'F2-1' => 'Não conforme',
+        ],
+    ])->assertRedirect();
+
+    $responses = FormResponse::query()->get();
+
+    expect($responses)->toHaveCount(1);
+    expect($responses->first()->is($response))->toBeTrue();
+    expect($responses->first()->steps[0]['fields'][0]['value'])->toBe('Galpão B');
+    expect($responses->first()->status)->toBe('Preenchido');
+
+    expect($form->fresh()->steps[0]['fields'][0]['value'])->toBe('Galpão B');
+});
+
+it('creates a separate response for every submission when multiple responses are allowed', function () {
+    $form = Form::factory()->create([
+        'status' => 'Pendente',
+        'allows_multiple_responses' => true,
+        'steps' => publicFormSteps(),
+    ]);
+
+    $this->post(URL::signedRoute('public.forms.submit', ['form' => $form->getKey()]), [
+        'answers' => [
+            'F1-1' => 'Galpão A',
+            'F1-3' => '2026-10-25',
+            'F2-1' => 'Conforme',
+        ],
+    ])->assertRedirect();
+
+    $this->post(URL::signedRoute('public.forms.submit', ['form' => $form->getKey()]), [
+        'answers' => [
+            'F1-1' => 'Galpão B',
+            'F1-3' => '2026-10-26',
+            'F2-1' => 'Não conforme',
+        ],
+    ])->assertRedirect();
+
+    $responses = FormResponse::query()->orderBy('id')->get();
+
+    expect($responses)->toHaveCount(2);
+    expect($responses[0]->steps[0]['fields'][0]['value'])->toBe('Galpão A');
+    expect($responses[1]->steps[0]['fields'][0]['value'])->toBe('Galpão B');
+    expect($responses[1]->submitted_at)->not->toBeNull();
+
+    expect($form->fresh()->steps[0]['fields'][0]['value'])->toBe('Galpão B');
+});
+
+it('starts every submission with a blank structure when multiple responses are allowed', function () {
+    $form = Form::factory()->create([
+        'allows_multiple_responses' => true,
+        'steps' => publicFormSteps(),
+    ]);
+
+    $this->post(URL::signedRoute('public.forms.submit', ['form' => $form->getKey()]), [
+        'answers' => [
+            'F1-1' => 'Galpão A',
+            'F1-3' => '2026-10-25',
+            'F2-1' => 'Conforme',
+        ],
+    ])->assertRedirect();
+
+    $this->get(URL::signedRoute('public.forms.fill', ['form' => $form->getKey()]))
+        ->assertOk()
+        ->assertDontSee('Galpão A');
+});
+
+it('prefills the existing answer when the form accepts a single response', function () {
+    $form = Form::factory()->create([
+        'allows_multiple_responses' => false,
+        'steps' => publicFormSteps(),
+    ]);
+
+    $this->post(URL::signedRoute('public.forms.submit', ['form' => $form->getKey()]), [
+        'answers' => [
+            'F1-1' => 'Galpão A',
+            'F1-3' => '2026-10-25',
+            'F2-1' => 'Conforme',
+        ],
+    ])->assertRedirect();
+
+    $this->get(URL::signedRoute('public.forms.fill', ['form' => $form->getKey()]))
+        ->assertOk()
+        ->assertSee('Galpão A');
+});
+
+it('follows the current structure while keeping the existing answers of a single response', function () {
+    $form = Form::factory()->create([
+        'allows_multiple_responses' => false,
+        'steps' => publicFormSteps(),
+    ]);
+
+    $this->post(URL::signedRoute('public.forms.submit', ['form' => $form->getKey()]), [
+        'answers' => [
+            'F1-1' => 'Galpão A',
+            'F1-3' => '2026-10-25',
+            'F2-1' => 'Conforme',
+        ],
+    ])->assertRedirect();
+
+    $steps = publicFormSteps();
+    $steps[0]['fields'][] = ['id' => 'F1-4', 'type' => 'text', 'label' => 'Nova pergunta', 'required' => false, 'value' => '', 'status' => 'pendente'];
+
+    $form->update(['steps' => $steps]);
+
+    $this->get(URL::signedRoute('public.forms.fill', ['form' => $form->getKey()]))
+        ->assertOk()
+        ->assertSee('Galpão A')
+        ->assertSee('Nova pergunta');
 });

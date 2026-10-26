@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\Form;
+use App\Models\FormResponse;
 use App\Models\Project;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -255,6 +256,105 @@ it('forbids updating the structure of a form the user does not own', function ()
     $this->actingAs($user)
         ->patch(route('admin.forms.steps.update', $form), ['steps_json' => json_encode([])])
         ->assertForbidden();
+});
+
+it('creates a form that accepts multiple responses', function () {
+    $user = User::factory()->create();
+
+    $this->actingAs($user)
+        ->get('/admin/forms/create')
+        ->assertOk()
+        ->assertSee('Resposta única')
+        ->assertSee('Múltiplas respostas');
+
+    $this->actingAs($user)
+        ->post('/admin/forms', [
+            'name' => 'Checklist com múltiplas respostas',
+            'allows_multiple_responses' => '1',
+        ])
+        ->assertRedirect();
+
+    expect(Form::query()->firstOrFail()->allows_multiple_responses)->toBeTrue();
+});
+
+it('updates the response mode of a form', function () {
+    $user = User::factory()->create();
+    $form = Form::factory()->create([
+        'user_id' => $user->getKey(),
+        'allows_multiple_responses' => true,
+    ]);
+
+    $this->actingAs($user)
+        ->put(route('admin.forms.update', $form), [
+            'name' => $form->name,
+            'type' => $form->type,
+            'status' => $form->status,
+            'allows_multiple_responses' => '0',
+        ])
+        ->assertRedirect();
+
+    expect($form->fresh()->allows_multiple_responses)->toBeFalse();
+});
+
+it('lists the response history and opens the selected response', function () {
+    $user = User::factory()->create();
+    $author = User::factory()->create(['name' => 'Técnico Campo']);
+
+    $step = fn (string $value) => [[
+        'id' => 'S1',
+        'title' => 'Identificação',
+        'fields' => [
+            ['id' => 'F1-1', 'type' => 'text', 'label' => 'Área registrada', 'value' => $value, 'status' => 'enviado'],
+        ],
+    ]];
+
+    $form = Form::factory()->create([
+        'user_id' => $user->getKey(),
+        'allows_multiple_responses' => true,
+        'steps' => $step(''),
+    ]);
+
+    $older = FormResponse::create([
+        'form_id' => $form->getKey(),
+        'user_id' => $author->getKey(),
+        'status' => 'Preenchido',
+        'steps' => $step('Galpão A'),
+        'submitted_at' => now()->subDay(),
+    ]);
+
+    FormResponse::create([
+        'form_id' => $form->getKey(),
+        'user_id' => null,
+        'status' => 'Preenchido',
+        'steps' => $step('Galpão B'),
+        'submitted_at' => now(),
+    ]);
+
+    $this->actingAs($user)
+        ->get(route('admin.forms.show', $form))
+        ->assertOk()
+        ->assertSee('Histórico de respostas')
+        ->assertSee('Resposta #1')
+        ->assertSee('Resposta #2')
+        ->assertSee('Técnico Campo')
+        ->assertSee('Link externo')
+        ->assertSee('Galpão B')
+        ->assertDontSee('Galpão A');
+
+    $this->actingAs($user)
+        ->get(route('admin.forms.show', ['form' => $form, 'response' => $older]))
+        ->assertOk()
+        ->assertSee('Galpão A')
+        ->assertDontSee('Galpão B');
+});
+
+it('returns not found for a response that does not belong to the form', function () {
+    $user = User::factory()->create();
+    $form = Form::factory()->create(['user_id' => $user->getKey()]);
+
+    $this->actingAs($user)
+        ->get(route('admin.forms.show', ['form' => $form, 'response' => 999999]))
+        ->assertNotFound();
 });
 
 it('shows the application answers in read only mode', function () {

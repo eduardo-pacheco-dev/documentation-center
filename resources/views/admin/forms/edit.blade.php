@@ -39,6 +39,11 @@
                             {{ $form->type }}
                         </span>
 
+                        <span class="inline-flex items-center gap-1.5 text-gray-500 dark:text-gray-400">
+                            <x-icon name="rectangle-stack" class="h-4 w-4" />
+                            {{ $form->allows_multiple_responses ? 'Múltiplas respostas' : 'Resposta única' }}
+                        </span>
+
                         @if ($form->project)
                             <a href="{{ route('admin.projects.show', $form->project) }}" class="inline-flex items-center gap-1.5 font-medium text-indigo-600 hover:text-indigo-500 dark:text-indigo-400">
                                 <x-icon name="briefcase" class="h-4 w-4" />

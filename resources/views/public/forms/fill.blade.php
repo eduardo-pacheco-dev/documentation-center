@@ -27,6 +27,13 @@
             </div>
         @endif
 
+        @if ($response)
+            <div class="mt-4 flex items-start gap-2 rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-600 dark:border-gray-800 dark:bg-gray-800/40 dark:text-gray-300">
+                <x-icon name="arrow-path" class="mt-0.5 h-4 w-4 shrink-0" />
+                <p>Este formulário aceita uma única resposta. Ao enviar novamente, o registro existente será atualizado.</p>
+            </div>
+        @endif
+
         @if (empty($steps))
             <p class="mt-6 text-sm text-gray-500 dark:text-gray-400">
                 Este formulário ainda não possui perguntas.
@@ -63,7 +70,7 @@
                     class="inline-flex w-full items-center justify-center gap-1.5 rounded-lg bg-gray-900 px-4 py-2.5 text-sm font-medium text-white shadow-sm transition hover:bg-gray-700 dark:bg-white dark:text-gray-900 dark:hover:bg-gray-200"
                 >
                     <x-icon name="paper-airplane" class="h-4 w-4" />
-                    Enviar respostas
+                    {{ $response ? 'Atualizar respostas' : 'Enviar respostas' }}
                 </button>
             </form>
         @endif

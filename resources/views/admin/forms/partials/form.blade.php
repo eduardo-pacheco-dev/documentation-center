@@ -3,6 +3,7 @@
     $templates = $templates ?? collect();
     $defaultTemplateId = $defaultTemplateId ?? null;
     $defaultStatus = $form?->status ?? (in_array('Pendente', $statuses, true) ? 'Pendente' : ($statuses[0] ?? 'Pendente'));
+    $multipleResponses = (bool) old('allows_multiple_responses', $form?->allows_multiple_responses ?? false);
 @endphp
 
 <div class="grid gap-5 sm:grid-cols-2">
@@ -101,6 +102,24 @@
             @endforeach
         </select>
         @error('status')
+            <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p>
+        @enderror
+    </div>
+
+    <div class="sm:col-span-2">
+        <label for="allows_multiple_responses" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Respostas</label>
+        <select
+            name="allows_multiple_responses"
+            id="allows_multiple_responses"
+            class="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-700 dark:bg-gray-900 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500"
+        >
+            <option value="0" @selected(! $multipleResponses)>Resposta única</option>
+            <option value="1" @selected($multipleResponses)>Múltiplas respostas</option>
+        </select>
+        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+            Com resposta única, o mesmo registro é atualizado a cada novo envio. Com múltiplas respostas, cada envio cria uma resposta separada no histórico.
+        </p>
+        @error('allows_multiple_responses')
             <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p>
         @enderror
     </div>

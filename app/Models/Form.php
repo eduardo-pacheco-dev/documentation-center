@@ -18,6 +18,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
     'name',
     'type',
     'status',
+    'allows_multiple_responses',
     'steps',
     'fields',
 ])]
@@ -52,6 +53,14 @@ class Form extends Model
     public function project(): BelongsTo
     {
         return $this->belongsTo(Project::class);
+    }
+
+    /**
+     * The responses submitted for the form.
+     */
+    public function responses(): HasMany
+    {
+        return $this->hasMany(FormResponse::class);
     }
 
     /**
@@ -93,6 +102,7 @@ class Form extends Model
     protected function casts(): array
     {
         return [
+            'allows_multiple_responses' => 'boolean',
             'steps' => 'array',
             'fields' => 'array',
         ];

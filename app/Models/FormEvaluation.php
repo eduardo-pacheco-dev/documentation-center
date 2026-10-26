@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 #[Fillable([
     'form_id',
+    'form_response_id',
     'user_id',
     'status',
     'notes',
@@ -38,6 +39,14 @@ class FormEvaluation extends Model
     public function form(): BelongsTo
     {
         return $this->belongsTo(Form::class);
+    }
+
+    /**
+     * The response the evaluation refers to, when applicable.
+     */
+    public function response(): BelongsTo
+    {
+        return $this->belongsTo(FormResponse::class, 'form_response_id');
     }
 
     /**

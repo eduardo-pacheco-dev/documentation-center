@@ -7,9 +7,11 @@ use App\Http\Requests\Admin\AutoSaveFormEvaluationRequest;
 use App\Http\Requests\Admin\StoreFormEvaluationRequest;
 use App\Models\Form;
 use App\Models\FormEvaluation;
+use App\Models\FormResponse;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\View\View;
 
 class FormEvaluationController extends Controller
@@ -17,16 +19,25 @@ class FormEvaluationController extends Controller
     /**
      * Show the response evaluation page for a form.
      */
-    public function create(Form $form): View
+    public function create(Request $request, Form $form): View
     {
         $this->authorize('evaluate', $form);
 
         $form->load('project:id,code,name', 'user:id,name');
 
+        $response = $this->resolveResponse($request, $form);
+
+        $evaluations = $form->evaluations()
+            ->with('user:id,name')
+            ->when($response !== null, fn ($query) => $query->where('form_response_id', $response->getKey()))
+            ->latest()
+            ->get();
+
         return view('admin.forms.evaluate', [
             'form' => $form,
-            'steps' => $form->steps ?? [],
-            'evaluations' => $form->evaluations()->with('user:id,name')->latest()->get(),
+            'response' => $response,
+            'steps' => $response?->steps ?? $form->steps ?? [],
+            'evaluations' => $evaluations,
         ]);
     }
 
@@ -35,10 +46,14 @@ class FormEvaluationController extends Controller
      */
     public function store(StoreFormEvaluationRequest $request, Form $form): RedirectResponse
     {
-        $this->commitEvaluation($form, $request->user(), $request->validated(), $request->input('image_decisions_json'));
+        $response = $this->resolveResponse($request, $form);
+
+        $this->commitEvaluation($form, $response, $request->user(), $request->validated(), $request->input('image_decisions_json'));
 
         return redirect()
-            ->route('admin.forms.evaluate', $form)
+            ->route('admin.forms.evaluate', $response !== null
+                ? ['form' => $form, 'response' => $response]
+                : ['form' => $form])
             ->with('status', 'Avaliação registrada com sucesso.');
     }
 
@@ -47,7 +62,9 @@ class FormEvaluationController extends Controller
      */
     public function autosave(AutoSaveFormEvaluationRequest $request, Form $form): JsonResponse
     {
-        $evaluation = $this->commitEvaluation($form, $request->user(), $request->validated(), $request->input('image_decisions_json'));
+        $response = $this->resolveResponse($request, $form);
+
+        $evaluation = $this->commitEvaluation($form, $response, $request->user(), $request->validated(), $request->input('image_decisions_json'));
 
         if ($evaluation !== null) {
             $evaluation->setRelation('user', $request->user());
@@ -55,7 +72,7 @@ class FormEvaluationController extends Controller
 
         return response()->json([
             'saved_at' => now()->format('H:i'),
-            'form_status' => $form->status,
+            'form_status' => $response?->status ?? $form->status,
             'evaluation_html' => $evaluation !== null
                 ? view('admin.forms.partials.evaluation-item', ['evaluation' => $evaluation])->render()
                 : null,
@@ -63,13 +80,31 @@ class FormEvaluationController extends Controller
     }
 
     /**
+     * Resolve the response being evaluated, if any.
+     */
+    private function resolveResponse(Request $request, Form $form): ?FormResponse
+    {
+        $responseId = $request->integer('form_response_id') ?: $request->integer('response');
+
+        if ($responseId > 0) {
+            $response = $form->responses()->whereKey($responseId)->first();
+
+            abort_if($response === null, 404);
+
+            return $response;
+        }
+
+        return $form->responses()->latest('submitted_at')->latest('id')->first();
+    }
+
+    /**
      * Apply the payload to the form and record an evaluation when the outcome is final.
      *
      * @param  array<string, mixed>  $attributes
      */
-    private function commitEvaluation(Form $form, User $user, array $attributes, ?string $imageDecisionsJson): ?FormEvaluation
+    private function commitEvaluation(Form $form, ?FormResponse $response, User $user, array $attributes, ?string $imageDecisionsJson): ?FormEvaluation
     {
-        $stepsBefore = $form->steps ?? [];
+        $stepsBefore = $response?->steps ?? $form->steps ?? [];
         $changes = $this->buildChanges($stepsBefore, $attributes, $imageDecisionsJson);
 
         $steps = $this->applyDecisions(
@@ -81,21 +116,49 @@ class FormEvaluationController extends Controller
         $notes = $attributes['notes'] ?? null;
         $isFinal = $this->isFinal($status, $notes);
 
-        $form->update([
-            'status' => $isFinal ? $status : $form->status,
-            'steps' => $steps,
-        ]);
+        if ($response !== null) {
+            $response->update([
+                'status' => $isFinal ? $status : $response->status,
+                'steps' => $steps,
+            ]);
+
+            if ($this->isLatestResponse($form, $response)) {
+                $form->update([
+                    'status' => $isFinal ? $status : $form->status,
+                    'steps' => $steps,
+                ]);
+            }
+        } else {
+            $form->update([
+                'status' => $isFinal ? $status : $form->status,
+                'steps' => $steps,
+            ]);
+        }
 
         if (! $isFinal) {
             return null;
         }
 
         return $form->evaluations()->create([
+            'form_response_id' => $response?->getKey(),
             'user_id' => $user->getKey(),
             'status' => $status,
             'notes' => $notes,
             'changes' => $changes,
         ]);
+    }
+
+    /**
+     * Determine whether the response is the most recent one submitted for the form.
+     */
+    private function isLatestResponse(Form $form, FormResponse $response): bool
+    {
+        $latestId = $form->responses()
+            ->latest('submitted_at')
+            ->latest('id')
+            ->value('id');
+
+        return (int) $latestId === (int) $response->getKey();
     }
 
     /**

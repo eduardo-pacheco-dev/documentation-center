@@ -43,6 +43,7 @@ class UpdateFormRequest extends FormRequest
             'name' => ['required', 'string', 'max:255'],
             'type' => ['required', 'string', 'max:255'],
             'status' => ['required', 'string', 'max:40'],
+            'allows_multiple_responses' => ['sometimes', 'boolean'],
             'steps_json' => ['sometimes', 'nullable', 'json'],
             'fields_json' => ['sometimes', 'nullable', 'json'],
         ];

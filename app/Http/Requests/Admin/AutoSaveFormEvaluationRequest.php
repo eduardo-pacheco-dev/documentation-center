@@ -33,6 +33,7 @@ class AutoSaveFormEvaluationRequest extends FormRequest
     public function rules(): array
     {
         return [
+            'form_response_id' => ['nullable', 'integer'],
             'status' => ['nullable', Rule::in(['Aprovado', 'Reprovado'])],
             'notes' => ['nullable', 'string', 'max:2000'],
             'decisions' => ['sometimes', 'array'],

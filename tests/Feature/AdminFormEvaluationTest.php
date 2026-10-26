@@ -2,10 +2,27 @@
 
 use App\Models\Form;
 use App\Models\FormEvaluation;
+use App\Models\FormResponse;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
+
+/**
+ * @return array<int, array<string, mixed>>
+ */
+function evaluationResponseSteps(string $value): array
+{
+    return [
+        [
+            'id' => 'S1',
+            'title' => 'Identificação',
+            'fields' => [
+                ['id' => 'F1-1', 'type' => 'text', 'label' => 'Área registrada', 'required' => true, 'value' => $value, 'status' => 'enviado'],
+            ],
+        ],
+    ];
+}
 
 /**
  * @return array<int, array<string, mixed>>
@@ -50,6 +67,144 @@ it('lets any authenticated user evaluate a form they do not own', function () {
     $this->actingAs(User::factory()->create())
         ->get(route('admin.forms.evaluate', $form))
         ->assertOk();
+});
+
+it('opens the evaluation page for the selected response', function () {
+    $form = Form::factory()->create(['steps' => evaluationResponseSteps('')]);
+
+    $older = FormResponse::create([
+        'form_id' => $form->getKey(),
+        'status' => 'Preenchido',
+        'steps' => evaluationResponseSteps('Galpão A'),
+        'submitted_at' => now()->subDay(),
+    ]);
+
+    FormResponse::create([
+        'form_id' => $form->getKey(),
+        'status' => 'Preenchido',
+        'steps' => evaluationResponseSteps('Galpão B'),
+        'submitted_at' => now(),
+    ]);
+
+    $this->actingAs(User::factory()->create())
+        ->get(route('admin.forms.evaluate', ['form' => $form, 'response' => $older]))
+        ->assertOk()
+        ->assertSee('Galpão A')
+        ->assertDontSee('Galpão B')
+        ->assertSee('name="form_response_id" value="'.$older->getKey().'"', false);
+
+    $this->actingAs(User::factory()->create())
+        ->get(route('admin.forms.evaluate', $form))
+        ->assertOk()
+        ->assertSee('Galpão B')
+        ->assertDontSee('Galpão A');
+});
+
+it('evaluates a specific response without changing the latest response mirror', function () {
+    $user = User::factory()->create();
+    $form = Form::factory()->create([
+        'status' => 'Preenchido',
+        'allows_multiple_responses' => true,
+        'steps' => evaluationResponseSteps('Galpão B'),
+    ]);
+
+    $older = FormResponse::create([
+        'form_id' => $form->getKey(),
+        'status' => 'Preenchido',
+        'steps' => evaluationResponseSteps('Galpão A'),
+        'submitted_at' => now()->subDay(),
+    ]);
+
+    $latest = FormResponse::create([
+        'form_id' => $form->getKey(),
+        'status' => 'Preenchido',
+        'steps' => evaluationResponseSteps('Galpão B'),
+        'submitted_at' => now(),
+    ]);
+
+    $this->actingAs($user)
+        ->post(route('admin.forms.evaluate', $form), [
+            'form_response_id' => $older->getKey(),
+            'status' => 'Reprovado',
+            'notes' => 'Foto ilegível.',
+            'decisions' => ['F1-1' => 'reprovado'],
+        ])
+        ->assertRedirect(route('admin.forms.evaluate', ['form' => $form, 'response' => $older]));
+
+    $older->refresh();
+    $latest->refresh();
+    $form->refresh();
+
+    expect($older->status)->toBe('Reprovado');
+    expect($older->steps[0]['fields'][0]['status'])->toBe('reprovado');
+    expect($latest->status)->toBe('Preenchido');
+    expect($latest->steps[0]['fields'][0]['status'])->toBe('enviado');
+    expect($form->status)->toBe('Preenchido');
+    expect($form->steps[0]['fields'][0]['status'])->toBe('enviado');
+
+    $this->assertDatabaseHas('form_evaluations', [
+        'form_id' => $form->getKey(),
+        'form_response_id' => $older->getKey(),
+        'user_id' => $user->getKey(),
+        'status' => 'Reprovado',
+    ]);
+});
+
+it('mirrors the evaluation to the form when evaluating the latest response', function () {
+    $user = User::factory()->create();
+    $form = Form::factory()->create([
+        'status' => 'Preenchido',
+        'allows_multiple_responses' => true,
+        'steps' => evaluationResponseSteps('Galpão A'),
+    ]);
+
+    $older = FormResponse::create([
+        'form_id' => $form->getKey(),
+        'status' => 'Preenchido',
+        'steps' => evaluationResponseSteps('Galpão A'),
+        'submitted_at' => now()->subDay(),
+    ]);
+
+    $latest = FormResponse::create([
+        'form_id' => $form->getKey(),
+        'status' => 'Preenchido',
+        'steps' => evaluationResponseSteps('Galpão B'),
+        'submitted_at' => now(),
+    ]);
+
+    $this->actingAs($user)
+        ->post(route('admin.forms.evaluate', $form), [
+            'form_response_id' => $latest->getKey(),
+            'status' => 'Aprovado',
+            'decisions' => ['F1-1' => 'aprovado'],
+        ])
+        ->assertRedirect(route('admin.forms.evaluate', ['form' => $form, 'response' => $latest]));
+
+    expect($latest->fresh()->status)->toBe('Aprovado');
+    expect($latest->fresh()->steps[0]['fields'][0]['status'])->toBe('aprovado');
+    expect($older->fresh()->status)->toBe('Preenchido');
+    expect($form->fresh()->status)->toBe('Aprovado');
+    expect($form->fresh()->steps[0]['fields'][0]['status'])->toBe('aprovado');
+});
+
+it('rejects a response id that belongs to another form', function () {
+    $user = User::factory()->create();
+    $form = Form::factory()->create(['steps' => evaluationResponseSteps('Galpão A')]);
+    $other = Form::factory()->create(['steps' => evaluationResponseSteps('Galpão B')]);
+
+    $foreignResponse = FormResponse::create([
+        'form_id' => $other->getKey(),
+        'status' => 'Preenchido',
+        'steps' => evaluationResponseSteps('Galpão B'),
+        'submitted_at' => now(),
+    ]);
+
+    $this->actingAs($user)
+        ->post(route('admin.forms.evaluate', $form), [
+            'form_response_id' => $foreignResponse->getKey(),
+            'status' => 'Aprovado',
+        ])
+        ->assertNotFound();
 });
 
 it('records an evaluation and applies the per-field decisions', function () {

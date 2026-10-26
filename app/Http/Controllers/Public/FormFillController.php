@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Public;
 
 use App\Http\Controllers\Controller;
 use App\Models\Form;
+use App\Models\FormResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
@@ -23,9 +24,13 @@ class FormFillController extends Controller
     {
         $form->load('project:id,code,name');
 
+        $response = $this->singleResponse($form);
+        $steps = $this->responseSteps($form->steps ?? [], $response);
+
         return view('public.forms.fill', [
             'form' => $form,
-            'steps' => $form->steps ?? [],
+            'steps' => $steps,
+            'response' => $response,
         ]);
     }
 
@@ -34,13 +39,15 @@ class FormFillController extends Controller
      */
     public function store(Request $request, Form $form): RedirectResponse
     {
-        $steps = $form->steps ?? [];
+        $structure = $form->steps ?? [];
+        $response = $this->singleResponse($form);
+        $steps = $this->responseSteps($structure, $response);
 
         $validator = Validator::make(
             $request->all(),
-            $this->rules($steps),
+            $this->rules($structure),
             $this->messages(),
-            $this->attributes($steps),
+            $this->attributes($structure),
         );
 
         $validator->after(function (LaravelValidator $validator) use ($request, $steps): void {
@@ -76,14 +83,119 @@ class FormFillController extends Controller
             ? 'Preenchido'
             : $form->status;
 
+        $filledSteps = $this->applyAnswers($form, $steps, $answers, $request);
+
+        if ($response !== null) {
+            $response->update([
+                'status' => $status,
+                'steps' => $filledSteps,
+                'submitted_at' => now(),
+            ]);
+        } else {
+            $form->responses()->create([
+                'user_id' => $request->user()?->getKey(),
+                'status' => $status,
+                'steps' => $filledSteps,
+                'submitted_at' => now(),
+            ]);
+        }
+
         $form->update([
             'status' => $status,
-            'steps' => $this->applyAnswers($form, $steps, $answers, $request),
+            'steps' => $filledSteps,
         ]);
 
         return redirect()
             ->to(URL::signedRoute('public.forms.fill', ['form' => $form->getKey()]))
-            ->with('status', 'Resposta enviada com sucesso.');
+            ->with('status', $response !== null
+                ? 'Resposta atualizada com sucesso.'
+                : 'Resposta enviada com sucesso.');
+    }
+
+    /**
+     * Get the response that is updated on every submission for single response forms.
+     */
+    private function singleResponse(Form $form): ?FormResponse
+    {
+        if ($form->allows_multiple_responses) {
+            return null;
+        }
+
+        return $form->responses()
+            ->latest('submitted_at')
+            ->latest('id')
+            ->first();
+    }
+
+    /**
+     * Build the steps that should be shown for the current submission.
+     *
+     * Single response forms keep the answers of the existing response and follow
+     * the current form structure, so new questions are also displayed.
+     *
+     * @param  array<int, array<string, mixed>>  $structure
+     * @return array<int, array<string, mixed>>
+     */
+    private function responseSteps(array $structure, ?FormResponse $response): array
+    {
+        $steps = $this->blankSteps($structure);
+
+        if ($response === null) {
+            return $steps;
+        }
+
+        $previousFields = collect($response->steps ?? [])
+            ->flatMap(fn (array $step) => $step['fields'] ?? [])
+            ->filter(fn (array $field) => filled($field['id'] ?? null))
+            ->keyBy(fn (array $field) => (string) $field['id']);
+
+        foreach ($steps as $stepIndex => $step) {
+            foreach ($step['fields'] ?? [] as $fieldIndex => $field) {
+                $fieldId = (string) ($field['id'] ?? '');
+                $previous = $fieldId !== '' ? $previousFields->get($fieldId) : null;
+
+                if ($previous === null) {
+                    continue;
+                }
+
+                foreach (['value', 'images', 'files', 'fileNames', 'imageDecisions'] as $key) {
+                    if (array_key_exists($key, $previous)) {
+                        $steps[$stepIndex]['fields'][$fieldIndex][$key] = $previous[$key];
+                    }
+                }
+
+                if (array_key_exists('status', $previous)) {
+                    $steps[$stepIndex]['fields'][$fieldIndex]['status'] = $previous['status'];
+                }
+            }
+        }
+
+        return $steps;
+    }
+
+    /**
+     * Build a blank copy of the form structure, without the answers of previous submissions.
+     *
+     * @param  array<int, array<string, mixed>>  $steps
+     * @return array<int, array<string, mixed>>
+     */
+    private function blankSteps(array $steps): array
+    {
+        foreach ($steps as $stepIndex => $step) {
+            foreach ($step['fields'] ?? [] as $fieldIndex => $field) {
+                unset(
+                    $steps[$stepIndex]['fields'][$fieldIndex]['value'],
+                    $steps[$stepIndex]['fields'][$fieldIndex]['images'],
+                    $steps[$stepIndex]['fields'][$fieldIndex]['files'],
+                    $steps[$stepIndex]['fields'][$fieldIndex]['fileNames'],
+                    $steps[$stepIndex]['fields'][$fieldIndex]['imageDecisions'],
+                );
+
+                $steps[$stepIndex]['fields'][$fieldIndex]['status'] = 'pendente';
+            }
+        }
+
+        return $steps;
     }
 
     /**
