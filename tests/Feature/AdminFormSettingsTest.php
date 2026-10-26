@@ -38,7 +38,11 @@ it('shows the forms module settings page with the defaults', function () {
         ->assertSee('Visualização padrão')
         ->assertSee('Itens por página')
         ->assertSee('Registro Fotográfico')
-        ->assertSee('Em preenchimento');
+        ->assertSee('Em preenchimento')
+        ->assertSee('Adicionar tipo')
+        ->assertSee('Adicionar status')
+        ->assertSee('name="types[0]"', false)
+        ->assertSee('name="statuses[0]"', false);
 });
 
 it('saves the forms module settings', function () {
@@ -47,8 +51,8 @@ it('saves the forms module settings', function () {
 
     $this->actingAs($user)
         ->put('/admin/forms/settings', [
-            'types' => "Vistoria\nChecklist\n",
-            'statuses' => "Pendente\nEm análise",
+            'types' => ['Vistoria', 'Checklist'],
+            'statuses' => ['Pendente', 'Em análise'],
             'default_template_id' => $template->getKey(),
             'default_view' => 'cards',
             'per_page' => 24,
@@ -70,8 +74,8 @@ it('validates the forms module settings', function () {
 
     $this->actingAs($user)
         ->put('/admin/forms/settings', [
-            'types' => "\n",
-            'statuses' => "Pendente\npendente",
+            'types' => [],
+            'statuses' => ['Pendente', 'pendente'],
             'default_template_id' => 999,
             'default_view' => 'grid',
             'per_page' => 10,

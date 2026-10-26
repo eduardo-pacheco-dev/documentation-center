@@ -1,12 +1,6 @@
 @php
     use App\Services\Forms\FormModuleSettings;
 
-    $typesValue = old('types', $settings->types());
-    $typesValue = is_array($typesValue) ? implode("\n", $typesValue) : (string) $typesValue;
-
-    $statusesValue = old('statuses', $settings->statuses());
-    $statusesValue = is_array($statusesValue) ? implode("\n", $statusesValue) : (string) $statusesValue;
-
     $fieldClass = 'mt-1 block w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm transition focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100';
     $labelClass = 'block text-sm font-medium text-gray-700 dark:text-gray-300';
     $hintClass = 'mt-1 text-xs text-gray-500 dark:text-gray-400';
@@ -67,17 +61,17 @@
                 </div>
 
                 <div class="p-5">
-                    <label for="types" class="{{ $labelClass }}">Tipos</label>
-                    <textarea
-                        name="types"
-                        id="types"
-                        rows="7"
-                        required
-                        class="{{ $fieldClass }} font-mono"
-                    >{{ $typesValue }}</textarea>
-                    <p class="{{ $hintClass }}">Informe um tipo por linha. Os tipos atuais dos formulários existentes continuam disponíveis.</p>
+                    @include('admin.forms.partials.settings-list', [
+                        'name' => 'types',
+                        'label' => 'Lista de tipos',
+                        'items' => old('types', $settings->types()),
+                        'placeholder' => 'Ex.: Registro Fotográfico',
+                        'addLabel' => 'Adicionar tipo',
+                        'hint' => 'Clique em “Adicionar tipo” para incluir novas opções. Os tipos atuais dos formulários existentes continuam disponíveis.',
+                    ])
+
                     @error('types')
-                        <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p>
+                        <p class="mt-2 text-xs text-red-600 dark:text-red-400">{{ $message }}</p>
                     @enderror
                     @foreach ($errors->get('types.*') as $messages)
                         <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $messages[0] }}</p>
@@ -95,17 +89,17 @@
                 </div>
 
                 <div class="p-5">
-                    <label for="statuses" class="{{ $labelClass }}">Status</label>
-                    <textarea
-                        name="statuses"
-                        id="statuses"
-                        rows="7"
-                        required
-                        class="{{ $fieldClass }} font-mono"
-                    >{{ $statusesValue }}</textarea>
-                    <p class="{{ $hintClass }}">Informe um status por linha. Os status atuais dos formulários existentes continuam disponíveis.</p>
+                    @include('admin.forms.partials.settings-list', [
+                        'name' => 'statuses',
+                        'label' => 'Lista de status',
+                        'items' => old('statuses', $settings->statuses()),
+                        'placeholder' => 'Ex.: Pendente',
+                        'addLabel' => 'Adicionar status',
+                        'hint' => 'Clique em “Adicionar status” para incluir novas opções. Os status atuais dos formulários existentes continuam disponíveis.',
+                    ])
+
                     @error('statuses')
-                        <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p>
+                        <p class="mt-2 text-xs text-red-600 dark:text-red-400">{{ $message }}</p>
                     @enderror
                     @foreach ($errors->get('statuses.*') as $messages)
                         <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $messages[0] }}</p>
@@ -187,4 +181,70 @@
             </button>
         </div>
     </form>
+
+    <script>
+        (function () {
+            const updateRows = (root) => {
+                const rows = [...root.querySelectorAll('[data-list-row]')];
+                const name = root.dataset.listName;
+
+                rows.forEach((row, index) => {
+                    const input = row.querySelector('[data-list-input]');
+                    const position = row.querySelector('[data-list-position]');
+                    const remove = row.querySelector('[data-list-remove]');
+
+                    if (input) {
+                        input.name = name + '[' + index + ']';
+                    }
+
+                    if (position) {
+                        position.textContent = index + 1;
+                    }
+
+                    if (remove) {
+                        remove.disabled = rows.length <= 1;
+                    }
+                });
+            };
+
+            document.querySelectorAll('[data-list-root]').forEach((root) => {
+                const rowsContainer = root.querySelector('[data-list-rows]');
+                const addButton = root.querySelector('[data-list-add]');
+
+                if (!rowsContainer || !addButton) {
+                    return;
+                }
+
+                addButton.addEventListener('click', () => {
+                    const lastRow = rowsContainer.querySelector('[data-list-row]:last-child');
+
+                    if (!lastRow) {
+                        return;
+                    }
+
+                    const row = lastRow.cloneNode(true);
+                    const input = row.querySelector('[data-list-input]');
+
+                    if (input) {
+                        input.value = '';
+                    }
+
+                    rowsContainer.appendChild(row);
+                    updateRows(root);
+                    input?.focus();
+                });
+
+                rowsContainer.addEventListener('click', (event) => {
+                    const button = event.target.closest('[data-list-remove]');
+
+                    if (!button || rowsContainer.querySelectorAll('[data-list-row]').length <= 1) {
+                        return;
+                    }
+
+                    button.closest('[data-list-row]')?.remove();
+                    updateRows(root);
+                });
+            });
+        })();
+    </script>
 </x-layouts.admin>
