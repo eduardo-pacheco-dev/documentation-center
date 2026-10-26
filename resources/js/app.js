@@ -1001,3 +1001,62 @@ const CameraUploads = (() => {
     return { merge };
 })();
 
+// Public image fields show a live preview of the selected gallery and camera
+// files before the form is submitted. The server-rendered empty placeholder
+// stays visible only while there is nothing to preview.
+const ImagePreviews = (() => {
+    const render = (field) => {
+        const container = field.closest('[data-question]')?.querySelector('[data-image-thumbnails]');
+
+        if (! container) {
+            return;
+        }
+
+        container.querySelectorAll('[data-image-preview-item]').forEach((item) => {
+            if (item.dataset.objectUrl) {
+                URL.revokeObjectURL(item.dataset.objectUrl);
+            }
+
+            item.remove();
+        });
+
+        const files = [
+            ...Array.from(field.querySelector('[data-image-input]')?.files ?? []),
+            ...Array.from(field.querySelector('[data-camera-input]')?.files ?? []),
+        ].filter((file) => file.type.startsWith('image/'));
+
+        const empty = container.querySelector('[data-image-empty]');
+
+        if (empty) {
+            empty.hidden = files.length > 0;
+        }
+
+        files.forEach((file) => {
+            const url = URL.createObjectURL(file);
+            const item = document.createElement('div');
+
+            item.dataset.imagePreviewItem = '';
+            item.dataset.objectUrl = url;
+            item.className = 'h-16 w-16 overflow-hidden rounded-lg ring-1 ring-gray-200 dark:ring-gray-800';
+
+            const image = document.createElement('img');
+
+            image.src = url;
+            image.alt = file.name;
+            image.className = 'h-full w-full object-cover';
+
+            item.append(image);
+            container.append(item);
+        });
+    };
+
+    document.querySelectorAll('[data-image-field]').forEach((field) => {
+        field.querySelector('[data-image-input]')?.addEventListener('change', () => render(field));
+        field.querySelector('[data-camera-input]')?.addEventListener('change', () => render(field));
+
+        render(field);
+    });
+
+    return { render };
+})();
+

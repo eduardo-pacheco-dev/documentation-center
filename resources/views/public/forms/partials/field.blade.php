@@ -174,7 +174,7 @@
                 @break
 
             @case('image')
-                <div class="mb-2 flex flex-wrap gap-2">
+                <div class="mb-2 flex flex-wrap gap-2" data-image-thumbnails>
                     @forelse ($existingImages as $image)
                         <a
                             href="{{ $image }}"
@@ -185,7 +185,7 @@
                             <img src="{{ $image }}" alt="{{ $label }}" loading="lazy" class="h-full w-full object-cover">
                         </a>
                     @empty
-                        <div class="flex h-16 w-16 items-center justify-center rounded-lg border border-dashed border-gray-300 text-xs font-medium text-gray-400 dark:border-gray-700 dark:text-gray-500">
+                        <div data-image-empty class="flex h-16 w-16 items-center justify-center rounded-lg border border-dashed border-gray-300 text-xs font-medium text-gray-400 dark:border-gray-700 dark:text-gray-500">
                             Vazio
                         </div>
                     @endforelse

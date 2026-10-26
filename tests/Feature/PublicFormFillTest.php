@@ -50,6 +50,8 @@ it('shows the public form filling page without authentication', function () {
         ->assertSee('name="answers[F1-1]"', false)
         ->assertSee('name="camera_answers[F2-5][]"', false)
         ->assertSee('capture="environment"', false)
+        ->assertSee('data-image-thumbnails', false)
+        ->assertSee('data-image-empty', false)
         ->assertSee('Vazio');
 });
 
