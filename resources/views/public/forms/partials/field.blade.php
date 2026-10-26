@@ -20,12 +20,16 @@
     data-question="{{ $fieldId }}"
     data-has-upload="{{ ! empty($existingImages) || ! empty($existingFiles) ? '1' : '0' }}"
 >
-    <label for="{{ $id }}" class="block text-sm font-medium text-gray-900 dark:text-gray-100">
-        {{ $label }}
-        @if ($required)
-            <span class="text-red-500" aria-hidden="true">*</span>
-        @endif
-    </label>
+    <div class="flex flex-wrap items-center gap-2">
+        <label for="{{ $id }}" class="block text-sm font-medium text-gray-900 dark:text-gray-100">
+            {{ $label }}
+            @if ($required)
+                <span class="text-red-500" aria-hidden="true">*</span>
+            @endif
+        </label>
+
+        <x-form-field-status :status="$field['status'] ?? null" />
+    </div>
 
     @if (! empty($field['help']))
         <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">{{ $field['help'] }}</p>

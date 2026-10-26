@@ -449,6 +449,32 @@ it('updates the submission progress with the answers already stored', function (
         ->assertSee('38%');
 });
 
+it('shows the evaluation status pill for each question on the public form', function () {
+    $form = Form::factory()->create([
+        'allows_multiple_responses' => false,
+        'steps' => publicFormSteps(),
+    ]);
+
+    $this->get(URL::signedRoute('public.forms.fill', ['form' => $form->getKey()]))
+        ->assertOk()
+        ->assertSeeText('Pendente');
+
+    $steps = publicFormSteps();
+    $steps[0]['fields'][0]['status'] = 'aprovado';
+    $steps[0]['fields'][1]['status'] = 'reprovado';
+
+    $form->responses()->create([
+        'status' => 'Preenchido',
+        'steps' => $steps,
+        'submitted_at' => now(),
+    ]);
+
+    $this->get(URL::signedRoute('public.forms.fill', ['form' => $form->getKey()]))
+        ->assertOk()
+        ->assertSeeText('Aprovado')
+        ->assertSeeText('Reprovado');
+});
+
 it('prefills the existing answer when the form accepts a single response', function () {
     $form = Form::factory()->create([
         'allows_multiple_responses' => false,
