@@ -214,71 +214,68 @@
             </div>
         </div>
     @elseif ($view === 'cards')
-        <div class="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            @forelse ($templates as $template)
-                <div class="flex flex-col rounded-lg border border-gray-200 bg-white p-4 transition hover:border-indigo-300 dark:border-gray-800 dark:bg-gray-900 dark:hover:border-indigo-500/40">
-                    <div class="flex items-start justify-between gap-3">
-                        <div class="flex min-w-0 items-center gap-3">
-                            <span class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-indigo-50 text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-400">
-                                <x-icon name="document-duplicate" class="h-4 w-4" />
-                            </span>
-                            <div class="min-w-0">
-                                @can('update', $template)
-                                    <a href="{{ route('admin.form-templates.edit', $template) }}" class="block truncate font-medium text-gray-900 transition hover:text-indigo-600 dark:text-gray-100 dark:hover:text-indigo-400">
-                                        {{ $template->name }}
-                                    </a>
-                                @else
-                                    <p class="truncate font-medium text-gray-900 dark:text-gray-100">{{ $template->name }}</p>
-                                @endcan
-                                <p class="truncate text-xs text-gray-500 dark:text-gray-400">{{ $template->type ?: 'Sem tipo' }}</p>
+        <div class="mt-4 overflow-hidden border border-gray-200 bg-gray-200 dark:border-gray-800 dark:bg-gray-800">
+            <div class="grid gap-px sm:grid-cols-2 lg:grid-cols-3">
+                @forelse ($templates as $template)
+                    <div class="flex flex-col bg-white p-4 dark:bg-gray-900">
+                        <div class="flex items-start justify-between gap-3">
+                            <div class="flex min-w-0 items-center gap-3">
+                                <span class="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-indigo-50 text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-400">
+                                    <x-icon name="document-duplicate" class="h-4 w-4" />
+                                </span>
+                                <div class="min-w-0">
+                                    @can('update', $template)
+                                        <a href="{{ route('admin.form-templates.edit', $template) }}" class="block truncate font-medium text-gray-900 hover:text-indigo-600 dark:text-gray-100 dark:hover:text-indigo-400">
+                                            {{ $template->name }}
+                                        </a>
+                                    @else
+                                        <p class="truncate font-medium text-gray-900 dark:text-gray-100">{{ $template->name }}</p>
+                                    @endcan
+                                    <p class="truncate text-xs text-gray-500 dark:text-gray-400">{{ $template->type ?: 'Sem tipo' }}</p>
+                                </div>
                             </div>
+
+                            <x-form-template-actions-dropdown :template="$template" />
                         </div>
 
-                        <x-form-template-actions-dropdown :template="$template" />
-                    </div>
-
-                    <div class="mt-3 flex flex-wrap items-center gap-2">
-                        @php $questions = $questionCount($template); @endphp
-                        <span class="inline-flex items-center gap-1.5 rounded bg-gray-100 px-2 py-1 text-xs font-medium text-gray-700 dark:bg-gray-800 dark:text-gray-300">
-                            <x-icon name="clipboard-document-list" class="h-3.5 w-3.5" />
-                            {{ $questions }} {{ $questions === 1 ? 'pergunta' : 'perguntas' }}
-                        </span>
-                        @if ($template->type)
-                            <span class="inline-flex items-center rounded bg-indigo-50 px-2 py-1 text-xs font-medium text-indigo-700 dark:bg-indigo-500/10 dark:text-indigo-300">
-                                {{ $template->type }}
+                        <div class="mt-3 flex flex-wrap items-center gap-2">
+                            @php $questions = $questionCount($template); @endphp
+                            <span class="inline-flex items-center gap-1.5 text-xs font-medium text-gray-500 dark:text-gray-400">
+                                <x-icon name="clipboard-document-list" class="h-3.5 w-3.5" />
+                                {{ $questions }} {{ $questions === 1 ? 'pergunta' : 'perguntas' }}
                             </span>
-                        @endif
-                    </div>
+                        </div>
 
-                    <div class="mt-auto flex items-center justify-between gap-3 border-t border-gray-100 pt-3 text-xs text-gray-500 dark:border-gray-800 dark:text-gray-400">
-                        <span class="flex min-w-0 items-center gap-1.5">
-                            <x-icon name="user" class="h-3.5 w-3.5 shrink-0" />
-                            <span class="truncate">{{ $template->user?->name ?? '—' }}</span>
-                        </span>
-                        <span class="flex shrink-0 items-center gap-1.5">
-                            <x-icon name="clock" class="h-3.5 w-3.5 shrink-0" />
-                            <x-relative-time :value="$template->updated_at" />
-                        </span>
+                        <div class="mt-auto flex items-center justify-between gap-3 border-t border-gray-100 pt-3 text-xs text-gray-500 dark:border-gray-800 dark:text-gray-400">
+                            <span class="flex min-w-0 items-center gap-1.5">
+                                <x-icon name="user" class="h-3.5 w-3.5 shrink-0" />
+                                <span class="truncate">{{ $template->user?->name ?? '—' }}</span>
+                            </span>
+                            <span class="flex shrink-0 items-center gap-1.5">
+                                <x-icon name="clock" class="h-3.5 w-3.5 shrink-0" />
+                                <x-relative-time :value="$template->updated_at" />
+                            </span>
+                        </div>
                     </div>
-                </div>
-            @empty
-                <div class="col-span-full rounded-lg border border-dashed border-gray-300 bg-white px-4 py-12 text-center dark:border-gray-700 dark:bg-gray-900">
-                    <p class="text-sm font-medium text-gray-900 dark:text-gray-100">
-                        @if ($hasFilters)
-                            Nenhum template encontrado
-                        @else
-                            Nenhum template cadastrado
-                        @endif
-                    </p>
-                    <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                        @if ($hasFilters)
-                            Ajuste a busca ou os filtros para ver mais resultados.
-                        @else
-                            Abra um formulário e use "Salvar como template" para começar a montar sua biblioteca.
-                        @endif
-                    </p>
-                </div>
-            @endforelse
+                @empty
+                    <div class="col-span-full bg-white px-4 py-12 text-center dark:bg-gray-900">
+                        <p class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                            @if ($hasFilters)
+                                Nenhum template encontrado
+                            @else
+                                Nenhum template cadastrado
+                            @endif
+                        </p>
+                        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                            @if ($hasFilters)
+                                Ajuste a busca ou os filtros para ver mais resultados.
+                            @else
+                                Abra um formulário e use "Salvar como template" para começar a montar sua biblioteca.
+                            @endif
+                        </p>
+                    </div>
+                @endforelse
+            </div>
         </div>
 
         <div class="mt-4">

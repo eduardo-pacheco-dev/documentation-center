@@ -81,7 +81,7 @@ it('switches the templates list view mode', function () {
     $this->actingAs($user)
         ->get(route('admin.form-templates.index', ['view' => 'cards']))
         ->assertOk()
-        ->assertSee('grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3');
+        ->assertSee('grid gap-px sm:grid-cols-2 lg:grid-cols-3');
 
     $this->actingAs($user)
         ->get(route('admin.form-templates.index', ['view' => 'compact']))
