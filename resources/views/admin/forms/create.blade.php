@@ -24,6 +24,8 @@
             'projects' => $projects,
             'types' => $types,
             'statuses' => $statuses,
+            'templates' => $templates,
+            'defaultTemplateId' => $defaultTemplateId,
         ])
 
         <div class="flex justify-end gap-2">

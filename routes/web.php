@@ -25,6 +25,7 @@ use App\Http\Controllers\Admin\ErbRelationController;
 use App\Http\Controllers\Admin\FolderController;
 use App\Http\Controllers\Admin\FormController;
 use App\Http\Controllers\Admin\FormEvaluationController;
+use App\Http\Controllers\Admin\FormSettingsController;
 use App\Http\Controllers\Admin\FormTemplateController;
 use App\Http\Controllers\Admin\ProjectAssignmentController;
 use App\Http\Controllers\Admin\ProjectBaselineController;
@@ -208,6 +209,9 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
     /*
     | Forms
     */
+
+    Route::get('forms/settings', [FormSettingsController::class, 'edit'])->name('forms.settings.edit');
+    Route::put('forms/settings', [FormSettingsController::class, 'update'])->name('forms.settings.update');
 
     Route::resource('forms', FormController::class);
     Route::patch('forms/{form}/steps', [FormController::class, 'updateSteps'])->name('forms.steps.update');

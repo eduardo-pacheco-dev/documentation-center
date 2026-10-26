@@ -15,6 +15,14 @@
             <h1 class="mt-1 flex items-center gap-2 text-2xl font-semibold tracking-tight text-gray-900 dark:text-gray-100">
                 <x-icon name="document-check" class="h-6 w-6 text-gray-400 dark:text-gray-500" />
                 Formulários
+                <a
+                    href="{{ route('admin.forms.settings.edit') }}"
+                    title="Configurações do módulo"
+                    aria-label="Configurações do módulo de formulários"
+                    class="ml-1 inline-flex h-8 w-8 items-center justify-center rounded-xl text-gray-400 transition hover:bg-gray-100 hover:text-indigo-600 dark:text-gray-500 dark:hover:bg-gray-800 dark:hover:text-indigo-400"
+                >
+                    <x-icon name="cog-6-tooth" class="h-5 w-5" />
+                </a>
             </h1>
             <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Preencha e acompanhe os formulários de projeto (AFL).</p>
         </div>
@@ -383,6 +391,8 @@
                     'projects' => $projects,
                     'types' => $types,
                     'statuses' => $statuses,
+                    'templates' => $templates,
+                    'defaultTemplateId' => $defaultTemplateId,
                 ])
 
                 <div class="flex justify-end gap-2 border-t border-gray-100 pt-4 dark:border-gray-800">
@@ -407,24 +417,6 @@
 
     <script>
         (function () {
-            const viewParams = new URLSearchParams(window.location.search);
-
-            if (!viewParams.has('view')) {
-                const savedView = localStorage.getItem('forms-view');
-
-                if (['table', 'cards', 'compact'].includes(savedView)) {
-                    viewParams.set('view', savedView);
-                    window.location.replace(window.location.pathname + '?' + viewParams.toString());
-                    return;
-                }
-            }
-
-            document.querySelectorAll('[data-view-toggle]').forEach((link) => {
-                link.addEventListener('click', () => {
-                    localStorage.setItem('forms-view', link.dataset.viewToggle);
-                });
-            });
-
             const searchForm = document.querySelector('[data-search-form]');
             const searchInput = document.querySelector('[data-search-input]');
 

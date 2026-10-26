@@ -8,6 +8,8 @@ use App\Http\Requests\Admin\UpdateFormRequest;
 use App\Http\Requests\Admin\UpdateFormStepsRequest;
 use App\Models\Form;
 use App\Models\FormTemplate;
+use App\Models\User;
+use App\Services\Forms\FormModuleSettings;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -21,6 +23,8 @@ class FormController extends Controller
     public function index(Request $request): View
     {
         $this->authorize('viewAny', Form::class);
+
+        $settings = FormModuleSettings::for($request->user());
 
         $search = (string) $request->query('search', '');
 
@@ -36,9 +40,9 @@ class FormController extends Controller
             $direction = 'desc';
         }
 
-        $perPage = in_array($request->integer('per_page'), [12, 24, 36], true)
+        $perPage = in_array($request->integer('per_page'), FormModuleSettings::PER_PAGE_OPTIONS, true)
             ? $request->integer('per_page')
-            : 12;
+            : $settings->perPage();
 
         $forms = Form::query()
             ->ownedBy($request->user())
@@ -52,9 +56,9 @@ class FormController extends Controller
             ->paginate($perPage)
             ->withQueryString();
 
-        $view = in_array($request->query('view'), ['table', 'cards', 'compact'], true)
+        $view = in_array($request->query('view'), array_keys(FormModuleSettings::VIEWS), true)
             ? $request->query('view')
-            : 'table';
+            : $settings->defaultView();
 
         return view('admin.forms.index', [
             'forms' => $forms,
@@ -63,9 +67,10 @@ class FormController extends Controller
             'status' => $status,
             'view' => $view,
             'perPage' => $perPage,
-            'types' => ['Registro Fotográfico', 'Checklist', 'Vistoria', 'Inspeção', 'Laudo Técnico'],
-            'statuses' => ['Pendente', 'Em preenchimento', 'Preenchido', 'Aprovado', 'Reprovado'],
+            'types' => $this->mergeOptions($settings->types(), $this->existingValues($request->user(), 'type')),
+            'statuses' => $this->mergeOptions($settings->statuses(), $this->existingValues($request->user(), 'status')),
             'templates' => FormTemplate::query()->orderBy('name')->get(['id', 'name', 'type']),
+            'defaultTemplateId' => $settings->defaultTemplateId(),
         ]);
     }
 
@@ -76,11 +81,14 @@ class FormController extends Controller
     {
         $this->authorize('create', Form::class);
 
+        $settings = FormModuleSettings::for($request->user());
+
         return view('admin.forms.create', [
             'projects' => $request->user()->projects()->orderBy('name')->get(['id', 'code', 'name']),
-            'types' => ['Registro Fotográfico', 'Checklist', 'Vistoria', 'Inspeção', 'Laudo Técnico'],
-            'statuses' => ['Pendente', 'Em preenchimento', 'Preenchido', 'Aprovado', 'Reprovado'],
+            'types' => $settings->types(),
+            'statuses' => $settings->statuses(),
             'templates' => FormTemplate::query()->orderBy('name')->get(['id', 'name', 'type']),
+            'defaultTemplateId' => $settings->defaultTemplateId(),
         ]);
     }
 
@@ -147,13 +155,49 @@ class FormController extends Controller
 
         $form->load('project:id,code,name', 'user:id,name');
 
+        $settings = FormModuleSettings::for($request->user());
+
         return view('admin.forms.edit', [
             'form' => $form,
             'projects' => $request->user()->projects()->orderBy('name')->get(['id', 'code', 'name']),
-            'types' => ['Registro Fotográfico', 'Checklist', 'Vistoria', 'Inspeção', 'Laudo Técnico'],
-            'statuses' => ['Pendente', 'Em preenchimento', 'Preenchido', 'Aprovado', 'Reprovado'],
+            'types' => $this->mergeOptions($settings->types(), [$form->type]),
+            'statuses' => $this->mergeOptions($settings->statuses(), [$form->status]),
             'steps' => $form->steps ?? [],
         ]);
+    }
+
+    /**
+     * Merge the configured options with values already stored on forms.
+     *
+     * @param  list<string>  $configured
+     * @param  array<int, string|null>  $existing
+     * @return list<string>
+     */
+    private function mergeOptions(array $configured, array $existing): array
+    {
+        return collect($configured)
+            ->merge($existing)
+            ->filter(fn (mixed $value) => is_string($value) && trim($value) !== '')
+            ->map(fn (string $value) => trim($value))
+            ->unique(fn (string $value) => mb_strtolower($value))
+            ->values()
+            ->all();
+    }
+
+    /**
+     * Get the values already stored on the user's forms for the given column.
+     *
+     * @return list<string>
+     */
+    private function existingValues(User $user, string $column): array
+    {
+        return Form::query()
+            ->ownedBy($user)
+            ->whereNotNull($column)
+            ->distinct()
+            ->orderBy($column)
+            ->pluck($column)
+            ->all();
     }
 
     /**
