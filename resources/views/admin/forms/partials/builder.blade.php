@@ -1,6 +1,6 @@
 @php($builderSteps = $steps ?? [])
 
-<div x-data="formBuilder(@js($builderSteps))">
+<div x-data="formBuilder(@js($builderSteps), @js($autosaveUrl ?? null))">
     <input type="hidden" name="steps_json" :value="stepsJson">
 
     <div class="flex flex-wrap items-center justify-between gap-3 px-1 pb-4">
@@ -10,15 +10,34 @@
             <span x-text="totalFields()"></span> {{ 'pergunta' }}<span x-show="totalFields() !== 1">s</span>
         </p>
 
-        <div class="flex items-center gap-1">
-            <button type="button" @click="collapseAll(true)" class="inline-flex items-center gap-1.5 rounded-md px-2 py-1.5 text-sm font-medium text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-gray-200">
-                <x-icon name="chevron-up-down" class="h-4 w-4" />
-                Recolher tudo
-            </button>
-            <button type="button" @click="collapseAll(false)" class="inline-flex items-center gap-1.5 rounded-md px-2 py-1.5 text-sm font-medium text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-gray-200">
-                <x-icon name="chevron-down" class="h-4 w-4" />
-                Expandir tudo
-            </button>
+        <div class="flex flex-wrap items-center gap-3">
+            <span x-show="autosaveState === 'pending'" style="display: none;" class="inline-flex items-center gap-1.5 text-xs font-medium text-gray-500 dark:text-gray-400">
+                <x-icon name="arrow-path" class="h-3.5 w-3.5" />
+                Alterações não salvas
+            </span>
+            <span x-show="autosaveState === 'saving'" style="display: none;" class="inline-flex items-center gap-1.5 text-xs font-medium text-gray-500 dark:text-gray-400">
+                <x-icon name="arrow-path" class="h-3.5 w-3.5 animate-spin" />
+                Salvando...
+            </span>
+            <span x-show="autosaveState === 'saved'" style="display: none;" class="inline-flex items-center gap-1.5 text-xs font-medium text-emerald-600 dark:text-emerald-400">
+                <x-icon name="check-circle" class="h-3.5 w-3.5" />
+                Salvo automaticamente
+            </span>
+            <span x-show="autosaveState === 'error'" style="display: none;" class="inline-flex items-center gap-1.5 text-xs font-medium text-red-600 dark:text-red-400" :title="autosaveMessage">
+                <x-icon name="exclamation-circle" class="h-3.5 w-3.5" />
+                <span x-text="autosaveMessage || 'Não foi possível salvar'"></span>
+            </span>
+
+            <div class="flex items-center gap-1">
+                <button type="button" @click="collapseAll(true)" class="inline-flex items-center gap-1.5 rounded-md px-2 py-1.5 text-sm font-medium text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-gray-200">
+                    <x-icon name="chevron-up-down" class="h-4 w-4" />
+                    Recolher tudo
+                </button>
+                <button type="button" @click="collapseAll(false)" class="inline-flex items-center gap-1.5 rounded-md px-2 py-1.5 text-sm font-medium text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-gray-200">
+                    <x-icon name="chevron-down" class="h-4 w-4" />
+                    Expandir tudo
+                </button>
+            </div>
         </div>
     </div>
 
@@ -214,11 +233,17 @@
 </div>
 
 <script>
-    window.formBuilder = window.formBuilder || function (initialSteps) {
+    window.formBuilder = window.formBuilder || function (initialSteps, autosaveUrl) {
         return {
             steps: [],
             collapsed: {},
             confirmRemoveStep: null,
+            autosaveUrl: autosaveUrl || null,
+            autosaveState: 'idle',
+            autosaveMessage: '',
+            autosaveTimer: null,
+            autosaveInFlight: false,
+            lastSavedJson: null,
             types: [
                 { value: 'text', label: 'Texto curto' },
                 { value: 'textarea', label: 'Parágrafo' },
@@ -253,10 +278,85 @@
                     title: step.title || '',
                     fields: (step.fields || []).map((field) => this.hydrateField(field)),
                 }));
+
+                this.lastSavedJson = this.stepsJson;
+
+                if (this.autosaveUrl) {
+                    this.$watch('stepsJson', () => this.scheduleAutosave());
+                }
             },
 
             get stepsJson() {
                 return JSON.stringify(this.steps);
+            },
+
+            scheduleAutosave() {
+                if (! this.autosaveUrl) {
+                    return;
+                }
+
+                clearTimeout(this.autosaveTimer);
+                this.autosaveState = 'pending';
+                this.autosaveMessage = '';
+                this.autosaveTimer = setTimeout(() => this.autosave(), 800);
+            },
+
+            async autosave() {
+                clearTimeout(this.autosaveTimer);
+
+                if (! this.autosaveUrl || this.autosaveInFlight) {
+                    return;
+                }
+
+                const payload = this.stepsJson;
+
+                if (payload === this.lastSavedJson) {
+                    this.autosaveState = 'saved';
+
+                    return;
+                }
+
+                this.autosaveInFlight = true;
+                this.autosaveState = 'saving';
+                this.autosaveMessage = '';
+
+                try {
+                    const response = await fetch(this.autosaveUrl, {
+                        method: 'PATCH',
+                        credentials: 'same-origin',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Accept': 'application/json',
+                            'X-Requested-With': 'XMLHttpRequest',
+                            'X-CSRF-TOKEN': this.csrfToken(),
+                        },
+                        body: JSON.stringify({ steps_json: payload }),
+                    });
+
+                    if (! response.ok) {
+                        throw new Error('autosave-failed');
+                    }
+
+                    this.lastSavedJson = payload;
+
+                    if (payload !== this.stepsJson) {
+                        this.scheduleAutosave();
+                    } else {
+                        this.autosaveState = 'saved';
+                    }
+                } catch (error) {
+                    this.autosaveState = 'error';
+                    this.autosaveMessage = 'Não foi possível salvar';
+                } finally {
+                    this.autosaveInFlight = false;
+                }
+            },
+
+            csrfToken() {
+                const form = this.$el.closest('form');
+                const input = form ? form.querySelector('input[name="_token"]') : null;
+
+                return input ? input.value : '';
             },
 
             totalFields() {

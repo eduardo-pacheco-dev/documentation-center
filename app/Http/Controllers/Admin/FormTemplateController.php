@@ -10,6 +10,7 @@ use App\Models\Form;
 use App\Models\FormTemplate;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 
@@ -164,9 +165,16 @@ class FormTemplateController extends Controller
     /**
      * Update the template structure (sections and questions) from the builder.
      */
-    public function updateSteps(UpdateFormTemplateStepsRequest $request, FormTemplate $formTemplate): RedirectResponse
+    public function updateSteps(UpdateFormTemplateStepsRequest $request, FormTemplate $formTemplate): RedirectResponse|JsonResponse
     {
         $formTemplate->update(['steps' => $request->input('steps', [])]);
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'message' => 'Estrutura atualizada com sucesso.',
+                'saved_at' => now()->toIso8601String(),
+            ]);
+        }
 
         return redirect()
             ->route('admin.form-templates.edit', $formTemplate)

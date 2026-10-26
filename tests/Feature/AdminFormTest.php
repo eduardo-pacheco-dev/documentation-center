@@ -186,7 +186,9 @@ it('renders the structure builder on the form detail page', function () {
         ->assertOk()
         ->assertSee('Estrutura do formulário')
         ->assertSee('Salvar estrutura')
-        ->assertSee('action="'.route('admin.forms.steps.update', $form).'"', false);
+        ->assertSee('Salvo automaticamente')
+        ->assertSee('action="'.route('admin.forms.steps.update', $form).'"', false)
+        ->assertSee(str_replace('/', '\\/', route('admin.forms.steps.update', $form)), false);
 });
 
 it('saves the form structure from the builder', function () {
@@ -208,6 +210,25 @@ it('saves the form structure from the builder', function () {
     $this->actingAs($user)
         ->patch(route('admin.forms.steps.update', $form), ['steps_json' => json_encode($steps)])
         ->assertRedirect(route('admin.forms.edit', $form));
+
+    expect($form->fresh()->steps)->toBe($steps);
+});
+
+it('autosaves the form structure when the builder requests json', function () {
+    $user = User::factory()->create();
+    $form = Form::factory()->create(['user_id' => $user->getKey(), 'steps' => []]);
+
+    $steps = [
+        ['id' => 'S1', 'title' => 'Identificação', 'fields' => [
+            ['id' => 'F1-1', 'type' => 'text', 'label' => 'Área', 'required' => false],
+        ]],
+    ];
+
+    $this->actingAs($user)
+        ->patchJson(route('admin.forms.steps.update', $form), ['steps_json' => json_encode($steps)])
+        ->assertOk()
+        ->assertJsonPath('message', 'Formulário atualizado com sucesso.')
+        ->assertJsonStructure(['message', 'saved_at']);
 
     expect($form->fresh()->steps)->toBe($steps);
 });

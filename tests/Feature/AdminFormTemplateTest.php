@@ -292,7 +292,8 @@ it('renders the template edit page with details and structure tabs', function ()
         ->assertSee('data-tab="details"', false)
         ->assertSee('data-tab="structure"', false)
         ->assertSee(route('admin.form-templates.update', $template), false)
-        ->assertSee(route('admin.form-templates.steps.update', $template), false);
+        ->assertSee(route('admin.form-templates.steps.update', $template), false)
+        ->assertSee(str_replace('/', '\\/', route('admin.form-templates.steps.update', $template)), false);
 });
 
 it('updates a template the user owns', function () {
@@ -327,6 +328,27 @@ it('updates the template structure from the builder', function () {
             'steps_json' => json_encode($steps),
         ])
         ->assertRedirect(route('admin.form-templates.edit', $template));
+
+    expect($template->fresh()->steps)->toBe($steps);
+});
+
+it('autosaves the template structure when the builder requests json', function () {
+    $user = User::factory()->create();
+    $template = FormTemplate::factory()->ownedBy($user)->create(['steps' => []]);
+
+    $steps = [
+        ['id' => 'S1', 'title' => 'Nova seção', 'fields' => [
+            ['id' => 'F1-1', 'type' => 'text', 'label' => 'Pergunta', 'required' => false],
+        ]],
+    ];
+
+    $this->actingAs($user)
+        ->patchJson(route('admin.form-templates.steps.update', $template), [
+            'steps_json' => json_encode($steps),
+        ])
+        ->assertOk()
+        ->assertJsonPath('message', 'Estrutura atualizada com sucesso.')
+        ->assertJsonStructure(['message', 'saved_at']);
 
     expect($template->fresh()->steps)->toBe($steps);
 });

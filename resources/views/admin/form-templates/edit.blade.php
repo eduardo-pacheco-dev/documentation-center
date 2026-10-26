@@ -229,7 +229,10 @@
                     @csrf
                     @method('PATCH')
 
-                    @include('admin.forms.partials.builder', ['steps' => $steps])
+                    @include('admin.forms.partials.builder', [
+                        'steps' => $steps,
+                        'autosaveUrl' => route('admin.form-templates.steps.update', $template),
+                    ])
 
                     <div class="sticky bottom-0 -mx-5 mt-6 border-t border-gray-100 bg-gray-50/95 px-5 py-3 backdrop-blur dark:border-gray-800 dark:bg-gray-900/95">
                         <div class="flex flex-wrap items-center justify-between gap-2">

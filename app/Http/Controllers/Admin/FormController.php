@@ -11,6 +11,7 @@ use App\Models\FormTemplate;
 use App\Models\User;
 use App\Services\Forms\FormModuleSettings;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -239,9 +240,16 @@ class FormController extends Controller
     /**
      * Update the form structure (sections and questions) from the builder.
      */
-    public function updateSteps(UpdateFormStepsRequest $request, Form $form): RedirectResponse
+    public function updateSteps(UpdateFormStepsRequest $request, Form $form): RedirectResponse|JsonResponse
     {
         $form->update(['steps' => $request->input('steps', [])]);
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'message' => 'Formulário atualizado com sucesso.',
+                'saved_at' => now()->toIso8601String(),
+            ]);
+        }
 
         return redirect()
             ->route('admin.forms.edit', $form)
