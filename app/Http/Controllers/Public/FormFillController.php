@@ -203,7 +203,7 @@ class FormFillController extends Controller
         return redirect()
             ->to(URL::signedRoute('public.forms.fill', ['form' => $form->getKey()]))
             ->with('status', $response !== null
-                ? 'Resposta atualizada com sucesso.'
+                ? 'Resposta salva com sucesso.'
                 : 'Resposta enviada com sucesso.');
     }
 

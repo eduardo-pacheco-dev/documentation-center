@@ -811,7 +811,9 @@ it('prefills the existing answer when the form accepts a single response', funct
 
     $this->get(URL::signedRoute('public.forms.fill', ['form' => $form->getKey()]))
         ->assertOk()
-        ->assertSee('Galpão A');
+        ->assertSee('Galpão A')
+        ->assertSee('Salvar')
+        ->assertDontSee('Atualizar respostas');
 });
 
 it('follows the current structure while keeping the existing answers of a single response', function () {
