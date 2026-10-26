@@ -1103,15 +1103,76 @@ const ImageSelections = (() => {
 })();
 
 // Public image fields show a live preview of the selected gallery and camera
-// files before the form is submitted. The server-rendered empty placeholder
-// stays visible only while there is nothing to preview.
+// files before the form is submitted. Previews are scaled down and re-encoded
+// as small JPEGs, so selecting large photos does not keep full-resolution
+// images in memory. The server-rendered empty placeholder stays visible only
+// while there is nothing to preview.
 const ImagePreviews = (() => {
-    const render = (field) => {
+    const PREVIEW_EDGE = 160;
+    const PREVIEW_QUALITY = 0.7;
+    const tokens = new WeakMap();
+
+    const compress = (file) => new Promise((resolve) => {
+        const source = URL.createObjectURL(file);
+        const image = new Image();
+
+        image.onload = () => {
+            const scale = Math.min(1, PREVIEW_EDGE / Math.max(image.naturalWidth, image.naturalHeight));
+            const width = Math.max(1, Math.round(image.naturalWidth * scale));
+            const height = Math.max(1, Math.round(image.naturalHeight * scale));
+            const canvas = document.createElement('canvas');
+
+            canvas.width = width;
+            canvas.height = height;
+            canvas.getContext('2d')?.drawImage(image, 0, 0, width, height);
+
+            canvas.toBlob((blob) => {
+                if (! blob) {
+                    resolve(source);
+
+                    return;
+                }
+
+                URL.revokeObjectURL(source);
+                resolve(URL.createObjectURL(blob));
+            }, 'image/jpeg', PREVIEW_QUALITY);
+        };
+
+        image.onerror = () => {
+            URL.revokeObjectURL(source);
+            resolve(null);
+        };
+
+        image.src = source;
+    });
+
+    const append = (container, url, alt) => {
+        const item = document.createElement('div');
+
+        item.dataset.imagePreviewItem = '';
+        item.dataset.objectUrl = url;
+        item.className = 'h-16 w-16 overflow-hidden rounded-lg ring-1 ring-gray-200 dark:ring-gray-800';
+
+        const image = document.createElement('img');
+
+        image.src = url;
+        image.alt = alt;
+        image.className = 'h-full w-full object-cover';
+
+        item.append(image);
+        container.append(item);
+    };
+
+    const render = async (field) => {
         const container = field.closest('[data-question]')?.querySelector('[data-image-thumbnails]');
 
         if (! container) {
             return;
         }
+
+        const token = (tokens.get(field) ?? 0) + 1;
+
+        tokens.set(field, token);
 
         container.querySelectorAll('[data-image-preview-item]').forEach((item) => {
             if (item.dataset.objectUrl) {
@@ -1133,22 +1194,22 @@ const ImagePreviews = (() => {
             empty.hidden = files.length > 0 || existing > 0;
         }
 
-        files.forEach((file) => {
-            const url = URL.createObjectURL(file);
-            const item = document.createElement('div');
+        if (files.length === 0) {
+            return;
+        }
 
-            item.dataset.imagePreviewItem = '';
-            item.dataset.objectUrl = url;
-            item.className = 'h-16 w-16 overflow-hidden rounded-lg ring-1 ring-gray-200 dark:ring-gray-800';
+        const urls = await Promise.all(files.map(compress));
 
-            const image = document.createElement('img');
+        if (tokens.get(field) !== token) {
+            urls.forEach((url) => url && URL.revokeObjectURL(url));
 
-            image.src = url;
-            image.alt = file.name;
-            image.className = 'h-full w-full object-cover';
+            return;
+        }
 
-            item.append(image);
-            container.append(item);
+        urls.forEach((url, index) => {
+            if (url) {
+                append(container, url, files[index].name);
+            }
         });
     };
 
@@ -1191,7 +1252,7 @@ const DraftAutosave = (() => {
         status.classList.add(...STATUS_CLASSES[state]);
     };
 
-    const storedImages = (form, images) => {
+    const storedImages = (form, images, thumbnails) => {
         Object.entries(images).forEach(([fieldId, urls]) => {
             const question = questionFor(form, fieldId);
             const container = question?.querySelector('[data-image-thumbnails]');
@@ -1201,9 +1262,11 @@ const DraftAutosave = (() => {
                 return;
             }
 
+            const previews = thumbnails[fieldId] ?? [];
+
             container.querySelectorAll('[data-image-existing]').forEach((item) => item.remove());
 
-            urls.forEach((url) => {
+            urls.forEach((url, index) => {
                 const link = document.createElement('a');
                 const image = document.createElement('img');
 
@@ -1213,7 +1276,7 @@ const DraftAutosave = (() => {
                 link.dataset.imageExisting = '';
                 link.className = 'block h-16 w-16 overflow-hidden rounded-lg ring-1 ring-gray-200 dark:ring-gray-800';
 
-                image.src = url;
+                image.src = previews[index] ?? url;
                 image.alt = 'Imagem enviada';
                 image.loading = 'lazy';
                 image.className = 'h-full w-full object-cover';
@@ -1311,7 +1374,7 @@ const DraftAutosave = (() => {
                         throw new Error(data.message || 'Não foi possível salvar as imagens.');
                     }
 
-                    storedImages(form, data.images || {});
+                    storedImages(form, data.images || {}, data.thumbnails || {});
 
                     sent.forEach((keys, field) => ImageSelections.remove(field, keys));
 

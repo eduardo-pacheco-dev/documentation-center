@@ -27,6 +27,7 @@ use OpenApi\Attributes as OA;
         new OA\Property(property: 'scaleMaxLabel', type: 'string', nullable: true, example: 'Concordo'),
         new OA\Property(property: 'value', type: 'string', nullable: true, example: 'Galpão A'),
         new OA\Property(property: 'images', type: 'array', nullable: true, items: new OA\Items(type: 'string', format: 'uri')),
+        new OA\Property(property: 'imageThumbnails', type: 'array', nullable: true, description: 'URLs das miniaturas comprimidas das imagens enviadas.', items: new OA\Items(type: 'string', format: 'uri')),
         new OA\Property(property: 'files', type: 'array', nullable: true, description: 'URLs dos arquivos enviados para os tipos image e file.', items: new OA\Items(type: 'string', format: 'uri')),
         new OA\Property(property: 'fileNames', type: 'array', nullable: true, description: 'Nomes originais dos arquivos enviados.', items: new OA\Items(type: 'string')),
         new OA\Property(property: 'status', type: 'string', nullable: true, enum: ['aprovado', 'reprovado', 'pendente', 'enviado', 'nao_aplicavel']),

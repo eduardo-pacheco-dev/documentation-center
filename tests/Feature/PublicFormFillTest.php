@@ -169,7 +169,47 @@ it('keeps uploaded photos visible when the submission is incomplete', function (
 
     $this->get(URL::signedRoute('public.forms.fill', ['form' => $form->getKey()]))
         ->assertOk()
-        ->assertSee($field['images'][0], false);
+        ->assertSee($field['images'][0], false)
+        ->assertSee($field['imageThumbnails'][0], false);
+});
+
+it('stores a compressed thumbnail alongside each uploaded image', function () {
+    Storage::fake('public');
+
+    $steps = [[
+        'id' => 'S1',
+        'title' => 'Registro Fotográfico',
+        'fields' => [
+            ['id' => 'F1-1', 'type' => 'image', 'label' => 'Foto do site', 'required' => true, 'images' => [], 'status' => 'pendente'],
+            ['id' => 'F1-2', 'type' => 'text', 'label' => 'Observação', 'required' => false, 'value' => '', 'status' => 'pendente'],
+        ],
+    ]];
+
+    $form = Form::factory()->create(['status' => 'Pendente', 'steps' => $steps]);
+
+    $this->post(URL::signedRoute('public.forms.submit', ['form' => $form->getKey()]), [
+        'answers' => [
+            'F1-1' => [UploadedFile::fake()->image('site.jpg', 1200, 800)],
+            'F1-2' => 'Tudo certo',
+        ],
+    ])->assertRedirect()->assertSessionHasNoErrors();
+
+    $field = collect($form->fresh()->steps[0]['fields'])->firstWhere('id', 'F1-1');
+
+    expect($field['images'])->toHaveCount(1);
+    expect($field['imageThumbnails'])->toHaveCount(1);
+    expect($field['imageThumbnails'][0])->toStartWith('/storage/forms/'.$form->getKey().'/thumb-');
+
+    $thumbnailPath = 'forms/'.$form->getKey().'/'.basename($field['imageThumbnails'][0]);
+
+    Storage::disk('public')->assertExists($thumbnailPath);
+
+    [$width, $height] = getimagesize(Storage::disk('public')->path($thumbnailPath));
+
+    expect($width)->toBe(400);
+    expect($height)->toBe(267);
+    expect(filesize(Storage::disk('public')->path($thumbnailPath)))
+        ->toBeLessThan(filesize(Storage::disk('public')->path('forms/'.$form->getKey().'/'.basename($field['images'][0]))));
 });
 
 it('finishes an incomplete submission without uploading the photos again', function () {
@@ -236,19 +276,24 @@ it('saves newly selected images automatically as a draft', function () {
     $response = $this->post(URL::signedRoute('public.forms.autosave', ['form' => $form->getKey()]), [
         'answers' => [
             'F1-1' => 'Galpão A',
-            'F2-5' => [UploadedFile::fake()->image('painel.jpg')],
+            'F2-5' => [UploadedFile::fake()->image('painel.jpg', 1200, 800)],
         ],
     ], ['Accept' => 'application/json']);
 
     $response->assertOk()
         ->assertJsonPath('message', 'Imagens salvas automaticamente.')
-        ->assertJsonStructure(['message', 'images' => ['F2-5'], 'saved_at']);
+        ->assertJsonStructure(['message', 'images' => ['F2-5'], 'thumbnails' => ['F2-5'], 'saved_at']);
 
     $images = $response->json('images.F2-5');
+    $thumbnails = $response->json('thumbnails.F2-5');
 
     expect($images)->toHaveCount(1);
     expect($images[0])->toStartWith('/storage/forms/'.$form->getKey().'/');
     Storage::disk('public')->assertExists('forms/'.$form->getKey().'/'.basename($images[0]));
+
+    expect($thumbnails)->toHaveCount(1);
+    expect($thumbnails[0])->toStartWith('/storage/forms/'.$form->getKey().'/thumb-');
+    Storage::disk('public')->assertExists('forms/'.$form->getKey().'/'.basename($thumbnails[0]));
 
     $draft = $form->responses()->firstOrFail();
 
@@ -260,6 +305,7 @@ it('saves newly selected images automatically as a draft', function () {
     $field = collect($draft->steps[1]['fields'])->firstWhere('id', 'F2-5');
 
     expect($field['images'])->toBe($images);
+    expect($field['imageThumbnails'])->toBe($thumbnails);
     expect($field['status'])->toBe('enviado');
 });
 
@@ -397,12 +443,13 @@ it('shows a public submission on the evaluation page', function () {
         ],
     ])->assertRedirect()->assertSessionHasNoErrors();
 
-    $image = $form->fresh()->steps[0]['fields'][0]['images'][0];
+    $field = $form->fresh()->steps[0]['fields'][0];
+    $thumbnail = $field['imageThumbnails'][0];
 
     $this->actingAs($form->user)
         ->get(route('admin.forms.evaluate', $form))
         ->assertOk()
-        ->assertSee($image, false)
+        ->assertSee($thumbnail, false)
         ->assertSee('2 volumes');
 });
 

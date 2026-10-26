@@ -176,6 +176,7 @@
             @case('image')
                 <div class="mb-2 flex flex-wrap gap-2" data-image-thumbnails>
                     @forelse ($existingImages as $image)
+                        @php($thumbnail = $field['imageThumbnails'][$loop->index] ?? $image)
                         <a
                             href="{{ $image }}"
                             target="_blank"
@@ -183,7 +184,7 @@
                             data-image-existing
                             class="block h-16 w-16 overflow-hidden rounded-lg ring-1 ring-gray-200 dark:ring-gray-800"
                         >
-                            <img src="{{ $image }}" alt="{{ $label }}" loading="lazy" class="h-full w-full object-cover">
+                            <img src="{{ $thumbnail }}" alt="{{ $label }}" loading="lazy" class="h-full w-full object-cover">
                         </a>
                     @empty
                         <div data-image-empty class="flex h-16 w-16 items-center justify-center rounded-lg border border-dashed border-gray-300 text-xs font-medium text-gray-400 dark:border-gray-700 dark:text-gray-500">

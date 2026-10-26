@@ -230,6 +230,7 @@
                                                     @if (($field['type'] ?? null) === 'image')
                                                         <div class="flex flex-wrap gap-2">
                                                             @forelse (($field['images'] ?? []) as $image)
+                                                                @php($thumbnail = $field['imageThumbnails'][$loop->index] ?? $image)
                                                                 <a
                                                                     href="{{ $image }}"
                                                                     target="_blank"
@@ -237,7 +238,7 @@
                                                                     class="group relative block overflow-hidden rounded-lg ring-1 ring-gray-200 dark:ring-gray-800"
                                                                 >
                                                                     <img
-                                                                        src="{{ $image }}"
+                                                                        src="{{ $thumbnail }}"
                                                                         alt="{{ ($field['label'] ?? null) ?: 'Foto' }}"
                                                                         loading="lazy"
                                                                         class="h-16 w-24 object-cover transition duration-150 group-hover:opacity-80"

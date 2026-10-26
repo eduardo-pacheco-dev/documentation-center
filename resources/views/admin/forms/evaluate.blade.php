@@ -339,6 +339,7 @@
                                                 @if (!empty($field['images']))
                                                     <div class="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4">
                                                         @foreach ($field['images'] as $image)
+                                                            @php($thumbnail = $field['imageThumbnails'][$loop->index] ?? $image)
                                                             <div class="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900">
                                                                 <button
                                                                     type="button"
@@ -347,7 +348,7 @@
                                                                     @click="openImage(@js($fieldId), @js($field['images']), {{ $loop->index }})"
                                                                 >
                                                                     <img
-                                                                        src="{{ $image }}"
+                                                                        src="{{ $thumbnail }}"
                                                                         alt="{{ $field['label'] ?? 'Foto' }}"
                                                                         loading="lazy"
                                                                         class="h-32 w-full object-cover transition group-hover:opacity-80"

@@ -6,6 +6,7 @@ use App\Exceptions\UploadStorageException;
 use App\Http\Controllers\Controller;
 use App\Models\Form;
 use App\Models\FormResponse;
+use App\Services\Forms\ImageThumbnailer;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -50,6 +51,8 @@ class FormFillController extends Controller
      * Status used for responses that keep uploads from an incomplete submission.
      */
     private const DRAFT_STATUS = 'Em preenchimento';
+
+    public function __construct(private readonly ImageThumbnailer $thumbnails) {}
 
     /**
      * Show the public form filling page.
@@ -261,6 +264,7 @@ class FormFillController extends Controller
                 ? 'Imagens salvas automaticamente.'
                 : 'Nenhuma imagem nova para salvar.',
             'images' => $this->imageUrls($steps),
+            'thumbnails' => $this->imageThumbnailUrls($steps),
             'saved_at' => now()->toIso8601String(),
         ]);
     }
@@ -390,7 +394,7 @@ class FormFillController extends Controller
                     continue;
                 }
 
-                foreach (['value', 'images', 'files', 'fileNames', 'imageDecisions'] as $key) {
+                foreach (['value', 'images', 'imageThumbnails', 'files', 'fileNames', 'imageDecisions'] as $key) {
                     if (array_key_exists($key, $previous)) {
                         $steps[$stepIndex]['fields'][$fieldIndex][$key] = $previous[$key];
                     }
@@ -418,6 +422,7 @@ class FormFillController extends Controller
                 unset(
                     $steps[$stepIndex]['fields'][$fieldIndex]['value'],
                     $steps[$stepIndex]['fields'][$fieldIndex]['images'],
+                    $steps[$stepIndex]['fields'][$fieldIndex]['imageThumbnails'],
                     $steps[$stepIndex]['fields'][$fieldIndex]['files'],
                     $steps[$stepIndex]['fields'][$fieldIndex]['fileNames'],
                     $steps[$stepIndex]['fields'][$fieldIndex]['imageDecisions'],
@@ -814,6 +819,11 @@ class FormFillController extends Controller
     private function applyImages(Form $form, array $field, mixed $uploads): array
     {
         $images = $field['images'] ?? [];
+        $thumbnails = array_pad(
+            array_values($field['imageThumbnails'] ?? []),
+            count($images),
+            null,
+        );
         $uploads = is_array($uploads) ? $uploads : ($uploads === null ? [] : [$uploads]);
         $fieldId = (string) ($field['id'] ?? '');
         $label = (string) (($field['label'] ?? null) ?: $fieldId);
@@ -824,13 +834,42 @@ class FormFillController extends Controller
             }
 
             $path = $this->storeUpload($form, $upload, $fieldId, $label);
-            $images[] = $this->publicUrl($path);
+            $url = $this->publicUrl($path);
+
+            $images[] = $url;
+            $thumbnails[] = $this->storeThumbnail($upload, $path) ?? $url;
         }
 
         $field['images'] = array_values($images);
+        $field['imageThumbnails'] = array_values($thumbnails);
         $field['status'] = $images !== [] ? 'enviado' : 'pendente';
 
         return $field;
+    }
+
+    /**
+     * Store a compressed version of an uploaded image for list thumbnails.
+     *
+     * The full image is kept for the lightbox and evaluation. When the
+     * thumbnail cannot be generated the caller falls back to the original.
+     */
+    private function storeThumbnail(UploadedFile $upload, string $path): ?string
+    {
+        $contents = $this->thumbnails->make((string) $upload->getRealPath());
+
+        if ($contents === null) {
+            return null;
+        }
+
+        $thumbnailPath = dirname($path).'/thumb-'.pathinfo($path, PATHINFO_FILENAME).'.jpg';
+
+        try {
+            Storage::disk('public')->put($thumbnailPath, $contents);
+        } catch (Throwable) {
+            return null;
+        }
+
+        return $this->publicUrl($thumbnailPath);
     }
 
     /**
@@ -891,6 +930,44 @@ class FormFillController extends Controller
         }
 
         return $images;
+    }
+
+    /**
+     * Collect the thumbnail URLs of the stored images grouped by image field id.
+     *
+     * Fields stored before thumbnails existed fall back to the full image.
+     *
+     * @param  array<int, array<string, mixed>>  $steps
+     * @return array<string, array<int, string>>
+     */
+    private function imageThumbnailUrls(array $steps): array
+    {
+        $thumbnails = [];
+
+        foreach ($steps as $step) {
+            foreach ($step['fields'] ?? [] as $field) {
+                if (($field['type'] ?? null) !== 'image') {
+                    continue;
+                }
+
+                $fieldId = (string) ($field['id'] ?? '');
+
+                if ($fieldId === '') {
+                    continue;
+                }
+
+                $images = array_values($field['images'] ?? []);
+                $stored = array_values($field['imageThumbnails'] ?? []);
+
+                $thumbnails[$fieldId] = array_map(
+                    fn (string $image, int $index) => $stored[$index] ?? $image,
+                    $images,
+                    array_keys($images),
+                );
+            }
+        }
+
+        return $thumbnails;
     }
 
     /**
