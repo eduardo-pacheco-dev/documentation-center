@@ -21,7 +21,9 @@ it('lists only the forms the user owns', function () {
         ->get('/admin/forms')
         ->assertOk()
         ->assertSee('FRM-0001')
-        ->assertDontSee('FRM-9999');
+        ->assertDontSee('FRM-9999')
+        ->assertSee('overflow-x-auto', false)
+        ->assertSee('min-w-[1100px]', false);
 });
 
 it('filters the forms list by search term', function () {
