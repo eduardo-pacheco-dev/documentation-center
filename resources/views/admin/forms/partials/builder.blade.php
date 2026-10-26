@@ -24,7 +24,7 @@
 
     <div class="space-y-4">
         <template x-for="(step, si) in steps" :key="step.id">
-            <div class="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900">
+            <div class="overflow-hidden rounded-lg border border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900">
                 <div class="flex flex-wrap items-center gap-2 border-b border-gray-100 px-4 py-3 dark:border-gray-800">
                     <button
                         type="button"
@@ -50,7 +50,7 @@
                         class="min-w-0 flex-1 border-b-2 border-transparent bg-transparent px-1 py-1 text-sm font-semibold text-gray-900 focus:border-indigo-500 focus:outline-none dark:text-gray-100 dark:focus:border-indigo-400"
                     >
 
-                    <span class="inline-flex shrink-0 items-center gap-1 rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-500 dark:bg-gray-800 dark:text-gray-400">
+                    <span class="inline-flex shrink-0 items-center gap-1 rounded bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-500 dark:bg-gray-800 dark:text-gray-400">
                         <x-icon name="squares-2x2" class="h-3.5 w-3.5" />
                         <span x-text="(step.fields || []).length"></span>
                     </span>
@@ -87,7 +87,7 @@
                                     type="text"
                                     x-model="field.label"
                                     placeholder="Pergunta"
-                                    class="min-w-0 flex-1 rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500 dark:border-gray-700 dark:bg-gray-900"
+                                    class="min-w-0 flex-1 rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 dark:border-gray-700 dark:bg-gray-900"
                                 >
 
                                 <div class="flex shrink-0 items-center gap-2">
@@ -96,7 +96,7 @@
                                     <select
                                         x-model="field.type"
                                         @change="onTypeChange(field)"
-                                        class="rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-700 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200"
+                                        class="rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-700 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200"
                                     >
                                         <template x-for="type in types" :key="type.value">
                                             <option :value="type.value" x-text="type.label"></option>
@@ -109,7 +109,7 @@
                                 type="text"
                                 x-model="field.help"
                                 placeholder="Texto de ajuda (opcional)"
-                                class="mt-2 block w-full rounded-md border border-gray-200 px-3 py-1.5 text-xs text-gray-600 shadow-sm focus:border-indigo-500 focus:outline-none dark:border-gray-800 dark:bg-gray-900 dark:text-gray-300"
+                                class="mt-2 block w-full rounded-md border border-gray-200 px-3 py-1.5 text-xs text-gray-600 focus:border-indigo-500 focus:outline-none dark:border-gray-800 dark:bg-gray-900 dark:text-gray-300"
                             >
 
                             <div x-show="isChoice(field.type)" style="display: none;" class="mt-3 space-y-2">
@@ -169,7 +169,7 @@
                                     <span
                                         x-show="field.required"
                                         style="display: none;"
-                                        class="inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700 dark:bg-amber-500/15 dark:text-amber-300"
+                                        class="inline-flex items-center rounded bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700 dark:bg-amber-500/15 dark:text-amber-300"
                                     >
                                         Obrigatória
                                     </span>
@@ -201,12 +201,12 @@
             </div>
         </template>
 
-        <p x-show="steps.length === 0" style="display: none;" class="flex items-center gap-2 rounded-xl border border-dashed border-gray-300 px-5 py-8 text-sm text-gray-500 dark:border-gray-700 dark:text-gray-400">
+        <p x-show="steps.length === 0" style="display: none;" class="flex items-center gap-2 rounded-lg border border-dashed border-gray-300 px-5 py-8 text-sm text-gray-500 dark:border-gray-700 dark:text-gray-400">
             <x-icon name="squares-2x2" class="h-4 w-4" />
             Nenhuma seção ainda. Adicione a primeira seção para começar.
         </p>
 
-        <button type="button" @click="addStep()" class="inline-flex w-full items-center justify-center gap-1.5 rounded-xl border-2 border-dashed border-gray-300 px-3 py-3 text-sm font-medium text-gray-500 hover:border-indigo-400 hover:text-indigo-600 dark:border-gray-700 dark:text-gray-400 dark:hover:border-indigo-500 dark:hover:text-indigo-400">
+        <button type="button" @click="addStep()" class="inline-flex w-full items-center justify-center gap-1.5 rounded-lg border border-dashed border-gray-300 px-3 py-3 text-sm font-medium text-gray-500 hover:border-indigo-400 hover:text-indigo-600 dark:border-gray-700 dark:text-gray-400 dark:hover:border-indigo-500 dark:hover:text-indigo-400">
             <x-icon name="plus" class="h-4 w-4" />
             Adicionar seção
         </button>
