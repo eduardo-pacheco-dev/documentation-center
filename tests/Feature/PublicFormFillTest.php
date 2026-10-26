@@ -49,7 +49,8 @@ it('shows the public form filling page without authentication', function () {
         ->assertSee('Enviar respostas')
         ->assertSee('name="answers[F1-1]"', false)
         ->assertSee('name="camera_answers[F2-5][]"', false)
-        ->assertSee('capture="environment"', false);
+        ->assertSee('capture="environment"', false)
+        ->assertSee('Vazio');
 });
 
 it('rejects a public form link without a valid signature', function () {

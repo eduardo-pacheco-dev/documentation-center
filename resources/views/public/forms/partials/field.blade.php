@@ -183,6 +183,10 @@
                             </a>
                         @endforeach
                     </div>
+                @else
+                    <div class="mb-3 flex h-16 w-16 items-center justify-center rounded-lg border border-dashed border-gray-300 text-xs font-medium text-gray-400 dark:border-gray-700 dark:text-gray-500">
+                        Vazio
+                    </div>
                 @endif
 
                 <div class="flex flex-wrap items-center gap-2" data-image-field>
