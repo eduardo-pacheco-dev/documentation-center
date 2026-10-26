@@ -90,7 +90,7 @@
         @if ($errors->any())
             <div class="mt-4 flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300">
                 <x-icon name="exclamation-triangle" class="mt-0.5 h-4 w-4 shrink-0" />
-                <p>Não foi possível enviar as respostas. Corrija os itens destacados e tente novamente.</p>
+                <p>Não foi possível enviar as respostas. Corrija os itens destacados e tente novamente. As imagens e os arquivos já enviados foram mantidos.</p>
             </div>
         @endif
 

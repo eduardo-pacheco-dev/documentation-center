@@ -127,6 +127,131 @@ it('requires the required fields before submitting', function () {
     ])->assertSessionHasErrors(['answers.F1-1', 'answers.F1-3', 'answers.F2-1']);
 
     expect($form->fresh()->steps)->toBe(publicFormSteps());
+    expect($form->responses()->count())->toBe(0);
+});
+
+it('keeps uploaded photos visible when the submission is incomplete', function () {
+    Storage::fake('public');
+
+    $steps = [[
+        'id' => 'S1',
+        'title' => 'Fotos antes da Instalação',
+        'fields' => [
+            ['id' => 'F1-1', 'type' => 'image', 'label' => 'Foto dos 4 lados do site', 'required' => true, 'images' => [], 'status' => 'pendente'],
+            ['id' => 'F1-2', 'type' => 'text', 'label' => 'Volumes entregues', 'required' => true, 'value' => '', 'status' => 'pendente'],
+            ['id' => 'F1-3', 'type' => 'file', 'label' => 'Inserir arquivo PDF da Nota Fiscal', 'required' => true, 'files' => [], 'status' => 'pendente'],
+        ],
+    ]];
+
+    $form = Form::factory()->create(['status' => 'Pendente', 'steps' => $steps]);
+
+    $this->from(URL::signedRoute('public.forms.fill', ['form' => $form->getKey()]))
+        ->post(URL::signedRoute('public.forms.submit', ['form' => $form->getKey()]), [
+            'answers' => [
+                'F1-1' => [UploadedFile::fake()->image('foto-site.jpg')],
+            ],
+        ])
+        ->assertRedirect(URL::signedRoute('public.forms.fill', ['form' => $form->getKey()]))
+        ->assertSessionHasErrors(['answers.F1-2', 'answers.F1-3']);
+
+    $response = $form->responses()->first();
+
+    expect($response)->not->toBeNull();
+    expect($response->status)->toBe('Em preenchimento');
+    expect($response->submitted_at)->toBeNull();
+    expect($form->fresh()->status)->toBe('Pendente');
+
+    $field = collect($response->steps[0]['fields'])->firstWhere('id', 'F1-1');
+
+    expect($field['images'])->toHaveCount(1);
+    expect($field['images'][0])->toStartWith('/storage/forms/'.$form->getKey().'/');
+    Storage::disk('public')->assertExists('forms/'.$form->getKey().'/'.basename($field['images'][0]));
+
+    $this->get(URL::signedRoute('public.forms.fill', ['form' => $form->getKey()]))
+        ->assertOk()
+        ->assertSee($field['images'][0], false);
+});
+
+it('finishes an incomplete submission without uploading the photos again', function () {
+    Storage::fake('public');
+
+    $steps = [[
+        'id' => 'S1',
+        'title' => 'Fotos antes da Instalação',
+        'fields' => [
+            ['id' => 'F1-1', 'type' => 'image', 'label' => 'Foto dos 4 lados do site', 'required' => true, 'images' => [], 'status' => 'pendente'],
+            ['id' => 'F1-2', 'type' => 'text', 'label' => 'Volumes entregues', 'required' => true, 'value' => '', 'status' => 'pendente'],
+            ['id' => 'F1-3', 'type' => 'file', 'label' => 'Inserir arquivo PDF da Nota Fiscal', 'required' => true, 'files' => [], 'status' => 'pendente'],
+        ],
+    ]];
+
+    $form = Form::factory()->create(['status' => 'Pendente', 'steps' => $steps]);
+
+    $this->post(URL::signedRoute('public.forms.submit', ['form' => $form->getKey()]), [
+        'answers' => [
+            'F1-1' => [UploadedFile::fake()->image('foto-site.jpg')],
+        ],
+    ])->assertSessionHasErrors(['answers.F1-2', 'answers.F1-3']);
+
+    $draft = $form->responses()->firstOrFail();
+
+    $this->withSession(['public.forms.draft.'.$form->getKey() => $draft->getKey()])
+        ->post(URL::signedRoute('public.forms.submit', ['form' => $form->getKey()]), [
+            'answers' => [
+                'F1-2' => '2 volumes',
+                'F1-3' => [UploadedFile::fake()->create('nota-fiscal.pdf', 120, 'application/pdf')],
+            ],
+        ])
+        ->assertRedirect()
+        ->assertSessionHasNoErrors();
+
+    $form->refresh();
+    $response = $form->responses()->firstOrFail();
+
+    expect($form->responses()->count())->toBe(1);
+    expect($response->is($draft))->toBeTrue();
+    expect($response->status)->toBe('Preenchido');
+    expect($response->submitted_at)->not->toBeNull();
+    expect($form->status)->toBe('Preenchido');
+
+    $field = collect($response->steps[0]['fields'])->firstWhere('id', 'F1-1');
+
+    expect($field['images'])->toHaveCount(1);
+
+    $file = collect($response->steps[0]['fields'])->firstWhere('id', 'F1-3');
+
+    expect($file['files'])->toHaveCount(1);
+    expect($file['fileNames'])->toBe(['nota-fiscal.pdf']);
+});
+
+it('shows a public submission on the evaluation page', function () {
+    Storage::fake('public');
+
+    $steps = [[
+        'id' => 'S1',
+        'title' => 'Fotos antes da Instalação',
+        'fields' => [
+            ['id' => 'F1-1', 'type' => 'image', 'label' => 'Foto dos 4 lados do site', 'required' => true, 'images' => [], 'status' => 'pendente'],
+            ['id' => 'F1-2', 'type' => 'text', 'label' => 'Volumes entregues', 'required' => true, 'value' => '', 'status' => 'pendente'],
+        ],
+    ]];
+
+    $form = Form::factory()->create(['status' => 'Pendente', 'steps' => $steps]);
+
+    $this->post(URL::signedRoute('public.forms.submit', ['form' => $form->getKey()]), [
+        'answers' => [
+            'F1-1' => [UploadedFile::fake()->image('foto-site.jpg')],
+            'F1-2' => '2 volumes',
+        ],
+    ])->assertRedirect()->assertSessionHasNoErrors();
+
+    $image = $form->fresh()->steps[0]['fields'][0]['images'][0];
+
+    $this->actingAs($form->user)
+        ->get(route('admin.forms.evaluate', $form))
+        ->assertOk()
+        ->assertSee($image, false)
+        ->assertSee('2 volumes');
 });
 
 it('rejects choices that are not part of the field options', function () {
@@ -166,6 +291,7 @@ it('stores the images uploaded through the public link', function () {
     $images = $form->steps[1]['fields'][4]['images'];
 
     expect($images)->toHaveCount(1);
+    expect($images[0])->toStartWith('/storage/');
     expect($images[0])->toContain('/storage/forms/'.$form->getKey().'/');
     expect($form->steps[1]['fields'][4]['status'])->toBe('enviado');
 
@@ -232,6 +358,7 @@ it('stores an image captured with the camera through the public link', function 
     $images = $form->steps[1]['fields'][4]['images'];
 
     expect($images)->toHaveCount(1);
+    expect($images[0])->toStartWith('/storage/');
     expect($images[0])->toContain('/storage/forms/'.$form->getKey().'/');
     expect($form->steps[1]['fields'][4]['status'])->toBe('enviado');
 
