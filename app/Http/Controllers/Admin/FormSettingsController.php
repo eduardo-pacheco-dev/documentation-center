@@ -2,14 +2,21 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Exports\FormSettingsTemplateExport;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\ImportFormSettingsRequest;
 use App\Http\Requests\Admin\UpdateFormSettingsRequest;
+use App\Imports\FormSettingsImport;
 use App\Models\Form;
 use App\Models\FormTemplate;
 use App\Services\Forms\FormModuleSettings;
+use App\Services\Forms\FormSettingsTemplateImporter;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
+use Maatwebsite\Excel\Facades\Excel;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class FormSettingsController extends Controller
 {
@@ -44,5 +51,53 @@ class FormSettingsController extends Controller
         return redirect()
             ->route('admin.forms.settings.edit')
             ->with('status', 'Configurações do módulo atualizadas com sucesso.');
+    }
+
+    /**
+     * Download the current configuration as an Excel template.
+     */
+    public function export(Request $request): BinaryFileResponse
+    {
+        $this->authorize('viewAny', Form::class);
+
+        $settings = FormModuleSettings::for($request->user());
+
+        $defaultTemplateId = $settings->defaultTemplateId();
+        $defaultTemplate = $defaultTemplateId !== null
+            ? FormTemplate::query()->find($defaultTemplateId)
+            : null;
+
+        return Excel::download(
+            new FormSettingsTemplateExport(
+                $settings->types(),
+                $settings->statuses(),
+                $settings->defaultView(),
+                $settings->perPage(),
+                $defaultTemplate?->name,
+            ),
+            'configuracoes-formularios.xlsx',
+        );
+    }
+
+    /**
+     * Import a configuration template from an uploaded spreadsheet.
+     */
+    public function import(ImportFormSettingsRequest $request, FormSettingsTemplateImporter $importer): RedirectResponse
+    {
+        $sheets = Excel::toArray(new FormSettingsImport, $request->file('file'));
+
+        try {
+            $settings = $importer->import($sheets[0] ?? []);
+        } catch (ValidationException $exception) {
+            throw $exception->redirectTo(route('admin.forms.settings.edit'));
+        }
+
+        $request->user()->update([
+            'form_settings' => $settings,
+        ]);
+
+        return redirect()
+            ->route('admin.forms.settings.edit')
+            ->with('status', 'Template de configurações importado com sucesso.');
     }
 }

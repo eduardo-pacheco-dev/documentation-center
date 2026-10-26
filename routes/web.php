@@ -212,6 +212,8 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
 
     Route::get('forms/settings', [FormSettingsController::class, 'edit'])->name('forms.settings.edit');
     Route::put('forms/settings', [FormSettingsController::class, 'update'])->name('forms.settings.update');
+    Route::get('forms/settings/export', [FormSettingsController::class, 'export'])->name('forms.settings.export');
+    Route::post('forms/settings/import', [FormSettingsController::class, 'import'])->name('forms.settings.import');
 
     Route::resource('forms', FormController::class);
     Route::patch('forms/{form}/steps', [FormController::class, 'updateSteps'])->name('forms.steps.update');
