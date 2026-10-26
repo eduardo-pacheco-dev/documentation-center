@@ -143,17 +143,19 @@
                         ></div>
                     </div>
 
-                    <div class="mt-3 flex flex-wrap items-center gap-1.5">
+                    <div class="mt-3 flex gap-1.5 overflow-x-auto pb-1">
                         @for ($index = 0; $index < $sectionCount; $index++)
+                            @php($sectionTitle = ($steps[$index]['title'] ?? null) ?: 'Seção '.($index + 1))
                             <button
                                 type="button"
                                 data-form-step-go="{{ $index }}"
                                 data-state="{{ $index === $initialStep ? 'current' : ($index < $initialStep ? 'complete' : 'upcoming') }}"
                                 @if ($index === $initialStep) aria-current="step" @endif
-                                aria-label="Ir para a etapa {{ $index + 1 }}"
-                                class="flex h-7 min-w-7 items-center justify-center rounded-full px-1.5 text-xs font-semibold transition data-[state=current]:bg-gray-900 data-[state=current]:text-white dark:data-[state=current]:bg-white dark:data-[state=current]:text-gray-900 data-[state=complete]:bg-green-100 data-[state=complete]:text-green-700 dark:data-[state=complete]:bg-green-950/60 dark:data-[state=complete]:text-green-300 data-[state=upcoming]:bg-gray-200 data-[state=upcoming]:text-gray-500 dark:data-[state=upcoming]:bg-gray-800 dark:data-[state=upcoming]:text-gray-400"
+                                aria-label="Ir para a etapa {{ $index + 1 }}: {{ $sectionTitle }}"
+                                class="inline-flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium transition data-[state=current]:bg-gray-900 data-[state=current]:text-white dark:data-[state=current]:bg-white dark:data-[state=current]:text-gray-900 data-[state=complete]:bg-green-100 data-[state=complete]:text-green-700 dark:data-[state=complete]:bg-green-950/60 dark:data-[state=complete]:text-green-300 data-[state=upcoming]:bg-gray-200 data-[state=upcoming]:text-gray-500 dark:data-[state=upcoming]:bg-gray-800 dark:data-[state=upcoming]:text-gray-400"
                             >
-                                {{ $index + 1 }}
+                                <span class="text-[10px] font-semibold opacity-60">{{ $index + 1 }}.</span>
+                                {{ $sectionTitle }}
                             </button>
                         @endfor
                     </div>

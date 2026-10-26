@@ -443,6 +443,8 @@ it('presents each section as a step in the public form', function () {
         ->assertSee('data-form-step-submit', false)
         ->assertSee('data-form-step-go="0"', false)
         ->assertSee('data-form-step-go="1"', false)
+        ->assertSee('Ir para a etapa 1: Identificação', false)
+        ->assertSee('Ir para a etapa 2: Conformidade', false)
         ->assertSee('Etapa')
         ->assertSee('Próximo')
         ->assertSee('Enviar respostas');
