@@ -146,6 +146,29 @@ it('stores the images uploaded through the public link', function () {
     Storage::disk('public')->assertExists('forms/'.$form->getKey().'/'.basename($images[0]));
 });
 
+it('stores multiple gallery images selected at once', function () {
+    Storage::fake('public');
+
+    $form = Form::factory()->create(['status' => 'Pendente', 'steps' => publicFormSteps()]);
+
+    $this->post(URL::signedRoute('public.forms.submit', ['form' => $form->getKey()]), [
+        'answers' => [
+            'F1-1' => 'Galpão A',
+            'F1-3' => '2026-10-25',
+            'F2-1' => 'Conforme',
+            'F2-5' => [
+                UploadedFile::fake()->image('frente.jpg'),
+                UploadedFile::fake()->image('lateral.jpg'),
+            ],
+        ],
+    ])->assertRedirect()->assertSessionHasNoErrors();
+
+    $images = $form->fresh()->steps[1]['fields'][4]['images'];
+
+    expect($images)->toHaveCount(2);
+    expect($form->fresh()->steps[1]['fields'][4]['status'])->toBe('enviado');
+});
+
 it('stores an image captured with the camera through the public link', function () {
     Storage::fake('public');
 

@@ -948,57 +948,72 @@ const FormSteps = (() => {
     return {};
 })();
 
-// Public image fields offer both gallery selection and camera capture. The
-// camera input is submitted separately so it still works without JavaScript;
-// with JavaScript enabled its files are merged into the gallery input so the
-// user can take several photos and submit everything at once.
-const CameraUploads = (() => {
-    const merge = (field) => {
-        const imageInput = field.querySelector('[data-image-input]');
-        const cameraInput = field.querySelector('[data-camera-input]');
-
-        if (! imageInput || ! cameraInput || typeof DataTransfer === 'undefined') {
-            return;
-        }
-
-        const cameraFiles = Array.from(cameraInput.files ?? []);
-
-        if (cameraFiles.length === 0) {
-            return;
-        }
-
-        const transfer = new DataTransfer();
-
-        Array.from(imageInput.files ?? []).forEach((file) => transfer.items.add(file));
-        cameraFiles.forEach((file) => transfer.items.add(file));
-
-        const expected = transfer.files.length;
-
-        try {
-            imageInput.files = transfer.files;
-        } catch {
-            return;
-        }
-
-        if ((imageInput.files?.length ?? 0) !== expected) {
-            return;
-        }
-
-        cameraInput.value = '';
-        imageInput.dispatchEvent(new Event('change', { bubbles: true }));
-    };
+// Public image fields accept several images from both the gallery and the
+// camera. Selections accumulate in the gallery input so choosing another
+// image does not replace the previous ones. The camera input stays separate
+// as a no-JavaScript fallback; in that case the server merges both uploads.
+const ImageSelections = (() => {
+    const keyOf = (file) => `${file.name}-${file.size}-${file.lastModified}`;
 
     document.querySelectorAll('[data-image-field]').forEach((field) => {
-        const cameraInput = field.querySelector('[data-camera-input]');
+        const gallery = field.querySelector('[data-image-input]');
+        const camera = field.querySelector('[data-camera-input]');
 
-        if (! cameraInput) {
+        if (! gallery || ! camera || typeof DataTransfer === 'undefined') {
             return;
         }
 
-        cameraInput.addEventListener('change', () => merge(field));
-    });
+        let files = Array.from(gallery.files ?? []);
+        let syncing = false;
 
-    return { merge };
+        const sync = () => {
+            const transfer = new DataTransfer();
+
+            files.forEach((file) => transfer.items.add(file));
+
+            try {
+                gallery.files = transfer.files;
+            } catch {
+                return;
+            }
+
+            if ((gallery.files?.length ?? 0) !== files.length) {
+                return;
+            }
+
+            syncing = true;
+            gallery.dispatchEvent(new Event('change', { bubbles: true }));
+            syncing = false;
+        };
+
+        const add = (incoming) => {
+            const known = new Set(files.map(keyOf));
+
+            incoming.forEach((file) => {
+                const key = keyOf(file);
+
+                if (! known.has(key)) {
+                    files.push(file);
+                    known.add(key);
+                }
+            });
+        };
+
+        gallery.addEventListener('change', () => {
+            if (syncing) {
+                return;
+            }
+
+            add(Array.from(gallery.files ?? []));
+            sync();
+        });
+
+        camera.addEventListener('change', () => {
+            add(Array.from(camera.files ?? []));
+            camera.value = '';
+            sync();
+        });
+    });
 })();
 
 // Public image fields show a live preview of the selected gallery and camera
