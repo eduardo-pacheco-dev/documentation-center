@@ -180,6 +180,7 @@
                             href="{{ $image }}"
                             target="_blank"
                             rel="noopener"
+                            data-image-existing
                             class="block h-16 w-16 overflow-hidden rounded-lg ring-1 ring-gray-200 dark:ring-gray-800"
                         >
                             <img src="{{ $image }}" alt="{{ $label }}" loading="lazy" class="h-full w-full object-cover">
@@ -222,7 +223,11 @@
                 </div>
 
                 <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                    Escolha imagens da galeria ou tire uma foto com a câmera.
+                    Escolha imagens da galeria ou tire uma foto com a câmera. Até 5 imagens e 15 MB por imagem.
+                </p>
+
+                <p data-image-limit-message hidden class="mt-1 text-xs font-medium text-amber-600 dark:text-amber-400">
+                    Máximo de 5 imagens por campo. As imagens excedentes não foram adicionadas.
                 </p>
                 @break
 
@@ -252,6 +257,10 @@
                     multiple
                     class="block w-full text-sm text-gray-600 file:mr-3 file:rounded-md file:border-0 file:bg-gray-100 file:px-3 file:py-2 file:text-sm file:font-medium file:text-gray-700 hover:file:bg-gray-200 dark:text-gray-300 dark:file:bg-gray-800 dark:file:text-gray-200 dark:hover:file:bg-gray-700"
                 >
+
+                <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                    Até 5 arquivos e 30 MB por arquivo.
+                </p>
                 @break
 
             @default

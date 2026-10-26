@@ -80,6 +80,13 @@
             </div>
         @endif
 
+        @if (request()->boolean('upload_error'))
+            <div class="mt-4 flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300">
+                <x-icon name="exclamation-triangle" class="mt-0.5 h-4 w-4 shrink-0" />
+                <p>Os arquivos enviados são maiores do que o servidor aceita. Reduza o tamanho das imagens ou documentos e envie novamente.</p>
+            </div>
+        @endif
+
         @if ($errors->any())
             <div class="mt-4 flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300">
                 <x-icon name="exclamation-triangle" class="mt-0.5 h-4 w-4 shrink-0" />

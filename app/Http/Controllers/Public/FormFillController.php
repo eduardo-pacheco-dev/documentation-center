@@ -2,21 +2,49 @@
 
 namespace App\Http\Controllers\Public;
 
+use App\Exceptions\UploadStorageException;
 use App\Http\Controllers\Controller;
 use App\Models\Form;
 use App\Models\FormResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator as LaravelValidator;
 use Illuminate\View\View;
+use Throwable;
 
 class FormFillController extends Controller
 {
+    /**
+     * Maximum number of images accepted by a single image field.
+     */
+    private const MAX_IMAGES = 5;
+
+    /**
+     * Maximum size of each image in kilobytes.
+     */
+    private const MAX_IMAGE_KILOBYTES = 15360;
+
+    /**
+     * Maximum number of files accepted by a single file field.
+     */
+    private const MAX_FILES = 5;
+
+    /**
+     * Maximum size of each file in kilobytes.
+     */
+    private const MAX_FILE_KILOBYTES = 30720;
+
+    /**
+     * How many times an upload is retried before the submission fails.
+     */
+    private const UPLOAD_ATTEMPTS = 3;
+
     /**
      * Show the public form filling page.
      */
@@ -81,10 +109,17 @@ class FormFillController extends Controller
                         );
                     }
 
-                    if ($type === 'image' && count($existing) + count($uploads) > 5) {
+                    if ($type === 'image' && count($existing) + count($uploads) > self::MAX_IMAGES) {
                         $validator->errors()->add(
                             'answers.'.$fieldId,
-                            'O campo "'.$label.'" aceita no máximo 5 imagens.',
+                            'O campo "'.$label.'" aceita no máximo '.self::MAX_IMAGES.' imagens.',
+                        );
+                    }
+
+                    if ($type === 'file' && count($existing) + count($uploads) > self::MAX_FILES) {
+                        $validator->errors()->add(
+                            'answers.'.$fieldId,
+                            'O campo "'.$label.'" aceita no máximo '.self::MAX_FILES.' arquivos.',
                         );
                     }
                 }
@@ -98,27 +133,40 @@ class FormFillController extends Controller
             ? 'Preenchido'
             : $form->status;
 
-        $filledSteps = $this->applyAnswers($form, $steps, $answers, $request);
+        try {
+            $filledSteps = $this->applyAnswers($form, $steps, $answers, $request);
+        } catch (UploadStorageException $exception) {
+            report($exception);
 
-        if ($response !== null) {
-            $response->update([
-                'status' => $status,
-                'steps' => $filledSteps,
-                'submitted_at' => now(),
-            ]);
-        } else {
-            $form->responses()->create([
-                'user_id' => $request->user()?->getKey(),
-                'status' => $status,
-                'steps' => $filledSteps,
-                'submitted_at' => now(),
-            ]);
+            return redirect()
+                ->to(URL::signedRoute('public.forms.fill', ['form' => $form->getKey()]))
+                ->withInput()
+                ->withErrors([
+                    'answers.'.$exception->fieldId => 'Não foi possível salvar o arquivo enviado. Tente novamente.',
+                ]);
         }
 
-        $form->update([
-            'status' => $status,
-            'steps' => $filledSteps,
-        ]);
+        DB::transaction(function () use ($form, $request, $response, $status, $filledSteps): void {
+            if ($response !== null) {
+                $response->update([
+                    'status' => $status,
+                    'steps' => $filledSteps,
+                    'submitted_at' => now(),
+                ]);
+            } else {
+                $form->responses()->create([
+                    'user_id' => $request->user()?->getKey(),
+                    'status' => $status,
+                    'steps' => $filledSteps,
+                    'submitted_at' => now(),
+                ]);
+            }
+
+            $form->update([
+                'status' => $status,
+                'steps' => $filledSteps,
+            ]);
+        });
 
         return redirect()
             ->to(URL::signedRoute('public.forms.fill', ['form' => $form->getKey()]))
@@ -239,17 +287,17 @@ class FormFillController extends Controller
                 $required = (bool) ($field['required'] ?? false);
 
                 if ($type === 'image') {
-                    $rules[$key] = ['nullable', 'array', 'max:5'];
-                    $rules[$key.'.*'] = ['image', 'max:5120'];
-                    $rules['camera_answers.'.$fieldId] = ['nullable', 'array', 'max:5'];
-                    $rules['camera_answers.'.$fieldId.'.*'] = ['image', 'max:5120'];
+                    $rules[$key] = ['nullable', 'array', 'max:'.self::MAX_IMAGES];
+                    $rules[$key.'.*'] = ['image', 'max:'.self::MAX_IMAGE_KILOBYTES];
+                    $rules['camera_answers.'.$fieldId] = ['nullable', 'array', 'max:'.self::MAX_IMAGES];
+                    $rules['camera_answers.'.$fieldId.'.*'] = ['image', 'max:'.self::MAX_IMAGE_KILOBYTES];
 
                     continue;
                 }
 
                 if ($type === 'file') {
-                    $rules[$key] = ['nullable', 'array', 'max:5'];
-                    $rules[$key.'.*'] = ['file', 'max:10240'];
+                    $rules[$key] = ['nullable', 'array', 'max:'.self::MAX_FILES];
+                    $rules[$key.'.*'] = ['file', 'max:'.self::MAX_FILE_KILOBYTES];
 
                     continue;
                 }
@@ -445,17 +493,16 @@ class FormFillController extends Controller
     {
         $images = $field['images'] ?? [];
         $uploads = is_array($uploads) ? $uploads : ($uploads === null ? [] : [$uploads]);
+        $fieldId = (string) ($field['id'] ?? '');
+        $label = (string) (($field['label'] ?? null) ?: $fieldId);
 
         foreach ($uploads as $upload) {
             if (! $upload instanceof UploadedFile) {
                 continue;
             }
 
-            $path = $upload->store('forms/'.$form->getKey(), 'public');
-
-            if ($path !== false) {
-                $images[] = Storage::disk('public')->url($path);
-            }
+            $path = $this->storeUpload($form, $upload, $fieldId, $label);
+            $images[] = Storage::disk('public')->url($path);
         }
 
         $field['images'] = array_values($images);
@@ -475,18 +522,17 @@ class FormFillController extends Controller
         $files = $field['files'] ?? [];
         $names = $field['fileNames'] ?? [];
         $uploads = is_array($uploads) ? $uploads : ($uploads === null ? [] : [$uploads]);
+        $fieldId = (string) ($field['id'] ?? '');
+        $label = (string) (($field['label'] ?? null) ?: $fieldId);
 
         foreach ($uploads as $upload) {
             if (! $upload instanceof UploadedFile) {
                 continue;
             }
 
-            $path = $upload->store('forms/'.$form->getKey(), 'public');
-
-            if ($path !== false) {
-                $files[] = Storage::disk('public')->url($path);
-                $names[] = $upload->getClientOriginalName();
-            }
+            $path = $this->storeUpload($form, $upload, $fieldId, $label);
+            $files[] = Storage::disk('public')->url($path);
+            $names[] = $upload->getClientOriginalName();
         }
 
         $field['files'] = array_values($files);
@@ -494,5 +540,43 @@ class FormFillController extends Controller
         $field['status'] = $files !== [] ? 'enviado' : 'pendente';
 
         return $field;
+    }
+
+    /**
+     * Store an uploaded file and verify that it reached the disk.
+     *
+     * Uploads are retried a few times so transient filesystem errors do not
+     * discard a photo or document. If the disk keeps failing, the exception
+     * aborts the submission instead of silently dropping the upload.
+     */
+    private function storeUpload(Form $form, UploadedFile $upload, string $fieldId, string $label): string
+    {
+        $disk = Storage::disk('public');
+        $directory = 'forms/'.$form->getKey();
+        $lastException = null;
+
+        for ($attempt = 1; $attempt <= self::UPLOAD_ATTEMPTS; $attempt++) {
+            $path = false;
+
+            try {
+                $path = $disk->putFile($directory, $upload);
+            } catch (Throwable $exception) {
+                $lastException = $exception;
+            }
+
+            try {
+                if (is_string($path) && $path !== '' && $disk->exists($path)) {
+                    return $path;
+                }
+            } catch (Throwable $exception) {
+                $lastException = $exception;
+            }
+        }
+
+        throw new UploadStorageException(
+            $fieldId,
+            'Não foi possível salvar o arquivo "'.$upload->getClientOriginalName().'" do campo "'.$label.'".',
+            $lastException,
+        );
     }
 }

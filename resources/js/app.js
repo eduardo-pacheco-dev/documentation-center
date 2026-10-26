@@ -953,18 +953,23 @@ const FormSteps = (() => {
 // image does not replace the previous ones. The camera input stays separate
 // as a no-JavaScript fallback; in that case the server merges both uploads.
 const ImageSelections = (() => {
+    const MAX_IMAGES = 5;
     const keyOf = (file) => `${file.name}-${file.size}-${file.lastModified}`;
 
     document.querySelectorAll('[data-image-field]').forEach((field) => {
         const gallery = field.querySelector('[data-image-input]');
         const camera = field.querySelector('[data-camera-input]');
+        const question = field.closest('[data-question]');
 
         if (! gallery || ! camera || typeof DataTransfer === 'undefined') {
             return;
         }
 
+        const existing = question?.querySelectorAll('[data-image-existing]').length ?? 0;
+        const limitMessage = question?.querySelector('[data-image-limit-message]');
         let files = Array.from(gallery.files ?? []);
         let syncing = false;
+        let limitReached = false;
 
         const sync = () => {
             const transfer = new DataTransfer();
@@ -992,11 +997,23 @@ const ImageSelections = (() => {
             incoming.forEach((file) => {
                 const key = keyOf(file);
 
-                if (! known.has(key)) {
-                    files.push(file);
-                    known.add(key);
+                if (known.has(key)) {
+                    return;
                 }
+
+                if (existing + files.length >= MAX_IMAGES) {
+                    limitReached = true;
+
+                    return;
+                }
+
+                files.push(file);
+                known.add(key);
             });
+
+            if (limitMessage) {
+                limitMessage.hidden = ! limitReached;
+            }
         };
 
         gallery.addEventListener('change', () => {

@@ -2,6 +2,7 @@
 
 use App\Models\Form;
 use App\Models\FormResponse;
+use Illuminate\Contracts\Filesystem\Filesystem;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
@@ -52,7 +53,32 @@ it('shows the public form filling page without authentication', function () {
         ->assertSee('capture="environment"', false)
         ->assertSee('data-image-thumbnails', false)
         ->assertSee('data-image-empty', false)
+        ->assertSee('data-image-limit-message', false)
+        ->assertSee('15 MB por imagem')
         ->assertSee('Vazio');
+});
+
+it('shows a clear message when the upload exceeds the server limit', function () {
+    $form = Form::factory()->create(['steps' => publicFormSteps()]);
+
+    $this->get(URL::signedRoute('public.forms.fill', [
+        'form' => $form->getKey(),
+        'upload_error' => 1,
+    ]))
+        ->assertOk()
+        ->assertSee('maiores do que o servidor aceita');
+});
+
+it('redirects with an upload error when the request exceeds the server limit', function () {
+    $form = Form::factory()->create(['steps' => publicFormSteps()]);
+
+    $this->call('POST', URL::signedRoute('public.forms.submit', ['form' => $form->getKey()]), [], [], [], [
+        'CONTENT_LENGTH' => 1024 * 1024 * 512,
+    ])
+        ->assertRedirect(URL::signedRoute('public.forms.fill', [
+            'form' => $form->getKey(),
+            'upload_error' => 1,
+        ]));
 });
 
 it('rejects a public form link without a valid signature', function () {
@@ -167,6 +193,23 @@ it('stores multiple gallery images selected at once', function () {
 
     expect($images)->toHaveCount(2);
     expect($form->fresh()->steps[1]['fields'][4]['status'])->toBe('enviado');
+});
+
+it('accepts photos larger than five megabytes', function () {
+    Storage::fake('public');
+
+    $form = Form::factory()->create(['status' => 'Pendente', 'steps' => publicFormSteps()]);
+
+    $this->post(URL::signedRoute('public.forms.submit', ['form' => $form->getKey()]), [
+        'answers' => [
+            'F1-1' => 'Galpão A',
+            'F1-3' => '2026-10-25',
+            'F2-1' => 'Conforme',
+            'F2-5' => [UploadedFile::fake()->image('celular.jpg')->size(6144)],
+        ],
+    ])->assertRedirect()->assertSessionHasNoErrors();
+
+    expect($form->fresh()->steps[1]['fields'][4]['images'])->toHaveCount(1);
 });
 
 it('stores an image captured with the camera through the public link', function () {
@@ -299,6 +342,95 @@ it('stores the files uploaded through the public link', function () {
     expect($field['status'])->toBe('enviado');
 
     Storage::disk('public')->assertExists('forms/'.$form->getKey().'/'.basename($field['files'][0]));
+});
+
+it('stores multiple documents uploaded through the public link', function () {
+    Storage::fake('public');
+
+    $steps = publicFormSteps();
+    $steps[1]['fields'][] = ['id' => 'F2-6', 'type' => 'file', 'label' => 'Laudo técnico', 'required' => false, 'files' => [], 'status' => 'pendente'];
+
+    $form = Form::factory()->create(['status' => 'Pendente', 'steps' => $steps]);
+
+    $this->post(URL::signedRoute('public.forms.submit', ['form' => $form->getKey()]), [
+        'answers' => [
+            'F1-1' => 'Galpão A',
+            'F1-3' => '2026-10-25',
+            'F2-1' => 'Conforme',
+            'F2-6' => [
+                UploadedFile::fake()->create('laudo.pdf', 120, 'application/pdf'),
+                UploadedFile::fake()->create('fotos.zip', 80, 'application/zip'),
+            ],
+        ],
+    ])->assertRedirect()->assertSessionHasNoErrors();
+
+    $field = $form->fresh()->steps[1]['fields'][5];
+
+    expect($field['files'])->toHaveCount(2);
+    expect($field['fileNames'])->toBe(['laudo.pdf', 'fotos.zip']);
+    expect($field['status'])->toBe('enviado');
+
+    foreach ($field['files'] as $file) {
+        Storage::disk('public')->assertExists('forms/'.$form->getKey().'/'.basename($file));
+    }
+});
+
+it('fails the submission when an upload cannot be stored', function () {
+    $form = Form::factory()->create(['status' => 'Pendente', 'steps' => publicFormSteps()]);
+
+    $disk = Mockery::mock(Filesystem::class);
+    $disk->shouldReceive('putFile')->times(3)->andReturn(false);
+
+    Storage::set('public', $disk);
+
+    try {
+        $this->from(URL::signedRoute('public.forms.fill', ['form' => $form->getKey()]))
+            ->post(URL::signedRoute('public.forms.submit', ['form' => $form->getKey()]), [
+                'answers' => [
+                    'F1-1' => 'Galpão A',
+                    'F1-3' => '2026-10-25',
+                    'F2-1' => 'Conforme',
+                    'F2-5' => [UploadedFile::fake()->image('painel.jpg')],
+                ],
+            ])
+            ->assertRedirect(URL::signedRoute('public.forms.fill', ['form' => $form->getKey()]))
+            ->assertSessionHasErrors('answers.F2-5');
+
+        $form->refresh();
+
+        expect($form->status)->toBe('Pendente');
+        expect($form->responses()->count())->toBe(0);
+        expect($form->steps[1]['fields'][4]['images'])->toBeEmpty();
+    } finally {
+        Storage::forgetDisk('public');
+    }
+});
+
+it('retries an upload that fails once before storing it', function () {
+    $form = Form::factory()->create(['status' => 'Pendente', 'steps' => publicFormSteps()]);
+    $path = 'forms/'.$form->getKey().'/painel.jpg';
+
+    $disk = Mockery::mock(Filesystem::class);
+    $disk->shouldReceive('putFile')->twice()->andReturn(false, $path);
+    $disk->shouldReceive('exists')->once()->with($path)->andReturn(true);
+    $disk->shouldReceive('url')->once()->with($path)->andReturn('/storage/'.$path);
+
+    Storage::set('public', $disk);
+
+    try {
+        $this->post(URL::signedRoute('public.forms.submit', ['form' => $form->getKey()]), [
+            'answers' => [
+                'F1-1' => 'Galpão A',
+                'F1-3' => '2026-10-25',
+                'F2-1' => 'Conforme',
+                'F2-5' => [UploadedFile::fake()->image('painel.jpg')],
+            ],
+        ])->assertRedirect()->assertSessionHasNoErrors();
+
+        expect($form->fresh()->steps[1]['fields'][4]['images'])->toBe(['/storage/'.$path]);
+    } finally {
+        Storage::forgetDisk('public');
+    }
 });
 
 it('requires a file when the file field is mandatory and none exists', function () {
