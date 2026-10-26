@@ -22,7 +22,9 @@ it('lists templates shared by every user', function () {
         ->get(route('admin.form-templates.index'))
         ->assertOk()
         ->assertSee('Registro fotográfico padrão')
-        ->assertSee('Checklist de segurança');
+        ->assertSee('Checklist de segurança')
+        ->assertSee('overflow-x-auto', false)
+        ->assertSee('min-w-[1000px]', false);
 });
 
 it('shows the forms module settings shortcut next to the templates title', function () {
@@ -79,12 +81,12 @@ it('switches the templates list view mode', function () {
     $this->actingAs($user)
         ->get(route('admin.form-templates.index', ['view' => 'cards']))
         ->assertOk()
-        ->assertSee('grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3');
+        ->assertSee('grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3');
 
     $this->actingAs($user)
         ->get(route('admin.form-templates.index', ['view' => 'compact']))
         ->assertOk()
-        ->assertSee('divide-y divide-gray-100 overflow-hidden rounded-2xl');
+        ->assertSee('divide-y divide-gray-100 overflow-hidden rounded-lg');
 });
 
 it('summarizes the template library statistics', function () {
