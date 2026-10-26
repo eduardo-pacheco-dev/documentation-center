@@ -16,7 +16,10 @@
     $id = 'field-'.$fieldId;
 @endphp
 
-<div>
+<div
+    data-question="{{ $fieldId }}"
+    data-has-upload="{{ ! empty($existingImages) || ! empty($existingFiles) ? '1' : '0' }}"
+>
     <label for="{{ $id }}" class="block text-sm font-medium text-gray-900 dark:text-gray-100">
         {{ $label }}
         @if ($required)

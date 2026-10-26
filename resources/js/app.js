@@ -756,3 +756,75 @@ const LoginForm = (() => {
 
     return { sync, update };
 })();
+
+// Public forms report how many questions have already been answered while the
+// user fills the form. The total is derived from the rendered fields so it
+// keeps working when the form structure changes.
+const FormProgress = (() => {
+    const isAnswered = (question) => {
+        if (question.dataset.hasUpload === '1') {
+            return true;
+        }
+
+        return Array.from(question.querySelectorAll('input, textarea, select')).some((control) => {
+            if (control.type === 'file') {
+                return (control.files?.length ?? 0) > 0;
+            }
+
+            if (control.type === 'radio' || control.type === 'checkbox') {
+                return control.checked;
+            }
+
+            return (control.value || '').trim() !== '';
+        });
+    };
+
+    const refresh = (form) => {
+        const container = form.querySelector('[data-form-progress]');
+
+        if (!container) {
+            return;
+        }
+
+        const questions = Array.from(form.querySelectorAll('[data-question]'));
+        const answered = questions.filter(isAnswered).length;
+        const percent = questions.length > 0 ? Math.round((answered / questions.length) * 100) : 0;
+
+        const count = container.querySelector('[data-progress-count]');
+        const percentage = container.querySelector('[data-progress-percent]');
+        const bar = container.querySelector('[data-progress-bar]');
+
+        if (count) {
+            count.textContent = `${answered} de ${questions.length}`;
+        }
+
+        if (percentage) {
+            percentage.textContent = `${percent}%`;
+        }
+
+        if (bar) {
+            bar.style.width = `${percent}%`;
+        }
+
+        container.setAttribute('aria-valuenow', String(percent));
+    };
+
+    document.addEventListener('input', (event) => {
+        const form = event.target.closest('[data-form-progress-form]');
+
+        if (form) {
+            refresh(form);
+        }
+    });
+
+    document.addEventListener('change', (event) => {
+        const form = event.target.closest('[data-form-progress-form]');
+
+        if (form) {
+            refresh(form);
+        }
+    });
+
+    document.querySelectorAll('[data-form-progress-form]').forEach(refresh);
+})();
+
