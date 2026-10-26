@@ -170,7 +170,7 @@
                 @break
 
             @case('image')
-                <div class="mb-3 flex flex-wrap items-center gap-2" data-image-field>
+                <div class="mb-2 flex flex-wrap gap-2">
                     @forelse ($existingImages as $image)
                         <a
                             href="{{ $image }}"
@@ -185,7 +185,9 @@
                             Vazio
                         </div>
                     @endforelse
+                </div>
 
+                <div class="flex flex-wrap items-center gap-2" data-image-field>
                     <label class="inline-flex h-16 w-16 cursor-pointer flex-col items-center justify-center gap-1 rounded-lg border border-gray-300 bg-white px-1 text-center text-[11px] font-medium leading-tight text-gray-700 transition hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200 dark:hover:bg-gray-800">
                         <x-icon name="photo" class="h-4 w-4" />
                         Galeria
