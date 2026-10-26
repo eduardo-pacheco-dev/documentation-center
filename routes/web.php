@@ -85,6 +85,9 @@ Route::prefix('s')->name('public.short-links.')->group(function () {
 
 Route::prefix('formulario')->name('public.forms.')->middleware('signed')->group(function () {
     Route::get('{form}', [FormFillController::class, 'show'])->name('fill');
+    Route::post('{form}/rascunho', [FormFillController::class, 'autosave'])
+        ->middleware('throttle:60,1')
+        ->name('autosave');
     Route::post('{form}', [FormFillController::class, 'store'])
         ->middleware('throttle:30,1')
         ->name('submit');

@@ -6,6 +6,7 @@ use App\Exceptions\UploadStorageException;
 use App\Http\Controllers\Controller;
 use App\Models\Form;
 use App\Models\FormResponse;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
@@ -205,6 +206,63 @@ class FormFillController extends Controller
             ->with('status', $response !== null
                 ? 'Resposta salva com sucesso.'
                 : 'Resposta enviada com sucesso.');
+    }
+
+    /**
+     * Store the images selected on the public form without submitting the response.
+     *
+     * Drafts do not require the mandatory answers, so a respondent can add photos
+     * and continue later without losing the uploads.
+     */
+    public function autosave(Request $request, Form $form): JsonResponse
+    {
+        $structure = $form->steps ?? [];
+        $response = $this->singleResponse($form);
+        $steps = $this->responseSteps($structure, $response);
+
+        $uploadValidator = Validator::make(
+            $request->all(),
+            $this->uploadRules($structure),
+            $this->messages(),
+            $this->attributes($structure),
+        );
+
+        $uploadValidator->after(function (LaravelValidator $validator) use ($request, $steps): void {
+            $this->addUploadErrorMessages($validator, $request, $steps);
+            $this->addImageLimitErrors($validator, $request, $steps);
+        });
+
+        if ($uploadValidator->fails()) {
+            return response()->json([
+                'message' => $uploadValidator->errors()->first(),
+                'errors' => $uploadValidator->errors(),
+            ], 422);
+        }
+
+        try {
+            ['steps' => $steps, 'count' => $capturedUploads] = $this->captureUploads($form, $steps, $request);
+        } catch (UploadStorageException $exception) {
+            report($exception);
+
+            return response()->json([
+                'message' => 'Não foi possível salvar a imagem enviada. Tente novamente.',
+            ], 500);
+        }
+
+        $answers = is_array($request->input('answers')) ? $request->input('answers') : [];
+        $steps = $this->applyAnswers($steps, $answers);
+
+        if ($capturedUploads > 0) {
+            $this->persistIncompleteSubmission($form, $response, $steps, $request);
+        }
+
+        return response()->json([
+            'message' => $capturedUploads > 0
+                ? 'Imagens salvas automaticamente.'
+                : 'Nenhuma imagem nova para salvar.',
+            'images' => $this->imageUrls($steps),
+            'saved_at' => now()->toIso8601String(),
+        ]);
     }
 
     /**
@@ -445,6 +503,47 @@ class FormFillController extends Controller
                             'O arquivo "'.$upload->getClientOriginalName().'" excede o limite de upload do servidor.',
                         );
                     }
+                }
+            }
+        }
+    }
+
+    /**
+     * Validate the combined existing and newly selected images of each field.
+     *
+     * @param  array<int, array<string, mixed>>  $steps
+     */
+    private function addImageLimitErrors(LaravelValidator $validator, Request $request, array $steps): void
+    {
+        foreach ($steps as $step) {
+            foreach ($step['fields'] ?? [] as $field) {
+                if (($field['type'] ?? null) !== 'image') {
+                    continue;
+                }
+
+                $fieldId = (string) ($field['id'] ?? '');
+
+                if ($fieldId === '') {
+                    continue;
+                }
+
+                $uploads = array_merge(
+                    $this->uploadedFiles($request->file('answers.'.$fieldId)),
+                    $this->uploadedFiles($request->file('camera_answers.'.$fieldId)),
+                );
+
+                if ($uploads === []) {
+                    continue;
+                }
+
+                $existing = count($field['images'] ?? []);
+                $label = ($field['label'] ?? null) ?: $fieldId;
+
+                if ($existing + count($uploads) > self::MAX_IMAGES) {
+                    $validator->errors()->add(
+                        'answers.'.$fieldId,
+                        'O campo "'.$label.'" aceita no máximo '.self::MAX_IMAGES.' imagens.',
+                    );
                 }
             }
         }
@@ -763,6 +862,35 @@ class FormFillController extends Controller
         $field['status'] = $files !== [] ? 'enviado' : 'pendente';
 
         return $field;
+    }
+
+    /**
+     * Collect the stored image URLs grouped by image field id.
+     *
+     * @param  array<int, array<string, mixed>>  $steps
+     * @return array<string, array<int, string>>
+     */
+    private function imageUrls(array $steps): array
+    {
+        $images = [];
+
+        foreach ($steps as $step) {
+            foreach ($step['fields'] ?? [] as $field) {
+                if (($field['type'] ?? null) !== 'image') {
+                    continue;
+                }
+
+                $fieldId = (string) ($field['id'] ?? '');
+
+                if ($fieldId === '') {
+                    continue;
+                }
+
+                $images[$fieldId] = array_values($field['images'] ?? []);
+            }
+        }
+
+        return $images;
     }
 
     /**

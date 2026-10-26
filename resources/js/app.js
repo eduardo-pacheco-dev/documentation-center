@@ -955,6 +955,7 @@ const FormSteps = (() => {
 const ImageSelections = (() => {
     const MAX_IMAGES = 5;
     const keyOf = (file) => `${file.name}-${file.size}-${file.lastModified}`;
+    const states = new WeakMap();
 
     document.querySelectorAll('[data-image-field]').forEach((field) => {
         const gallery = field.querySelector('[data-image-input]');
@@ -965,16 +966,21 @@ const ImageSelections = (() => {
             return;
         }
 
-        const existing = question?.querySelectorAll('[data-image-existing]').length ?? 0;
-        const limitMessage = question?.querySelector('[data-image-limit-message]');
-        let files = Array.from(gallery.files ?? []);
-        let syncing = false;
-        let limitReached = false;
+        const state = {
+            gallery,
+            camera,
+            question,
+            files: Array.from(gallery.files ?? []),
+            existing: question?.querySelectorAll('[data-image-existing]').length ?? 0,
+            limitReached: false,
+            syncing: false,
+            limitMessage: question?.querySelector('[data-image-limit-message]'),
+        };
 
         const sync = () => {
             const transfer = new DataTransfer();
 
-            files.forEach((file) => transfer.items.add(file));
+            state.files.forEach((file) => transfer.items.add(file));
 
             try {
                 gallery.files = transfer.files;
@@ -982,17 +988,17 @@ const ImageSelections = (() => {
                 return;
             }
 
-            if ((gallery.files?.length ?? 0) !== files.length) {
+            if ((gallery.files?.length ?? 0) !== state.files.length) {
                 return;
             }
 
-            syncing = true;
+            state.syncing = true;
             gallery.dispatchEvent(new Event('change', { bubbles: true }));
-            syncing = false;
+            state.syncing = false;
         };
 
         const add = (incoming) => {
-            const known = new Set(files.map(keyOf));
+            const known = new Set(state.files.map(keyOf));
 
             incoming.forEach((file) => {
                 const key = keyOf(file);
@@ -1001,23 +1007,26 @@ const ImageSelections = (() => {
                     return;
                 }
 
-                if (existing + files.length >= MAX_IMAGES) {
-                    limitReached = true;
+                if (state.existing + state.files.length >= MAX_IMAGES) {
+                    state.limitReached = true;
 
                     return;
                 }
 
-                files.push(file);
+                state.files.push(file);
                 known.add(key);
             });
 
-            if (limitMessage) {
-                limitMessage.hidden = ! limitReached;
+            if (state.limitMessage) {
+                state.limitMessage.hidden = ! state.limitReached;
             }
         };
 
+        state.sync = sync;
+        states.set(field, state);
+
         gallery.addEventListener('change', () => {
-            if (syncing) {
+            if (state.syncing) {
                 return;
             }
 
@@ -1031,6 +1040,66 @@ const ImageSelections = (() => {
             sync();
         });
     });
+
+    const clear = (field) => {
+        const state = states.get(field);
+
+        if (! state) {
+            return;
+        }
+
+        state.files = [];
+        state.limitReached = false;
+        state.gallery.value = '';
+        state.camera.value = '';
+
+        if (state.limitMessage) {
+            state.limitMessage.hidden = true;
+        }
+
+        state.syncing = true;
+        state.gallery.dispatchEvent(new Event('change', { bubbles: true }));
+        state.syncing = false;
+    };
+
+    const keysOf = (field) => new Set((states.get(field)?.files ?? []).map(keyOf));
+
+    // Remove the files already stored by an automatic save while keeping any
+    // files selected while the request was in flight.
+    const remove = (field, keys) => {
+        const state = states.get(field);
+
+        if (! state) {
+            return;
+        }
+
+        const stored = new Set(keys);
+        state.files = state.files.filter((file) => ! stored.has(keyOf(file)));
+        state.limitReached = false;
+
+        if (state.limitMessage) {
+            state.limitMessage.hidden = true;
+        }
+
+        state.sync();
+    };
+
+    const setExisting = (field, count) => {
+        const state = states.get(field);
+
+        if (! state) {
+            return;
+        }
+
+        state.existing = count;
+        state.limitReached = false;
+
+        if (state.limitMessage) {
+            state.limitMessage.hidden = true;
+        }
+    };
+
+    return { clear, keysOf, remove, setExisting };
 })();
 
 // Public image fields show a live preview of the selected gallery and camera
@@ -1058,9 +1127,10 @@ const ImagePreviews = (() => {
         ].filter((file) => file.type.startsWith('image/'));
 
         const empty = container.querySelector('[data-image-empty]');
+        const existing = container.querySelectorAll('[data-image-existing]').length;
 
         if (empty) {
-            empty.hidden = files.length > 0;
+            empty.hidden = files.length > 0 || existing > 0;
         }
 
         files.forEach((file) => {
@@ -1091,4 +1161,240 @@ const ImagePreviews = (() => {
 
     return { render };
 })();
+
+// Public image fields save the new photos automatically while the form is
+// filled. The request keeps a draft response on the server, so leaving the
+// page does not discard the images. The stored URLs then replace the local
+// previews and the file inputs are cleared to avoid uploading them twice.
+const DraftAutosave = (() => {
+    const DEBOUNCE_MS = 400;
+    const STATUS_CLASSES = {
+        saving: ['text-gray-500', 'dark:text-gray-400'],
+        saved: ['text-emerald-600', 'dark:text-emerald-400'],
+        error: ['text-red-600', 'dark:text-red-400'],
+    };
+
+    const questionFor = (form, fieldId) => Array.from(form.querySelectorAll('[data-question]'))
+        .find((question) => question.dataset.question === fieldId) ?? null;
+
+    const setStatus = (status, state, message) => {
+        if (! status) {
+            return;
+        }
+
+        status.hidden = false;
+        status.textContent = message;
+        status.classList.remove(
+            'text-gray-500', 'text-emerald-600', 'text-red-600',
+            'dark:text-gray-400', 'dark:text-emerald-400', 'dark:text-red-400',
+        );
+        status.classList.add(...STATUS_CLASSES[state]);
+    };
+
+    const storedImages = (form, images) => {
+        Object.entries(images).forEach(([fieldId, urls]) => {
+            const question = questionFor(form, fieldId);
+            const container = question?.querySelector('[data-image-thumbnails]');
+            const field = question?.querySelector('[data-image-field]');
+
+            if (! question || ! container || ! field) {
+                return;
+            }
+
+            container.querySelectorAll('[data-image-existing]').forEach((item) => item.remove());
+
+            urls.forEach((url) => {
+                const link = document.createElement('a');
+                const image = document.createElement('img');
+
+                link.href = url;
+                link.target = '_blank';
+                link.rel = 'noopener';
+                link.dataset.imageExisting = '';
+                link.className = 'block h-16 w-16 overflow-hidden rounded-lg ring-1 ring-gray-200 dark:ring-gray-800';
+
+                image.src = url;
+                image.alt = 'Imagem enviada';
+                image.loading = 'lazy';
+                image.className = 'h-full w-full object-cover';
+
+                link.append(image);
+                container.append(link);
+            });
+
+            const empty = container.querySelector('[data-image-empty]');
+            const previewing = container.querySelectorAll('[data-image-preview-item]').length > 0;
+
+            if (empty) {
+                empty.hidden = urls.length > 0 || previewing;
+            }
+
+            question.dataset.hasUpload = urls.length > 0 ? '1' : '0';
+            ImageSelections.setExisting(field, urls.length);
+        });
+    };
+
+    const payload = (form) => {
+        const data = new FormData(form);
+
+        form.querySelectorAll('input[type="file"]').forEach((input) => {
+            if (! input.name || input.matches('[data-image-input], [data-camera-input]')) {
+                return;
+            }
+
+            data.delete(input.name);
+        });
+
+        return data;
+    };
+
+    document.querySelectorAll('form[data-form-autosave-url]').forEach((form) => {
+        const url = form.dataset.formAutosaveUrl;
+        const status = form.querySelector('[data-draft-autosave-status]');
+        let timer = null;
+        let inFlight = null;
+        let pending = false;
+        let submitting = false;
+
+        const selected = () => {
+            const fields = new Map();
+
+            form.querySelectorAll('[data-image-field]').forEach((field) => {
+                const keys = ImageSelections.keysOf(field);
+
+                if (keys.size > 0) {
+                    fields.set(field, keys);
+                }
+            });
+
+            return fields;
+        };
+
+        const schedule = () => {
+            clearTimeout(timer);
+            timer = setTimeout(save, DEBOUNCE_MS);
+        };
+
+        const save = () => {
+            clearTimeout(timer);
+
+            if (inFlight) {
+                pending = true;
+
+                return inFlight;
+            }
+
+            const sent = selected();
+
+            if (sent.size === 0) {
+                return Promise.resolve(true);
+            }
+
+            pending = false;
+            setStatus(status, 'saving', 'Salvando imagens...');
+
+            inFlight = (async () => {
+                try {
+                    const response = await fetch(url, {
+                        method: 'POST',
+                        credentials: 'same-origin',
+                        headers: {
+                            'Accept': 'application/json',
+                            'X-Requested-With': 'XMLHttpRequest',
+                        },
+                        body: payload(form),
+                    });
+
+                    const data = await response.json().catch(() => ({}));
+
+                    if (! response.ok) {
+                        throw new Error(data.message || 'Não foi possível salvar as imagens.');
+                    }
+
+                    storedImages(form, data.images || {});
+
+                    sent.forEach((keys, field) => ImageSelections.remove(field, keys));
+
+                    setStatus(status, 'saved', data.message || 'Imagens salvas automaticamente.');
+
+                    return true;
+                } catch (error) {
+                    setStatus(status, 'error', error.message || 'Não foi possível salvar as imagens.');
+
+                    return false;
+                } finally {
+                    inFlight = null;
+
+                    if (pending) {
+                        pending = false;
+                        schedule();
+                    }
+                }
+            })();
+
+            return inFlight;
+        };
+
+        // Wait for any automatic save to finish before the response is sent, so
+        // the same photo is not uploaded twice by simultaneous requests.
+        const flush = async () => {
+            clearTimeout(timer);
+
+            while (inFlight) {
+                await inFlight;
+            }
+
+            while (selected().size > 0) {
+                const saved = await save();
+
+                while (inFlight) {
+                    await inFlight;
+                }
+
+                if (! saved) {
+                    return;
+                }
+            }
+        };
+
+        const onSubmit = (event) => {
+            if (submitting) {
+                event.preventDefault();
+
+                return;
+            }
+
+            if (! inFlight && selected().size === 0) {
+                return;
+            }
+
+            event.preventDefault();
+            submitting = true;
+
+            flush().finally(() => {
+                submitting = false;
+                form.removeEventListener('submit', onSubmit);
+                form.requestSubmit();
+                form.addEventListener('submit', onSubmit);
+            });
+        };
+
+        form.addEventListener('submit', onSubmit);
+
+        form.addEventListener('change', (event) => {
+            if (! event.target.matches('[data-image-input], [data-camera-input]')) {
+                return;
+            }
+
+            if ((event.target.files?.length ?? 0) === 0) {
+                return;
+            }
+
+            schedule();
+        });
+    });
+
+    return {};
+})();
+
 

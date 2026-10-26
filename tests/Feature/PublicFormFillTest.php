@@ -224,6 +224,158 @@ it('finishes an incomplete submission without uploading the photos again', funct
     expect($file['fileNames'])->toBe(['nota-fiscal.pdf']);
 });
 
+it('saves newly selected images automatically as a draft', function () {
+    Storage::fake('public');
+
+    $form = Form::factory()->create([
+        'status' => 'Pendente',
+        'allows_multiple_responses' => true,
+        'steps' => publicFormSteps(),
+    ]);
+
+    $response = $this->post(URL::signedRoute('public.forms.autosave', ['form' => $form->getKey()]), [
+        'answers' => [
+            'F1-1' => 'Galpão A',
+            'F2-5' => [UploadedFile::fake()->image('painel.jpg')],
+        ],
+    ], ['Accept' => 'application/json']);
+
+    $response->assertOk()
+        ->assertJsonPath('message', 'Imagens salvas automaticamente.')
+        ->assertJsonStructure(['message', 'images' => ['F2-5'], 'saved_at']);
+
+    $images = $response->json('images.F2-5');
+
+    expect($images)->toHaveCount(1);
+    expect($images[0])->toStartWith('/storage/forms/'.$form->getKey().'/');
+    Storage::disk('public')->assertExists('forms/'.$form->getKey().'/'.basename($images[0]));
+
+    $draft = $form->responses()->firstOrFail();
+
+    expect($draft->status)->toBe('Em preenchimento');
+    expect($draft->submitted_at)->toBeNull();
+    expect($draft->steps[0]['fields'][0]['value'])->toBe('Galpão A');
+    expect(session('public.forms.draft.'.$form->getKey()))->toBe($draft->getKey());
+
+    $field = collect($draft->steps[1]['fields'])->firstWhere('id', 'F2-5');
+
+    expect($field['images'])->toBe($images);
+    expect($field['status'])->toBe('enviado');
+});
+
+it('appends automatically saved images to the same draft', function () {
+    Storage::fake('public');
+
+    $form = Form::factory()->create([
+        'allows_multiple_responses' => true,
+        'steps' => publicFormSteps(),
+    ]);
+
+    $this->post(URL::signedRoute('public.forms.autosave', ['form' => $form->getKey()]), [
+        'answers' => ['F2-5' => [UploadedFile::fake()->image('frente.jpg')]],
+    ], ['Accept' => 'application/json'])->assertOk();
+
+    $draft = $form->responses()->firstOrFail();
+
+    $this->withSession(['public.forms.draft.'.$form->getKey() => $draft->getKey()])
+        ->post(URL::signedRoute('public.forms.autosave', ['form' => $form->getKey()]), [
+            'answers' => ['F2-5' => [UploadedFile::fake()->image('lateral.jpg')]],
+        ], ['Accept' => 'application/json'])
+        ->assertOk();
+
+    $draft->refresh();
+    $field = collect($draft->steps[1]['fields'])->firstWhere('id', 'F2-5');
+
+    expect($field['images'])->toHaveCount(2);
+    expect($form->responses()->count())->toBe(1);
+});
+
+it('limits automatically saved images to five per field across saves', function () {
+    Storage::fake('public');
+
+    $form = Form::factory()->create([
+        'allows_multiple_responses' => true,
+        'steps' => publicFormSteps(),
+    ]);
+
+    $this->post(URL::signedRoute('public.forms.autosave', ['form' => $form->getKey()]), [
+        'answers' => ['F2-5' => [
+            UploadedFile::fake()->image('foto-1.jpg'),
+            UploadedFile::fake()->image('foto-2.jpg'),
+            UploadedFile::fake()->image('foto-3.jpg'),
+            UploadedFile::fake()->image('foto-4.jpg'),
+        ]],
+    ], ['Accept' => 'application/json'])->assertOk();
+
+    $draft = $form->responses()->firstOrFail();
+
+    $this->withSession(['public.forms.draft.'.$form->getKey() => $draft->getKey()])
+        ->post(URL::signedRoute('public.forms.autosave', ['form' => $form->getKey()]), [
+            'answers' => ['F2-5' => [
+                UploadedFile::fake()->image('foto-5.jpg'),
+                UploadedFile::fake()->image('foto-6.jpg'),
+            ]],
+        ], ['Accept' => 'application/json'])
+        ->assertStatus(422)
+        ->assertJsonPath('message', 'O campo "Foto do painel" aceita no máximo 5 imagens.');
+
+    $field = collect($draft->fresh()->steps[1]['fields'])->firstWhere('id', 'F2-5');
+
+    expect($field['images'])->toHaveCount(4);
+});
+
+it('rejects an invalid image in the automatic save', function () {
+    $form = Form::factory()->create([
+        'allows_multiple_responses' => true,
+        'steps' => publicFormSteps(),
+    ]);
+
+    $this->post(URL::signedRoute('public.forms.autosave', ['form' => $form->getKey()]), [
+        'answers' => [
+            'F2-5' => [UploadedFile::fake()->create('documento.pdf', 100, 'application/pdf')],
+        ],
+    ], ['Accept' => 'application/json'])
+        ->assertStatus(422)
+        ->assertJsonValidationErrors('answers.F2-5.0');
+
+    expect($form->responses()->count())->toBe(0);
+});
+
+it('does not create a draft when the automatic save has no images', function () {
+    $form = Form::factory()->create([
+        'allows_multiple_responses' => true,
+        'steps' => publicFormSteps(),
+    ]);
+
+    $this->post(URL::signedRoute('public.forms.autosave', ['form' => $form->getKey()]), [
+        'answers' => ['F1-1' => 'Galpão A'],
+    ], ['Accept' => 'application/json'])
+        ->assertOk()
+        ->assertJsonPath('message', 'Nenhuma imagem nova para salvar.');
+
+    expect($form->responses()->count())->toBe(0);
+});
+
+it('does not expose the automatic save through an unsigned route', function () {
+    $form = Form::factory()->create(['steps' => publicFormSteps()]);
+
+    $this->post(route('public.forms.autosave', $form), [
+        'answers' => ['F2-5' => [UploadedFile::fake()->image('painel.jpg')]],
+    ])->assertForbidden();
+
+    expect($form->responses()->count())->toBe(0);
+});
+
+it('adds the automatic save to the public form', function () {
+    $form = Form::factory()->create(['steps' => publicFormSteps()]);
+
+    $this->get(URL::signedRoute('public.forms.fill', ['form' => $form->getKey()]))
+        ->assertOk()
+        ->assertSee('data-form-autosave-url', false)
+        ->assertSee('data-draft-autosave-status', false)
+        ->assertSee(URL::signedRoute('public.forms.autosave', ['form' => $form->getKey()]), false);
+});
+
 it('shows a public submission on the evaluation page', function () {
     Storage::fake('public');
 

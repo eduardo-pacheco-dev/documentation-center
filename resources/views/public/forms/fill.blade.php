@@ -114,6 +114,7 @@
                 data-form-progress-form
                 data-form-steps
                 data-form-initial-step="{{ $initialStep }}"
+                data-form-autosave-url="{{ URL::signedRoute('public.forms.autosave', ['form' => $form->getKey()]) }}"
             >
                 @csrf
 
@@ -192,6 +193,14 @@
                         </div>
                     </section>
                 @endforeach
+
+                <p
+                    data-draft-autosave-status
+                    hidden
+                    role="status"
+                    aria-live="polite"
+                    class="text-xs font-medium text-gray-500 dark:text-gray-400"
+                ></p>
 
                 <div class="flex flex-wrap items-center gap-2">
                     <button
