@@ -54,6 +54,7 @@ use App\Http\Controllers\Admin\WorkOrderProjectController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\Public\FormFillController;
 use App\Http\Controllers\Public\LinkController;
 use App\Http\Controllers\SettingsController;
 use Illuminate\Support\Facades\Route;
@@ -73,6 +74,19 @@ Route::prefix('s')->name('public.short-links.')->group(function () {
         ->name('unlock');
     Route::post('{code}/documents', [LinkController::class, 'storeDocuments'])->name('documents.store');
     Route::get('documents/{document}/download', [LinkController::class, 'download'])->name('documents.download');
+});
+
+/*
+|--------------------------------------------------------------------------
+| Public forms
+|--------------------------------------------------------------------------
+*/
+
+Route::prefix('formulario')->name('public.forms.')->middleware('signed')->group(function () {
+    Route::get('{form}', [FormFillController::class, 'show'])->name('fill');
+    Route::post('{form}', [FormFillController::class, 'store'])
+        ->middleware('throttle:30,1')
+        ->name('submit');
 });
 
 /*

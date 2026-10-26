@@ -1,5 +1,9 @@
 @props(['form'])
 
+@php
+    $publicUrl = URL::signedRoute('public.forms.fill', ['form' => $form->getKey()]);
+@endphp
+
 <div class="relative inline-block text-left">
     <button
         type="button"
@@ -14,8 +18,12 @@
 
     <div
         data-dropdown-menu
-        class="absolute right-0 z-10 mt-1 hidden w-40 rounded-md border border-gray-200 bg-white py-1 shadow-lg dark:border-gray-800 dark:bg-gray-900 dark:shadow-gray-950"
+        class="absolute right-0 z-10 mt-1 hidden w-56 rounded-md border border-gray-200 bg-white py-1 shadow-lg dark:border-gray-800 dark:bg-gray-900 dark:shadow-gray-950"
     >
+        <a href="{{ route('admin.forms.evaluate', $form) }}" class="flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-800">
+            <x-icon name="pencil-square" class="h-4 w-4" />
+            Preencher formulário
+        </a>
         <a href="{{ route('admin.forms.show', $form) }}" class="flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-800">
             <x-icon name="eye" class="h-4 w-4" />
             Visualizar
@@ -24,6 +32,14 @@
             <x-icon name="document-check" class="h-4 w-4" />
             Avaliar
         </a>
+        <a href="{{ $publicUrl }}" target="_blank" rel="noopener" class="flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-800">
+            <x-icon name="arrow-top-right-on-square" class="h-4 w-4" />
+            Link externo
+        </a>
+        <button type="button" data-copy="{{ $publicUrl }}" data-copy-message="Link externo copiado." class="flex w-full items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-800">
+            <x-icon name="link" class="h-4 w-4" />
+            Copiar link externo
+        </button>
         <a href="{{ route('admin.forms.edit', $form) }}" class="flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-800">
             <x-icon name="pencil-square" class="h-4 w-4" />
             Editar
