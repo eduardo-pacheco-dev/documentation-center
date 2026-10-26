@@ -40,76 +40,82 @@
     <form method="POST" action="{{ route('admin.form-templates.store') }}" class="mt-4">
         @csrf
 
-        <section class="{{ $panelClass }}">
-            <div class="{{ $cardHeader }}">
-                <div class="flex items-center gap-3">
-                    <span class="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-indigo-50 text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-400">
-                        <x-icon name="pencil-square" class="h-4 w-4" />
-                    </span>
-                    <div>
-                        <h2 class="text-sm font-semibold text-gray-900 dark:text-gray-100">Dados do template</h2>
-                        <p class="text-xs text-gray-500 dark:text-gray-400">Nome e tipo que identificam o template na biblioteca.</p>
+        <div class="grid gap-4 lg:grid-cols-[20rem_minmax(0,1fr)] lg:items-start">
+            <aside class="lg:sticky lg:top-4">
+                <section class="{{ $panelClass }}">
+                    <div class="{{ $cardHeader }}">
+                        <div class="flex items-center gap-3">
+                            <span class="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-indigo-50 text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-400">
+                                <x-icon name="pencil-square" class="h-4 w-4" />
+                            </span>
+                            <div>
+                                <h2 class="text-sm font-semibold text-gray-900 dark:text-gray-100">Dados do template</h2>
+                                <p class="text-xs text-gray-500 dark:text-gray-400">Nome e tipo na biblioteca.</p>
+                            </div>
+                        </div>
                     </div>
-                </div>
-            </div>
 
-            <div class="grid gap-4 p-4 sm:grid-cols-2">
-                <div class="sm:col-span-2">
-                    <label for="name" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Nome do template</label>
-                    <input
-                        type="text"
-                        name="name"
-                        id="name"
-                        value="{{ old('name') }}"
-                        placeholder="Ex.: Registro fotográfico de torre"
-                        required
-                        class="{{ $inputClass }}"
-                    >
-                    @error('name')
-                        <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p>
-                    @enderror
-                </div>
+                    <div class="space-y-4 p-4">
+                        <div>
+                            <label for="name" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Nome do template</label>
+                            <input
+                                type="text"
+                                name="name"
+                                id="name"
+                                value="{{ old('name') }}"
+                                placeholder="Ex.: Registro fotográfico de torre"
+                                required
+                                class="{{ $inputClass }}"
+                            >
+                            @error('name')
+                                <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p>
+                            @enderror
+                        </div>
 
-                <div>
-                    <label for="type" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Tipo</label>
-                    <select name="type" id="type" class="{{ $inputClass }}">
-                        <option value="">Sem tipo</option>
-                        @foreach ($types as $type)
-                            <option value="{{ $type }}" @selected(old('type') === $type)>{{ $type }}</option>
-                        @endforeach
-                    </select>
-                    @error('type')
-                        <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p>
-                    @enderror
-                    <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">O tipo ajuda a filtrar o template na listagem.</p>
-                </div>
-            </div>
-        </section>
-
-        <section class="mt-4 {{ $panelClass }}">
-            <div class="{{ $cardHeader }}">
-                <div class="flex items-center gap-3">
-                    <span class="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-amber-50 text-amber-600 dark:bg-amber-500/10 dark:text-amber-400">
-                        <x-icon name="squares-2x2" class="h-4 w-4" />
-                    </span>
-                    <div>
-                        <h2 class="text-sm font-semibold text-gray-900 dark:text-gray-100">Estrutura do template</h2>
-                        <p class="text-xs text-gray-500 dark:text-gray-400">Adicione as seções e as perguntas que o template vai aplicar aos formulários.</p>
+                        <div>
+                            <label for="type" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Tipo</label>
+                            <select name="type" id="type" class="{{ $inputClass }}">
+                                <option value="">Sem tipo</option>
+                                @foreach ($types as $type)
+                                    <option value="{{ $type }}" @selected(old('type') === $type)>{{ $type }}</option>
+                                @endforeach
+                            </select>
+                            @error('type')
+                                <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p>
+                            @enderror
+                            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">O tipo ajuda a filtrar o template na listagem.</p>
+                        </div>
                     </div>
-                </div>
-            </div>
+                </section>
+            </aside>
 
-            @if ($structureError)
-                <div class="mx-4 mt-4 flex items-start gap-2 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300">
-                    <x-icon name="exclamation-circle" class="h-4 w-4 shrink-0" />
-                    <p>Não foi possível salvar a estrutura. Corrija os campos destacados e tente novamente.</p>
-                </div>
-            @endif
+            <div class="min-w-0">
+                <section class="{{ $panelClass }}">
+                    <div class="{{ $cardHeader }}">
+                        <div class="flex items-center gap-3">
+                            <span class="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-amber-50 text-amber-600 dark:bg-amber-500/10 dark:text-amber-400">
+                                <x-icon name="squares-2x2" class="h-4 w-4" />
+                            </span>
+                            <div>
+                                <h2 class="text-sm font-semibold text-gray-900 dark:text-gray-100">Estrutura do template</h2>
+                                <p class="text-xs text-gray-500 dark:text-gray-400">Adicione as seções e as perguntas que o template vai aplicar aos formulários.</p>
+                            </div>
+                        </div>
+                    </div>
 
-            <div class="p-4">
-                @include('admin.forms.partials.builder', ['steps' => $initialSteps])
+                    @if ($structureError)
+                        <div class="mx-4 mt-4 flex items-start gap-2 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300">
+                            <x-icon name="exclamation-circle" class="h-4 w-4 shrink-0" />
+                            <p>Não foi possível salvar a estrutura. Corrija os campos destacados e tente novamente.</p>
+                        </div>
+                    @endif
+
+                    <div class="p-4">
+                        @include('admin.forms.partials.builder', ['steps' => $initialSteps])
+                    </div>
+                </section>
             </div>
-        </section>
+        </div>
 
         <div class="sticky bottom-0 mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-gray-200 bg-gray-50 py-3 dark:border-gray-800 dark:bg-gray-950">
             <p class="text-xs text-gray-500 dark:text-gray-400">Você pode ajustar dados e estrutura depois na página do template.</p>

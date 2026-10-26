@@ -181,7 +181,10 @@ it('shows the blank template creation page', function () {
         ->assertSee('name="steps_json"', false)
         ->assertSee(route('admin.form-templates.store'), false)
         ->assertSee('rounded-lg border border-gray-200 bg-white', false)
-        ->assertSee('sticky bottom-0 mt-4', false);
+        ->assertSee('sticky bottom-0 mt-4', false)
+        ->assertSee('lg:grid-cols-[20rem_minmax(0,1fr)]', false)
+        ->assertSee('<aside', false)
+        ->assertSee('Dados do template');
 });
 
 it('creates a blank template without needing a form first', function () {
