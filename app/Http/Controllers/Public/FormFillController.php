@@ -55,21 +55,36 @@ class FormFillController extends Controller
                 foreach ($step['fields'] ?? [] as $field) {
                     $type = $field['type'] ?? null;
 
-                    if (! in_array($type, ['image', 'file'], true) || ! ($field['required'] ?? false)) {
+                    if (! in_array($type, ['image', 'file'], true)) {
                         continue;
                     }
 
                     $fieldId = (string) ($field['id'] ?? '');
-                    $uploads = $request->file('answers.'.$fieldId);
-                    $uploads = is_array($uploads) ? array_filter($uploads) : array_filter([$uploads]);
+                    $label = ($field['label'] ?? null) ?: $fieldId;
+                    $uploads = $this->uploadedFiles($request->file('answers.'.$fieldId));
+
+                    if ($type === 'image') {
+                        $uploads = array_merge(
+                            $uploads,
+                            $this->uploadedFiles($request->file('camera_answers.'.$fieldId)),
+                        );
+                    }
+
                     $existing = $type === 'image'
                         ? ($field['images'] ?? [])
                         : ($field['files'] ?? []);
 
-                    if ($existing === [] && $uploads === []) {
+                    if (($field['required'] ?? false) && $existing === [] && $uploads === []) {
                         $validator->errors()->add(
                             'answers.'.$fieldId,
-                            'O campo "'.(($field['label'] ?? null) ?: $fieldId).'" é obrigatório.',
+                            'O campo "'.$label.'" é obrigatório.',
+                        );
+                    }
+
+                    if ($type === 'image' && count($existing) + count($uploads) > 5) {
+                        $validator->errors()->add(
+                            'answers.'.$fieldId,
+                            'O campo "'.$label.'" aceita no máximo 5 imagens.',
                         );
                     }
                 }
@@ -206,7 +221,10 @@ class FormFillController extends Controller
      */
     private function rules(array $steps): array
     {
-        $rules = ['answers' => ['nullable', 'array']];
+        $rules = [
+            'answers' => ['nullable', 'array'],
+            'camera_answers' => ['nullable', 'array'],
+        ];
 
         foreach ($steps as $step) {
             foreach ($step['fields'] ?? [] as $field) {
@@ -223,6 +241,8 @@ class FormFillController extends Controller
                 if ($type === 'image') {
                     $rules[$key] = ['nullable', 'array', 'max:5'];
                     $rules[$key.'.*'] = ['image', 'max:5120'];
+                    $rules['camera_answers.'.$fieldId] = ['nullable', 'array', 'max:5'];
+                    $rules['camera_answers.'.$fieldId.'.*'] = ['image', 'max:5120'];
 
                     continue;
                 }
@@ -311,6 +331,8 @@ class FormFillController extends Controller
                 $label = ($field['label'] ?? null) ?: $fieldId;
                 $attributes['answers.'.$fieldId] = $label;
                 $attributes['answers.'.$fieldId.'.*'] = $label;
+                $attributes['camera_answers.'.$fieldId] = $label;
+                $attributes['camera_answers.'.$fieldId.'.*'] = $label;
             }
         }
 
@@ -358,10 +380,15 @@ class FormFillController extends Controller
                 }
 
                 if (($field['type'] ?? null) === 'image') {
+                    $uploads = array_merge(
+                        $this->uploadedFiles($request->file('answers.'.$fieldId)),
+                        $this->uploadedFiles($request->file('camera_answers.'.$fieldId)),
+                    );
+
                     $steps[$stepIndex]['fields'][$fieldIndex] = $this->applyImages(
                         $form,
                         $field,
-                        $request->file('answers.'.$fieldId),
+                        $uploads,
                     );
 
                     continue;
@@ -391,6 +418,21 @@ class FormFillController extends Controller
         }
 
         return $steps;
+    }
+
+    /**
+     * Normalize a request file value into a zero-indexed list of uploads.
+     *
+     * @return array<int, UploadedFile>
+     */
+    private function uploadedFiles(mixed $uploads): array
+    {
+        $uploads = is_array($uploads) ? $uploads : ($uploads === null ? [] : [$uploads]);
+
+        return array_values(array_filter(
+            $uploads,
+            fn (mixed $upload) => $upload instanceof UploadedFile,
+        ));
     }
 
     /**

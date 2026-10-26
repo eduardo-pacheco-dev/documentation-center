@@ -47,7 +47,9 @@ it('shows the public form filling page without authentication', function () {
         ->assertSee($form->code)
         ->assertSee('Área registrada')
         ->assertSee('Enviar respostas')
-        ->assertSee('name="answers[F1-1]"', false);
+        ->assertSee('name="answers[F1-1]"', false)
+        ->assertSee('name="camera_answers[F2-5][]"', false)
+        ->assertSee('capture="environment"', false);
 });
 
 it('rejects a public form link without a valid signature', function () {
@@ -139,6 +141,110 @@ it('stores the images uploaded through the public link', function () {
     expect($form->steps[1]['fields'][4]['status'])->toBe('enviado');
 
     Storage::disk('public')->assertExists('forms/'.$form->getKey().'/'.basename($images[0]));
+});
+
+it('stores an image captured with the camera through the public link', function () {
+    Storage::fake('public');
+
+    $form = Form::factory()->create(['status' => 'Pendente', 'steps' => publicFormSteps()]);
+
+    $this->post(URL::signedRoute('public.forms.submit', ['form' => $form->getKey()]), [
+        'answers' => [
+            'F1-1' => 'Galpão A',
+            'F1-3' => '2026-10-25',
+            'F2-1' => 'Conforme',
+        ],
+        'camera_answers' => [
+            'F2-5' => [UploadedFile::fake()->image('camera.jpg')],
+        ],
+    ])->assertRedirect()->assertSessionHasNoErrors();
+
+    $form->refresh();
+    $images = $form->steps[1]['fields'][4]['images'];
+
+    expect($images)->toHaveCount(1);
+    expect($images[0])->toContain('/storage/forms/'.$form->getKey().'/');
+    expect($form->steps[1]['fields'][4]['status'])->toBe('enviado');
+
+    Storage::disk('public')->assertExists('forms/'.$form->getKey().'/'.basename($images[0]));
+});
+
+it('stores gallery and camera images uploaded together', function () {
+    Storage::fake('public');
+
+    $form = Form::factory()->create(['status' => 'Pendente', 'steps' => publicFormSteps()]);
+
+    $this->post(URL::signedRoute('public.forms.submit', ['form' => $form->getKey()]), [
+        'answers' => [
+            'F1-1' => 'Galpão A',
+            'F1-3' => '2026-10-25',
+            'F2-1' => 'Conforme',
+            'F2-5' => [UploadedFile::fake()->image('galeria.jpg')],
+        ],
+        'camera_answers' => [
+            'F2-5' => [UploadedFile::fake()->image('camera.jpg')],
+        ],
+    ])->assertRedirect()->assertSessionHasNoErrors();
+
+    $form->refresh();
+    $images = $form->steps[1]['fields'][4]['images'];
+
+    expect($images)->toHaveCount(2);
+    expect($form->steps[1]['fields'][4]['status'])->toBe('enviado');
+});
+
+it('requires an image when the image field is mandatory and only camera files are provided', function () {
+    $steps = publicFormSteps();
+    $steps[1]['fields'][4]['required'] = true;
+
+    $form = Form::factory()->create(['steps' => $steps]);
+
+    $this->post(URL::signedRoute('public.forms.submit', ['form' => $form->getKey()]), [
+        'answers' => [
+            'F1-1' => 'Galpão A',
+            'F1-3' => '2026-10-25',
+            'F2-1' => 'Conforme',
+        ],
+    ])->assertSessionHasErrors('answers.F2-5');
+
+    $this->post(URL::signedRoute('public.forms.submit', ['form' => $form->getKey()]), [
+        'answers' => [
+            'F1-1' => 'Galpão A',
+            'F1-3' => '2026-10-25',
+            'F2-1' => 'Conforme',
+        ],
+        'camera_answers' => [
+            'F2-5' => [UploadedFile::fake()->image('camera.jpg')],
+        ],
+    ])->assertRedirect()->assertSessionHasNoErrors();
+
+    expect($form->fresh()->steps[1]['fields'][4]['images'])->toHaveCount(1);
+});
+
+it('limits the combined gallery and camera images to five per field', function () {
+    $form = Form::factory()->create(['steps' => publicFormSteps()]);
+
+    $this->post(URL::signedRoute('public.forms.submit', ['form' => $form->getKey()]), [
+        'answers' => [
+            'F1-1' => 'Galpão A',
+            'F1-3' => '2026-10-25',
+            'F2-1' => 'Conforme',
+            'F2-5' => [
+                UploadedFile::fake()->image('galeria-1.jpg'),
+                UploadedFile::fake()->image('galeria-2.jpg'),
+                UploadedFile::fake()->image('galeria-3.jpg'),
+            ],
+        ],
+        'camera_answers' => [
+            'F2-5' => [
+                UploadedFile::fake()->image('camera-1.jpg'),
+                UploadedFile::fake()->image('camera-2.jpg'),
+                UploadedFile::fake()->image('camera-3.jpg'),
+            ],
+        ],
+    ])->assertSessionHasErrors('answers.F2-5');
+
+    expect($form->fresh()->steps[1]['fields'][4]['images'])->toBeEmpty();
 });
 
 it('stores the files uploaded through the public link', function () {

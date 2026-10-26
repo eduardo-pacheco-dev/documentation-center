@@ -185,14 +185,39 @@
                     </div>
                 @endif
 
-                <input
-                    id="{{ $id }}"
-                    type="file"
-                    name="answers[{{ $fieldId }}][]"
-                    accept="image/*"
-                    multiple
-                    class="block w-full text-sm text-gray-600 file:mr-3 file:rounded-md file:border-0 file:bg-gray-100 file:px-3 file:py-2 file:text-sm file:font-medium file:text-gray-700 hover:file:bg-gray-200 dark:text-gray-300 dark:file:bg-gray-800 dark:file:text-gray-200 dark:hover:file:bg-gray-700"
-                >
+                <div class="flex flex-wrap items-center gap-2" data-image-field>
+                    <label class="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200 dark:hover:bg-gray-800">
+                        <x-icon name="photo" class="h-4 w-4" />
+                        Escolher imagens
+
+                        <input
+                            data-image-input
+                            type="file"
+                            name="answers[{{ $fieldId }}][]"
+                            accept="image/*"
+                            multiple
+                            class="sr-only"
+                        >
+                    </label>
+
+                    <label class="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200 dark:hover:bg-gray-800">
+                        <x-icon name="camera" class="h-4 w-4" />
+                        Tirar foto
+
+                        <input
+                            data-camera-input
+                            type="file"
+                            name="camera_answers[{{ $fieldId }}][]"
+                            accept="image/*"
+                            capture="environment"
+                            class="sr-only"
+                        >
+                    </label>
+                </div>
+
+                <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                    Escolha imagens da galeria ou tire uma foto com a câmera.
+                </p>
                 @break
 
             @case('file')

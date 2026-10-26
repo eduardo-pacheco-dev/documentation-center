@@ -828,3 +828,56 @@ const FormProgress = (() => {
     document.querySelectorAll('[data-form-progress-form]').forEach(refresh);
 })();
 
+// Public image fields offer both gallery selection and camera capture. The
+// camera input is submitted separately so it still works without JavaScript;
+// with JavaScript enabled its files are merged into the gallery input so the
+// user can take several photos and submit everything at once.
+const CameraUploads = (() => {
+    const merge = (field) => {
+        const imageInput = field.querySelector('[data-image-input]');
+        const cameraInput = field.querySelector('[data-camera-input]');
+
+        if (! imageInput || ! cameraInput || typeof DataTransfer === 'undefined') {
+            return;
+        }
+
+        const cameraFiles = Array.from(cameraInput.files ?? []);
+
+        if (cameraFiles.length === 0) {
+            return;
+        }
+
+        const transfer = new DataTransfer();
+
+        Array.from(imageInput.files ?? []).forEach((file) => transfer.items.add(file));
+        cameraFiles.forEach((file) => transfer.items.add(file));
+
+        const expected = transfer.files.length;
+
+        try {
+            imageInput.files = transfer.files;
+        } catch {
+            return;
+        }
+
+        if ((imageInput.files?.length ?? 0) !== expected) {
+            return;
+        }
+
+        cameraInput.value = '';
+        imageInput.dispatchEvent(new Event('change', { bubbles: true }));
+    };
+
+    document.querySelectorAll('[data-image-field]').forEach((field) => {
+        const cameraInput = field.querySelector('[data-camera-input]');
+
+        if (! cameraInput) {
+            return;
+        }
+
+        cameraInput.addEventListener('change', () => merge(field));
+    });
+
+    return { merge };
+})();
+
