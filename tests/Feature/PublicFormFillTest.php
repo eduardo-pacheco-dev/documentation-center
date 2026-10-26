@@ -429,6 +429,38 @@ it('shows the submission progress in the form header', function () {
         ->assertSee('data-form-progress-form', false);
 });
 
+it('presents each section as a step in the public form', function () {
+    $form = Form::factory()->create(['steps' => publicFormSteps()]);
+
+    $this->get(URL::signedRoute('public.forms.fill', ['form' => $form->getKey()]))
+        ->assertOk()
+        ->assertSee('data-form-steps', false)
+        ->assertSee('data-form-initial-step="0"', false)
+        ->assertSee('data-form-step="0"', false)
+        ->assertSee('data-form-step="1"', false)
+        ->assertSee('data-form-step-prev', false)
+        ->assertSee('data-form-step-next', false)
+        ->assertSee('data-form-step-submit', false)
+        ->assertSee('Etapa')
+        ->assertSee('Próximo')
+        ->assertSee('Enviar respostas');
+});
+
+it('opens the step that contains validation errors', function () {
+    $form = Form::factory()->create(['steps' => publicFormSteps()]);
+
+    $this->from(URL::signedRoute('public.forms.fill', ['form' => $form->getKey()]))
+        ->followingRedirects()
+        ->post(URL::signedRoute('public.forms.submit', ['form' => $form->getKey()]), [
+            'answers' => [
+                'F1-1' => 'Galpão A',
+                'F1-3' => '2026-10-25',
+            ],
+        ])
+        ->assertOk()
+        ->assertSee('data-form-initial-step="1"', false);
+});
+
 it('updates the submission progress with the answers already stored', function () {
     $form = Form::factory()->create([
         'allows_multiple_responses' => false,

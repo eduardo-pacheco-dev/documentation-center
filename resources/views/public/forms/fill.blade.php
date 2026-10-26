@@ -10,6 +10,22 @@
         $initialPercent = $totalQuestions > 0
             ? (int) round(($answeredQuestions / $totalQuestions) * 100)
             : 0;
+
+        $sectionCount = count($steps);
+        $initialStep = 0;
+
+        foreach ($steps as $index => $step) {
+            foreach ($step['fields'] ?? [] as $field) {
+                $fieldId = (string) ($field['id'] ?? '');
+
+                if ($fieldId !== '' && ($errors->has('answers.'.$fieldId) || $errors->has('camera_answers.'.$fieldId))) {
+                    $initialStep = $index;
+                    break 2;
+                }
+            }
+        }
+
+        $initialStepTitle = ($steps[$initialStep]['title'] ?? null) ?: 'Seção '.($initialStep + 1);
     @endphp
 
     <div class="rounded-xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900">
@@ -89,13 +105,56 @@
                 enctype="multipart/form-data"
                 class="mt-6 space-y-5"
                 data-form-progress-form
+                data-form-steps
+                data-form-initial-step="{{ $initialStep }}"
             >
                 @csrf
 
+                <noscript>
+                    <style>
+                        [data-form-step][hidden] {
+                            display: block !important;
+                        }
+
+                        [data-form-step-prev],
+                        [data-form-step-next] {
+                            display: none !important;
+                        }
+
+                        [data-form-step-submit][hidden] {
+                            display: inline-flex !important;
+                        }
+                    </style>
+                </noscript>
+
+                <div class="rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 dark:border-gray-800 dark:bg-gray-800/40">
+                    <div class="flex flex-wrap items-center justify-between gap-2 text-xs font-medium text-gray-600 dark:text-gray-300">
+                        <span class="inline-flex items-center gap-1.5">
+                            <x-icon name="rectangle-stack" class="h-3.5 w-3.5 text-gray-400 dark:text-gray-500" />
+                            Etapa <span data-form-step-current>{{ $initialStep + 1 }}</span> de {{ $sectionCount }}
+                        </span>
+                        <span class="truncate text-gray-500 dark:text-gray-400" data-form-step-title>{{ $initialStepTitle }}</span>
+                    </div>
+                    <div class="mt-2 h-1.5 overflow-hidden rounded-full bg-gray-200 dark:bg-gray-700">
+                        <div
+                            data-form-step-bar
+                            class="h-full rounded-full bg-indigo-600 transition-all duration-300 dark:bg-indigo-500"
+                            style="width: {{ $sectionCount > 0 ? (int) round((($initialStep + 1) / $sectionCount) * 100) : 0 }}%"
+                        ></div>
+                    </div>
+                </div>
+
                 @foreach ($steps as $stepIndex => $step)
-                    <section class="rounded-lg border border-gray-200 dark:border-gray-800">
+                    <section
+                        data-form-step="{{ $stepIndex }}"
+                        @if ($stepIndex !== $initialStep) hidden @endif
+                        class="rounded-lg border border-gray-200 dark:border-gray-800"
+                    >
                         <div class="border-b border-gray-100 px-4 py-3 dark:border-gray-800">
-                            <h2 class="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                            <p class="text-[11px] font-medium uppercase tracking-wide text-gray-400 dark:text-gray-500">
+                                Etapa {{ $stepIndex + 1 }}
+                            </p>
+                            <h2 data-form-step-heading class="mt-0.5 text-sm font-semibold text-gray-900 dark:text-gray-100">
                                 {{ ($step['title'] ?? null) ?: 'Seção '.($stepIndex + 1) }}
                             </h2>
                         </div>
@@ -110,13 +169,39 @@
                     </section>
                 @endforeach
 
-                <button
-                    type="submit"
-                    class="inline-flex w-full items-center justify-center gap-1.5 rounded-lg bg-gray-900 px-4 py-2.5 text-sm font-medium text-white shadow-sm transition hover:bg-gray-700 dark:bg-white dark:text-gray-900 dark:hover:bg-gray-200"
-                >
-                    <x-icon name="paper-airplane" class="h-4 w-4" />
-                    {{ $response ? 'Atualizar respostas' : 'Enviar respostas' }}
-                </button>
+                <div class="flex flex-wrap items-center gap-2">
+                    <button
+                        type="button"
+                        data-form-step-prev
+                        @if ($initialStep === 0) hidden @endif
+                        class="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 px-4 py-2.5 text-sm font-medium text-gray-700 transition hover:bg-gray-100 dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-800"
+                    >
+                        <x-icon name="chevron-left" class="h-4 w-4" />
+                        Anterior
+                    </button>
+
+                    <div class="ml-auto flex items-center gap-2">
+                        <button
+                            type="button"
+                            data-form-step-next
+                            @if ($initialStep >= $sectionCount - 1) hidden @endif
+                            class="inline-flex items-center gap-1.5 rounded-lg bg-gray-900 px-4 py-2.5 text-sm font-medium text-white shadow-sm transition hover:bg-gray-700 dark:bg-white dark:text-gray-900 dark:hover:bg-gray-200"
+                        >
+                            Próximo
+                            <x-icon name="chevron-right" class="h-4 w-4" />
+                        </button>
+
+                        <button
+                            type="submit"
+                            data-form-step-submit
+                            @if ($initialStep < $sectionCount - 1) hidden @endif
+                            class="inline-flex w-full items-center justify-center gap-1.5 rounded-lg bg-gray-900 px-4 py-2.5 text-sm font-medium text-white shadow-sm transition hover:bg-gray-700 dark:bg-white dark:text-gray-900 dark:hover:bg-gray-200 sm:w-auto"
+                        >
+                            <x-icon name="paper-airplane" class="h-4 w-4" />
+                            {{ $response ? 'Atualizar respostas' : 'Enviar respostas' }}
+                        </button>
+                    </div>
+                </div>
             </form>
         @endif
     </div>

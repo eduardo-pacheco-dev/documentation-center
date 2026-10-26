@@ -828,6 +828,109 @@ const FormProgress = (() => {
     document.querySelectorAll('[data-form-progress-form]').forEach(refresh);
 })();
 
+// Public forms display each section as a step. The sections are rendered in
+// the markup so the form works without JavaScript; this module only controls
+// which section is visible and validates the current step before advancing.
+const FormSteps = (() => {
+    document.querySelectorAll('[data-form-steps]').forEach((form) => {
+        const steps = Array.from(form.querySelectorAll('[data-form-step]'));
+
+        if (steps.length === 0) {
+            return;
+        }
+
+        const previous = form.querySelector('[data-form-step-prev]');
+        const next = form.querySelector('[data-form-step-next]');
+        const submit = form.querySelector('[data-form-step-submit]');
+        const currentLabel = form.querySelector('[data-form-step-current]');
+        const titleLabel = form.querySelector('[data-form-step-title]');
+        const bar = form.querySelector('[data-form-step-bar]');
+        const initial = Number.parseInt(form.dataset.formInitialStep ?? '0', 10);
+        let current = Number.isNaN(initial) ? 0 : Math.min(Math.max(initial, 0), steps.length - 1);
+
+        form.noValidate = true;
+
+        const invalidControl = (root) => Array.from(root.querySelectorAll('input, select, textarea'))
+            .find((control) => control.willValidate && ! control.checkValidity());
+
+        const titleOf = (index) => steps[index].querySelector('[data-form-step-heading]')?.textContent.trim() ?? '';
+
+        const show = (index, scroll = false) => {
+            current = Math.min(Math.max(index, 0), steps.length - 1);
+
+            steps.forEach((step, position) => {
+                step.hidden = position !== current;
+            });
+
+            if (currentLabel) {
+                currentLabel.textContent = String(current + 1);
+            }
+
+            if (titleLabel) {
+                titleLabel.textContent = titleOf(current);
+            }
+
+            if (bar) {
+                bar.style.width = `${Math.round(((current + 1) / steps.length) * 100)}%`;
+            }
+
+            if (previous) {
+                previous.hidden = current === 0;
+            }
+
+            if (next) {
+                next.hidden = current >= steps.length - 1;
+            }
+
+            if (submit) {
+                submit.hidden = current < steps.length - 1;
+            }
+
+            form.dataset.formCurrentStep = String(current);
+
+            if (scroll) {
+                steps[current].scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        };
+
+        previous?.addEventListener('click', () => show(current - 1, true));
+
+        next?.addEventListener('click', () => {
+            const invalid = invalidControl(steps[current]);
+
+            if (invalid) {
+                invalid.reportValidity();
+
+                return;
+            }
+
+            show(current + 1, true);
+        });
+
+        form.addEventListener('submit', (event) => {
+            const invalid = invalidControl(form);
+
+            if (! invalid) {
+                return;
+            }
+
+            const step = invalid.closest('[data-form-step]');
+
+            if (! step) {
+                return;
+            }
+
+            event.preventDefault();
+            show(steps.indexOf(step), true);
+            invalid.reportValidity();
+        });
+
+        show(current);
+    });
+
+    return {};
+})();
+
 // Public image fields offer both gallery selection and camera capture. The
 // camera input is submitted separately so it still works without JavaScript;
 // with JavaScript enabled its files are merged into the gallery input so the
