@@ -36,10 +36,6 @@
             {{ $slot }}
         </main>
 
-        <footer class="px-4 text-center text-xs text-gray-500 dark:text-gray-500 {{ $withActionBar ? 'pb-28' : 'py-6' }}">
-            <p>&copy; {{ date('Y') }} {{ config('app.name') }}. Todos os direitos reservados.</p>
-        </footer>
-
         <x-toasts />
     </body>
 </html>
