@@ -22,8 +22,10 @@
         type="button"
         data-image-remove
         aria-label="Excluir imagem"
-        class="absolute bottom-1 right-1 inline-flex h-7 w-7 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-600 transition hover:border-red-200 hover:bg-red-50 hover:text-red-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 dark:hover:border-red-500/40 dark:hover:bg-red-500/10 dark:hover:text-red-400"
+        class="absolute right-[-10.5px] top-[-10.5px] z-10 inline-flex h-[21px] w-[21px] items-center justify-center rounded-full border border-red-600 bg-red-600 text-white transition hover:border-red-500 hover:bg-red-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 dark:border-red-500 dark:bg-red-500 dark:hover:border-red-400 dark:hover:bg-red-400"
     >
-        <x-icon name="x-mark" class="h-4 w-4" />
+        <svg class="h-3 w-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12"/>
+        </svg>
     </button>
 </div>

@@ -1437,8 +1437,22 @@ const ImageGallery = (() => {
         button.type = 'button';
         button.dataset.imageRemove = '';
         button.setAttribute('aria-label', 'Excluir imagem');
-        button.className = 'absolute bottom-1 right-1 inline-flex h-7 w-7 items-center justify-center rounded-full border border-gray-200 bg-white text-sm font-semibold leading-none text-gray-600 transition hover:border-red-200 hover:bg-red-50 hover:text-red-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 dark:hover:border-red-500/40 dark:hover:bg-red-500/10 dark:hover:text-red-400';
-        button.textContent = '×';
+        button.className = 'absolute right-[-10.5px] top-[-10.5px] z-10 inline-flex h-[21px] w-[21px] items-center justify-center rounded-full border border-red-600 bg-red-600 text-white transition hover:border-red-500 hover:bg-red-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 dark:border-red-500 dark:bg-red-500 dark:hover:border-red-400 dark:hover:bg-red-400';
+
+        const icon = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        icon.setAttribute('class', 'h-3 w-3');
+        icon.setAttribute('fill', 'none');
+        icon.setAttribute('viewBox', '0 0 24 24');
+        icon.setAttribute('stroke-width', '1.5');
+        icon.setAttribute('stroke', 'currentColor');
+        icon.setAttribute('aria-hidden', 'true');
+
+        const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        path.setAttribute('stroke-linecap', 'round');
+        path.setAttribute('stroke-linejoin', 'round');
+        path.setAttribute('d', 'M6 18 18 6M6 6l12 12');
+        icon.append(path);
+        button.append(icon);
 
         link.append(image);
         wrapper.append(link, button);
