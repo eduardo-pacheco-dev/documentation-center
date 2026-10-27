@@ -9,18 +9,22 @@
 
 <div {{ $attributes->class(['space-y-3']) }}>
     <div class="flex flex-wrap gap-2" data-image-thumbnails>
-        @forelse ($images as $image)
+        <div
+            data-image-empty
+            @if (! empty($images)) hidden @endif
+            class="flex h-20 w-20 flex-col items-center justify-center gap-1 rounded-xl border border-dashed border-gray-300 text-[11px] font-medium text-gray-400 dark:border-gray-700 dark:text-gray-500"
+        >
+            <x-icon name="photo" class="h-5 w-5" />
+            Vazio
+        </div>
+
+        @foreach ($images as $image)
             <x-public.forms.image-thumbnail
                 :href="$image"
                 :src="$thumbnails[$loop->index] ?? $image"
                 :alt="$label"
             />
-        @empty
-            <div data-image-empty class="flex h-20 w-20 flex-col items-center justify-center gap-1 rounded-xl border border-dashed border-gray-300 text-[11px] font-medium text-gray-400 dark:border-gray-700 dark:text-gray-500">
-                <x-icon name="photo" class="h-5 w-5" />
-                Vazio
-            </div>
-        @endforelse
+        @endforeach
     </div>
 
     <div class="grid grid-cols-2 gap-2" data-image-field>

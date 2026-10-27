@@ -270,6 +270,101 @@ class FormFillController extends Controller
     }
 
     /**
+     * Delete an image already stored for the public response.
+     *
+     * The image is removed from the response answers and from the public disk.
+     * The remaining images keep their order and decisions aligned.
+     */
+    public function destroyImage(Request $request, Form $form): JsonResponse
+    {
+        $validated = $request->validate([
+            'field' => ['required', 'string'],
+            'index' => ['required', 'integer', 'min:0'],
+        ]);
+
+        $response = $this->singleResponse($form);
+
+        if ($response === null) {
+            return response()->json([
+                'message' => 'Nenhuma imagem encontrada para excluir.',
+            ], 404);
+        }
+
+        $steps = $this->responseSteps($form->steps ?? [], $response);
+        $fieldId = (string) $validated['field'];
+        $index = (int) $validated['index'];
+
+        foreach ($steps as $stepIndex => $step) {
+            foreach ($step['fields'] ?? [] as $fieldIndex => $field) {
+                if ((string) ($field['id'] ?? '') !== $fieldId) {
+                    continue;
+                }
+
+                if (($field['type'] ?? null) !== 'image') {
+                    return response()->json([
+                        'message' => 'O campo informado não aceita imagens.',
+                    ], 422);
+                }
+
+                $images = array_values($field['images'] ?? []);
+                $thumbnails = array_values($field['imageThumbnails'] ?? []);
+                $decisions = is_array($field['imageDecisions'] ?? null) ? $field['imageDecisions'] : [];
+                $hasDecisions = array_key_exists('imageDecisions', $field);
+
+                if (! array_key_exists($index, $images)) {
+                    return response()->json([
+                        'message' => 'Imagem não encontrada.',
+                    ], 404);
+                }
+
+                $removed = [$images[$index], $thumbnails[$index] ?? $images[$index]];
+                $alignedDecisions = [];
+                $nextIndex = 0;
+
+                foreach (array_keys($images) as $oldIndex) {
+                    if ($oldIndex === $index) {
+                        continue;
+                    }
+
+                    if (array_key_exists($oldIndex, $decisions)) {
+                        $alignedDecisions[$nextIndex] = $decisions[$oldIndex];
+                    }
+
+                    $nextIndex++;
+                }
+
+                unset($images[$index], $thumbnails[$index]);
+
+                $images = array_values($images);
+                $thumbnails = array_values($thumbnails);
+
+                $steps[$stepIndex]['fields'][$fieldIndex]['images'] = $images;
+                $steps[$stepIndex]['fields'][$fieldIndex]['imageThumbnails'] = $thumbnails;
+                $steps[$stepIndex]['fields'][$fieldIndex]['status'] = $images === [] ? 'pendente' : 'enviado';
+
+                if ($hasDecisions) {
+                    $steps[$stepIndex]['fields'][$fieldIndex]['imageDecisions'] = $alignedDecisions;
+                }
+
+                $response->update(['steps' => $steps]);
+
+                $this->deleteStoredImages($form, $removed);
+
+                return response()->json([
+                    'message' => 'Imagem excluída.',
+                    'images' => $images,
+                    'thumbnails' => $thumbnails,
+                    'has_upload' => $images !== [],
+                ]);
+            }
+        }
+
+        return response()->json([
+            'message' => 'Imagem não encontrada.',
+        ], 404);
+    }
+
+    /**
      * Get the response that should be updated by the current submission.
      *
      * Multi response forms only resume a draft created in the same browser
@@ -982,6 +1077,42 @@ class FormFillController extends Controller
         $urlPath = parse_url($url, PHP_URL_PATH);
 
         return is_string($urlPath) && $urlPath !== '' ? $urlPath : $url;
+    }
+
+    /**
+     * Delete stored images that belong to the form.
+     *
+     * Only files inside the form upload directory are removed, so a tampered
+     * response cannot point the deletion at another file on the disk.
+     *
+     * @param  array<int, string>  $urls
+     */
+    private function deleteStoredImages(Form $form, array $urls): void
+    {
+        $disk = Storage::disk('public');
+        $directory = 'forms/'.$form->getKey().'/';
+
+        foreach (array_unique($urls) as $url) {
+            $path = parse_url($url, PHP_URL_PATH);
+
+            if (! is_string($path)) {
+                continue;
+            }
+
+            $path = ltrim($path, '/');
+
+            if (! str_starts_with($path, 'storage/')) {
+                continue;
+            }
+
+            $relative = substr($path, strlen('storage/'));
+
+            if (! str_starts_with($relative, $directory)) {
+                continue;
+            }
+
+            $disk->delete($relative);
+        }
     }
 
     /**

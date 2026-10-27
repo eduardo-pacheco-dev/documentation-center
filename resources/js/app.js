@@ -780,33 +780,56 @@ const FormProgress = (() => {
     };
 
     const refresh = (form) => {
-        const container = form.querySelector('[data-form-progress]') ?? document.querySelector('[data-form-progress]');
-
-        if (!container) {
-            return;
-        }
-
         const questions = Array.from(form.querySelectorAll('[data-question]'));
         const answered = questions.filter(isAnswered).length;
         const percent = questions.length > 0 ? Math.round((answered / questions.length) * 100) : 0;
 
-        const count = container.querySelector('[data-progress-count]');
-        const percentage = container.querySelector('[data-progress-percent]');
-        const bar = container.querySelector('[data-progress-bar]');
+        const container = form.querySelector('[data-form-progress]') ?? document.querySelector('[data-form-progress]');
 
-        if (count) {
-            count.textContent = `${answered} de ${questions.length}`;
+        if (container) {
+            const count = container.querySelector('[data-progress-count]');
+            const percentage = container.querySelector('[data-progress-percent]');
+            const bar = container.querySelector('[data-progress-bar]');
+
+            if (count) {
+                count.textContent = `${answered} de ${questions.length}`;
+            }
+
+            if (percentage) {
+                percentage.textContent = `${percent}%`;
+            }
+
+            if (bar) {
+                bar.style.width = `${percent}%`;
+            }
+
+            container.setAttribute('aria-valuenow', String(percent));
         }
 
-        if (percentage) {
-            percentage.textContent = `${percent}%`;
-        }
+        form.querySelectorAll('[data-form-step]').forEach((step) => {
+            const disc = step.querySelector('[data-step-progress]');
 
-        if (bar) {
-            bar.style.width = `${percent}%`;
-        }
+            if (!disc) {
+                return;
+            }
 
-        container.setAttribute('aria-valuenow', String(percent));
+            const stepQuestions = Array.from(step.querySelectorAll('[data-question]'));
+            const stepAnswered = stepQuestions.filter(isAnswered).length;
+            const stepPercent = stepQuestions.length > 0 ? Math.round((stepAnswered / stepQuestions.length) * 100) : 0;
+            const ring = disc.querySelector('[data-step-progress-ring]');
+            const label = disc.querySelector('[data-step-progress-label]');
+
+            disc.setAttribute('aria-valuenow', String(stepPercent));
+            disc.setAttribute('aria-valuetext', `${stepAnswered} de ${stepQuestions.length} perguntas`);
+
+            if (ring) {
+                ring.style.strokeDashoffset = String(100 - stepPercent);
+            }
+
+            if (label) {
+                label.textContent = `${stepPercent}%`;
+            }
+        });
     };
 
     document.addEventListener('input', (event) => {
@@ -1388,6 +1411,77 @@ const ImageModal = (() => {
     return { open, close };
 })();
 
+// Public image thumbnails can be rebuilt after an automatic save or after an
+// image is deleted. The markup mirrors the Blade component so the thumbnail
+// keeps its preview modal and its own delete button.
+const ImageGallery = (() => {
+    const create = (url, preview, alt) => {
+        const wrapper = document.createElement('div');
+        wrapper.dataset.imageItem = '';
+        wrapper.className = 'group relative h-20 w-20';
+
+        const link = document.createElement('a');
+        link.href = url;
+        link.target = '_blank';
+        link.rel = 'noopener';
+        link.dataset.imageExisting = '';
+        link.className = 'block h-full w-full overflow-hidden rounded-xl border border-gray-200 transition active:scale-[0.98] dark:border-gray-800';
+
+        const image = document.createElement('img');
+        image.src = preview;
+        image.alt = alt;
+        image.loading = 'lazy';
+        image.className = 'h-full w-full object-cover';
+
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.dataset.imageRemove = '';
+        button.setAttribute('aria-label', 'Excluir imagem');
+        button.className = 'absolute bottom-1 right-1 inline-flex h-7 w-7 items-center justify-center rounded-full border border-gray-200 bg-white text-sm font-semibold leading-none text-gray-600 transition hover:border-red-200 hover:bg-red-50 hover:text-red-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 dark:hover:border-red-500/40 dark:hover:bg-red-500/10 dark:hover:text-red-400';
+        button.textContent = '×';
+
+        link.append(image);
+        wrapper.append(link, button);
+
+        return wrapper;
+    };
+
+    const render = (form, fieldId, images, thumbnails = []) => {
+        const question = Array.from(form.querySelectorAll('[data-question]'))
+            .find((element) => element.dataset.question === fieldId) ?? null;
+        const container = question?.querySelector('[data-image-thumbnails]');
+
+        if (! question || ! container) {
+            return null;
+        }
+
+        container.querySelectorAll('[data-image-item]').forEach((item) => item.remove());
+
+        (images ?? []).forEach((url, index) => {
+            container.append(create(url, (thumbnails ?? [])[index] ?? url, 'Imagem enviada'));
+        });
+
+        const empty = container.querySelector('[data-image-empty]');
+        const previewing = container.querySelectorAll('[data-image-preview-item]').length > 0;
+
+        if (empty) {
+            empty.hidden = (images?.length ?? 0) > 0 || previewing;
+        }
+
+        question.dataset.hasUpload = (images?.length ?? 0) > 0 ? '1' : '0';
+
+        const field = question.querySelector('[data-image-field]');
+
+        if (field) {
+            ImageSelections.setExisting(field, images?.length ?? 0);
+        }
+
+        return question;
+    };
+
+    return { render };
+})();
+
 // Public image fields save the new photos automatically while the form is
 // filled. The request keeps a draft response on the server, so leaving the
 // page does not discard the images. The stored URLs then replace the local
@@ -1399,9 +1493,6 @@ const DraftAutosave = (() => {
         saved: ['text-emerald-600', 'dark:text-emerald-400'],
         error: ['text-red-600', 'dark:text-red-400'],
     };
-
-    const questionFor = (form, fieldId) => Array.from(form.querySelectorAll('[data-question]'))
-        .find((question) => question.dataset.question === fieldId) ?? null;
 
     const setStatus = (status, state, message) => {
         if (! status) {
@@ -1419,46 +1510,7 @@ const DraftAutosave = (() => {
 
     const storedImages = (form, images, thumbnails) => {
         Object.entries(images).forEach(([fieldId, urls]) => {
-            const question = questionFor(form, fieldId);
-            const container = question?.querySelector('[data-image-thumbnails]');
-            const field = question?.querySelector('[data-image-field]');
-
-            if (! question || ! container || ! field) {
-                return;
-            }
-
-            const previews = thumbnails[fieldId] ?? [];
-
-            container.querySelectorAll('[data-image-existing]').forEach((item) => item.remove());
-
-            urls.forEach((url, index) => {
-                const link = document.createElement('a');
-                const image = document.createElement('img');
-
-                link.href = url;
-                link.target = '_blank';
-                link.rel = 'noopener';
-                link.dataset.imageExisting = '';
-                link.className = 'block h-20 w-20 overflow-hidden rounded-xl ring-1 ring-gray-200 dark:ring-gray-800';
-
-                image.src = previews[index] ?? url;
-                image.alt = 'Imagem enviada';
-                image.loading = 'lazy';
-                image.className = 'h-full w-full object-cover';
-
-                link.append(image);
-                container.append(link);
-            });
-
-            const empty = container.querySelector('[data-image-empty]');
-            const previewing = container.querySelectorAll('[data-image-preview-item]').length > 0;
-
-            if (empty) {
-                empty.hidden = urls.length > 0 || previewing;
-            }
-
-            question.dataset.hasUpload = urls.length > 0 ? '1' : '0';
-            ImageSelections.setExisting(field, urls.length);
+            ImageGallery.render(form, fieldId, urls, thumbnails[fieldId] ?? []);
         });
     };
 
@@ -1623,6 +1675,110 @@ const DraftAutosave = (() => {
     });
 
     return {};
+})();
+
+// Public image fields allow the respondent to delete a photo already stored
+// on the server. The signed endpoint removes it from the response and disk,
+// then the gallery is rebuilt from the URLs returned by the server so the
+// remaining delete buttons keep pointing at the right image.
+const ImageDeletion = (() => {
+    const setStatus = (form, state, message) => {
+        const status = form.querySelector('[data-draft-autosave-status]');
+
+        if (! status) {
+            return;
+        }
+
+        status.hidden = false;
+        status.textContent = message;
+        status.classList.remove(
+            'text-gray-500', 'text-emerald-600', 'text-red-600',
+            'dark:text-gray-400', 'dark:text-emerald-400', 'dark:text-red-400',
+        );
+        status.classList.add(
+            ...(state === 'error'
+                ? ['text-red-600', 'dark:text-red-400']
+                : ['text-emerald-600', 'dark:text-emerald-400']),
+        );
+    };
+
+    document.addEventListener('click', async (event) => {
+        const button = event.target.closest('[data-image-remove]');
+
+        if (! button) {
+            return;
+        }
+
+        const form = button.closest('form[data-form-image-delete-url]');
+        const question = button.closest('[data-question]');
+        const item = button.closest('[data-image-item]');
+        const container = question?.querySelector('[data-image-thumbnails]');
+        const fieldId = question?.dataset.question;
+        const url = form?.dataset.formImageDeleteUrl;
+
+        if (! form || ! question || ! item || ! container || ! fieldId || ! url) {
+            return;
+        }
+
+        event.preventDefault();
+
+        if (button.disabled) {
+            return;
+        }
+
+        const anchors = Array.from(container.querySelectorAll('[data-image-existing]'));
+        const index = anchors.indexOf(item.querySelector('[data-image-existing]'));
+
+        if (index < 0) {
+            return;
+        }
+
+        if (! window.confirm('Excluir esta imagem? Essa ação não pode ser desfeita.')) {
+            return;
+        }
+
+        const data = new FormData();
+
+        data.append('_token', form.querySelector('input[name="_token"]')?.value ?? '');
+        data.append('field', fieldId);
+        data.append('index', String(index));
+
+        button.disabled = true;
+        button.classList.add('opacity-50');
+
+        try {
+            const response = await fetch(url, {
+                method: 'POST',
+                credentials: 'same-origin',
+                headers: {
+                    'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+                body: data,
+            });
+
+            const payload = await response.json().catch(() => ({}));
+
+            if (! response.ok) {
+                throw new Error(payload.message || 'Não foi possível excluir a imagem.');
+            }
+
+            const refreshed = ImageGallery.render(
+                form,
+                fieldId,
+                payload.images ?? [],
+                payload.thumbnails ?? [],
+            );
+
+            refreshed?.dispatchEvent(new Event('change', { bubbles: true }));
+
+            setStatus(form, 'saved', payload.message || 'Imagem excluída.');
+        } catch (error) {
+            setStatus(form, 'error', error.message || 'Não foi possível excluir a imagem.');
+            button.disabled = false;
+            button.classList.remove('opacity-50');
+        }
+    });
 })();
 
 

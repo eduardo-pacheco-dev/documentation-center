@@ -15,6 +15,7 @@
     data-form-steps
     data-form-initial-step="{{ $initialStep }}"
     data-form-autosave-url="{{ URL::signedRoute('public.forms.autosave', ['form' => $form->getKey()]) }}"
+    data-form-image-delete-url="{{ URL::signedRoute('public.forms.images.destroy', ['form' => $form->getKey()]) }}"
 >
     @csrf
 

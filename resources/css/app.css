@@ -152,4 +152,8 @@ html {
     .no-js [data-form-step-submit][hidden] {
         display: inline-flex !important;
     }
+
+    .no-js [data-image-remove] {
+        display: none !important;
+    }
 }
