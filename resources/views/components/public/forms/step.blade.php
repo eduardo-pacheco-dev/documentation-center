@@ -8,13 +8,11 @@
 @php
     $fields = $step['fields'] ?? [];
     $questionCount = count($fields);
-    $answeredCount = collect($fields)->filter(
-        fn (array $field) => filled($field['value'] ?? null)
-            || ! empty($field['images'] ?? [])
-            || ! empty($field['files'] ?? []),
+    $approvedCount = collect($fields)->filter(
+        fn (array $field) => ($field['status'] ?? null) === 'aprovado',
     )->count();
     $progress = $questionCount > 0
-        ? (int) round(($answeredCount / $questionCount) * 100)
+        ? (int) round(($approvedCount / $questionCount) * 100)
         : 0;
 @endphp
 
@@ -44,7 +42,7 @@
             aria-valuemin="0"
             aria-valuemax="100"
             aria-valuenow="{{ $progress }}"
-            aria-valuetext="{{ $answeredCount }} de {{ $questionCount }} perguntas"
+            aria-valuetext="{{ $approvedCount }} de {{ $questionCount }} perguntas aprovadas"
         >
             <svg class="h-11 w-11 -rotate-90" viewBox="0 0 36 36" aria-hidden="true">
                 <circle

@@ -1209,19 +1209,22 @@ it('shows the approved percentage in the form header', function () {
         ->assertSee('data-form-progress-form', false);
 });
 
-it('shows the progress of each section', function () {
+it('shows the approved progress of each section', function () {
     $form = Form::factory()->create([
         'allows_multiple_responses' => false,
         'steps' => publicFormSteps(),
     ]);
 
-    $this->post(URL::signedRoute('public.forms.submit', ['form' => $form->getKey()]), [
-        'answers' => [
-            'F1-1' => 'Galpão A',
-            'F1-3' => '2026-10-25',
-            'F2-1' => 'Conforme',
-        ],
-    ])->assertRedirect();
+    $steps = publicFormSteps();
+    $steps[0]['fields'][0]['status'] = 'aprovado';
+    $steps[0]['fields'][1]['status'] = 'aprovado';
+    $steps[1]['fields'][0]['status'] = 'aprovado';
+
+    $form->responses()->create([
+        'status' => 'Aprovado',
+        'steps' => $steps,
+        'submitted_at' => now(),
+    ]);
 
     $this->get(URL::signedRoute('public.forms.fill', ['form' => $form->getKey()]))
         ->assertOk()
@@ -1229,7 +1232,9 @@ it('shows the progress of each section', function () {
         ->assertSee('aria-label="Progresso da etapa 1"', false)
         ->assertSee('aria-label="Progresso da etapa 2"', false)
         ->assertSee('aria-valuenow="67"', false)
-        ->assertSee('aria-valuenow="20"', false);
+        ->assertSee('aria-valuenow="20"', false)
+        ->assertSee('2 de 3 perguntas aprovadas', false)
+        ->assertSee('1 de 5 perguntas aprovadas', false);
 });
 
 it('presents each section as a step in the public form', function () {

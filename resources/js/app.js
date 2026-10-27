@@ -764,28 +764,9 @@ const LoginForm = (() => {
 })();
 
 // Public forms show how many questions are approved while the response is
-// reviewed. The total is derived from the rendered fields so it keeps working
-// when the form structure changes. Each section still reports how many of its
-// questions were answered while filling.
+// reviewed. The totals are derived from the rendered fields so they keep
+// working when the form structure changes.
 const FormProgress = (() => {
-    const isAnswered = (question) => {
-        if (question.dataset.hasUpload === '1') {
-            return true;
-        }
-
-        return Array.from(question.querySelectorAll('input, textarea, select')).some((control) => {
-            if (control.type === 'file') {
-                return (control.files?.length ?? 0) > 0;
-            }
-
-            if (control.type === 'radio' || control.type === 'checkbox') {
-                return control.checked;
-            }
-
-            return (control.value || '').trim() !== '';
-        });
-    };
-
     const refresh = (form) => {
         const questions = Array.from(form.querySelectorAll('[data-question]'));
         const approved = questions.filter((question) => question.dataset.status === 'aprovado').length;
@@ -821,13 +802,13 @@ const FormProgress = (() => {
             }
 
             const stepQuestions = Array.from(step.querySelectorAll('[data-question]'));
-            const stepAnswered = stepQuestions.filter(isAnswered).length;
-            const stepPercent = stepQuestions.length > 0 ? Math.round((stepAnswered / stepQuestions.length) * 100) : 0;
+            const stepApproved = stepQuestions.filter((question) => question.dataset.status === 'aprovado').length;
+            const stepPercent = stepQuestions.length > 0 ? Math.round((stepApproved / stepQuestions.length) * 100) : 0;
             const ring = disc.querySelector('[data-step-progress-ring]');
             const label = disc.querySelector('[data-step-progress-label]');
 
             disc.setAttribute('aria-valuenow', String(stepPercent));
-            disc.setAttribute('aria-valuetext', `${stepAnswered} de ${stepQuestions.length} perguntas`);
+            disc.setAttribute('aria-valuetext', `${stepApproved} de ${stepQuestions.length} perguntas aprovadas`);
 
             if (ring) {
                 ring.style.strokeDashoffset = String(100 - stepPercent);
