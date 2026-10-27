@@ -1462,7 +1462,7 @@ const ImageGallery = (() => {
         return badge;
     };
 
-    const create = (url, preview, alt, status = 'enviado') => {
+    const create = (url, preview, alt, status = null) => {
         const wrapper = document.createElement('div');
         wrapper.dataset.imageItem = '';
         wrapper.className = 'group relative h-20 w-20';
@@ -1515,7 +1515,7 @@ const ImageGallery = (() => {
         return wrapper;
     };
 
-    const render = (form, fieldId, images, thumbnails = []) => {
+    const render = (form, fieldId, images, thumbnails = [], decisions = []) => {
         const question = Array.from(form.querySelectorAll('[data-question]'))
             .find((element) => element.dataset.question === fieldId) ?? null;
         const container = question?.querySelector('[data-image-thumbnails]');
@@ -1527,7 +1527,7 @@ const ImageGallery = (() => {
         container.querySelectorAll('[data-image-item]').forEach((item) => item.remove());
 
         (images ?? []).forEach((url, index) => {
-            container.append(create(url, (thumbnails ?? [])[index] ?? url, 'Imagem enviada'));
+            container.append(create(url, (thumbnails ?? [])[index] ?? url, 'Imagem enviada', decisions?.[index] ?? null));
         });
 
         const empty = container.querySelector('[data-image-empty]');
@@ -1578,9 +1578,9 @@ const DraftAutosave = (() => {
         status.classList.add(...STATUS_CLASSES[state]);
     };
 
-    const storedImages = (form, images, thumbnails) => {
+    const storedImages = (form, images, thumbnails, decisions = {}) => {
         Object.entries(images).forEach(([fieldId, urls]) => {
-            ImageGallery.render(form, fieldId, urls, thumbnails[fieldId] ?? []);
+            ImageGallery.render(form, fieldId, urls, thumbnails[fieldId] ?? [], decisions[fieldId] ?? []);
         });
     };
 
@@ -1661,7 +1661,7 @@ const DraftAutosave = (() => {
                         throw new Error(data.message || 'Não foi possível salvar as imagens.');
                     }
 
-                    storedImages(form, data.images || {}, data.thumbnails || {});
+                    storedImages(form, data.images || {}, data.thumbnails || {}, data.imageDecisions || {});
 
                     sent.forEach((keys, field) => ImageSelections.remove(field, keys));
 
@@ -1844,6 +1844,7 @@ const ImageDeletion = (() => {
                 fieldId,
                 payload.images ?? [],
                 payload.thumbnails ?? [],
+                payload.imageDecisions ?? [],
             );
 
             refreshed?.dispatchEvent(new Event('change', { bubbles: true }));

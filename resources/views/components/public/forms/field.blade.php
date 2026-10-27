@@ -79,7 +79,7 @@
                     :label="$label"
                     :images="$existingImages"
                     :thumbnails="$field['imageThumbnails'] ?? []"
-                    :status="$field['status'] ?? null"
+                    :image-decisions="$field['imageDecisions'] ?? []"
                 />
                 @break
 

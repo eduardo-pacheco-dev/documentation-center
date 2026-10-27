@@ -265,6 +265,7 @@ class FormFillController extends Controller
                 : 'Nenhuma imagem nova para salvar.',
             'images' => $this->imageUrls($steps),
             'thumbnails' => $this->imageThumbnailUrls($steps),
+            'imageDecisions' => $this->imageDecisionMap($steps),
             'saved_at' => now()->toIso8601String(),
         ]);
     }
@@ -354,6 +355,7 @@ class FormFillController extends Controller
                     'message' => 'Imagem excluída.',
                     'images' => $images,
                     'thumbnails' => $thumbnails,
+                    'imageDecisions' => $alignedDecisions,
                     'has_upload' => $images !== [],
                 ]);
             }
@@ -1145,6 +1147,47 @@ class FormFillController extends Controller
         }
 
         return $thumbnails;
+    }
+
+    /**
+     * Collect the per-image decisions grouped by image field id.
+     *
+     * Decisions keep the index of the image they belong to, so images without
+     * a decision are simply absent from the map.
+     *
+     * @param  array<int, array<string, mixed>>  $steps
+     * @return array<string, array<int, string>>
+     */
+    private function imageDecisionMap(array $steps): array
+    {
+        $decisions = [];
+
+        foreach ($steps as $step) {
+            foreach ($step['fields'] ?? [] as $field) {
+                if (($field['type'] ?? null) !== 'image') {
+                    continue;
+                }
+
+                $fieldId = (string) ($field['id'] ?? '');
+
+                if ($fieldId === '') {
+                    continue;
+                }
+
+                $stored = is_array($field['imageDecisions'] ?? null) ? $field['imageDecisions'] : [];
+                $map = [];
+
+                foreach (array_keys($field['images'] ?? []) as $index) {
+                    if (isset($stored[$index])) {
+                        $map[$index] = $stored[$index];
+                    }
+                }
+
+                $decisions[$fieldId] = $map;
+            }
+        }
+
+        return $decisions;
     }
 
     /**

@@ -328,7 +328,9 @@ it('saves newly selected images automatically as a draft', function () {
 
     $response->assertOk()
         ->assertJsonPath('message', 'Imagens salvas automaticamente.')
-        ->assertJsonStructure(['message', 'images' => ['F2-5'], 'thumbnails' => ['F2-5'], 'saved_at']);
+        ->assertJsonStructure(['message', 'images' => ['F2-5'], 'thumbnails' => ['F2-5'], 'imageDecisions' => ['F2-5'], 'saved_at']);
+
+    expect($response->json('imageDecisions.F2-5'))->toBe([]);
 
     $images = $response->json('images.F2-5');
     $thumbnails = $response->json('thumbnails.F2-5');
@@ -598,7 +600,9 @@ it('keeps image decisions aligned after deleting an image', function () {
     $this->post(URL::signedRoute('public.forms.images.destroy', ['form' => $form->getKey()]), [
         'field' => 'F2-5',
         'index' => 0,
-    ], ['Accept' => 'application/json'])->assertOk();
+    ], ['Accept' => 'application/json'])
+        ->assertOk()
+        ->assertJsonPath('imageDecisions.0', 'reprovado');
 
     $field = collect($response->fresh()->steps[1]['fields'])->firstWhere('id', 'F2-5');
 
@@ -1322,6 +1326,34 @@ it('shows the evaluation status pill for each question on the public form', func
         ->assertOk()
         ->assertSeeText('Aprovado')
         ->assertSeeText('Reprovado');
+});
+
+it('shows the decision of each image on its own thumbnail', function () {
+    $form = Form::factory()->create([
+        'allows_multiple_responses' => false,
+        'steps' => publicFormSteps(),
+    ]);
+
+    $steps = publicFormSteps();
+    $steps[1]['fields'][4]['images'] = [
+        '/storage/forms/1/frente.jpg',
+        '/storage/forms/1/lateral.jpg',
+    ];
+    $steps[1]['fields'][4]['imageThumbnails'] = $steps[1]['fields'][4]['images'];
+    $steps[1]['fields'][4]['status'] = 'enviado';
+    $steps[1]['fields'][4]['imageDecisions'] = [0 => 'aprovado', 1 => 'reprovado'];
+
+    $form->responses()->create([
+        'status' => 'Preenchido',
+        'steps' => $steps,
+        'submitted_at' => now(),
+    ]);
+
+    $this->get(URL::signedRoute('public.forms.fill', ['form' => $form->getKey()]))
+        ->assertOk()
+        ->assertSee('aria-label="Aprovado"', false)
+        ->assertSee('aria-label="Reprovado"', false)
+        ->assertDontSee('aria-label="Enviado"', false);
 });
 
 it('prefills the existing answer when the form accepts a single response', function () {
