@@ -39,6 +39,22 @@ function publicFormSteps(): array
     ];
 }
 
+/**
+ * @return array<int, array<string, mixed>>
+ */
+function publicFileFormSteps(): array
+{
+    return [
+        [
+            'id' => 'S1',
+            'title' => 'Documentos',
+            'fields' => [
+                ['id' => 'F1-1', 'type' => 'file', 'label' => 'Documento do site', 'required' => false, 'files' => [], 'status' => 'pendente'],
+            ],
+        ],
+    ];
+}
+
 it('shows the public form filling page without authentication', function () {
     $form = Form::factory()->create(['steps' => publicFormSteps()]);
 
@@ -229,6 +245,17 @@ it('renders the image preview modal on the public form', function () {
         ->assertSee('data-image-modal-next', false)
         ->assertSee('data-image-modal-original', false)
         ->assertSee('Fechar pré-visualização');
+});
+
+it('renders the image deletion confirmation modal on the public form', function () {
+    $form = Form::factory()->create(['status' => 'Pendente', 'steps' => publicFormSteps()]);
+
+    $this->get(URL::signedRoute('public.forms.fill', ['form' => $form->getKey()]))
+        ->assertOk()
+        ->assertSee('id="confirm-modal"', false)
+        ->assertSee('data-confirm-title', false)
+        ->assertSee('data-confirm-accept', false)
+        ->assertSee('data-confirm-cancel', false);
 });
 
 it('finishes an incomplete submission without uploading the photos again', function () {
@@ -586,6 +613,108 @@ it('does not expose image deletion through an unsigned route', function () {
 
     $this->post(route('public.forms.images.destroy', $form), [
         'field' => 'F2-5',
+        'index' => 0,
+    ])->assertForbidden();
+});
+
+it('deletes an uploaded file from the public response', function () {
+    Storage::fake('public');
+
+    $form = Form::factory()->create([
+        'status' => 'Pendente',
+        'allows_multiple_responses' => false,
+        'steps' => publicFileFormSteps(),
+    ]);
+
+    $this->post(URL::signedRoute('public.forms.submit', ['form' => $form->getKey()]), [
+        'answers' => [
+            'F1-1' => [
+                UploadedFile::fake()->create('contrato.pdf', 100, 'application/pdf'),
+                UploadedFile::fake()->create('planta.pdf', 100, 'application/pdf'),
+            ],
+        ],
+    ])->assertRedirect()->assertSessionHasNoErrors();
+
+    $response = $form->responses()->firstOrFail();
+    $field = $response->steps[0]['fields'][0];
+    $files = $field['files'];
+    $names = $field['fileNames'];
+
+    expect($files)->toHaveCount(2);
+
+    $this->post(URL::signedRoute('public.forms.files.destroy', ['form' => $form->getKey()]), [
+        'field' => 'F1-1',
+        'index' => 0,
+    ], ['Accept' => 'application/json'])
+        ->assertOk()
+        ->assertJsonPath('message', 'Arquivo excluído.')
+        ->assertJsonPath('has_upload', true)
+        ->assertJsonCount(1, 'files')
+        ->assertJsonPath('fileNames.0', 'planta.pdf');
+
+    $field = $response->fresh()->steps[0]['fields'][0];
+
+    expect($field['files'])->toBe([$files[1]]);
+    expect($field['fileNames'])->toBe([$names[1]]);
+    expect($field['status'])->toBe('enviado');
+
+    Storage::disk('public')->assertMissing('forms/'.$form->getKey().'/'.basename($files[0]));
+    Storage::disk('public')->assertExists('forms/'.$form->getKey().'/'.basename($files[1]));
+
+    $this->get(URL::signedRoute('public.forms.fill', ['form' => $form->getKey()]))
+        ->assertOk()
+        ->assertSee('data-file-remove', false)
+        ->assertSee(URL::signedRoute('public.forms.files.destroy', ['form' => $form->getKey()]), false)
+        ->assertSee($names[1])
+        ->assertDontSee($files[0], false);
+});
+
+it('removes the last file and resets the field status', function () {
+    Storage::fake('public');
+
+    $form = Form::factory()->create([
+        'status' => 'Pendente',
+        'allows_multiple_responses' => false,
+        'steps' => publicFileFormSteps(),
+    ]);
+
+    $this->post(URL::signedRoute('public.forms.submit', ['form' => $form->getKey()]), [
+        'answers' => [
+            'F1-1' => [UploadedFile::fake()->create('contrato.pdf', 100, 'application/pdf')],
+        ],
+    ])->assertRedirect()->assertSessionHasNoErrors();
+
+    $response = $form->responses()->firstOrFail();
+    $file = $response->steps[0]['fields'][0]['files'][0];
+
+    $this->post(URL::signedRoute('public.forms.files.destroy', ['form' => $form->getKey()]), [
+        'field' => 'F1-1',
+        'index' => 0,
+    ], ['Accept' => 'application/json'])
+        ->assertOk()
+        ->assertJsonPath('has_upload', false)
+        ->assertJsonCount(0, 'files');
+
+    $field = $response->fresh()->steps[0]['fields'][0];
+
+    expect($field['files'])->toBe([]);
+    expect($field['fileNames'])->toBe([]);
+    expect($field['status'])->toBe('pendente');
+
+    Storage::disk('public')->assertMissing('forms/'.$form->getKey().'/'.basename($file));
+
+    $this->get(URL::signedRoute('public.forms.fill', ['form' => $form->getKey()]))
+        ->assertOk()
+        ->assertDontSee($file, false);
+});
+
+it('does not expose file deletion through an unsigned route', function () {
+    Storage::fake('public');
+
+    $form = Form::factory()->create(['steps' => publicFileFormSteps()]);
+
+    $this->post(route('public.forms.files.destroy', $form), [
+        'field' => 'F1-1',
         'index' => 0,
     ])->assertForbidden();
 });

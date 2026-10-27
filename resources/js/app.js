@@ -206,6 +206,7 @@ document.addEventListener('click', (event) => {
 
 const ConfirmModal = (() => {
     let resolvePending = null;
+    let lastFocus = null;
 
     const element = () => document.getElementById('confirm-modal');
 
@@ -221,6 +222,9 @@ const ConfirmModal = (() => {
             resolvePending(result);
             resolvePending = null;
         }
+
+        lastFocus?.focus?.();
+        lastFocus = null;
     };
 
     const open = (options = {}) => {
@@ -234,8 +238,10 @@ const ConfirmModal = (() => {
         modal.querySelector('[data-confirm-message]').textContent = options.message || '';
         modal.querySelector('[data-confirm-accept]').textContent = options.confirmLabel || 'Confirmar';
 
+        lastFocus = document.activeElement;
         modal.classList.remove('hidden');
         document.body.classList.add('overflow-hidden');
+        modal.querySelector('button[data-confirm-cancel]')?.focus();
 
         return new Promise((resolve) => {
             resolvePending = resolve;
@@ -1758,31 +1764,33 @@ const DraftAutosave = (() => {
     return {};
 })();
 
+// Public image and file fields allow the respondent to delete an upload
+// already stored on the server. Deletions share the same draft status feedback.
+const setDraftStatus = (form, state, message) => {
+    const status = form.querySelector('[data-draft-autosave-status]');
+
+    if (! status) {
+        return;
+    }
+
+    status.hidden = false;
+    status.textContent = message;
+    status.classList.remove(
+        'text-gray-500', 'text-emerald-600', 'text-red-600',
+        'dark:text-gray-400', 'dark:text-emerald-400', 'dark:text-red-400',
+    );
+    status.classList.add(
+        ...(state === 'error'
+            ? ['text-red-600', 'dark:text-red-400']
+            : ['text-emerald-600', 'dark:text-emerald-400']),
+    );
+};
+
 // Public image fields allow the respondent to delete a photo already stored
 // on the server. The signed endpoint removes it from the response and disk,
 // then the gallery is rebuilt from the URLs returned by the server so the
 // remaining delete buttons keep pointing at the right image.
 const ImageDeletion = (() => {
-    const setStatus = (form, state, message) => {
-        const status = form.querySelector('[data-draft-autosave-status]');
-
-        if (! status) {
-            return;
-        }
-
-        status.hidden = false;
-        status.textContent = message;
-        status.classList.remove(
-            'text-gray-500', 'text-emerald-600', 'text-red-600',
-            'dark:text-gray-400', 'dark:text-emerald-400', 'dark:text-red-400',
-        );
-        status.classList.add(
-            ...(state === 'error'
-                ? ['text-red-600', 'dark:text-red-400']
-                : ['text-emerald-600', 'dark:text-emerald-400']),
-        );
-    };
-
     document.addEventListener('click', async (event) => {
         const button = event.target.closest('[data-image-remove]');
 
@@ -1814,7 +1822,11 @@ const ImageDeletion = (() => {
             return;
         }
 
-        if (! window.confirm('Excluir esta imagem? Essa ação não pode ser desfeita.')) {
+        if (! await ConfirmModal.open({
+            title: 'Excluir imagem?',
+            message: 'A imagem será removida desta resposta. Essa ação não pode ser desfeita.',
+            confirmLabel: 'Excluir',
+        })) {
             return;
         }
 
@@ -1853,13 +1865,95 @@ const ImageDeletion = (() => {
 
             refreshed?.dispatchEvent(new Event('change', { bubbles: true }));
 
-            setStatus(form, 'saved', payload.message || 'Imagem excluída.');
+            setDraftStatus(form, 'saved', payload.message || 'Imagem excluída.');
         } catch (error) {
-            setStatus(form, 'error', error.message || 'Não foi possível excluir a imagem.');
+            setDraftStatus(form, 'error', error.message || 'Não foi possível excluir a imagem.');
             button.disabled = false;
             button.classList.remove('opacity-50');
         }
     });
 })();
 
+// Public file fields expose a delete button for each stored attachment. The
+// signed endpoint removes the file from the response and disk, and the row is
+// removed from the list without a page reload.
+const FileDeletion = (() => {
+    document.addEventListener('click', async (event) => {
+        const button = event.target.closest('[data-file-remove]');
+
+        if (! button) {
+            return;
+        }
+
+        const form = button.closest('form[data-form-file-delete-url]');
+        const question = button.closest('[data-question]');
+        const item = button.closest('[data-file-item]');
+        const list = question?.querySelector('[data-file-list]');
+        const fieldId = question?.dataset.question;
+        const url = form?.dataset.formFileDeleteUrl;
+
+        if (! form || ! question || ! item || ! list || ! fieldId || ! url) {
+            return;
+        }
+
+        event.preventDefault();
+
+        if (button.disabled) {
+            return;
+        }
+
+        const anchors = Array.from(list.querySelectorAll('[data-file-existing]'));
+        const index = anchors.indexOf(item.querySelector('[data-file-existing]'));
+
+        if (index < 0) {
+            return;
+        }
+
+        if (! await ConfirmModal.open({
+            title: 'Excluir arquivo?',
+            message: 'O arquivo será removido desta resposta. Essa ação não pode ser desfeita.',
+            confirmLabel: 'Excluir',
+        })) {
+            return;
+        }
+
+        const data = new FormData();
+
+        data.append('_token', form.querySelector('input[name="_token"]')?.value ?? '');
+        data.append('field', fieldId);
+        data.append('index', String(index));
+
+        button.disabled = true;
+        button.classList.add('opacity-50');
+
+        try {
+            const response = await fetch(url, {
+                method: 'POST',
+                credentials: 'same-origin',
+                headers: {
+                    'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+                body: data,
+            });
+
+            const payload = await response.json().catch(() => ({}));
+
+            if (! response.ok) {
+                throw new Error(payload.message || 'Não foi possível excluir o arquivo.');
+            }
+
+            item.remove();
+
+            question.dataset.hasUpload = list.querySelectorAll('[data-file-existing]').length > 0 ? '1' : '0';
+            question.dispatchEvent(new Event('change', { bubbles: true }));
+
+            setDraftStatus(form, 'saved', payload.message || 'Arquivo excluído.');
+        } catch (error) {
+            setDraftStatus(form, 'error', error.message || 'Não foi possível excluir o arquivo.');
+            button.disabled = false;
+            button.classList.remove('opacity-50');
+        }
+    });
+})();
 

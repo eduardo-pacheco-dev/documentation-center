@@ -66,4 +66,5 @@
     </div>
 
     <x-public.forms.image-modal />
+    <x-confirm-modal />
 </x-layouts.public>

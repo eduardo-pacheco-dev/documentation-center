@@ -153,7 +153,8 @@ html {
         display: inline-flex !important;
     }
 
-    .no-js [data-image-remove] {
+    .no-js [data-image-remove],
+    .no-js [data-file-remove] {
         display: none !important;
     }
 }

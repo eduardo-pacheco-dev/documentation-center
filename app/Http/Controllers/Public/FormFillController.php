@@ -348,7 +348,7 @@ class FormFillController extends Controller
 
                 $response->update(['steps' => $steps]);
 
-                $this->deleteStoredImages($form, $removed);
+                $this->deleteStoredUploads($form, $removed);
 
                 return response()->json([
                     'message' => 'Imagem excluída.',
@@ -361,6 +361,88 @@ class FormFillController extends Controller
 
         return response()->json([
             'message' => 'Imagem não encontrada.',
+        ], 404);
+    }
+
+    /**
+     * Delete a file already stored for the public response.
+     *
+     * The file is removed from the response answers and from the public disk.
+     * The remaining files keep their order and names aligned.
+     */
+    public function destroyFile(Request $request, Form $form): JsonResponse
+    {
+        $validated = $request->validate([
+            'field' => ['required', 'string'],
+            'index' => ['required', 'integer', 'min:0'],
+        ]);
+
+        $response = $this->singleResponse($form);
+
+        if ($response === null) {
+            return response()->json([
+                'message' => 'Nenhum arquivo encontrado para excluir.',
+            ], 404);
+        }
+
+        $steps = $this->responseSteps($form->steps ?? [], $response);
+        $fieldId = (string) $validated['field'];
+        $index = (int) $validated['index'];
+
+        foreach ($steps as $stepIndex => $step) {
+            foreach ($step['fields'] ?? [] as $fieldIndex => $field) {
+                if ((string) ($field['id'] ?? '') !== $fieldId) {
+                    continue;
+                }
+
+                if (($field['type'] ?? null) !== 'file') {
+                    return response()->json([
+                        'message' => 'O campo informado não aceita arquivos.',
+                    ], 422);
+                }
+
+                $files = array_values($field['files'] ?? []);
+                $names = is_array($field['fileNames'] ?? null) ? $field['fileNames'] : [];
+
+                if (! array_key_exists($index, $files)) {
+                    return response()->json([
+                        'message' => 'Arquivo não encontrado.',
+                    ], 404);
+                }
+
+                $removed = [$files[$index]];
+                $remainingFiles = [];
+                $remainingNames = [];
+
+                foreach (array_keys($files) as $oldIndex) {
+                    if ($oldIndex === $index) {
+                        continue;
+                    }
+
+                    $file = $files[$oldIndex];
+                    $remainingFiles[] = $file;
+                    $remainingNames[] = $names[$oldIndex] ?? basename(parse_url($file, PHP_URL_PATH) ?: $file);
+                }
+
+                $steps[$stepIndex]['fields'][$fieldIndex]['files'] = $remainingFiles;
+                $steps[$stepIndex]['fields'][$fieldIndex]['fileNames'] = $remainingNames;
+                $steps[$stepIndex]['fields'][$fieldIndex]['status'] = $remainingFiles === [] ? 'pendente' : 'enviado';
+
+                $response->update(['steps' => $steps]);
+
+                $this->deleteStoredUploads($form, $removed);
+
+                return response()->json([
+                    'message' => 'Arquivo excluído.',
+                    'files' => $remainingFiles,
+                    'fileNames' => $remainingNames,
+                    'has_upload' => $remainingFiles !== [],
+                ]);
+            }
+        }
+
+        return response()->json([
+            'message' => 'Arquivo não encontrado.',
         ], 404);
     }
 
@@ -1080,14 +1162,14 @@ class FormFillController extends Controller
     }
 
     /**
-     * Delete stored images that belong to the form.
+     * Delete stored uploads that belong to the form.
      *
      * Only files inside the form upload directory are removed, so a tampered
      * response cannot point the deletion at another file on the disk.
      *
      * @param  array<int, string>  $urls
      */
-    private function deleteStoredImages(Form $form, array $urls): void
+    private function deleteStoredUploads(Form $form, array $urls): void
     {
         $disk = Storage::disk('public');
         $directory = 'forms/'.$form->getKey().'/';
