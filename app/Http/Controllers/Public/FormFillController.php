@@ -139,7 +139,10 @@ class FormFillController extends Controller
                         ? ($field['images'] ?? [])
                         : ($field['files'] ?? []);
 
-                    if (($field['required'] ?? false) && $existing === [] && $uploads === []) {
+                    $isNotApplicable = $type === 'image'
+                        && $this->isNotApplicable($request->input('na_answers.'.$fieldId));
+
+                    if (($field['required'] ?? false) && ! $isNotApplicable && $existing === [] && $uploads === []) {
                         $validator->errors()->add(
                             'answers.'.$fieldId,
                             'O campo "'.$label.'" é obrigatório.',
@@ -173,12 +176,13 @@ class FormFillController extends Controller
 
         $validated = $validator->validate();
         $answers = is_array($validated['answers'] ?? null) ? $validated['answers'] : [];
+        $notApplicable = is_array($validated['na_answers'] ?? null) ? $validated['na_answers'] : [];
 
         $status = in_array($form->status, ['Pendente', self::DRAFT_STATUS], true)
             ? 'Preenchido'
             : $form->status;
 
-        $filledSteps = $this->applyAnswers($steps, $answers);
+        $filledSteps = $this->applyAnswers($steps, $answers, $notApplicable);
 
         DB::transaction(function () use ($form, $request, $response, $status, $filledSteps): void {
             if ($response !== null) {
@@ -253,16 +257,19 @@ class FormFillController extends Controller
         }
 
         $answers = is_array($request->input('answers')) ? $request->input('answers') : [];
-        $steps = $this->applyAnswers($steps, $answers);
+        $notApplicable = is_array($request->input('na_answers')) ? $request->input('na_answers') : [];
+        $steps = $this->applyAnswers($steps, $answers, $notApplicable);
 
-        if ($capturedUploads > 0) {
+        if ($capturedUploads > 0 || $notApplicable !== []) {
             $this->persistIncompleteSubmission($form, $response, $steps, $request);
         }
 
         return response()->json([
-            'message' => $capturedUploads > 0
-                ? 'Imagens salvas automaticamente.'
-                : 'Nenhuma imagem nova para salvar.',
+            'message' => match (true) {
+                $capturedUploads > 0 => 'Imagens salvas automaticamente.',
+                $notApplicable !== [] => 'Seleção salva automaticamente.',
+                default => 'Nenhuma imagem nova para salvar.',
+            },
             'images' => $this->imageUrls($steps),
             'thumbnails' => $this->imageThumbnailUrls($steps),
             'imageDecisions' => $this->imageDecisionMap($steps),
@@ -339,9 +346,13 @@ class FormFillController extends Controller
                 $images = array_values($images);
                 $thumbnails = array_values($thumbnails);
 
+                $wasNotApplicable = ($steps[$stepIndex]['fields'][$fieldIndex]['status'] ?? null) === 'nao_aplicavel';
+
                 $steps[$stepIndex]['fields'][$fieldIndex]['images'] = $images;
                 $steps[$stepIndex]['fields'][$fieldIndex]['imageThumbnails'] = $thumbnails;
-                $steps[$stepIndex]['fields'][$fieldIndex]['status'] = $images === [] ? 'pendente' : 'enviado';
+                $steps[$stepIndex]['fields'][$fieldIndex]['status'] = $wasNotApplicable
+                    ? 'nao_aplicavel'
+                    : ($images === [] ? 'pendente' : 'enviado');
 
                 if ($hasDecisions) {
                     $steps[$stepIndex]['fields'][$fieldIndex]['imageDecisions'] = $alignedDecisions;
@@ -797,6 +808,8 @@ class FormFillController extends Controller
         $rules = [
             'answers' => ['nullable', 'array'],
             'camera_answers' => ['nullable', 'array'],
+            'na_answers' => ['nullable', 'array'],
+            'na_answers.*' => ['nullable', 'boolean'],
         ];
 
         foreach ($steps as $step) {
@@ -942,9 +955,10 @@ class FormFillController extends Controller
      *
      * @param  array<int, array<string, mixed>>  $steps
      * @param  array<string, mixed>  $answers
+     * @param  array<string, mixed>  $notApplicable
      * @return array<int, array<string, mixed>>
      */
-    private function applyAnswers(array $steps, array $answers): array
+    private function applyAnswers(array $steps, array $answers, array $notApplicable = []): array
     {
         foreach ($steps as $stepIndex => $step) {
             foreach ($step['fields'] ?? [] as $fieldIndex => $field) {
@@ -954,7 +968,19 @@ class FormFillController extends Controller
                     continue;
                 }
 
-                if (in_array($field['type'] ?? null, ['image', 'file'], true)) {
+                if (($field['type'] ?? null) === 'image') {
+                    if ($this->isNotApplicable($notApplicable[$fieldId] ?? null)) {
+                        $steps[$stepIndex]['fields'][$fieldIndex]['status'] = 'nao_aplicavel';
+                    } elseif (($field['status'] ?? null) === 'nao_aplicavel') {
+                        $steps[$stepIndex]['fields'][$fieldIndex]['status'] = ! empty($field['images'])
+                            ? 'enviado'
+                            : 'pendente';
+                    }
+
+                    continue;
+                }
+
+                if (($field['type'] ?? null) === 'file') {
                     continue;
                 }
 
@@ -972,6 +998,14 @@ class FormFillController extends Controller
         }
 
         return $steps;
+    }
+
+    /**
+     * Determine whether a submitted flag marks an item as not applicable.
+     */
+    private function isNotApplicable(mixed $value): bool
+    {
+        return in_array($value, [true, 1, '1', 'true', 'on'], true);
     }
 
     /**

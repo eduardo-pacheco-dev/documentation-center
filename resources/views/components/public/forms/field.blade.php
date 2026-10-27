@@ -74,12 +74,14 @@
             @case('image')
                 <x-public.forms.image-upload
                     :id="$id"
+                    :field-id="$fieldId"
                     :name="$name.'[]'"
                     :camera-name="'camera_answers['.$fieldId.'][]'"
                     :label="$label"
                     :images="$existingImages"
                     :thumbnails="$field['imageThumbnails'] ?? []"
                     :image-decisions="$field['imageDecisions'] ?? []"
+                    :is-na="($field['status'] ?? null) === 'nao_aplicavel'"
                 />
                 @break
 

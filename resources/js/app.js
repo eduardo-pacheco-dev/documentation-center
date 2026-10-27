@@ -959,6 +959,81 @@ const FormSteps = (() => {
     return {};
 })();
 
+// Public image fields can be marked as not applicable when the item does not
+// exist on the site. The hidden input carries the choice to the server while
+// the gallery shows an N/A tile instead of the empty placeholder.
+const ImageNa = (() => {
+    const hasImages = (question) => question.querySelector(
+        '[data-image-existing], [data-image-preview-item], [data-image-item]',
+    ) !== null;
+
+    const apply = (question, active) => {
+        const input = question?.querySelector('[data-image-na-input]');
+
+        if (! input) {
+            return false;
+        }
+
+        const wasActive = input.value === '1';
+        input.value = active ? '1' : '0';
+
+        const button = question.querySelector('[data-image-na-toggle]');
+        const tile = question.querySelector('[data-image-na]');
+        const empty = question.querySelector('[data-image-empty]');
+
+        if (button) {
+            button.setAttribute('aria-pressed', active ? 'true' : 'false');
+        }
+
+        if (tile) {
+            tile.hidden = ! active;
+        }
+
+        if (empty) {
+            empty.hidden = active || hasImages(question);
+        }
+
+        if (active) {
+            question.dataset.status = 'nao_aplicavel';
+        } else if (wasActive) {
+            question.dataset.status = hasImages(question) ? 'enviado' : 'pendente';
+        }
+
+        return wasActive !== active;
+    };
+
+    document.addEventListener('click', (event) => {
+        const button = event.target.closest('[data-image-na-toggle]');
+        const question = button?.closest('[data-question]');
+        const input = question?.querySelector('[data-image-na-input]');
+
+        if (! button || ! input) {
+            return;
+        }
+
+        event.preventDefault();
+
+        if (! apply(question, input.value !== '1')) {
+            return;
+        }
+
+        input.dispatchEvent(new Event('change', { bubbles: true }));
+    });
+
+    return {
+        clear: (question) => {
+            const input = question?.querySelector('[data-image-na-input]');
+
+            if (! input || input.value !== '1') {
+                return;
+            }
+
+            apply(question, false);
+            input.dispatchEvent(new Event('change', { bubbles: true }));
+        },
+    };
+})();
+
 // Public image fields accept several images from both the gallery and the
 // camera. Selections accumulate in the gallery input so choosing another
 // image does not replace the previous ones. The camera input stays separate
@@ -1010,6 +1085,7 @@ const ImageSelections = (() => {
 
         const add = (incoming) => {
             const known = new Set(state.files.map(keyOf));
+            let added = 0;
 
             incoming.forEach((file) => {
                 const key = keyOf(file);
@@ -1026,11 +1102,14 @@ const ImageSelections = (() => {
 
                 state.files.push(file);
                 known.add(key);
+                added++;
             });
 
             if (state.limitMessage) {
                 state.limitMessage.hidden = ! state.limitReached;
             }
+
+            return added;
         };
 
         state.sync = sync;
@@ -1041,12 +1120,22 @@ const ImageSelections = (() => {
                 return;
             }
 
-            add(Array.from(gallery.files ?? []));
+            const added = add(Array.from(gallery.files ?? []));
+
+            if (added > 0) {
+                ImageNa.clear(question);
+            }
+
             sync();
         });
 
         camera.addEventListener('change', () => {
-            add(Array.from(camera.files ?? []));
+            const added = add(Array.from(camera.files ?? []));
+
+            if (added > 0) {
+                ImageNa.clear(question);
+            }
+
             camera.value = '';
             sync();
         });
@@ -1209,9 +1298,11 @@ const ImagePreviews = (() => {
 
         const empty = container.querySelector('[data-image-empty]');
         const existing = container.querySelectorAll('[data-image-existing]').length;
+        const notApplicable = field.closest('[data-question]')
+            ?.querySelector('[data-image-na-input]')?.value === '1';
 
         if (empty) {
-            empty.hidden = files.length > 0 || existing > 0;
+            empty.hidden = files.length > 0 || existing > 0 || notApplicable;
         }
 
         if (files.length === 0) {
@@ -1532,13 +1623,16 @@ const ImageGallery = (() => {
 
         const empty = container.querySelector('[data-image-empty]');
         const previewing = container.querySelectorAll('[data-image-preview-item]').length > 0;
+        const notApplicable = question.querySelector('[data-image-na-input]')?.value === '1';
 
         if (empty) {
-            empty.hidden = (images?.length ?? 0) > 0 || previewing;
+            empty.hidden = (images?.length ?? 0) > 0 || previewing || notApplicable;
         }
 
         question.dataset.hasUpload = (images?.length ?? 0) > 0 ? '1' : '0';
-        question.dataset.status = (images?.length ?? 0) > 0 ? 'enviado' : 'pendente';
+        question.dataset.status = notApplicable
+            ? 'nao_aplicavel'
+            : ((images?.length ?? 0) > 0 ? 'enviado' : 'pendente');
 
         const field = question.querySelector('[data-image-field]');
 
@@ -1605,6 +1699,7 @@ const DraftAutosave = (() => {
         let inFlight = null;
         let pending = false;
         let submitting = false;
+        let naDirty = false;
 
         const selected = () => {
             const fields = new Map();
@@ -1636,12 +1731,15 @@ const DraftAutosave = (() => {
 
             const sent = selected();
 
-            if (sent.size === 0) {
+            if (sent.size === 0 && ! naDirty) {
                 return Promise.resolve(true);
             }
 
+            const savingNa = naDirty;
+
+            naDirty = false;
             pending = false;
-            setStatus(status, 'saving', 'Salvando imagens...');
+            setStatus(status, 'saving', sent.size > 0 ? 'Salvando imagens...' : 'Salvando seleção...');
 
             inFlight = (async () => {
                 try {
@@ -1669,6 +1767,10 @@ const DraftAutosave = (() => {
 
                     return true;
                 } catch (error) {
+                    if (savingNa) {
+                        naDirty = true;
+                    }
+
                     setStatus(status, 'error', error.message || 'Não foi possível salvar as imagens.');
 
                     return false;
@@ -1732,6 +1834,13 @@ const DraftAutosave = (() => {
         form.addEventListener('submit', onSubmit);
 
         form.addEventListener('change', (event) => {
+            if (event.target.matches('[data-image-na-input]')) {
+                naDirty = true;
+                schedule();
+
+                return;
+            }
+
             if (! event.target.matches('[data-image-input], [data-camera-input]')) {
                 return;
             }

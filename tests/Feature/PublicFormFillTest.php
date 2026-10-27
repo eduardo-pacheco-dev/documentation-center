@@ -153,6 +153,96 @@ it('requires the required fields before submitting', function () {
     expect($form->responses()->count())->toBe(0);
 });
 
+it('requires a required image field when it has no photos', function () {
+    $steps = publicFormSteps();
+    $steps[1]['fields'][4]['required'] = true;
+
+    $form = Form::factory()->create(['steps' => $steps]);
+
+    $this->post(URL::signedRoute('public.forms.submit', ['form' => $form->getKey()]), [
+        'answers' => [
+            'F1-1' => 'Galpão A',
+            'F1-3' => '2026-10-25',
+            'F2-1' => 'Conforme',
+        ],
+    ])->assertSessionHasErrors(['answers.F2-5']);
+
+    expect($form->responses()->count())->toBe(0);
+});
+
+it('accepts a required image field marked as not applicable', function () {
+    $steps = publicFormSteps();
+    $steps[1]['fields'][4]['required'] = true;
+
+    $form = Form::factory()->create(['status' => 'Pendente', 'steps' => $steps]);
+
+    $this->post(URL::signedRoute('public.forms.submit', ['form' => $form->getKey()]), [
+        'answers' => [
+            'F1-1' => 'Galpão A',
+            'F1-3' => '2026-10-25',
+            'F2-1' => 'Conforme',
+        ],
+        'na_answers' => ['F2-5' => '1'],
+    ])->assertRedirect()->assertSessionHasNoErrors();
+
+    $field = collect($form->fresh()->steps[1]['fields'])->firstWhere('id', 'F2-5');
+
+    expect($field['status'])->toBe('nao_aplicavel');
+    expect($field['images'] ?? [])->toBe([]);
+});
+
+it('saves the not applicable selection automatically', function () {
+    $form = Form::factory()->create([
+        'status' => 'Pendente',
+        'allows_multiple_responses' => true,
+        'steps' => publicFormSteps(),
+    ]);
+
+    $this->post(URL::signedRoute('public.forms.autosave', ['form' => $form->getKey()]), [
+        'na_answers' => ['F2-5' => '1'],
+    ], ['Accept' => 'application/json'])
+        ->assertOk()
+        ->assertJsonPath('message', 'Seleção salva automaticamente.');
+
+    $response = $form->responses()->firstOrFail();
+    $field = collect($response->steps[1]['fields'])->firstWhere('id', 'F2-5');
+
+    expect($response->status)->toBe('Em preenchimento');
+    expect($field['status'])->toBe('nao_aplicavel');
+
+    $this->post(URL::signedRoute('public.forms.autosave', ['form' => $form->getKey()]), [
+        'na_answers' => ['F2-5' => '0'],
+    ], ['Accept' => 'application/json'])->assertOk();
+
+    $field = collect($response->fresh()->steps[1]['fields'])->firstWhere('id', 'F2-5');
+
+    expect($field['status'])->toBe('pendente');
+});
+
+it('renders an image field marked as not applicable', function () {
+    $steps = publicFormSteps();
+    $steps[1]['fields'][4]['status'] = 'nao_aplicavel';
+
+    $form = Form::factory()->create([
+        'allows_multiple_responses' => false,
+        'steps' => $steps,
+    ]);
+
+    $form->responses()->create([
+        'status' => 'Preenchido',
+        'steps' => $steps,
+        'submitted_at' => now(),
+    ]);
+
+    $this->get(URL::signedRoute('public.forms.fill', ['form' => $form->getKey()]))
+        ->assertOk()
+        ->assertSee('name="na_answers[F2-5]"', false)
+        ->assertSee('data-image-na-toggle', false)
+        ->assertSee('aria-pressed="true"', false)
+        ->assertSee('aria-label="Não aplicável"', false)
+        ->assertSeeText('Não aplicável');
+});
+
 it('keeps uploaded photos visible when the submission is incomplete', function () {
     Storage::fake('public');
 
@@ -608,6 +698,46 @@ it('keeps image decisions aligned after deleting an image', function () {
 
     expect($field['imageDecisions'])->toBe([0 => 'reprovado']);
     expect($field['status'])->toBe('enviado');
+});
+
+it('keeps the not applicable status after deleting the last image', function () {
+    Storage::fake('public');
+
+    $form = Form::factory()->create([
+        'status' => 'Pendente',
+        'allows_multiple_responses' => false,
+        'steps' => publicFormSteps(),
+    ]);
+
+    $this->post(URL::signedRoute('public.forms.submit', ['form' => $form->getKey()]), [
+        'answers' => [
+            'F1-1' => 'Galpão A',
+            'F1-3' => '2026-10-25',
+            'F2-1' => 'Conforme',
+            'F2-5' => [UploadedFile::fake()->image('frente.jpg')],
+        ],
+    ])->assertRedirect()->assertSessionHasNoErrors();
+
+    $response = $form->responses()->firstOrFail();
+    $steps = $response->steps;
+
+    foreach ($steps[1]['fields'] as $index => $field) {
+        if ($field['id'] === 'F2-5') {
+            $steps[1]['fields'][$index]['status'] = 'nao_aplicavel';
+        }
+    }
+
+    $response->update(['steps' => $steps]);
+
+    $this->post(URL::signedRoute('public.forms.images.destroy', ['form' => $form->getKey()]), [
+        'field' => 'F2-5',
+        'index' => 0,
+    ], ['Accept' => 'application/json'])->assertOk();
+
+    $field = collect($response->fresh()->steps[1]['fields'])->firstWhere('id', 'F2-5');
+
+    expect($field['images'])->toBe([]);
+    expect($field['status'])->toBe('nao_aplicavel');
 });
 
 it('does not expose image deletion through an unsigned route', function () {
