@@ -1415,7 +1415,66 @@ const ImageModal = (() => {
 // image is deleted. The markup mirrors the Blade component so the thumbnail
 // keeps its preview modal and its own delete button.
 const ImageGallery = (() => {
-    const create = (url, preview, alt) => {
+    const STATUS_BADGES = {
+        aprovado: {
+            label: 'Aprovado',
+            classes: 'bg-green-600 text-white',
+            path: 'M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z',
+        },
+        reprovado: {
+            label: 'Reprovado',
+            classes: 'bg-red-600 text-white',
+            path: 'm9.75 9.75 4.5 4.5m0-4.5-4.5 4.5M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z',
+        },
+        enviado: {
+            label: 'Enviado',
+            classes: 'bg-blue-600 text-white',
+            path: 'M6 12 3.269 3.125A59.769 59.769 0 0 1 21.485 12 59.768 59.768 0 0 1 3.27 20.875L5.999 12Zm0 0h7.5',
+        },
+        pendente: {
+            label: 'Pendente',
+            classes: 'bg-amber-500 text-white',
+            path: 'M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z',
+        },
+        nao_aplicavel: {
+            label: 'Não aplicável',
+            classes: 'bg-gray-500 text-white',
+            path: 'M15 12H9m12 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z',
+        },
+    };
+
+    const statusBadge = (status) => {
+        const config = STATUS_BADGES[status];
+
+        if (! config) {
+            return null;
+        }
+
+        const badge = document.createElement('span');
+        badge.className = `pointer-events-none absolute bottom-1 right-1 z-10 inline-flex h-5 w-5 items-center justify-center rounded-full ring-1 ring-white/70 dark:ring-gray-900/70 ${config.classes}`;
+        badge.setAttribute('role', 'img');
+        badge.setAttribute('aria-label', config.label);
+        badge.title = config.label;
+
+        const icon = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        icon.setAttribute('class', 'h-3 w-3');
+        icon.setAttribute('fill', 'none');
+        icon.setAttribute('viewBox', '0 0 24 24');
+        icon.setAttribute('stroke-width', '1.5');
+        icon.setAttribute('stroke', 'currentColor');
+        icon.setAttribute('aria-hidden', 'true');
+
+        const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        path.setAttribute('stroke-linecap', 'round');
+        path.setAttribute('stroke-linejoin', 'round');
+        path.setAttribute('d', config.path);
+        icon.append(path);
+        badge.append(icon);
+
+        return badge;
+    };
+
+    const create = (url, preview, alt, status = 'enviado') => {
         const wrapper = document.createElement('div');
         wrapper.dataset.imageItem = '';
         wrapper.className = 'group relative h-20 w-20';
@@ -1455,7 +1514,15 @@ const ImageGallery = (() => {
         button.append(icon);
 
         link.append(image);
-        wrapper.append(link, button);
+        wrapper.append(link);
+
+        const badge = statusBadge(status);
+
+        if (badge) {
+            wrapper.append(badge);
+        }
+
+        wrapper.append(button);
 
         return wrapper;
     };

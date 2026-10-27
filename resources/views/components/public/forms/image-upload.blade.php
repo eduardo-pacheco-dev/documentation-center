@@ -5,6 +5,7 @@
     'label',
     'images' => [],
     'thumbnails' => [],
+    'status' => null,
 ])
 
 <div {{ $attributes->class(['space-y-3']) }}>
@@ -23,6 +24,7 @@
                 :href="$image"
                 :src="$thumbnails[$loop->index] ?? $image"
                 :alt="$label"
+                :status="$status"
             />
         @endforeach
     </div>

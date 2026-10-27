@@ -78,6 +78,7 @@
                     :label="$label"
                     :images="$existingImages"
                     :thumbnails="$field['imageThumbnails'] ?? []"
+                    :status="$field['status'] ?? null"
                 />
                 @break
 

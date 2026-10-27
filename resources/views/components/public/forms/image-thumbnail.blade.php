@@ -2,6 +2,7 @@
     'href',
     'src',
     'alt' => '',
+    'status' => null,
 ])
 
 <div {{ $attributes->class(['group relative h-20 w-20']) }} data-image-item>
@@ -13,10 +14,15 @@
         class="block h-full w-full overflow-hidden rounded-xl border border-gray-200 transition active:scale-[0.98] dark:border-gray-800"
     >
         <img src="{{ $src }}" alt="{{ $alt }}" loading="lazy" class="h-full w-full object-cover">
-        <span class="pointer-events-none absolute left-1 top-1 inline-flex h-5 w-5 items-center justify-center rounded-full bg-gray-950/60 text-white">
-            <x-icon name="eye" class="h-3 w-3" />
-        </span>
     </a>
+
+    @if ($status)
+        <x-form-field-status
+            :status="$status"
+            icon-only
+            class="pointer-events-none absolute bottom-1 right-1 z-10"
+        />
+    @endif
 
     <button
         type="button"
