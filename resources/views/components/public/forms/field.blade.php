@@ -29,6 +29,7 @@
 <div
     {{ $attributes->class(['space-y-2.5']) }}
     data-question="{{ $fieldId }}"
+    data-status="{{ $field['status'] ?? '' }}"
     data-has-upload="{{ ! empty($existingImages) || ! empty($existingFiles) ? '1' : '0' }}"
 >
     <x-ui.field-label

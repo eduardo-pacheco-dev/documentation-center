@@ -1,7 +1,7 @@
 @props([
     'form',
     'totalQuestions' => 0,
-    'answeredQuestions' => 0,
+    'approvedQuestions' => 0,
     'percent' => 0,
 ])
 
@@ -44,18 +44,18 @@
             class="border-t border-gray-100 px-4 py-3.5 dark:border-gray-800"
             data-form-progress
             role="progressbar"
-            aria-label="Progresso do envio"
+            aria-label="Percentual de itens aprovados"
             aria-valuemin="0"
             aria-valuemax="100"
             aria-valuenow="{{ $percent }}"
         >
             <div class="flex items-center justify-between gap-2 text-xs font-medium text-gray-500 dark:text-gray-400">
                 <span class="inline-flex items-center gap-1.5">
-                    <x-icon name="chart-bar" class="h-3.5 w-3.5" />
-                    Progresso do envio
+                    <x-icon name="check-circle" class="h-3.5 w-3.5" />
+                    Aprovados
                 </span>
                 <span class="tabular-nums">
-                    <span data-progress-count class="font-semibold text-gray-700 dark:text-gray-200">{{ $answeredQuestions }} de {{ $totalQuestions }}</span>
+                    <span data-progress-count class="font-semibold text-gray-700 dark:text-gray-200">{{ $approvedQuestions }} de {{ $totalQuestions }}</span>
                     <span class="mx-0.5 text-gray-300 dark:text-gray-600">&middot;</span>
                     <span data-progress-percent class="font-semibold text-gray-700 dark:text-gray-200">{{ $percent }}%</span>
                 </span>

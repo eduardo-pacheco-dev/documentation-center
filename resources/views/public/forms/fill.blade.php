@@ -2,13 +2,11 @@
     @php
         $questionFields = collect($steps)->flatMap(fn (array $step) => $step['fields'] ?? []);
         $totalQuestions = $questionFields->count();
-        $answeredQuestions = $questionFields->filter(
-            fn (array $field) => filled($field['value'] ?? null)
-                || ! empty($field['images'] ?? [])
-                || ! empty($field['files'] ?? []),
+        $approvedQuestions = $questionFields->filter(
+            fn (array $field) => ($field['status'] ?? null) === 'aprovado',
         )->count();
         $initialPercent = $totalQuestions > 0
-            ? (int) round(($answeredQuestions / $totalQuestions) * 100)
+            ? (int) round(($approvedQuestions / $totalQuestions) * 100)
             : 0;
 
         $sectionCount = count($steps);
@@ -30,7 +28,7 @@
         <x-public.forms.header
             :form="$form"
             :total-questions="$totalQuestions"
-            :answered-questions="$answeredQuestions"
+            :approved-questions="$approvedQuestions"
             :percent="$initialPercent"
         />
 

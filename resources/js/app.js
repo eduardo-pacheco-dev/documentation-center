@@ -763,9 +763,10 @@ const LoginForm = (() => {
     return { sync, update };
 })();
 
-// Public forms report how many questions have already been answered while the
-// user fills the form. The total is derived from the rendered fields so it
-// keeps working when the form structure changes.
+// Public forms show how many questions are approved while the response is
+// reviewed. The total is derived from the rendered fields so it keeps working
+// when the form structure changes. Each section still reports how many of its
+// questions were answered while filling.
 const FormProgress = (() => {
     const isAnswered = (question) => {
         if (question.dataset.hasUpload === '1') {
@@ -787,8 +788,8 @@ const FormProgress = (() => {
 
     const refresh = (form) => {
         const questions = Array.from(form.querySelectorAll('[data-question]'));
-        const answered = questions.filter(isAnswered).length;
-        const percent = questions.length > 0 ? Math.round((answered / questions.length) * 100) : 0;
+        const approved = questions.filter((question) => question.dataset.status === 'aprovado').length;
+        const percent = questions.length > 0 ? Math.round((approved / questions.length) * 100) : 0;
 
         const container = form.querySelector('[data-form-progress]') ?? document.querySelector('[data-form-progress]');
 
@@ -798,7 +799,7 @@ const FormProgress = (() => {
             const bar = container.querySelector('[data-progress-bar]');
 
             if (count) {
-                count.textContent = `${answered} de ${questions.length}`;
+                count.textContent = `${approved} de ${questions.length}`;
             }
 
             if (percentage) {
@@ -1556,6 +1557,7 @@ const ImageGallery = (() => {
         }
 
         question.dataset.hasUpload = (images?.length ?? 0) > 0 ? '1' : '0';
+        question.dataset.status = (images?.length ?? 0) > 0 ? 'enviado' : 'pendente';
 
         const field = question.querySelector('[data-image-field]');
 
@@ -1946,6 +1948,7 @@ const FileDeletion = (() => {
             item.remove();
 
             question.dataset.hasUpload = list.querySelectorAll('[data-file-existing]').length > 0 ? '1' : '0';
+            question.dataset.status = payload.has_upload ? 'enviado' : 'pendente';
             question.dispatchEvent(new Event('change', { bubbles: true }));
 
             setDraftStatus(form, 'saved', payload.message || 'Arquivo excluído.');

@@ -1197,12 +1197,12 @@ it('starts every submission with a blank structure when multiple responses are a
         ->assertDontSee('Galpão A');
 });
 
-it('shows the submission progress in the form header', function () {
+it('shows the approved percentage in the form header', function () {
     $form = Form::factory()->create(['steps' => publicFormSteps()]);
 
     $this->get(URL::signedRoute('public.forms.fill', ['form' => $form->getKey()]))
         ->assertOk()
-        ->assertSee('Progresso do envio')
+        ->assertSee('Aprovados')
         ->assertSee('0 de 8')
         ->assertSee('0%')
         ->assertSee('data-form-progress', false)
@@ -1268,24 +1268,29 @@ it('opens the step that contains validation errors', function () {
         ->assertSee('data-form-initial-step="1"', false);
 });
 
-it('updates the submission progress with the answers already stored', function () {
+it('updates the approved percentage with the evaluation stored in the response', function () {
     $form = Form::factory()->create([
         'allows_multiple_responses' => false,
         'steps' => publicFormSteps(),
     ]);
 
-    $this->post(URL::signedRoute('public.forms.submit', ['form' => $form->getKey()]), [
-        'answers' => [
-            'F1-1' => 'Galpão A',
-            'F1-3' => '2026-10-25',
-            'F2-1' => 'Conforme',
-        ],
-    ])->assertRedirect();
+    $steps = publicFormSteps();
+    $steps[0]['fields'][0]['status'] = 'aprovado';
+    $steps[0]['fields'][2]['status'] = 'aprovado';
+    $steps[1]['fields'][0]['status'] = 'reprovado';
+
+    $form->responses()->create([
+        'status' => 'Aprovado',
+        'steps' => $steps,
+        'submitted_at' => now(),
+    ]);
 
     $this->get(URL::signedRoute('public.forms.fill', ['form' => $form->getKey()]))
         ->assertOk()
-        ->assertSee('3 de 8')
-        ->assertSee('38%');
+        ->assertSee('2 de 8')
+        ->assertSee('25%')
+        ->assertSee('data-status="aprovado"', false)
+        ->assertSee('data-status="reprovado"', false);
 });
 
 it('shows the evaluation status pill for each question on the public form', function () {
