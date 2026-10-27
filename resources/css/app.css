@@ -134,3 +134,22 @@ html {
         animation: none !important;
     }
 }
+
+/* Public forms fall back to a single-page layout when JavaScript is unavailable.
+   These live in the base layer so they can override Tailwind's `[hidden]` preflight
+   rule, which is itself declared with `!important` in that same layer. */
+@layer base {
+    .no-js [data-form-step][hidden] {
+        display: block !important;
+    }
+
+    .no-js [data-form-step-nav],
+    .no-js [data-form-step-prev],
+    .no-js [data-form-step-next] {
+        display: none !important;
+    }
+
+    .no-js [data-form-step-submit][hidden] {
+        display: inline-flex !important;
+    }
+}

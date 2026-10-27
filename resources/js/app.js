@@ -780,7 +780,7 @@ const FormProgress = (() => {
     };
 
     const refresh = (form) => {
-        const container = form.querySelector('[data-form-progress]');
+        const container = form.querySelector('[data-form-progress]') ?? document.querySelector('[data-form-progress]');
 
         if (!container) {
             return;
@@ -1156,7 +1156,7 @@ const ImagePreviews = (() => {
             item.dataset.previewUrl = fullUrl;
         }
 
-        item.className = 'h-16 w-16 overflow-hidden rounded-lg ring-1 ring-gray-200 dark:ring-gray-800';
+        item.className = 'h-20 w-20 overflow-hidden rounded-xl ring-1 ring-gray-200 dark:ring-gray-800';
 
         const image = document.createElement('img');
 
@@ -1439,7 +1439,7 @@ const DraftAutosave = (() => {
                 link.target = '_blank';
                 link.rel = 'noopener';
                 link.dataset.imageExisting = '';
-                link.className = 'block h-16 w-16 overflow-hidden rounded-lg ring-1 ring-gray-200 dark:ring-gray-800';
+                link.className = 'block h-20 w-20 overflow-hidden rounded-xl ring-1 ring-gray-200 dark:ring-gray-800';
 
                 image.src = previews[index] ?? url;
                 image.alt = 'Imagem enviada';
