@@ -50,12 +50,6 @@
             </x-ui.alert>
         @endif
 
-        @if ($response)
-            <x-ui.alert tone="warning">
-                Este formulário aceita uma única resposta. Ao enviar novamente, o registro existente será atualizado.
-            </x-ui.alert>
-        @endif
-
         @if (empty($steps))
             <x-public.forms.empty-state>
                 Este formulário ainda não possui perguntas.
