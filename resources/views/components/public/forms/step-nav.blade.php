@@ -11,7 +11,7 @@
         : 0;
 @endphp
 
-<div data-form-step-nav {{ $attributes->class(['sticky top-2 z-20 rounded-2xl border border-gray-200/70 bg-white/95 p-3 shadow-sm backdrop-blur-md dark:border-gray-800 dark:bg-gray-900/95']) }}>
+<div data-form-step-nav {{ $attributes->class(['sticky top-2 z-20 rounded-2xl border border-gray-200/70 bg-white p-3 dark:border-gray-800 dark:bg-gray-900']) }}>
     <div class="flex items-center justify-between gap-3">
         <span class="inline-flex shrink-0 items-center gap-1.5 text-xs font-medium text-gray-500 dark:text-gray-400">
             <x-icon name="rectangle-stack" class="h-3.5 w-3.5" />

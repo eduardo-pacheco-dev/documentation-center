@@ -8,7 +8,7 @@
 <section
     data-form-step="{{ $index }}"
     @if ($index !== $initialStep) hidden @endif
-    {{ $attributes->class(['scroll-mt-48 rounded-2xl border border-gray-200/70 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900']) }}
+    {{ $attributes->class(['scroll-mt-48 rounded-2xl border border-gray-200/70 bg-white dark:border-gray-800 dark:bg-gray-900']) }}
 >
     <div class="flex items-start gap-3 border-b border-gray-100 px-4 py-4 dark:border-gray-800 sm:px-5">
         <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gray-100 text-sm font-semibold tabular-nums text-gray-600 dark:bg-gray-800 dark:text-gray-300">

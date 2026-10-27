@@ -5,7 +5,7 @@
     aria-labelledby="image-preview-title"
     {{ $attributes->class(['fixed inset-0 z-[100] hidden']) }}
 >
-    <div class="absolute inset-0 bg-gray-950/90 backdrop-blur-sm" data-image-modal-close></div>
+    <div class="absolute inset-0 bg-gray-950/90" data-image-modal-close></div>
 
     <div class="pointer-events-none absolute inset-0 flex flex-col">
         <div class="pointer-events-auto flex items-start justify-between gap-4 p-4 pt-[calc(env(safe-area-inset-top)+1rem)] sm:p-6">
@@ -38,7 +38,7 @@
             <img
                 data-image-modal-image
                 alt=""
-                class="pointer-events-auto max-h-full max-w-full rounded-lg object-contain shadow-2xl"
+                class="pointer-events-auto max-h-full max-w-full rounded-lg object-contain"
             >
 
             <button

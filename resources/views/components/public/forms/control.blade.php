@@ -17,7 +17,7 @@
     $isNumber = $type === 'number';
     $inputType = in_array($type, ['number', 'date', 'time'], true) ? $type : 'text';
 
-    $classes = 'block min-h-11 w-full rounded-xl border bg-white px-3.5 py-2.5 text-base text-gray-900 shadow-sm transition placeholder:text-gray-400 focus:outline-none focus:ring-2 sm:text-sm dark:bg-gray-900 dark:text-gray-100 '
+    $classes = 'block min-h-11 w-full rounded-xl border bg-white px-3.5 py-2.5 text-base text-gray-900 transition placeholder:text-gray-400 focus:outline-none focus:ring-2 sm:text-sm dark:bg-gray-900 dark:text-gray-100 '
         .($invalid
             ? 'border-red-300 focus:border-red-500 focus:ring-red-500/30 dark:border-red-800'
             : 'border-gray-300 focus:border-indigo-500 focus:ring-indigo-500/30 dark:border-gray-700');

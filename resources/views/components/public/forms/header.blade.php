@@ -5,9 +5,9 @@
     'percent' => 0,
 ])
 
-<header {{ $attributes->class(['overflow-hidden rounded-2xl border border-gray-200/70 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900']) }}>
+<header {{ $attributes->class(['overflow-hidden rounded-2xl border border-gray-200/70 bg-white dark:border-gray-800 dark:bg-gray-900']) }}>
     <div class="flex items-start gap-3 p-4 sm:p-5">
-        <span class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-indigo-600 text-white shadow-sm dark:bg-indigo-500">
+        <span class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-indigo-600 text-white dark:bg-indigo-500">
             <x-icon name="clipboard-document-list" class="h-5 w-5" />
         </span>
 
