@@ -39,6 +39,22 @@ function publicFormSteps(): array
     ];
 }
 
+/**
+ * @return array<int, array<string, mixed>>
+ */
+function publicFileFormSteps(): array
+{
+    return [
+        [
+            'id' => 'S1',
+            'title' => 'Documentos',
+            'fields' => [
+                ['id' => 'F1-1', 'type' => 'file', 'label' => 'Documento do site', 'required' => false, 'files' => [], 'status' => 'pendente'],
+            ],
+        ],
+    ];
+}
+
 it('shows the public form filling page without authentication', function () {
     $form = Form::factory()->create(['steps' => publicFormSteps()]);
 
@@ -49,6 +65,13 @@ it('shows the public form filling page without authentication', function () {
         ->assertSee('Área registrada')
         ->assertSee('Enviar respostas')
         ->assertSee('name="answers[F1-1]"', false)
+        ->assertSee('name="answers[F2-1]"', false)
+        ->assertSee('name="answers[F2-2][]"', false)
+        ->assertSee('name="answers[F2-3]"', false)
+        ->assertSee('name="answers[F2-4]"', false)
+        ->assertSee('id="field-F2-4"', false)
+        ->assertSee('aria-labelledby="field-F2-1-label"', false)
+        ->assertSee('<option value="Torre"', false)
         ->assertSee('name="camera_answers[F2-5][]"', false)
         ->assertSee('capture="environment"', false)
         ->assertSee('data-image-thumbnails', false)
@@ -128,6 +151,96 @@ it('requires the required fields before submitting', function () {
 
     expect($form->fresh()->steps)->toBe(publicFormSteps());
     expect($form->responses()->count())->toBe(0);
+});
+
+it('requires a required image field when it has no photos', function () {
+    $steps = publicFormSteps();
+    $steps[1]['fields'][4]['required'] = true;
+
+    $form = Form::factory()->create(['steps' => $steps]);
+
+    $this->post(URL::signedRoute('public.forms.submit', ['form' => $form->getKey()]), [
+        'answers' => [
+            'F1-1' => 'Galpão A',
+            'F1-3' => '2026-10-25',
+            'F2-1' => 'Conforme',
+        ],
+    ])->assertSessionHasErrors(['answers.F2-5']);
+
+    expect($form->responses()->count())->toBe(0);
+});
+
+it('accepts a required image field marked as not applicable', function () {
+    $steps = publicFormSteps();
+    $steps[1]['fields'][4]['required'] = true;
+
+    $form = Form::factory()->create(['status' => 'Pendente', 'steps' => $steps]);
+
+    $this->post(URL::signedRoute('public.forms.submit', ['form' => $form->getKey()]), [
+        'answers' => [
+            'F1-1' => 'Galpão A',
+            'F1-3' => '2026-10-25',
+            'F2-1' => 'Conforme',
+        ],
+        'na_answers' => ['F2-5' => '1'],
+    ])->assertRedirect()->assertSessionHasNoErrors();
+
+    $field = collect($form->fresh()->steps[1]['fields'])->firstWhere('id', 'F2-5');
+
+    expect($field['status'])->toBe('nao_aplicavel');
+    expect($field['images'] ?? [])->toBe([]);
+});
+
+it('saves the not applicable selection automatically', function () {
+    $form = Form::factory()->create([
+        'status' => 'Pendente',
+        'allows_multiple_responses' => true,
+        'steps' => publicFormSteps(),
+    ]);
+
+    $this->post(URL::signedRoute('public.forms.autosave', ['form' => $form->getKey()]), [
+        'na_answers' => ['F2-5' => '1'],
+    ], ['Accept' => 'application/json'])
+        ->assertOk()
+        ->assertJsonPath('message', 'Seleção salva automaticamente.');
+
+    $response = $form->responses()->firstOrFail();
+    $field = collect($response->steps[1]['fields'])->firstWhere('id', 'F2-5');
+
+    expect($response->status)->toBe('Em preenchimento');
+    expect($field['status'])->toBe('nao_aplicavel');
+
+    $this->post(URL::signedRoute('public.forms.autosave', ['form' => $form->getKey()]), [
+        'na_answers' => ['F2-5' => '0'],
+    ], ['Accept' => 'application/json'])->assertOk();
+
+    $field = collect($response->fresh()->steps[1]['fields'])->firstWhere('id', 'F2-5');
+
+    expect($field['status'])->toBe('pendente');
+});
+
+it('renders an image field marked as not applicable', function () {
+    $steps = publicFormSteps();
+    $steps[1]['fields'][4]['status'] = 'nao_aplicavel';
+
+    $form = Form::factory()->create([
+        'allows_multiple_responses' => false,
+        'steps' => $steps,
+    ]);
+
+    $form->responses()->create([
+        'status' => 'Preenchido',
+        'steps' => $steps,
+        'submitted_at' => now(),
+    ]);
+
+    $this->get(URL::signedRoute('public.forms.fill', ['form' => $form->getKey()]))
+        ->assertOk()
+        ->assertSee('name="na_answers[F2-5]"', false)
+        ->assertSee('data-image-na-toggle', false)
+        ->assertSee('aria-pressed="true"', false)
+        ->assertSee('aria-label="Não aplicável"', false)
+        ->assertSeeText('Não aplicável');
 });
 
 it('keeps uploaded photos visible when the submission is incomplete', function () {
@@ -224,6 +337,17 @@ it('renders the image preview modal on the public form', function () {
         ->assertSee('Fechar pré-visualização');
 });
 
+it('renders the image deletion confirmation modal on the public form', function () {
+    $form = Form::factory()->create(['status' => 'Pendente', 'steps' => publicFormSteps()]);
+
+    $this->get(URL::signedRoute('public.forms.fill', ['form' => $form->getKey()]))
+        ->assertOk()
+        ->assertSee('id="confirm-modal"', false)
+        ->assertSee('data-confirm-title', false)
+        ->assertSee('data-confirm-accept', false)
+        ->assertSee('data-confirm-cancel', false);
+});
+
 it('finishes an incomplete submission without uploading the photos again', function () {
     Storage::fake('public');
 
@@ -294,7 +418,9 @@ it('saves newly selected images automatically as a draft', function () {
 
     $response->assertOk()
         ->assertJsonPath('message', 'Imagens salvas automaticamente.')
-        ->assertJsonStructure(['message', 'images' => ['F2-5'], 'thumbnails' => ['F2-5'], 'saved_at']);
+        ->assertJsonStructure(['message', 'images' => ['F2-5'], 'thumbnails' => ['F2-5'], 'imageDecisions' => ['F2-5'], 'saved_at']);
+
+    expect($response->json('imageDecisions.F2-5'))->toBe([]);
 
     $images = $response->json('images.F2-5');
     $thumbnails = $response->json('thumbnails.F2-5');
@@ -432,6 +558,299 @@ it('adds the automatic save to the public form', function () {
         ->assertSee('data-form-autosave-url', false)
         ->assertSee('data-draft-autosave-status', false)
         ->assertSee(URL::signedRoute('public.forms.autosave', ['form' => $form->getKey()]), false);
+});
+
+it('deletes an uploaded image from the public response', function () {
+    Storage::fake('public');
+
+    $form = Form::factory()->create([
+        'status' => 'Pendente',
+        'allows_multiple_responses' => false,
+        'steps' => publicFormSteps(),
+    ]);
+
+    $this->post(URL::signedRoute('public.forms.submit', ['form' => $form->getKey()]), [
+        'answers' => [
+            'F1-1' => 'Galpão A',
+            'F1-3' => '2026-10-25',
+            'F2-1' => 'Conforme',
+            'F2-5' => [
+                UploadedFile::fake()->image('frente.jpg'),
+                UploadedFile::fake()->image('lateral.jpg'),
+            ],
+        ],
+    ])->assertRedirect()->assertSessionHasNoErrors();
+
+    $response = $form->responses()->firstOrFail();
+    $field = collect($response->steps[1]['fields'])->firstWhere('id', 'F2-5');
+    $images = $field['images'];
+    $thumbnails = $field['imageThumbnails'];
+
+    $this->post(URL::signedRoute('public.forms.images.destroy', ['form' => $form->getKey()]), [
+        'field' => 'F2-5',
+        'index' => 0,
+    ], ['Accept' => 'application/json'])
+        ->assertOk()
+        ->assertJsonPath('message', 'Imagem excluída.')
+        ->assertJsonPath('has_upload', true)
+        ->assertJsonCount(1, 'images')
+        ->assertJsonCount(1, 'thumbnails');
+
+    $response->refresh();
+    $field = collect($response->steps[1]['fields'])->firstWhere('id', 'F2-5');
+
+    expect($field['images'])->toBe([$images[1]]);
+    expect($field['status'])->toBe('enviado');
+
+    Storage::disk('public')->assertMissing('forms/'.$form->getKey().'/'.basename($images[0]));
+    Storage::disk('public')->assertMissing('forms/'.$form->getKey().'/'.basename($thumbnails[0]));
+    Storage::disk('public')->assertExists('forms/'.$form->getKey().'/'.basename($images[1]));
+
+    $this->get(URL::signedRoute('public.forms.fill', ['form' => $form->getKey()]))
+        ->assertOk()
+        ->assertSee('data-image-remove', false)
+        ->assertSee(URL::signedRoute('public.forms.images.destroy', ['form' => $form->getKey()]), false)
+        ->assertSee($images[1], false)
+        ->assertDontSee($images[0], false);
+});
+
+it('removes the last image and resets the field status', function () {
+    Storage::fake('public');
+
+    $form = Form::factory()->create([
+        'status' => 'Pendente',
+        'allows_multiple_responses' => false,
+        'steps' => publicFormSteps(),
+    ]);
+
+    $this->post(URL::signedRoute('public.forms.submit', ['form' => $form->getKey()]), [
+        'answers' => [
+            'F1-1' => 'Galpão A',
+            'F1-3' => '2026-10-25',
+            'F2-1' => 'Conforme',
+            'F2-5' => [UploadedFile::fake()->image('painel.jpg')],
+        ],
+    ])->assertRedirect()->assertSessionHasNoErrors();
+
+    $response = $form->responses()->firstOrFail();
+    $image = collect($response->steps[1]['fields'])->firstWhere('id', 'F2-5')['images'][0];
+
+    $this->post(URL::signedRoute('public.forms.images.destroy', ['form' => $form->getKey()]), [
+        'field' => 'F2-5',
+        'index' => 0,
+    ], ['Accept' => 'application/json'])
+        ->assertOk()
+        ->assertJsonPath('has_upload', false)
+        ->assertJsonCount(0, 'images');
+
+    $field = collect($response->fresh()->steps[1]['fields'])->firstWhere('id', 'F2-5');
+
+    expect($field['images'])->toBe([]);
+    expect($field['status'])->toBe('pendente');
+
+    Storage::disk('public')->assertMissing('forms/'.$form->getKey().'/'.basename($image));
+
+    $this->get(URL::signedRoute('public.forms.fill', ['form' => $form->getKey()]))
+        ->assertOk()
+        ->assertDontSee($image, false);
+});
+
+it('keeps image decisions aligned after deleting an image', function () {
+    Storage::fake('public');
+
+    $form = Form::factory()->create([
+        'status' => 'Pendente',
+        'allows_multiple_responses' => false,
+        'steps' => publicFormSteps(),
+    ]);
+
+    $this->post(URL::signedRoute('public.forms.submit', ['form' => $form->getKey()]), [
+        'answers' => [
+            'F1-1' => 'Galpão A',
+            'F1-3' => '2026-10-25',
+            'F2-1' => 'Conforme',
+            'F2-5' => [
+                UploadedFile::fake()->image('frente.jpg'),
+                UploadedFile::fake()->image('lateral.jpg'),
+            ],
+        ],
+    ])->assertRedirect()->assertSessionHasNoErrors();
+
+    $response = $form->responses()->firstOrFail();
+    $steps = $response->steps;
+
+    foreach ($steps[1]['fields'] as $index => $field) {
+        if ($field['id'] === 'F2-5') {
+            $steps[1]['fields'][$index]['imageDecisions'] = [0 => 'aprovado', 1 => 'reprovado'];
+        }
+    }
+
+    $response->update(['steps' => $steps]);
+
+    $this->post(URL::signedRoute('public.forms.images.destroy', ['form' => $form->getKey()]), [
+        'field' => 'F2-5',
+        'index' => 0,
+    ], ['Accept' => 'application/json'])
+        ->assertOk()
+        ->assertJsonPath('imageDecisions.0', 'reprovado');
+
+    $field = collect($response->fresh()->steps[1]['fields'])->firstWhere('id', 'F2-5');
+
+    expect($field['imageDecisions'])->toBe([0 => 'reprovado']);
+    expect($field['status'])->toBe('enviado');
+});
+
+it('keeps the not applicable status after deleting the last image', function () {
+    Storage::fake('public');
+
+    $form = Form::factory()->create([
+        'status' => 'Pendente',
+        'allows_multiple_responses' => false,
+        'steps' => publicFormSteps(),
+    ]);
+
+    $this->post(URL::signedRoute('public.forms.submit', ['form' => $form->getKey()]), [
+        'answers' => [
+            'F1-1' => 'Galpão A',
+            'F1-3' => '2026-10-25',
+            'F2-1' => 'Conforme',
+            'F2-5' => [UploadedFile::fake()->image('frente.jpg')],
+        ],
+    ])->assertRedirect()->assertSessionHasNoErrors();
+
+    $response = $form->responses()->firstOrFail();
+    $steps = $response->steps;
+
+    foreach ($steps[1]['fields'] as $index => $field) {
+        if ($field['id'] === 'F2-5') {
+            $steps[1]['fields'][$index]['status'] = 'nao_aplicavel';
+        }
+    }
+
+    $response->update(['steps' => $steps]);
+
+    $this->post(URL::signedRoute('public.forms.images.destroy', ['form' => $form->getKey()]), [
+        'field' => 'F2-5',
+        'index' => 0,
+    ], ['Accept' => 'application/json'])->assertOk();
+
+    $field = collect($response->fresh()->steps[1]['fields'])->firstWhere('id', 'F2-5');
+
+    expect($field['images'])->toBe([]);
+    expect($field['status'])->toBe('nao_aplicavel');
+});
+
+it('does not expose image deletion through an unsigned route', function () {
+    Storage::fake('public');
+
+    $form = Form::factory()->create(['steps' => publicFormSteps()]);
+
+    $this->post(route('public.forms.images.destroy', $form), [
+        'field' => 'F2-5',
+        'index' => 0,
+    ])->assertForbidden();
+});
+
+it('deletes an uploaded file from the public response', function () {
+    Storage::fake('public');
+
+    $form = Form::factory()->create([
+        'status' => 'Pendente',
+        'allows_multiple_responses' => false,
+        'steps' => publicFileFormSteps(),
+    ]);
+
+    $this->post(URL::signedRoute('public.forms.submit', ['form' => $form->getKey()]), [
+        'answers' => [
+            'F1-1' => [
+                UploadedFile::fake()->create('contrato.pdf', 100, 'application/pdf'),
+                UploadedFile::fake()->create('planta.pdf', 100, 'application/pdf'),
+            ],
+        ],
+    ])->assertRedirect()->assertSessionHasNoErrors();
+
+    $response = $form->responses()->firstOrFail();
+    $field = $response->steps[0]['fields'][0];
+    $files = $field['files'];
+    $names = $field['fileNames'];
+
+    expect($files)->toHaveCount(2);
+
+    $this->post(URL::signedRoute('public.forms.files.destroy', ['form' => $form->getKey()]), [
+        'field' => 'F1-1',
+        'index' => 0,
+    ], ['Accept' => 'application/json'])
+        ->assertOk()
+        ->assertJsonPath('message', 'Arquivo excluído.')
+        ->assertJsonPath('has_upload', true)
+        ->assertJsonCount(1, 'files')
+        ->assertJsonPath('fileNames.0', 'planta.pdf');
+
+    $field = $response->fresh()->steps[0]['fields'][0];
+
+    expect($field['files'])->toBe([$files[1]]);
+    expect($field['fileNames'])->toBe([$names[1]]);
+    expect($field['status'])->toBe('enviado');
+
+    Storage::disk('public')->assertMissing('forms/'.$form->getKey().'/'.basename($files[0]));
+    Storage::disk('public')->assertExists('forms/'.$form->getKey().'/'.basename($files[1]));
+
+    $this->get(URL::signedRoute('public.forms.fill', ['form' => $form->getKey()]))
+        ->assertOk()
+        ->assertSee('data-file-remove', false)
+        ->assertSee(URL::signedRoute('public.forms.files.destroy', ['form' => $form->getKey()]), false)
+        ->assertSee($names[1])
+        ->assertDontSee($files[0], false);
+});
+
+it('removes the last file and resets the field status', function () {
+    Storage::fake('public');
+
+    $form = Form::factory()->create([
+        'status' => 'Pendente',
+        'allows_multiple_responses' => false,
+        'steps' => publicFileFormSteps(),
+    ]);
+
+    $this->post(URL::signedRoute('public.forms.submit', ['form' => $form->getKey()]), [
+        'answers' => [
+            'F1-1' => [UploadedFile::fake()->create('contrato.pdf', 100, 'application/pdf')],
+        ],
+    ])->assertRedirect()->assertSessionHasNoErrors();
+
+    $response = $form->responses()->firstOrFail();
+    $file = $response->steps[0]['fields'][0]['files'][0];
+
+    $this->post(URL::signedRoute('public.forms.files.destroy', ['form' => $form->getKey()]), [
+        'field' => 'F1-1',
+        'index' => 0,
+    ], ['Accept' => 'application/json'])
+        ->assertOk()
+        ->assertJsonPath('has_upload', false)
+        ->assertJsonCount(0, 'files');
+
+    $field = $response->fresh()->steps[0]['fields'][0];
+
+    expect($field['files'])->toBe([]);
+    expect($field['fileNames'])->toBe([]);
+    expect($field['status'])->toBe('pendente');
+
+    Storage::disk('public')->assertMissing('forms/'.$form->getKey().'/'.basename($file));
+
+    $this->get(URL::signedRoute('public.forms.fill', ['form' => $form->getKey()]))
+        ->assertOk()
+        ->assertDontSee($file, false);
+});
+
+it('does not expose file deletion through an unsigned route', function () {
+    Storage::fake('public');
+
+    $form = Form::factory()->create(['steps' => publicFileFormSteps()]);
+
+    $this->post(route('public.forms.files.destroy', $form), [
+        'field' => 'F1-1',
+        'index' => 0,
+    ])->assertForbidden();
 });
 
 it('shows a public submission on the evaluation page', function () {
@@ -912,16 +1331,44 @@ it('starts every submission with a blank structure when multiple responses are a
         ->assertDontSee('Galpão A');
 });
 
-it('shows the submission progress in the form header', function () {
+it('shows the approved percentage in the form header', function () {
     $form = Form::factory()->create(['steps' => publicFormSteps()]);
 
     $this->get(URL::signedRoute('public.forms.fill', ['form' => $form->getKey()]))
         ->assertOk()
-        ->assertSee('Progresso do envio')
+        ->assertSee('Aprovados')
         ->assertSee('0 de 8')
         ->assertSee('0%')
         ->assertSee('data-form-progress', false)
         ->assertSee('data-form-progress-form', false);
+});
+
+it('shows the approved progress of each section', function () {
+    $form = Form::factory()->create([
+        'allows_multiple_responses' => false,
+        'steps' => publicFormSteps(),
+    ]);
+
+    $steps = publicFormSteps();
+    $steps[0]['fields'][0]['status'] = 'aprovado';
+    $steps[0]['fields'][1]['status'] = 'aprovado';
+    $steps[1]['fields'][0]['status'] = 'aprovado';
+
+    $form->responses()->create([
+        'status' => 'Aprovado',
+        'steps' => $steps,
+        'submitted_at' => now(),
+    ]);
+
+    $this->get(URL::signedRoute('public.forms.fill', ['form' => $form->getKey()]))
+        ->assertOk()
+        ->assertSee('data-step-progress', false)
+        ->assertSee('aria-label="Progresso da etapa 1"', false)
+        ->assertSee('aria-label="Progresso da etapa 2"', false)
+        ->assertSee('aria-valuenow="67"', false)
+        ->assertSee('aria-valuenow="20"', false)
+        ->assertSee('2 de 3 perguntas aprovadas', false)
+        ->assertSee('1 de 5 perguntas aprovadas', false);
 });
 
 it('presents each section as a step in the public form', function () {
@@ -960,24 +1407,29 @@ it('opens the step that contains validation errors', function () {
         ->assertSee('data-form-initial-step="1"', false);
 });
 
-it('updates the submission progress with the answers already stored', function () {
+it('updates the approved percentage with the evaluation stored in the response', function () {
     $form = Form::factory()->create([
         'allows_multiple_responses' => false,
         'steps' => publicFormSteps(),
     ]);
 
-    $this->post(URL::signedRoute('public.forms.submit', ['form' => $form->getKey()]), [
-        'answers' => [
-            'F1-1' => 'Galpão A',
-            'F1-3' => '2026-10-25',
-            'F2-1' => 'Conforme',
-        ],
-    ])->assertRedirect();
+    $steps = publicFormSteps();
+    $steps[0]['fields'][0]['status'] = 'aprovado';
+    $steps[0]['fields'][2]['status'] = 'aprovado';
+    $steps[1]['fields'][0]['status'] = 'reprovado';
+
+    $form->responses()->create([
+        'status' => 'Aprovado',
+        'steps' => $steps,
+        'submitted_at' => now(),
+    ]);
 
     $this->get(URL::signedRoute('public.forms.fill', ['form' => $form->getKey()]))
         ->assertOk()
-        ->assertSee('3 de 8')
-        ->assertSee('38%');
+        ->assertSee('2 de 8')
+        ->assertSee('25%')
+        ->assertSee('data-status="aprovado"', false)
+        ->assertSee('data-status="reprovado"', false);
 });
 
 it('shows the evaluation status pill for each question on the public form', function () {
@@ -1004,6 +1456,34 @@ it('shows the evaluation status pill for each question on the public form', func
         ->assertOk()
         ->assertSeeText('Aprovado')
         ->assertSeeText('Reprovado');
+});
+
+it('shows the decision of each image on its own thumbnail', function () {
+    $form = Form::factory()->create([
+        'allows_multiple_responses' => false,
+        'steps' => publicFormSteps(),
+    ]);
+
+    $steps = publicFormSteps();
+    $steps[1]['fields'][4]['images'] = [
+        '/storage/forms/1/frente.jpg',
+        '/storage/forms/1/lateral.jpg',
+    ];
+    $steps[1]['fields'][4]['imageThumbnails'] = $steps[1]['fields'][4]['images'];
+    $steps[1]['fields'][4]['status'] = 'enviado';
+    $steps[1]['fields'][4]['imageDecisions'] = [0 => 'aprovado', 1 => 'reprovado'];
+
+    $form->responses()->create([
+        'status' => 'Preenchido',
+        'steps' => $steps,
+        'submitted_at' => now(),
+    ]);
+
+    $this->get(URL::signedRoute('public.forms.fill', ['form' => $form->getKey()]))
+        ->assertOk()
+        ->assertSee('aria-label="Aprovado"', false)
+        ->assertSee('aria-label="Reprovado"', false)
+        ->assertDontSee('aria-label="Enviado"', false);
 });
 
 it('prefills the existing answer when the form accepts a single response', function () {

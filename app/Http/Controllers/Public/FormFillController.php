@@ -139,7 +139,10 @@ class FormFillController extends Controller
                         ? ($field['images'] ?? [])
                         : ($field['files'] ?? []);
 
-                    if (($field['required'] ?? false) && $existing === [] && $uploads === []) {
+                    $isNotApplicable = $type === 'image'
+                        && $this->isNotApplicable($request->input('na_answers.'.$fieldId));
+
+                    if (($field['required'] ?? false) && ! $isNotApplicable && $existing === [] && $uploads === []) {
                         $validator->errors()->add(
                             'answers.'.$fieldId,
                             'O campo "'.$label.'" é obrigatório.',
@@ -173,12 +176,13 @@ class FormFillController extends Controller
 
         $validated = $validator->validate();
         $answers = is_array($validated['answers'] ?? null) ? $validated['answers'] : [];
+        $notApplicable = is_array($validated['na_answers'] ?? null) ? $validated['na_answers'] : [];
 
         $status = in_array($form->status, ['Pendente', self::DRAFT_STATUS], true)
             ? 'Preenchido'
             : $form->status;
 
-        $filledSteps = $this->applyAnswers($steps, $answers);
+        $filledSteps = $this->applyAnswers($steps, $answers, $notApplicable);
 
         DB::transaction(function () use ($form, $request, $response, $status, $filledSteps): void {
             if ($response !== null) {
@@ -253,20 +257,206 @@ class FormFillController extends Controller
         }
 
         $answers = is_array($request->input('answers')) ? $request->input('answers') : [];
-        $steps = $this->applyAnswers($steps, $answers);
+        $notApplicable = is_array($request->input('na_answers')) ? $request->input('na_answers') : [];
+        $steps = $this->applyAnswers($steps, $answers, $notApplicable);
 
-        if ($capturedUploads > 0) {
+        if ($capturedUploads > 0 || $notApplicable !== []) {
             $this->persistIncompleteSubmission($form, $response, $steps, $request);
         }
 
         return response()->json([
-            'message' => $capturedUploads > 0
-                ? 'Imagens salvas automaticamente.'
-                : 'Nenhuma imagem nova para salvar.',
+            'message' => match (true) {
+                $capturedUploads > 0 => 'Imagens salvas automaticamente.',
+                $notApplicable !== [] => 'Seleção salva automaticamente.',
+                default => 'Nenhuma imagem nova para salvar.',
+            },
             'images' => $this->imageUrls($steps),
             'thumbnails' => $this->imageThumbnailUrls($steps),
+            'imageDecisions' => $this->imageDecisionMap($steps),
             'saved_at' => now()->toIso8601String(),
         ]);
+    }
+
+    /**
+     * Delete an image already stored for the public response.
+     *
+     * The image is removed from the response answers and from the public disk.
+     * The remaining images keep their order and decisions aligned.
+     */
+    public function destroyImage(Request $request, Form $form): JsonResponse
+    {
+        $validated = $request->validate([
+            'field' => ['required', 'string'],
+            'index' => ['required', 'integer', 'min:0'],
+        ]);
+
+        $response = $this->singleResponse($form);
+
+        if ($response === null) {
+            return response()->json([
+                'message' => 'Nenhuma imagem encontrada para excluir.',
+            ], 404);
+        }
+
+        $steps = $this->responseSteps($form->steps ?? [], $response);
+        $fieldId = (string) $validated['field'];
+        $index = (int) $validated['index'];
+
+        foreach ($steps as $stepIndex => $step) {
+            foreach ($step['fields'] ?? [] as $fieldIndex => $field) {
+                if ((string) ($field['id'] ?? '') !== $fieldId) {
+                    continue;
+                }
+
+                if (($field['type'] ?? null) !== 'image') {
+                    return response()->json([
+                        'message' => 'O campo informado não aceita imagens.',
+                    ], 422);
+                }
+
+                $images = array_values($field['images'] ?? []);
+                $thumbnails = array_values($field['imageThumbnails'] ?? []);
+                $decisions = is_array($field['imageDecisions'] ?? null) ? $field['imageDecisions'] : [];
+                $hasDecisions = array_key_exists('imageDecisions', $field);
+
+                if (! array_key_exists($index, $images)) {
+                    return response()->json([
+                        'message' => 'Imagem não encontrada.',
+                    ], 404);
+                }
+
+                $removed = [$images[$index], $thumbnails[$index] ?? $images[$index]];
+                $alignedDecisions = [];
+                $nextIndex = 0;
+
+                foreach (array_keys($images) as $oldIndex) {
+                    if ($oldIndex === $index) {
+                        continue;
+                    }
+
+                    if (array_key_exists($oldIndex, $decisions)) {
+                        $alignedDecisions[$nextIndex] = $decisions[$oldIndex];
+                    }
+
+                    $nextIndex++;
+                }
+
+                unset($images[$index], $thumbnails[$index]);
+
+                $images = array_values($images);
+                $thumbnails = array_values($thumbnails);
+
+                $wasNotApplicable = ($steps[$stepIndex]['fields'][$fieldIndex]['status'] ?? null) === 'nao_aplicavel';
+
+                $steps[$stepIndex]['fields'][$fieldIndex]['images'] = $images;
+                $steps[$stepIndex]['fields'][$fieldIndex]['imageThumbnails'] = $thumbnails;
+                $steps[$stepIndex]['fields'][$fieldIndex]['status'] = $wasNotApplicable
+                    ? 'nao_aplicavel'
+                    : ($images === [] ? 'pendente' : 'enviado');
+
+                if ($hasDecisions) {
+                    $steps[$stepIndex]['fields'][$fieldIndex]['imageDecisions'] = $alignedDecisions;
+                }
+
+                $response->update(['steps' => $steps]);
+
+                $this->deleteStoredUploads($form, $removed);
+
+                return response()->json([
+                    'message' => 'Imagem excluída.',
+                    'images' => $images,
+                    'thumbnails' => $thumbnails,
+                    'imageDecisions' => $alignedDecisions,
+                    'has_upload' => $images !== [],
+                ]);
+            }
+        }
+
+        return response()->json([
+            'message' => 'Imagem não encontrada.',
+        ], 404);
+    }
+
+    /**
+     * Delete a file already stored for the public response.
+     *
+     * The file is removed from the response answers and from the public disk.
+     * The remaining files keep their order and names aligned.
+     */
+    public function destroyFile(Request $request, Form $form): JsonResponse
+    {
+        $validated = $request->validate([
+            'field' => ['required', 'string'],
+            'index' => ['required', 'integer', 'min:0'],
+        ]);
+
+        $response = $this->singleResponse($form);
+
+        if ($response === null) {
+            return response()->json([
+                'message' => 'Nenhum arquivo encontrado para excluir.',
+            ], 404);
+        }
+
+        $steps = $this->responseSteps($form->steps ?? [], $response);
+        $fieldId = (string) $validated['field'];
+        $index = (int) $validated['index'];
+
+        foreach ($steps as $stepIndex => $step) {
+            foreach ($step['fields'] ?? [] as $fieldIndex => $field) {
+                if ((string) ($field['id'] ?? '') !== $fieldId) {
+                    continue;
+                }
+
+                if (($field['type'] ?? null) !== 'file') {
+                    return response()->json([
+                        'message' => 'O campo informado não aceita arquivos.',
+                    ], 422);
+                }
+
+                $files = array_values($field['files'] ?? []);
+                $names = is_array($field['fileNames'] ?? null) ? $field['fileNames'] : [];
+
+                if (! array_key_exists($index, $files)) {
+                    return response()->json([
+                        'message' => 'Arquivo não encontrado.',
+                    ], 404);
+                }
+
+                $removed = [$files[$index]];
+                $remainingFiles = [];
+                $remainingNames = [];
+
+                foreach (array_keys($files) as $oldIndex) {
+                    if ($oldIndex === $index) {
+                        continue;
+                    }
+
+                    $file = $files[$oldIndex];
+                    $remainingFiles[] = $file;
+                    $remainingNames[] = $names[$oldIndex] ?? basename(parse_url($file, PHP_URL_PATH) ?: $file);
+                }
+
+                $steps[$stepIndex]['fields'][$fieldIndex]['files'] = $remainingFiles;
+                $steps[$stepIndex]['fields'][$fieldIndex]['fileNames'] = $remainingNames;
+                $steps[$stepIndex]['fields'][$fieldIndex]['status'] = $remainingFiles === [] ? 'pendente' : 'enviado';
+
+                $response->update(['steps' => $steps]);
+
+                $this->deleteStoredUploads($form, $removed);
+
+                return response()->json([
+                    'message' => 'Arquivo excluído.',
+                    'files' => $remainingFiles,
+                    'fileNames' => $remainingNames,
+                    'has_upload' => $remainingFiles !== [],
+                ]);
+            }
+        }
+
+        return response()->json([
+            'message' => 'Arquivo não encontrado.',
+        ], 404);
     }
 
     /**
@@ -618,6 +808,8 @@ class FormFillController extends Controller
         $rules = [
             'answers' => ['nullable', 'array'],
             'camera_answers' => ['nullable', 'array'],
+            'na_answers' => ['nullable', 'array'],
+            'na_answers.*' => ['nullable', 'boolean'],
         ];
 
         foreach ($steps as $step) {
@@ -763,9 +955,10 @@ class FormFillController extends Controller
      *
      * @param  array<int, array<string, mixed>>  $steps
      * @param  array<string, mixed>  $answers
+     * @param  array<string, mixed>  $notApplicable
      * @return array<int, array<string, mixed>>
      */
-    private function applyAnswers(array $steps, array $answers): array
+    private function applyAnswers(array $steps, array $answers, array $notApplicable = []): array
     {
         foreach ($steps as $stepIndex => $step) {
             foreach ($step['fields'] ?? [] as $fieldIndex => $field) {
@@ -775,7 +968,19 @@ class FormFillController extends Controller
                     continue;
                 }
 
-                if (in_array($field['type'] ?? null, ['image', 'file'], true)) {
+                if (($field['type'] ?? null) === 'image') {
+                    if ($this->isNotApplicable($notApplicable[$fieldId] ?? null)) {
+                        $steps[$stepIndex]['fields'][$fieldIndex]['status'] = 'nao_aplicavel';
+                    } elseif (($field['status'] ?? null) === 'nao_aplicavel') {
+                        $steps[$stepIndex]['fields'][$fieldIndex]['status'] = ! empty($field['images'])
+                            ? 'enviado'
+                            : 'pendente';
+                    }
+
+                    continue;
+                }
+
+                if (($field['type'] ?? null) === 'file') {
                     continue;
                 }
 
@@ -793,6 +998,14 @@ class FormFillController extends Controller
         }
 
         return $steps;
+    }
+
+    /**
+     * Determine whether a submitted flag marks an item as not applicable.
+     */
+    private function isNotApplicable(mixed $value): bool
+    {
+        return in_array($value, [true, 1, '1', 'true', 'on'], true);
     }
 
     /**
@@ -971,6 +1184,47 @@ class FormFillController extends Controller
     }
 
     /**
+     * Collect the per-image decisions grouped by image field id.
+     *
+     * Decisions keep the index of the image they belong to, so images without
+     * a decision are simply absent from the map.
+     *
+     * @param  array<int, array<string, mixed>>  $steps
+     * @return array<string, array<int, string>>
+     */
+    private function imageDecisionMap(array $steps): array
+    {
+        $decisions = [];
+
+        foreach ($steps as $step) {
+            foreach ($step['fields'] ?? [] as $field) {
+                if (($field['type'] ?? null) !== 'image') {
+                    continue;
+                }
+
+                $fieldId = (string) ($field['id'] ?? '');
+
+                if ($fieldId === '') {
+                    continue;
+                }
+
+                $stored = is_array($field['imageDecisions'] ?? null) ? $field['imageDecisions'] : [];
+                $map = [];
+
+                foreach (array_keys($field['images'] ?? []) as $index) {
+                    if (isset($stored[$index])) {
+                        $map[$index] = $stored[$index];
+                    }
+                }
+
+                $decisions[$fieldId] = $map;
+            }
+        }
+
+        return $decisions;
+    }
+
+    /**
      * Build a host-agnostic public URL for a stored file.
      *
      * Storing relative URLs keeps the photos visible no matter which host or
@@ -982,6 +1236,42 @@ class FormFillController extends Controller
         $urlPath = parse_url($url, PHP_URL_PATH);
 
         return is_string($urlPath) && $urlPath !== '' ? $urlPath : $url;
+    }
+
+    /**
+     * Delete stored uploads that belong to the form.
+     *
+     * Only files inside the form upload directory are removed, so a tampered
+     * response cannot point the deletion at another file on the disk.
+     *
+     * @param  array<int, string>  $urls
+     */
+    private function deleteStoredUploads(Form $form, array $urls): void
+    {
+        $disk = Storage::disk('public');
+        $directory = 'forms/'.$form->getKey().'/';
+
+        foreach (array_unique($urls) as $url) {
+            $path = parse_url($url, PHP_URL_PATH);
+
+            if (! is_string($path)) {
+                continue;
+            }
+
+            $path = ltrim($path, '/');
+
+            if (! str_starts_with($path, 'storage/')) {
+                continue;
+            }
+
+            $relative = substr($path, strlen('storage/'));
+
+            if (! str_starts_with($relative, $directory)) {
+                continue;
+            }
+
+            $disk->delete($relative);
+        }
     }
 
     /**

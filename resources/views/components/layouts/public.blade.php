@@ -1,12 +1,17 @@
+@props(['title' => config('app.name'), 'withActionBar' => false])
+
 <!DOCTYPE html>
-<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
+<html lang="{{ str_replace('_', '-', app()->getLocale()) }}" class="no-js">
     <head>
         <meta charset="utf-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 
         <title>{{ $title ?? config('app.name') }}</title>
 
         <script>
+            document.documentElement.classList.remove('no-js');
+            document.documentElement.classList.add('js');
+
             (function () {
                 const theme = @json(auth()->user()?->theme ?? 'system');
                 const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
@@ -18,11 +23,11 @@
         </script>
         @vite(['resources/css/app.css', 'resources/js/app.js'])
     </head>
-    <body class="flex min-h-screen flex-col bg-gray-50 text-gray-900 antialiased dark:bg-gray-950 dark:text-gray-100">
-        <main class="mx-auto flex w-full max-w-2xl flex-1 flex-col justify-center px-4 py-12">
+    <body class="flex min-h-svh flex-col bg-[#f4f4f2] text-gray-900 antialiased dark:bg-[#171716] dark:text-gray-100">
+        <main class="mx-auto flex w-full max-w-2xl flex-1 flex-col px-4 {{ $withActionBar ? 'pb-28 pt-4 sm:pt-6' : 'justify-center py-12' }} sm:px-6">
             @if (session('status'))
                 <noscript>
-                    <div class="mb-6 rounded-md border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800 dark:border-green-900 dark:bg-green-950 dark:text-green-300">
+                    <div class="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-300">
                         {{ session('status') }}
                     </div>
                 </noscript>
@@ -30,10 +35,6 @@
 
             {{ $slot }}
         </main>
-
-        <footer class="border-t border-gray-200 px-4 py-6 text-center text-sm text-gray-500 dark:border-gray-800 dark:text-gray-400">
-            <p>&copy; {{ date('Y') }} {{ config('app.name') }}. Todos os direitos reservados.</p>
-        </footer>
 
         <x-toasts />
     </body>

@@ -206,6 +206,7 @@ document.addEventListener('click', (event) => {
 
 const ConfirmModal = (() => {
     let resolvePending = null;
+    let lastFocus = null;
 
     const element = () => document.getElementById('confirm-modal');
 
@@ -221,6 +222,9 @@ const ConfirmModal = (() => {
             resolvePending(result);
             resolvePending = null;
         }
+
+        lastFocus?.focus?.();
+        lastFocus = null;
     };
 
     const open = (options = {}) => {
@@ -234,8 +238,10 @@ const ConfirmModal = (() => {
         modal.querySelector('[data-confirm-message]').textContent = options.message || '';
         modal.querySelector('[data-confirm-accept]').textContent = options.confirmLabel || 'Confirmar';
 
+        lastFocus = document.activeElement;
         modal.classList.remove('hidden');
         document.body.classList.add('overflow-hidden');
+        modal.querySelector('button[data-confirm-cancel]')?.focus();
 
         return new Promise((resolve) => {
             resolvePending = resolve;
@@ -757,56 +763,61 @@ const LoginForm = (() => {
     return { sync, update };
 })();
 
-// Public forms report how many questions have already been answered while the
-// user fills the form. The total is derived from the rendered fields so it
-// keeps working when the form structure changes.
+// Public forms show how many questions are approved while the response is
+// reviewed. The totals are derived from the rendered fields so they keep
+// working when the form structure changes.
 const FormProgress = (() => {
-    const isAnswered = (question) => {
-        if (question.dataset.hasUpload === '1') {
-            return true;
-        }
-
-        return Array.from(question.querySelectorAll('input, textarea, select')).some((control) => {
-            if (control.type === 'file') {
-                return (control.files?.length ?? 0) > 0;
-            }
-
-            if (control.type === 'radio' || control.type === 'checkbox') {
-                return control.checked;
-            }
-
-            return (control.value || '').trim() !== '';
-        });
-    };
-
     const refresh = (form) => {
-        const container = form.querySelector('[data-form-progress]');
-
-        if (!container) {
-            return;
-        }
-
         const questions = Array.from(form.querySelectorAll('[data-question]'));
-        const answered = questions.filter(isAnswered).length;
-        const percent = questions.length > 0 ? Math.round((answered / questions.length) * 100) : 0;
+        const approved = questions.filter((question) => question.dataset.status === 'aprovado').length;
+        const percent = questions.length > 0 ? Math.round((approved / questions.length) * 100) : 0;
 
-        const count = container.querySelector('[data-progress-count]');
-        const percentage = container.querySelector('[data-progress-percent]');
-        const bar = container.querySelector('[data-progress-bar]');
+        const container = form.querySelector('[data-form-progress]') ?? document.querySelector('[data-form-progress]');
 
-        if (count) {
-            count.textContent = `${answered} de ${questions.length}`;
+        if (container) {
+            const count = container.querySelector('[data-progress-count]');
+            const percentage = container.querySelector('[data-progress-percent]');
+            const bar = container.querySelector('[data-progress-bar]');
+
+            if (count) {
+                count.textContent = `${approved} de ${questions.length}`;
+            }
+
+            if (percentage) {
+                percentage.textContent = `${percent}%`;
+            }
+
+            if (bar) {
+                bar.style.width = `${percent}%`;
+            }
+
+            container.setAttribute('aria-valuenow', String(percent));
         }
 
-        if (percentage) {
-            percentage.textContent = `${percent}%`;
-        }
+        form.querySelectorAll('[data-form-step]').forEach((step) => {
+            const disc = step.querySelector('[data-step-progress]');
 
-        if (bar) {
-            bar.style.width = `${percent}%`;
-        }
+            if (!disc) {
+                return;
+            }
 
-        container.setAttribute('aria-valuenow', String(percent));
+            const stepQuestions = Array.from(step.querySelectorAll('[data-question]'));
+            const stepApproved = stepQuestions.filter((question) => question.dataset.status === 'aprovado').length;
+            const stepPercent = stepQuestions.length > 0 ? Math.round((stepApproved / stepQuestions.length) * 100) : 0;
+            const ring = disc.querySelector('[data-step-progress-ring]');
+            const label = disc.querySelector('[data-step-progress-label]');
+
+            disc.setAttribute('aria-valuenow', String(stepPercent));
+            disc.setAttribute('aria-valuetext', `${stepApproved} de ${stepQuestions.length} perguntas aprovadas`);
+
+            if (ring) {
+                ring.style.strokeDashoffset = String(100 - stepPercent);
+            }
+
+            if (label) {
+                label.textContent = `${stepPercent}%`;
+            }
+        });
     };
 
     document.addEventListener('input', (event) => {
@@ -948,6 +959,81 @@ const FormSteps = (() => {
     return {};
 })();
 
+// Public image fields can be marked as not applicable when the item does not
+// exist on the site. The hidden input carries the choice to the server while
+// the gallery shows an N/A tile instead of the empty placeholder.
+const ImageNa = (() => {
+    const hasImages = (question) => question.querySelector(
+        '[data-image-existing], [data-image-preview-item], [data-image-item]',
+    ) !== null;
+
+    const apply = (question, active) => {
+        const input = question?.querySelector('[data-image-na-input]');
+
+        if (! input) {
+            return false;
+        }
+
+        const wasActive = input.value === '1';
+        input.value = active ? '1' : '0';
+
+        const button = question.querySelector('[data-image-na-toggle]');
+        const tile = question.querySelector('[data-image-na]');
+        const empty = question.querySelector('[data-image-empty]');
+
+        if (button) {
+            button.setAttribute('aria-pressed', active ? 'true' : 'false');
+        }
+
+        if (tile) {
+            tile.hidden = ! active;
+        }
+
+        if (empty) {
+            empty.hidden = active || hasImages(question);
+        }
+
+        if (active) {
+            question.dataset.status = 'nao_aplicavel';
+        } else if (wasActive) {
+            question.dataset.status = hasImages(question) ? 'enviado' : 'pendente';
+        }
+
+        return wasActive !== active;
+    };
+
+    document.addEventListener('click', (event) => {
+        const button = event.target.closest('[data-image-na-toggle]');
+        const question = button?.closest('[data-question]');
+        const input = question?.querySelector('[data-image-na-input]');
+
+        if (! button || ! input) {
+            return;
+        }
+
+        event.preventDefault();
+
+        if (! apply(question, input.value !== '1')) {
+            return;
+        }
+
+        input.dispatchEvent(new Event('change', { bubbles: true }));
+    });
+
+    return {
+        clear: (question) => {
+            const input = question?.querySelector('[data-image-na-input]');
+
+            if (! input || input.value !== '1') {
+                return;
+            }
+
+            apply(question, false);
+            input.dispatchEvent(new Event('change', { bubbles: true }));
+        },
+    };
+})();
+
 // Public image fields accept several images from both the gallery and the
 // camera. Selections accumulate in the gallery input so choosing another
 // image does not replace the previous ones. The camera input stays separate
@@ -999,6 +1085,7 @@ const ImageSelections = (() => {
 
         const add = (incoming) => {
             const known = new Set(state.files.map(keyOf));
+            let added = 0;
 
             incoming.forEach((file) => {
                 const key = keyOf(file);
@@ -1015,11 +1102,14 @@ const ImageSelections = (() => {
 
                 state.files.push(file);
                 known.add(key);
+                added++;
             });
 
             if (state.limitMessage) {
                 state.limitMessage.hidden = ! state.limitReached;
             }
+
+            return added;
         };
 
         state.sync = sync;
@@ -1030,12 +1120,22 @@ const ImageSelections = (() => {
                 return;
             }
 
-            add(Array.from(gallery.files ?? []));
+            const added = add(Array.from(gallery.files ?? []));
+
+            if (added > 0) {
+                ImageNa.clear(question);
+            }
+
             sync();
         });
 
         camera.addEventListener('change', () => {
-            add(Array.from(camera.files ?? []));
+            const added = add(Array.from(camera.files ?? []));
+
+            if (added > 0) {
+                ImageNa.clear(question);
+            }
+
             camera.value = '';
             sync();
         });
@@ -1156,7 +1256,7 @@ const ImagePreviews = (() => {
             item.dataset.previewUrl = fullUrl;
         }
 
-        item.className = 'h-16 w-16 overflow-hidden rounded-lg ring-1 ring-gray-200 dark:ring-gray-800';
+        item.className = 'h-20 w-20 overflow-hidden rounded-xl ring-1 ring-gray-200 dark:ring-gray-800';
 
         const image = document.createElement('img');
 
@@ -1198,9 +1298,11 @@ const ImagePreviews = (() => {
 
         const empty = container.querySelector('[data-image-empty]');
         const existing = container.querySelectorAll('[data-image-existing]').length;
+        const notApplicable = field.closest('[data-question]')
+            ?.querySelector('[data-image-na-input]')?.value === '1';
 
         if (empty) {
-            empty.hidden = files.length > 0 || existing > 0;
+            empty.hidden = files.length > 0 || existing > 0 || notApplicable;
         }
 
         if (files.length === 0) {
@@ -1388,6 +1490,162 @@ const ImageModal = (() => {
     return { open, close };
 })();
 
+// Public image thumbnails can be rebuilt after an automatic save or after an
+// image is deleted. The markup mirrors the Blade component so the thumbnail
+// keeps its preview modal and its own delete button.
+const ImageGallery = (() => {
+    const STATUS_BADGES = {
+        aprovado: {
+            label: 'Aprovado',
+            classes: 'bg-green-600 text-white',
+            path: 'M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z',
+        },
+        reprovado: {
+            label: 'Reprovado',
+            classes: 'bg-red-600 text-white',
+            path: 'm9.75 9.75 4.5 4.5m0-4.5-4.5 4.5M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z',
+        },
+        enviado: {
+            label: 'Enviado',
+            classes: 'bg-blue-600 text-white',
+            path: 'M6 12 3.269 3.125A59.769 59.769 0 0 1 21.485 12 59.768 59.768 0 0 1 3.27 20.875L5.999 12Zm0 0h7.5',
+        },
+        pendente: {
+            label: 'Pendente',
+            classes: 'bg-amber-500 text-white',
+            path: 'M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z',
+        },
+        nao_aplicavel: {
+            label: 'Não aplicável',
+            classes: 'bg-gray-500 text-white',
+            path: 'M15 12H9m12 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z',
+        },
+    };
+
+    const statusBadge = (status) => {
+        const config = STATUS_BADGES[status];
+
+        if (! config) {
+            return null;
+        }
+
+        const badge = document.createElement('span');
+        badge.className = `pointer-events-none absolute bottom-1 right-1 z-10 inline-flex h-5 w-5 items-center justify-center rounded-full ring-1 ring-white/70 dark:ring-gray-900/70 ${config.classes}`;
+        badge.setAttribute('role', 'img');
+        badge.setAttribute('aria-label', config.label);
+        badge.title = config.label;
+
+        const icon = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        icon.setAttribute('class', 'h-3 w-3');
+        icon.setAttribute('fill', 'none');
+        icon.setAttribute('viewBox', '0 0 24 24');
+        icon.setAttribute('stroke-width', '1.5');
+        icon.setAttribute('stroke', 'currentColor');
+        icon.setAttribute('aria-hidden', 'true');
+
+        const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        path.setAttribute('stroke-linecap', 'round');
+        path.setAttribute('stroke-linejoin', 'round');
+        path.setAttribute('d', config.path);
+        icon.append(path);
+        badge.append(icon);
+
+        return badge;
+    };
+
+    const create = (url, preview, alt, status = null) => {
+        const wrapper = document.createElement('div');
+        wrapper.dataset.imageItem = '';
+        wrapper.className = 'group relative h-20 w-20';
+
+        const link = document.createElement('a');
+        link.href = url;
+        link.target = '_blank';
+        link.rel = 'noopener';
+        link.dataset.imageExisting = '';
+        link.className = 'block h-full w-full overflow-hidden rounded-xl border border-gray-200 transition active:scale-[0.98] dark:border-gray-800';
+
+        const image = document.createElement('img');
+        image.src = preview;
+        image.alt = alt;
+        image.loading = 'lazy';
+        image.className = 'h-full w-full object-cover';
+
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.dataset.imageRemove = '';
+        button.setAttribute('aria-label', 'Excluir imagem');
+        button.className = 'absolute right-[-10.5px] top-[-10.5px] z-10 inline-flex h-[21px] w-[21px] items-center justify-center rounded-full border border-red-600 bg-red-600 text-white transition hover:border-red-500 hover:bg-red-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 dark:border-red-500 dark:bg-red-500 dark:hover:border-red-400 dark:hover:bg-red-400';
+
+        const icon = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        icon.setAttribute('class', 'h-3 w-3');
+        icon.setAttribute('fill', 'none');
+        icon.setAttribute('viewBox', '0 0 24 24');
+        icon.setAttribute('stroke-width', '1.5');
+        icon.setAttribute('stroke', 'currentColor');
+        icon.setAttribute('aria-hidden', 'true');
+
+        const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        path.setAttribute('stroke-linecap', 'round');
+        path.setAttribute('stroke-linejoin', 'round');
+        path.setAttribute('d', 'M6 18 18 6M6 6l12 12');
+        icon.append(path);
+        button.append(icon);
+
+        link.append(image);
+        wrapper.append(link);
+
+        const badge = statusBadge(status);
+
+        if (badge) {
+            wrapper.append(badge);
+        }
+
+        wrapper.append(button);
+
+        return wrapper;
+    };
+
+    const render = (form, fieldId, images, thumbnails = [], decisions = []) => {
+        const question = Array.from(form.querySelectorAll('[data-question]'))
+            .find((element) => element.dataset.question === fieldId) ?? null;
+        const container = question?.querySelector('[data-image-thumbnails]');
+
+        if (! question || ! container) {
+            return null;
+        }
+
+        container.querySelectorAll('[data-image-item]').forEach((item) => item.remove());
+
+        (images ?? []).forEach((url, index) => {
+            container.append(create(url, (thumbnails ?? [])[index] ?? url, 'Imagem enviada', decisions?.[index] ?? null));
+        });
+
+        const empty = container.querySelector('[data-image-empty]');
+        const previewing = container.querySelectorAll('[data-image-preview-item]').length > 0;
+        const notApplicable = question.querySelector('[data-image-na-input]')?.value === '1';
+
+        if (empty) {
+            empty.hidden = (images?.length ?? 0) > 0 || previewing || notApplicable;
+        }
+
+        question.dataset.hasUpload = (images?.length ?? 0) > 0 ? '1' : '0';
+        question.dataset.status = notApplicable
+            ? 'nao_aplicavel'
+            : ((images?.length ?? 0) > 0 ? 'enviado' : 'pendente');
+
+        const field = question.querySelector('[data-image-field]');
+
+        if (field) {
+            ImageSelections.setExisting(field, images?.length ?? 0);
+        }
+
+        return question;
+    };
+
+    return { render };
+})();
+
 // Public image fields save the new photos automatically while the form is
 // filled. The request keeps a draft response on the server, so leaving the
 // page does not discard the images. The stored URLs then replace the local
@@ -1399,9 +1657,6 @@ const DraftAutosave = (() => {
         saved: ['text-emerald-600', 'dark:text-emerald-400'],
         error: ['text-red-600', 'dark:text-red-400'],
     };
-
-    const questionFor = (form, fieldId) => Array.from(form.querySelectorAll('[data-question]'))
-        .find((question) => question.dataset.question === fieldId) ?? null;
 
     const setStatus = (status, state, message) => {
         if (! status) {
@@ -1417,48 +1672,9 @@ const DraftAutosave = (() => {
         status.classList.add(...STATUS_CLASSES[state]);
     };
 
-    const storedImages = (form, images, thumbnails) => {
+    const storedImages = (form, images, thumbnails, decisions = {}) => {
         Object.entries(images).forEach(([fieldId, urls]) => {
-            const question = questionFor(form, fieldId);
-            const container = question?.querySelector('[data-image-thumbnails]');
-            const field = question?.querySelector('[data-image-field]');
-
-            if (! question || ! container || ! field) {
-                return;
-            }
-
-            const previews = thumbnails[fieldId] ?? [];
-
-            container.querySelectorAll('[data-image-existing]').forEach((item) => item.remove());
-
-            urls.forEach((url, index) => {
-                const link = document.createElement('a');
-                const image = document.createElement('img');
-
-                link.href = url;
-                link.target = '_blank';
-                link.rel = 'noopener';
-                link.dataset.imageExisting = '';
-                link.className = 'block h-16 w-16 overflow-hidden rounded-lg ring-1 ring-gray-200 dark:ring-gray-800';
-
-                image.src = previews[index] ?? url;
-                image.alt = 'Imagem enviada';
-                image.loading = 'lazy';
-                image.className = 'h-full w-full object-cover';
-
-                link.append(image);
-                container.append(link);
-            });
-
-            const empty = container.querySelector('[data-image-empty]');
-            const previewing = container.querySelectorAll('[data-image-preview-item]').length > 0;
-
-            if (empty) {
-                empty.hidden = urls.length > 0 || previewing;
-            }
-
-            question.dataset.hasUpload = urls.length > 0 ? '1' : '0';
-            ImageSelections.setExisting(field, urls.length);
+            ImageGallery.render(form, fieldId, urls, thumbnails[fieldId] ?? [], decisions[fieldId] ?? []);
         });
     };
 
@@ -1483,6 +1699,7 @@ const DraftAutosave = (() => {
         let inFlight = null;
         let pending = false;
         let submitting = false;
+        let naDirty = false;
 
         const selected = () => {
             const fields = new Map();
@@ -1514,12 +1731,15 @@ const DraftAutosave = (() => {
 
             const sent = selected();
 
-            if (sent.size === 0) {
+            if (sent.size === 0 && ! naDirty) {
                 return Promise.resolve(true);
             }
 
+            const savingNa = naDirty;
+
+            naDirty = false;
             pending = false;
-            setStatus(status, 'saving', 'Salvando imagens...');
+            setStatus(status, 'saving', sent.size > 0 ? 'Salvando imagens...' : 'Salvando seleção...');
 
             inFlight = (async () => {
                 try {
@@ -1539,7 +1759,7 @@ const DraftAutosave = (() => {
                         throw new Error(data.message || 'Não foi possível salvar as imagens.');
                     }
 
-                    storedImages(form, data.images || {}, data.thumbnails || {});
+                    storedImages(form, data.images || {}, data.thumbnails || {}, data.imageDecisions || {});
 
                     sent.forEach((keys, field) => ImageSelections.remove(field, keys));
 
@@ -1547,6 +1767,10 @@ const DraftAutosave = (() => {
 
                     return true;
                 } catch (error) {
+                    if (savingNa) {
+                        naDirty = true;
+                    }
+
                     setStatus(status, 'error', error.message || 'Não foi possível salvar as imagens.');
 
                     return false;
@@ -1610,6 +1834,13 @@ const DraftAutosave = (() => {
         form.addEventListener('submit', onSubmit);
 
         form.addEventListener('change', (event) => {
+            if (event.target.matches('[data-image-na-input]')) {
+                naDirty = true;
+                schedule();
+
+                return;
+            }
+
             if (! event.target.matches('[data-image-input], [data-camera-input]')) {
                 return;
             }
@@ -1625,4 +1856,198 @@ const DraftAutosave = (() => {
     return {};
 })();
 
+// Public image and file fields allow the respondent to delete an upload
+// already stored on the server. Deletions share the same draft status feedback.
+const setDraftStatus = (form, state, message) => {
+    const status = form.querySelector('[data-draft-autosave-status]');
+
+    if (! status) {
+        return;
+    }
+
+    status.hidden = false;
+    status.textContent = message;
+    status.classList.remove(
+        'text-gray-500', 'text-emerald-600', 'text-red-600',
+        'dark:text-gray-400', 'dark:text-emerald-400', 'dark:text-red-400',
+    );
+    status.classList.add(
+        ...(state === 'error'
+            ? ['text-red-600', 'dark:text-red-400']
+            : ['text-emerald-600', 'dark:text-emerald-400']),
+    );
+};
+
+// Public image fields allow the respondent to delete a photo already stored
+// on the server. The signed endpoint removes it from the response and disk,
+// then the gallery is rebuilt from the URLs returned by the server so the
+// remaining delete buttons keep pointing at the right image.
+const ImageDeletion = (() => {
+    document.addEventListener('click', async (event) => {
+        const button = event.target.closest('[data-image-remove]');
+
+        if (! button) {
+            return;
+        }
+
+        const form = button.closest('form[data-form-image-delete-url]');
+        const question = button.closest('[data-question]');
+        const item = button.closest('[data-image-item]');
+        const container = question?.querySelector('[data-image-thumbnails]');
+        const fieldId = question?.dataset.question;
+        const url = form?.dataset.formImageDeleteUrl;
+
+        if (! form || ! question || ! item || ! container || ! fieldId || ! url) {
+            return;
+        }
+
+        event.preventDefault();
+
+        if (button.disabled) {
+            return;
+        }
+
+        const anchors = Array.from(container.querySelectorAll('[data-image-existing]'));
+        const index = anchors.indexOf(item.querySelector('[data-image-existing]'));
+
+        if (index < 0) {
+            return;
+        }
+
+        if (! await ConfirmModal.open({
+            title: 'Excluir imagem?',
+            message: 'A imagem será removida desta resposta. Essa ação não pode ser desfeita.',
+            confirmLabel: 'Excluir',
+        })) {
+            return;
+        }
+
+        const data = new FormData();
+
+        data.append('_token', form.querySelector('input[name="_token"]')?.value ?? '');
+        data.append('field', fieldId);
+        data.append('index', String(index));
+
+        button.disabled = true;
+        button.classList.add('opacity-50');
+
+        try {
+            const response = await fetch(url, {
+                method: 'POST',
+                credentials: 'same-origin',
+                headers: {
+                    'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+                body: data,
+            });
+
+            const payload = await response.json().catch(() => ({}));
+
+            if (! response.ok) {
+                throw new Error(payload.message || 'Não foi possível excluir a imagem.');
+            }
+
+            const refreshed = ImageGallery.render(
+                form,
+                fieldId,
+                payload.images ?? [],
+                payload.thumbnails ?? [],
+                payload.imageDecisions ?? [],
+            );
+
+            refreshed?.dispatchEvent(new Event('change', { bubbles: true }));
+
+            setDraftStatus(form, 'saved', payload.message || 'Imagem excluída.');
+        } catch (error) {
+            setDraftStatus(form, 'error', error.message || 'Não foi possível excluir a imagem.');
+            button.disabled = false;
+            button.classList.remove('opacity-50');
+        }
+    });
+})();
+
+// Public file fields expose a delete button for each stored attachment. The
+// signed endpoint removes the file from the response and disk, and the row is
+// removed from the list without a page reload.
+const FileDeletion = (() => {
+    document.addEventListener('click', async (event) => {
+        const button = event.target.closest('[data-file-remove]');
+
+        if (! button) {
+            return;
+        }
+
+        const form = button.closest('form[data-form-file-delete-url]');
+        const question = button.closest('[data-question]');
+        const item = button.closest('[data-file-item]');
+        const list = question?.querySelector('[data-file-list]');
+        const fieldId = question?.dataset.question;
+        const url = form?.dataset.formFileDeleteUrl;
+
+        if (! form || ! question || ! item || ! list || ! fieldId || ! url) {
+            return;
+        }
+
+        event.preventDefault();
+
+        if (button.disabled) {
+            return;
+        }
+
+        const anchors = Array.from(list.querySelectorAll('[data-file-existing]'));
+        const index = anchors.indexOf(item.querySelector('[data-file-existing]'));
+
+        if (index < 0) {
+            return;
+        }
+
+        if (! await ConfirmModal.open({
+            title: 'Excluir arquivo?',
+            message: 'O arquivo será removido desta resposta. Essa ação não pode ser desfeita.',
+            confirmLabel: 'Excluir',
+        })) {
+            return;
+        }
+
+        const data = new FormData();
+
+        data.append('_token', form.querySelector('input[name="_token"]')?.value ?? '');
+        data.append('field', fieldId);
+        data.append('index', String(index));
+
+        button.disabled = true;
+        button.classList.add('opacity-50');
+
+        try {
+            const response = await fetch(url, {
+                method: 'POST',
+                credentials: 'same-origin',
+                headers: {
+                    'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+                body: data,
+            });
+
+            const payload = await response.json().catch(() => ({}));
+
+            if (! response.ok) {
+                throw new Error(payload.message || 'Não foi possível excluir o arquivo.');
+            }
+
+            item.remove();
+
+            question.dataset.hasUpload = list.querySelectorAll('[data-file-existing]').length > 0 ? '1' : '0';
+            question.dataset.status = payload.has_upload ? 'enviado' : 'pendente';
+            question.dispatchEvent(new Event('change', { bubbles: true }));
+
+            setDraftStatus(form, 'saved', payload.message || 'Arquivo excluído.');
+        } catch (error) {
+            setDraftStatus(form, 'error', error.message || 'Não foi possível excluir o arquivo.');
+            button.disabled = false;
+            button.classList.remove('opacity-50');
+        }
+    });
+})();
 
