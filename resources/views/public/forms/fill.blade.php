@@ -208,7 +208,7 @@
 
                         <div class="space-y-6 px-4 py-5 sm:px-5">
                             @forelse ($step['fields'] ?? [] as $field)
-                                @include('public.forms.partials.field', ['field' => $field])
+                                <x-public.forms.field :field="$field" />
                             @empty
                                 <p class="text-sm text-gray-500 dark:text-gray-400">Nenhuma pergunta nesta seção.</p>
                             @endforelse
