@@ -418,6 +418,10 @@ it('imports afl records from a spreadsheet', function () {
         'boq_status' => 'Aprovado',
         'created_on' => '2026-05-05 00:00:00',
         'billing_status' => 'Não aplicável',
+        'request_date' => '2026-03-06 00:00:00',
+        'activity_planned_start_a' => '2026-03-14 00:00:00',
+        'activity_actual_end_a' => '2026-03-16 00:00:00',
+        'documentation_sent_b' => 'ttttt',
         'billed_value' => '1.234,56',
         'is_billed' => 'false',
         'last_changed_at' => '2026-05-05 12:48:50',
@@ -441,6 +445,10 @@ it('imports afl records from a spreadsheet', function () {
         ->and($record->oc_tim)->toBe('1311997')
         ->and($record->created_on->toDateString())->toBe('2026-05-05')
         ->and($record->billing_status)->toBe('Não aplicável')
+        ->and($record->request_date->toDateString())->toBe('2026-03-06')
+        ->and($record->activity_planned_start_a->toDateString())->toBe('2026-03-14')
+        ->and($record->activity_actual_end_a->toDateString())->toBe('2026-03-16')
+        ->and($record->documentation_sent_b)->toBeNull()
         ->and((float) $record->billed_value)->toBe(1234.56)
         ->and($record->is_billed)->toBeFalse()
         ->and($record->last_changed_at->format('Y-m-d H:i:s'))->toBe('2026-05-05 12:48:50')

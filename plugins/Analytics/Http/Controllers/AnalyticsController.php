@@ -3,7 +3,6 @@
 namespace Plugins\Analytics\Http\Controllers;
 
 use App\Http\Controllers\Controller;
-use Carbon\CarbonImmutable;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -15,7 +14,7 @@ use Plugins\Analytics\Http\Requests\ImportAnalyticsRecordsRequest;
 use Plugins\Analytics\Imports\AnalyticsAflImport;
 use Plugins\Analytics\Imports\AnalyticsRecordsImport;
 use Plugins\Analytics\Services\AnalyticsAflImporter;
-use Plugins\Analytics\Services\AnalyticsMetrics;
+use Plugins\Analytics\Services\AnalyticsContext;
 use Plugins\Analytics\Services\AnalyticsRecordImporter;
 use Plugins\Analytics\Services\AnalyticsSnapshotter;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
@@ -28,7 +27,10 @@ class AnalyticsController extends Controller
      */
     public function index(Request $request): View
     {
-        [$metrics, $period, $scope] = $this->resolve($request);
+        $context = AnalyticsContext::fromRequest($request);
+        $metrics = $context->metrics;
+        $period = ['from' => $context->from, 'to' => $context->to, 'days' => $context->days];
+        $scope = $context->scope;
 
         return view('analytics::index', [
             'summary' => $metrics->summary(),
@@ -68,7 +70,9 @@ class AnalyticsController extends Controller
      */
     public function export(Request $request): StreamedResponse
     {
-        [$metrics, $period] = $this->resolve($request);
+        $context = AnalyticsContext::fromRequest($request);
+        $metrics = $context->metrics;
+        $period = ['from' => $context->from, 'to' => $context->to, 'days' => $context->days];
 
         $filename = sprintf('analytics-%s-%s.csv', $period['from']->format('Ymd'), $period['to']->format('Ymd'));
 
@@ -149,13 +153,13 @@ class AnalyticsController extends Controller
      */
     public function snapshot(Request $request, AnalyticsSnapshotter $snapshotter): RedirectResponse
     {
-        [$metrics, $period, $scope] = $this->resolve($request);
+        $context = AnalyticsContext::fromRequest($request);
 
-        $snapshotter->capture($metrics->user);
+        $snapshotter->capture($context->metrics->user);
 
         return redirect()
             ->route('analytics.index', $request->only(['period', 'from', 'to', 'scope']))
-            ->with('status', $scope === 'global'
+            ->with('status', $context->scope === 'global'
                 ? 'Snapshot global gerado.'
                 : 'Seu snapshot foi gerado com sucesso.');
     }
@@ -212,50 +216,5 @@ class AnalyticsController extends Controller
     public function recordsTemplate(): BinaryFileResponse
     {
         return Excel::download(new AnalyticsRecordsTemplateExport, 'modelo-analytics-fams.xlsx');
-    }
-
-    /**
-     * Resolve the period and scope of the request.
-     *
-     * @return array{0: AnalyticsMetrics, 1: array{from: CarbonImmutable, to: CarbonImmutable, days: int}, 2: string}
-     */
-    private function resolve(Request $request): array
-    {
-        $validated = $request->validate([
-            'period' => ['nullable', 'integer'],
-            'from' => ['nullable', 'date'],
-            'to' => ['nullable', 'date', 'after_or_equal:from'],
-            'scope' => ['nullable', 'in:user,global'],
-        ]);
-
-        $days = (int) ($validated['period'] ?? (config('analytics.periods')[0] ?? 30));
-
-        $to = isset($validated['to'])
-            ? CarbonImmutable::parse($validated['to'])->endOfDay()
-            : CarbonImmutable::now()->endOfDay();
-
-        $from = isset($validated['from'])
-            ? CarbonImmutable::parse($validated['from'])->startOfDay()
-            : $to->subDays(max(1, $days) - 1)->startOfDay();
-
-        $maxDays = (int) config('analytics.max_period_days', 366);
-
-        if ($from->diffInDays($to) > $maxDays) {
-            $from = $to->subDays($maxDays - 1)->startOfDay();
-        }
-
-        $scope = ($validated['scope'] ?? 'user') === 'global' ? 'global' : 'user';
-
-        if ($scope === 'global') {
-            abort_unless($request->user()?->is_admin === true, 403);
-        }
-
-        $metrics = new AnalyticsMetrics($from, $to, $scope === 'global' ? null : $request->user());
-
-        return [
-            $metrics,
-            ['from' => $from, 'to' => $to, 'days' => (int) $from->diffInDays($to) + 1],
-            $scope,
-        ];
     }
 }

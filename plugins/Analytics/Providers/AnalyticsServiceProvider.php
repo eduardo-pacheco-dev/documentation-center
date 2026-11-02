@@ -16,6 +16,7 @@ class AnalyticsServiceProvider extends ServiceProvider
         $this->mergeConfigFrom(__DIR__.'/../Config/config.php', 'analytics');
 
         $this->loadRoutes();
+        $this->loadApiRoutes();
     }
 
     /**
@@ -47,6 +48,21 @@ class AnalyticsServiceProvider extends ServiceProvider
             ->prefix('admin/analytics')
             ->name('analytics.')
             ->group(__DIR__.'/../Routes/web.php');
+    }
+
+    /**
+     * Load the plugin JSON API routes.
+     */
+    protected function loadApiRoutes(): void
+    {
+        if (app()->routesAreCached()) {
+            return;
+        }
+
+        Route::middleware(['api', 'auth:sanctum', 'throttle:120,1'])
+            ->prefix('api/v1/analytics')
+            ->name('api.v1.analytics.')
+            ->group(__DIR__.'/../Routes/api.php');
     }
 
     /**
