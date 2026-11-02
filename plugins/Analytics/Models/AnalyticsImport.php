@@ -34,7 +34,15 @@ class AnalyticsImport extends AnalyticsModel
      */
     public function user(): BelongsTo
     {
-        return $this->belongsTo(User::class);
+        $related = (new User)->setConnection(config('database.default'));
+
+        return $this->newBelongsTo(
+            $related->newQuery(),
+            $this,
+            'user_id',
+            $related->getKeyName(),
+            'user',
+        );
     }
 
     /**
@@ -86,7 +94,7 @@ class AnalyticsImport extends AnalyticsModel
         );
 
         if ($this->skipped_count > 0) {
-            $summary .= sprintf(' · %d linha(s) vazia(s)', $this->skipped_count);
+            $summary .= sprintf(' · %d linha(s) ignorada(s)', $this->skipped_count);
         }
 
         return $summary;

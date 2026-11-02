@@ -24,7 +24,7 @@ class AnalyticsRecordImporter
 {
     /**
      * @param  array<int, array<string, mixed>>  $rows
-     * @return array{created: int, updated: int, unchanged: int}
+     * @return array{created: int, updated: int, unchanged: int, skipped: int}
      *
      * @throws ValidationException
      */
@@ -33,11 +33,18 @@ class AnalyticsRecordImporter
         $operations = [];
         $operationIndexByKey = [];
         $errors = [];
+        $skipped = 0;
 
         foreach (array_values($rows) as $index => $row) {
             $line = $index + 2;
 
             $row = array_map(fn ($value): ?string => $this->normalize($value), $row);
+
+            if ($this->isEmptyRow($row) || $this->isSummaryRow($row)) {
+                $skipped++;
+
+                continue;
+            }
 
             $validator = Validator::make($row, $this->rules());
 
@@ -93,7 +100,7 @@ class AnalyticsRecordImporter
             throw ValidationException::withMessages(['import' => $errors]);
         }
 
-        return AnalyticsDatabase::transaction(function () use ($user, $operations): array {
+        return AnalyticsDatabase::transaction(function () use ($user, $operations, $skipped): array {
             $created = 0;
             $updated = 0;
             $unchanged = 0;
@@ -135,8 +142,37 @@ class AnalyticsRecordImporter
                 'created' => $created,
                 'updated' => $updated,
                 'unchanged' => $unchanged,
+                'skipped' => $skipped,
             ];
         });
+    }
+
+    /**
+     * Whether the row has no value in any column.
+     *
+     * @param  array<string, ?string>  $row
+     */
+    private function isEmptyRow(array $row): bool
+    {
+        foreach ($row as $value) {
+            if ($value !== null) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * Whether the row is an export summary/footer instead of a record.
+     *
+     * @param  array<string, ?string>  $row
+     */
+    private function isSummaryRow(array $row): bool
+    {
+        $status = trim((string) ($row['status'] ?? ''));
+
+        return (bool) preg_match('/^(total|p[áa]gina)\b/iu', $status);
     }
 
     /**

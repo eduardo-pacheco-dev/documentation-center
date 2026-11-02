@@ -289,6 +289,27 @@ it('ignores an unchanged row when importing again', function () {
     @unlink($sheet);
 });
 
+it('skips spreadsheet footer rows when importing oc and os records', function () {
+    $user = User::factory()->create();
+
+    $path = analyticsRecordSheet([
+        ['364007', '417', '16/08/2017', 'NOKIA', '', 'Acesso FAM', 'Instalação', 'ENODEB', 'Rua A', 'Aimorés', 'MG', '7NLAMGV28', 'MGAOR_0001', '', 'Criado pelo NetFlow'],
+        ['02/11/2026', '', '', '', '', '', '', '', '', '', '', '', '', '', 'Total :1'],
+        ['', '', '', '', '', '', '', '', '', '', '', '', '', '', 'Página 1 de 1'],
+    ]);
+
+    $this->actingAs($user)
+        ->post('/admin/analytics/records/import', [
+            'file' => new UploadedFile($path, 'oc-os.xlsx', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', null, true),
+        ])
+        ->assertSessionHasNoErrors()
+        ->assertSessionHas('status', 'Importação FAMs concluída: 1 novo(s), 0 atualizado(s) e 0 sem alteração. 2 linha(s) ignorada(s).');
+
+    expect(AnalyticsRecord::query()->count())->toBe(1);
+
+    @unlink($path);
+});
+
 it('rejects an oc and os row with an invalid creation date', function () {
     $user = User::factory()->create();
 

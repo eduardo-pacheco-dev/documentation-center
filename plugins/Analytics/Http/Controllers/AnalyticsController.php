@@ -274,7 +274,7 @@ class AnalyticsController extends Controller
         );
 
         if ($import->skipped_count > 0) {
-            $message .= sprintf(' %d linha(s) vazia(s) ignorada(s).', $import->skipped_count);
+            $message .= sprintf(' %d linha(s) ignorada(s).', $import->skipped_count);
         }
 
         return $message;

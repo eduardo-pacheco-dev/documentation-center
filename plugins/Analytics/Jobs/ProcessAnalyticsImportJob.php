@@ -5,7 +5,6 @@ namespace Plugins\Analytics\Jobs;
 use App\Models\User;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
-use Illuminate\Queue\Middleware\WithoutOverlapping;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 use Maatwebsite\Excel\Facades\Excel;
@@ -27,8 +26,11 @@ class ProcessAnalyticsImportJob implements ShouldQueue
 
     /**
      * The number of times the job may be attempted.
+     *
+     * Imports are append-only and skip unchanged rows, so retrying after an
+     * interrupted worker is safe.
      */
-    public int $tries = 1;
+    public int $tries = 3;
 
     /**
      * The number of seconds the job can run before timing out.
@@ -39,19 +41,6 @@ class ProcessAnalyticsImportJob implements ShouldQueue
      * Create a new job instance.
      */
     public function __construct(public AnalyticsImport $import) {}
-
-    /**
-     * Prevent two workers from processing the same import concurrently.
-     *
-     * @return array<int, object>
-     */
-    public function middleware(): array
-    {
-        return [
-            (new WithoutOverlapping('analytics-import-'.$this->import->getKey()))
-                ->expireAfter($this->timeout),
-        ];
-    }
 
     /**
      * Execute the job.
@@ -68,7 +57,7 @@ class ProcessAnalyticsImportJob implements ShouldQueue
             return;
         }
 
-        $user = $this->import->user;
+        $user = User::query()->find($this->import->user_id);
 
         if (! $user instanceof User) {
             $this->import->markFailed(['O usuário solicitante não existe mais.']);

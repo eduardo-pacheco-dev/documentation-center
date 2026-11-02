@@ -79,7 +79,7 @@ Group=${run_user}
 Restart=always
 RestartSec=5
 WorkingDirectory=${APP_DIR}
-ExecStart=${php_bin} artisan queue:work --sleep=3 --tries=1 --timeout=1900 --max-time=3600
+ExecStart=${php_bin} artisan queue:work --sleep=3 --tries=1 --timeout=1900 --max-time=3600 --memory=1024
 StopAsGroup=true
 KillMode=mixed
 
