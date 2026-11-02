@@ -1,0 +1,611 @@
+<?php
+
+use App\Models\Document;
+use App\Models\Project;
+use App\Models\User;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
+use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
+use Plugins\Analytics\Models\AnalyticsAflRecord;
+use Plugins\Analytics\Models\AnalyticsRecord;
+use Plugins\Analytics\Models\AnalyticsSnapshot;
+use Plugins\Analytics\Services\AnalyticsAflImporter;
+use Plugins\Stations\Models\Station;
+
+uses(RefreshDatabase::class);
+
+it('requires authentication to access analytics', function () {
+    $this->get('/admin/analytics')->assertRedirect('/login');
+});
+
+it('shows analytics alongside the other modules in the sidebar', function () {
+    $this->actingAs(User::factory()->admin()->create())
+        ->get('/admin')
+        ->assertOk()
+        ->assertSee('data-module="analytics"', false);
+});
+
+it('renders the dashboard with charts and indicators', function () {
+    $user = User::factory()->create();
+    Project::factory()->count(2)->create(['user_id' => $user->getKey()]);
+
+    $this->actingAs($user)
+        ->get('/admin/analytics')
+        ->assertOk()
+        ->assertSee('Criações no período')
+        ->assertSee('Ordens por status')
+        ->assertSee('Tarefas por lista')
+        ->assertSee('Formulários por status')
+        ->assertSee('analytics-series', false)
+        ->assertSee('apexcharts', false)
+        ->assertSee('chart.js', false)
+        ->assertViewHas('summary', fn (array $summary): bool => $summary['projects']['total'] === 2);
+});
+
+it('scopes the indicators to the authenticated user', function () {
+    $user = User::factory()->create();
+    $other = User::factory()->create();
+
+    Project::factory()->count(2)->create(['user_id' => $user->getKey()]);
+    Project::factory()->count(5)->create(['user_id' => $other->getKey()]);
+
+    Document::factory()->count(3)->create(['user_id' => $user->getKey()]);
+    Document::factory()->count(7)->create(['user_id' => $other->getKey()]);
+
+    $this->actingAs($user)
+        ->get('/admin/analytics')
+        ->assertOk()
+        ->assertViewHas('summary', fn (array $summary): bool => $summary['projects']['total'] === 2
+            && $summary['documents']['total'] === 3);
+});
+
+it('lets administrators switch to the global scope', function () {
+    $admin = User::factory()->admin()->create();
+    $other = User::factory()->create();
+
+    Project::factory()->create(['user_id' => $admin->getKey()]);
+    Project::factory()->count(3)->create(['user_id' => $other->getKey()]);
+
+    $this->actingAs($admin)
+        ->get('/admin/analytics?scope=global')
+        ->assertOk()
+        ->assertViewHas('isGlobal', true)
+        ->assertViewHas('summary', fn (array $summary): bool => $summary['projects']['total'] === 4);
+});
+
+it('forbids regular users from using the global scope', function () {
+    $this->actingAs(User::factory()->create())
+        ->get('/admin/analytics?scope=global')
+        ->assertForbidden();
+});
+
+it('includes the stations indicators when the stations plugin is enabled', function () {
+    $user = User::factory()->create();
+
+    $station = Station::factory()->create(['user_id' => $user->getKey()]);
+
+    $this->actingAs($user)
+        ->get('/admin/analytics')
+        ->assertOk()
+        ->assertViewHas('summary', fn (array $summary): bool => is_array($summary['stations'])
+            && $summary['stations']['total'] === 1
+            && $summary['stations']['active'] === 1);
+
+    $station->forceDelete();
+});
+
+it('applies the selected period to the indicators', function () {
+    $user = User::factory()->create();
+
+    Project::factory()->create([
+        'user_id' => $user->getKey(),
+        'created_at' => now()->subDays(40),
+    ]);
+
+    Project::factory()->create([
+        'user_id' => $user->getKey(),
+        'created_at' => now()->subDay(),
+    ]);
+
+    $this->actingAs($user)
+        ->get('/admin/analytics?period=7')
+        ->assertOk()
+        ->assertViewHas('summary', fn (array $summary): bool => $summary['projects']['created'] === 1);
+});
+
+it('validates custom period dates', function () {
+    $this->actingAs(User::factory()->create())
+        ->get('/admin/analytics?from=2026-02-30&to=2026-03-01')
+        ->assertSessionHasErrors('from');
+});
+
+it('exports the indicators as csv', function () {
+    $user = User::factory()->create();
+    Project::factory()->create(['user_id' => $user->getKey()]);
+
+    $response = $this->actingAs($user)
+        ->get('/admin/analytics/export?period=30')
+        ->assertOk()
+        ->assertHeader('content-type', 'text/csv; charset=UTF-8');
+
+    $content = $response->streamedContent();
+
+    expect($content)->toContain('Indicador,Valor')
+        ->toContain('projects.total,1');
+});
+
+it('stores a snapshot for the authenticated user', function () {
+    $user = User::factory()->create();
+    Project::factory()->create(['user_id' => $user->getKey()]);
+
+    $this->actingAs($user)
+        ->post('/admin/analytics/snapshot', ['period' => 30])
+        ->assertRedirect();
+
+    $snapshot = AnalyticsSnapshot::query()->where('user_id', $user->getKey())->firstOrFail();
+
+    expect($snapshot->metrics['projects']['total'])->toBe(1)
+        ->and($snapshot->captured_on)->toBe(now()->toDateString());
+});
+
+it('stores global and per-user snapshots through the artisan command', function () {
+    $user = User::factory()->create();
+    Project::factory()->create(['user_id' => $user->getKey()]);
+
+    $this->artisan('analytics:snapshot')->assertSuccessful();
+
+    expect(AnalyticsSnapshot::query()->whereNull('user_id')->exists())->toBeTrue()
+        ->and(AnalyticsSnapshot::query()->where('user_id', $user->getKey())->exists())->toBeTrue();
+});
+
+it('refreshes the snapshot of the day instead of duplicating it', function () {
+    $user = User::factory()->create();
+    Project::factory()->create(['user_id' => $user->getKey()]);
+
+    $this->artisan('analytics:snapshot', ['--user' => $user->getKey()])->assertSuccessful();
+    $this->artisan('analytics:snapshot', ['--user' => $user->getKey()])->assertSuccessful();
+
+    expect(AnalyticsSnapshot::query()->where('user_id', $user->getKey())->count())->toBe(1);
+});
+
+it('requires a valid user for the snapshot command', function () {
+    $this->artisan('analytics:snapshot', ['--user' => 999999])
+        ->expectsOutputToContain('was not found')
+        ->assertFailed();
+});
+
+it('imports oc and os records from a spreadsheet', function () {
+    $user = User::factory()->create();
+
+    $path = analyticsRecordSheet([
+        ['364007', '417', '16/08/2017', 'NOKIA', '', 'Acesso FAM', 'Obra Civil, Infra Cabeamento, Quadro de Energia e Energização', 'ENODEB', 'R. João Pessoa, 116-190, Aimorés - MG, 35200-000, Brazil', '', 'MG', '7NLAMGV28', 'MGAOR_0001', 'Max da Silva Costa', 'Aceito com Ressalvas'],
+        ['362293', '8171', '26/10/2017', 'NOKIA', '', 'Acesso FAM', 'Instalação', 'ENODEB', 'R. Pres. Costa e Silva, 2-50, Nova Viçosa - BA, 45920-000, Brazil', 'Nova Vicosa', 'BA', '7NLNVIT01', 'BANVV_0001', '', 'Criado pelo NetFlow'],
+    ]);
+
+    $this->actingAs($user)
+        ->post('/admin/analytics/records/import', [
+            'file' => new UploadedFile($path, 'oc-os.xlsx', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', null, true),
+        ])
+        ->assertRedirect()
+        ->assertSessionHasNoErrors();
+
+    $record = AnalyticsRecord::query()
+        ->where('oc', '364007')
+        ->firstOrFail();
+
+    expect($record->user_id)->toBe($user->getKey())
+        ->and($record->os)->toBe('417')
+        ->and($record->created_on->toDateString())->toBe('2017-08-16')
+        ->and($record->supplier)->toBe('NOKIA')
+        ->and($record->process_stage)->toBe('Obra Civil, Infra Cabeamento, Quadro de Energia e Energização')
+        ->and($record->element_type)->toBe('ENODEB')
+        ->and($record->state)->toBe('MG')
+        ->and($record->node_name)->toBe('7NLAMGV28')
+        ->and($record->location)->toBe('MGAOR_0001')
+        ->and($record->operator)->toBe('Max da Silva Costa')
+        ->and($record->status)->toBe('Aceito com Ressalvas')
+        ->and(AnalyticsRecord::query()->count())->toBe(2);
+
+    @unlink($path);
+});
+
+it('creates a new version when an imported row changes', function () {
+    $user = User::factory()->create();
+
+    $first = analyticsRecordSheet([['364007', '417', '16/08/2017', 'NOKIA', '', 'Acesso FAM', 'Obra Civil', 'ENODEB', 'Rua A', 'Aimorés', 'MG', '7NLAMGV28', 'MGAOR_0001', '', 'Criado pelo NetFlow']]);
+    $second = analyticsRecordSheet([['364007', '417', '16/08/2017', 'NOKIA', '', 'Acesso FAM', 'Instalação', 'ENODEB', 'Rua A', 'Aimorés', 'MG', '7NLAMGV28', 'MGAOR_0001', '', 'Aceito com Ressalvas']]);
+
+    $this->actingAs($user)->post('/admin/analytics/records/import', [
+        'file' => new UploadedFile($first, 'oc-os.xlsx', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', null, true),
+    ]);
+
+    $this->actingAs($user)
+        ->post('/admin/analytics/records/import', [
+            'file' => new UploadedFile($second, 'oc-os.xlsx', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', null, true),
+        ])
+        ->assertSessionHas('status', 'Importação FAMs concluída: 0 novo(s), 1 atualizado(s) e 0 sem alteração.');
+
+    $records = AnalyticsRecord::query()->orderBy('id')->get();
+
+    expect($records)->toHaveCount(2)
+        ->and($records->first()->status)->toBe('Criado pelo NetFlow')
+        ->and($records->last()->process_stage)->toBe('Instalação')
+        ->and($records->last()->status)->toBe('Aceito com Ressalvas');
+
+    @unlink($first);
+    @unlink($second);
+});
+
+it('ignores an unchanged row when importing again', function () {
+    $user = User::factory()->create();
+
+    $sheet = analyticsRecordSheet([['364007', '417', '16/08/2017', 'NOKIA', '', 'Acesso FAM', 'Instalação', 'ENODEB', 'Rua A', 'Aimorés', 'MG', '7NLAMGV28', 'MGAOR_0001', '', 'Aceito com Ressalvas']]);
+
+    $this->actingAs($user)->post('/admin/analytics/records/import', [
+        'file' => new UploadedFile($sheet, 'oc-os.xlsx', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', null, true),
+    ]);
+
+    $this->actingAs($user)
+        ->post('/admin/analytics/records/import', [
+            'file' => new UploadedFile($sheet, 'oc-os.xlsx', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', null, true),
+        ])
+        ->assertSessionHas('status', 'Importação FAMs concluída: 0 novo(s), 0 atualizado(s) e 1 sem alteração.');
+
+    expect(AnalyticsRecord::query()->count())->toBe(1);
+
+    @unlink($sheet);
+});
+
+it('rejects an oc and os row with an invalid creation date', function () {
+    $user = User::factory()->create();
+
+    $path = analyticsRecordSheet([['364007', '417', '31/02/2017', 'NOKIA', '', 'Acesso FAM', 'Instalação', 'ENODEB', '', '', 'MG', '', '', '', 'Criado pelo NetFlow']]);
+
+    $this->actingAs($user)
+        ->post('/admin/analytics/records/import', [
+            'file' => new UploadedFile($path, 'oc-os.xlsx', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', null, true),
+        ])
+        ->assertSessionHasErrors('import');
+
+    expect(AnalyticsRecord::query()->count())->toBe(0);
+
+    @unlink($path);
+});
+
+it('requires oc and os to import records', function () {
+    $user = User::factory()->create();
+
+    $path = analyticsRecordSheet([['', '', '16/08/2017', 'NOKIA', '', 'Acesso FAM', 'Instalação', 'ENODEB', '', '', 'MG', '', '', '', 'Criado pelo NetFlow']]);
+
+    $this->actingAs($user)
+        ->post('/admin/analytics/records/import', [
+            'file' => new UploadedFile($path, 'oc-os.xlsx', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', null, true),
+        ])
+        ->assertSessionHasErrors('import');
+
+    expect(AnalyticsRecord::query()->count())->toBe(0);
+
+    @unlink($path);
+});
+
+it('downloads the oc and os import template', function () {
+    $this->actingAs(User::factory()->create())
+        ->get('/admin/analytics/records/template')
+        ->assertOk()
+        ->assertHeader('content-type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+});
+
+it('shows the imported records in the dashboard and scopes them by user', function () {
+    $user = User::factory()->create();
+    $other = User::factory()->create();
+
+    AnalyticsRecord::query()->create([
+        'user_id' => $user->getKey(),
+        'oc' => '364007',
+        'os' => '417',
+        'created_on' => now()->toDateString(),
+        'process_stage' => 'Instalação',
+        'status' => 'Aceito com Ressalvas',
+    ]);
+
+    AnalyticsRecord::query()->create([
+        'user_id' => $other->getKey(),
+        'oc' => '999999',
+        'os' => '999',
+        'created_on' => now()->toDateString(),
+        'process_stage' => 'Obra Civil',
+        'status' => 'Criado pelo NetFlow',
+    ]);
+
+    $this->actingAs($user)
+        ->get('/admin/analytics')
+        ->assertOk()
+        ->assertSee('Importar dados FAMs')
+        ->assertSee('364007')
+        ->assertDontSee('999999')
+        ->assertViewHas('recordsSummary', fn (array $summary): bool => $summary['total'] === 1)
+        ->assertViewHas('recentRecords', fn (array $records): bool => count($records) === 1);
+});
+
+it('uses the latest version of each oc and os in the dashboard while keeping the history', function () {
+    $user = User::factory()->create();
+
+    AnalyticsRecord::query()->create([
+        'user_id' => $user->getKey(),
+        'oc' => '364007',
+        'os' => '417',
+        'created_on' => now()->toDateString(),
+        'process_stage' => 'Obra Civil',
+        'status' => 'Criado pelo NetFlow',
+    ]);
+
+    AnalyticsRecord::query()->create([
+        'user_id' => $user->getKey(),
+        'oc' => '364007',
+        'os' => '417',
+        'created_on' => now()->toDateString(),
+        'process_stage' => 'Instalação',
+        'status' => 'Aceito com Ressalvas',
+    ]);
+
+    $this->actingAs($user)
+        ->get('/admin/analytics')
+        ->assertOk()
+        ->assertSee('Histórico de alterações FAMs')
+        ->assertViewHas('recordsSummary', fn (array $summary): bool => $summary['total'] === 1 && $summary['versions'] === 2)
+        ->assertViewHas('recordsByStatus', fn (array $breakdown): bool => $breakdown['labels'] === ['Aceito com Ressalvas'])
+        ->assertViewHas('recentRecords', fn (array $records): bool => count($records) === 1 && $records[0]['versions'] === 2)
+        ->assertViewHas('recordChanges', fn (array $changes): bool => count($changes) === 1);
+});
+
+it('exports the oc and os breakdowns as csv', function () {
+    $user = User::factory()->create();
+
+    AnalyticsRecord::query()->create([
+        'user_id' => $user->getKey(),
+        'oc' => '364007',
+        'os' => '417',
+        'created_on' => now()->toDateString(),
+        'process_stage' => 'Instalação',
+        'status' => 'Aceito com Ressalvas',
+    ]);
+
+    $response = $this->actingAs($user)
+        ->get('/admin/analytics/export?period=30')
+        ->assertOk();
+
+    expect($response->streamedContent())
+        ->toContain('Etapa do processo')
+        ->toContain('Instalação,1')
+        ->toContain('Status FAMs');
+});
+
+/**
+ * Build an XLSX spreadsheet with the OC/OS import headings.
+ *
+ * @param  array<int, array<int, string>>  $rows
+ */
+function analyticsRecordSheet(array $rows): string
+{
+    $spreadsheet = new Spreadsheet;
+    $sheet = $spreadsheet->getActiveSheet();
+
+    $sheet->fromArray([
+        ['OC', 'OS', 'Data Criação', 'Fornecedor', 'Fornecedor Fiscalização', 'Tipo Projeto', 'Etapa Processo', 'Tipo Elemento', 'Endereço de Atendimento', 'Cidade', 'Estado', 'Node Name', 'Localização', 'Operador', 'Status'],
+        ...$rows,
+    ], null, 'A1');
+
+    $path = tempnam(sys_get_temp_dir(), 'oc_os_').'.xlsx';
+
+    (new Xlsx($spreadsheet))->save($path);
+
+    return $path;
+}
+
+it('imports afl records from a spreadsheet', function () {
+    $user = User::factory()->create();
+
+    $path = analyticsAflSheet([[
+        'code' => 'AFL20260620',
+        'general_status' => 'Pendente OS/PO',
+        'site_id_a' => '4G-JQIT19',
+        'project' => 'CT_REUSO',
+        'description' => 'VISTORIA',
+        'supervisor' => 'Fabricio Paes',
+        'coordinator' => 'Djalma Teixeira',
+        'oc_tim' => '1311997',
+        'boq_status' => 'Aprovado',
+        'created_on' => '2026-05-05 00:00:00',
+        'billing_status' => 'Não aplicável',
+        'billed_value' => '1.234,56',
+        'is_billed' => 'false',
+        'last_changed_at' => '2026-05-05 12:48:50',
+        'last_user' => 'robert@aflengenharia.com',
+    ]]);
+
+    $this->actingAs($user)
+        ->post('/admin/analytics/afl/import', [
+            'file' => new UploadedFile($path, 'afl.xlsx', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', null, true),
+        ])
+        ->assertRedirect()
+        ->assertSessionHasNoErrors();
+
+    $record = AnalyticsAflRecord::query()->firstOrFail();
+
+    expect($record->user_id)->toBe($user->getKey())
+        ->and($record->code)->toBe('AFL20260620')
+        ->and($record->general_status)->toBe('Pendente OS/PO')
+        ->and($record->site_id_a)->toBe('4G-JQIT19')
+        ->and($record->project)->toBe('CT_REUSO')
+        ->and($record->oc_tim)->toBe('1311997')
+        ->and($record->created_on->toDateString())->toBe('2026-05-05')
+        ->and($record->billing_status)->toBe('Não aplicável')
+        ->and((float) $record->billed_value)->toBe(1234.56)
+        ->and($record->is_billed)->toBeFalse()
+        ->and($record->last_changed_at->format('Y-m-d H:i:s'))->toBe('2026-05-05 12:48:50')
+        ->and($record->last_user)->toBe('robert@aflengenharia.com');
+
+    @unlink($path);
+});
+
+it('creates a new afl version when the row changes and ignores unchanged rows', function () {
+    $user = User::factory()->create();
+
+    $base = [
+        'code' => 'AFL20260630',
+        'general_status' => 'Pendente OS/PO',
+        'project' => 'CT_MW',
+        'supervisor' => 'Fabricio Paes',
+        'billing_status' => 'Não aplicável',
+    ];
+
+    $first = analyticsAflSheet([$base]);
+    $changed = analyticsAflSheet([[...$base, 'general_status' => 'Concluída']]);
+
+    $this->actingAs($user)->post('/admin/analytics/afl/import', [
+        'file' => new UploadedFile($first, 'afl.xlsx', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', null, true),
+    ]);
+
+    $this->actingAs($user)
+        ->post('/admin/analytics/afl/import', [
+            'file' => new UploadedFile($first, 'afl.xlsx', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', null, true),
+        ])
+        ->assertSessionHas('status', 'Importação AFL concluída: 0 novo(s), 0 atualizado(s) e 1 sem alteração.');
+
+    expect(AnalyticsAflRecord::query()->count())->toBe(1);
+
+    $this->actingAs($user)
+        ->post('/admin/analytics/afl/import', [
+            'file' => new UploadedFile($changed, 'afl.xlsx', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', null, true),
+        ])
+        ->assertSessionHas('status', 'Importação AFL concluída: 0 novo(s), 1 atualizado(s) e 0 sem alteração.');
+
+    $records = AnalyticsAflRecord::query()->orderBy('id')->get();
+
+    expect($records)->toHaveCount(2)
+        ->and($records->first()->general_status)->toBe('Pendente OS/PO')
+        ->and($records->last()->general_status)->toBe('Concluída');
+
+    @unlink($first);
+    @unlink($changed);
+});
+
+it('requires the afl code to import a row', function () {
+    $user = User::factory()->create();
+
+    $path = analyticsAflSheet([['project' => 'CT_MW']]);
+
+    $this->actingAs($user)
+        ->post('/admin/analytics/afl/import', [
+            'file' => new UploadedFile($path, 'afl.xlsx', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', null, true),
+        ])
+        ->assertSessionHasErrors('import');
+
+    expect(AnalyticsAflRecord::query()->count())->toBe(0);
+
+    @unlink($path);
+});
+
+it('downloads the afl import template', function () {
+    $this->actingAs(User::factory()->create())
+        ->get('/admin/analytics/afl/template')
+        ->assertOk()
+        ->assertHeader('content-type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+});
+
+it('shows the afl indicators and history in the dashboard', function () {
+    $user = User::factory()->create();
+    $other = User::factory()->create();
+
+    AnalyticsAflRecord::query()->create([
+        'user_id' => $user->getKey(),
+        'code' => 'AFL20260620',
+        'general_status' => 'Pendente OS/PO',
+        'project' => 'CT_REUSO',
+        'created_on' => now()->toDateString(),
+        'billing_status' => 'Não aplicável',
+    ]);
+
+    AnalyticsAflRecord::query()->create([
+        'user_id' => $user->getKey(),
+        'code' => 'AFL20260620',
+        'general_status' => 'Concluída',
+        'project' => 'CT_REUSO',
+        'created_on' => now()->toDateString(),
+        'billing_status' => 'Faturado',
+    ]);
+
+    AnalyticsAflRecord::query()->create([
+        'user_id' => $other->getKey(),
+        'code' => 'AFL-OTHER',
+        'general_status' => 'Pendente OS/PO',
+    ]);
+
+    $this->actingAs($user)
+        ->get('/admin/analytics')
+        ->assertOk()
+        ->assertSee('Importar dados AFL')
+        ->assertSee('Histórico de alterações AFL')
+        ->assertDontSee('AFL-OTHER')
+        ->assertViewHas('aflSummary', fn (array $summary): bool => $summary['total'] === 1 && $summary['versions'] === 2)
+        ->assertViewHas('aflByStatus', fn (array $breakdown): bool => $breakdown['labels'] === ['Concluída'])
+        ->assertViewHas('recentAflRecords', fn (array $records): bool => count($records) === 1 && $records[0]['versions'] === 2)
+        ->assertViewHas('aflChanges', fn (array $changes): bool => count($changes) === 1);
+});
+
+it('exports the afl breakdowns as csv', function () {
+    $user = User::factory()->create();
+
+    AnalyticsAflRecord::query()->create([
+        'user_id' => $user->getKey(),
+        'code' => 'AFL20260620',
+        'general_status' => 'Pendente OS/PO',
+        'billing_status' => 'Não aplicável',
+    ]);
+
+    $response = $this->actingAs($user)
+        ->get('/admin/analytics/export?period=30')
+        ->assertOk();
+
+    expect($response->streamedContent())
+        ->toContain('Status geral AFL')
+        ->toContain('Status de faturamento AFL');
+});
+
+/**
+ * Build an XLSX spreadsheet with the AFL layout.
+ *
+ * @param  array<int, array<string, string>>  $rows
+ */
+function analyticsAflSheet(array $rows): string
+{
+    $fields = AnalyticsAflImporter::FIELDS;
+    $headers = $fields;
+    $headers[0] = 'Cód_AFL';
+
+    $spreadsheet = new Spreadsheet;
+    $sheet = $spreadsheet->getActiveSheet();
+
+    $sheet->fromArray([$headers], null, 'A1');
+
+    $line = 2;
+
+    foreach ($rows as $row) {
+        $cells = [];
+
+        foreach ($fields as $field) {
+            $cells[] = $row[$field] ?? null;
+        }
+
+        $sheet->fromArray([$cells], null, 'A'.$line);
+
+        $line++;
+    }
+
+    $path = tempnam(sys_get_temp_dir(), 'afl_').'.xlsx';
+
+    (new Xlsx($spreadsheet))->save($path);
+
+    return $path;
+}
