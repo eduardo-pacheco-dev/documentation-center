@@ -5,7 +5,6 @@ namespace Plugins\Analytics\Models;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 #[Fillable([
@@ -119,7 +118,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
     'last_changed_at',
     'last_user',
 ])]
-class AnalyticsAflRecord extends Model
+class AnalyticsAflRecord extends AnalyticsModel
 {
     /**
      * The user that imported the record.
@@ -145,30 +144,65 @@ class AnalyticsAflRecord extends Model
     protected function casts(): array
     {
         return [
-            'access_approval_a' => 'date',
-            'access_approval_b' => 'date',
-            'access_end_a' => 'date',
-            'access_end_b' => 'date',
-            'access_request_a' => 'date',
-            'access_request_b' => 'date',
-            'access_start_a' => 'date',
-            'access_start_b' => 'date',
             'activation_registered_on' => 'date',
-            'billed_on' => 'date',
+            'request_date' => 'date',
             'created_on' => 'date',
-            'crq_end_a' => 'date',
-            'crq_end_b' => 'date',
+            'access_request_a' => 'date',
+            'access_approval_a' => 'date',
+            'access_start_a' => 'date',
+            'access_end_a' => 'date',
             'crq_start_a' => 'date',
+            'crq_end_a' => 'date',
+            'access_request_b' => 'date',
+            'access_approval_b' => 'date',
+            'access_start_b' => 'date',
+            'access_end_b' => 'date',
             'crq_start_b' => 'date',
-            'gr_ia_on' => 'date',
-            'invoice_issued_on' => 'date',
-            'mos_actual_on' => 'date',
+            'crq_end_b' => 'date',
             'mos_planned_on' => 'date',
+            'mos_actual_on' => 'date',
+            'activity_planned_start_a' => 'date',
+            'activity_actual_start_a' => 'date',
+            'activity_planned_end_a' => 'date',
+            'activity_actual_end_a' => 'date',
+            'activity_planned_start_b' => 'date',
+            'activity_actual_start_b' => 'date',
+            'activity_planned_end_b' => 'date',
+            'activity_actual_end_b' => 'date',
+            'activation_planned_start_a' => 'date',
+            'activation_actual_start_a' => 'date',
+            'activation_planned_end_a' => 'date',
+            'activation_actual_end_a' => 'date',
+            'activation_planned_start_b' => 'date',
+            'activation_actual_start_b' => 'date',
+            'activation_planned_end_b' => 'date',
+            'activation_actual_end_b' => 'date',
+            'documentation_planned_start_a' => 'date',
+            'documentation_actual_start_a' => 'date',
+            'documentation_planned_end_a' => 'date',
+            'documentation_actual_end_a' => 'date',
+            'documentation_sent_a' => 'date',
+            'documentation_planned_start_b' => 'date',
+            'documentation_actual_start_b' => 'date',
+            'documentation_planned_end_b' => 'date',
+            'documentation_actual_end_b' => 'date',
+            'documentation_sent_b' => 'date',
+            'acceptance_planned_start_a' => 'date',
+            'acceptance_actual_start_a' => 'date',
+            'acceptance_planned_end_a' => 'date',
+            'acceptance_actual_end_a' => 'date',
+            'acceptance_planned_start_b' => 'date',
+            'acceptance_actual_start_b' => 'date',
+            'acceptance_planned_end_b' => 'date',
+            'acceptance_actual_end_b' => 'date',
+            'invoice_issued_on' => 'date',
+            'billed_on' => 'date',
+            'gr_ia_on' => 'date',
             'last_changed_at' => 'datetime',
-            'billed_percentage' => 'decimal:2',
             'billed_value' => 'decimal:2',
             'contracted_value' => 'decimal:2',
             'invoice_value' => 'decimal:2',
+            'billed_percentage' => 'decimal:2',
             'is_billed' => 'boolean',
             'os_cancelled' => 'boolean',
         ];

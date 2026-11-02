@@ -418,6 +418,10 @@ it('imports afl records from a spreadsheet', function () {
         'boq_status' => 'Aprovado',
         'created_on' => '2026-05-05 00:00:00',
         'billing_status' => 'Não aplicável',
+        'request_date' => '2026-03-06 00:00:00',
+        'activity_planned_start_a' => '2026-03-14 00:00:00',
+        'activity_actual_end_a' => '2026-03-16 00:00:00',
+        'documentation_sent_b' => 'ttttt',
         'billed_value' => '1.234,56',
         'is_billed' => 'false',
         'last_changed_at' => '2026-05-05 12:48:50',
@@ -441,6 +445,10 @@ it('imports afl records from a spreadsheet', function () {
         ->and($record->oc_tim)->toBe('1311997')
         ->and($record->created_on->toDateString())->toBe('2026-05-05')
         ->and($record->billing_status)->toBe('Não aplicável')
+        ->and($record->request_date->toDateString())->toBe('2026-03-06')
+        ->and($record->activity_planned_start_a->toDateString())->toBe('2026-03-14')
+        ->and($record->activity_actual_end_a->toDateString())->toBe('2026-03-16')
+        ->and($record->documentation_sent_b)->toBeNull()
         ->and((float) $record->billed_value)->toBe(1234.56)
         ->and($record->is_billed)->toBeFalse()
         ->and($record->last_changed_at->format('Y-m-d H:i:s'))->toBe('2026-05-05 12:48:50')
@@ -609,3 +617,60 @@ function analyticsAflSheet(array $rows): string
 
     return $path;
 }
+
+it('requires a dedicated connection to prepare the analytics database', function () {
+    $this->artisan('analytics:database')
+        ->expectsOutputToContain('ANALYTICS_DB_CONNECTION')
+        ->assertFailed();
+});
+
+it('routes analytics models to the dedicated connection while core models stay on the default one', function () {
+    config([
+        'database.connections.analytics' => config('database.connections.sqlite'),
+        'analytics.database.connection' => 'analytics',
+    ]);
+
+    expect((new AnalyticsRecord)->getConnectionName())->toBe('analytics')
+        ->and((new AnalyticsSnapshot)->getConnectionName())->toBe('analytics')
+        ->and((new AnalyticsAflRecord)->getConnectionName())->toBe('analytics')
+        ->and((new AnalyticsRecord)->getConnection()->getName())->toBe('analytics')
+        ->and((new Project)->getConnection()->getName())->toBe('sqlite');
+});
+
+it('migrates and copies the analytics rows to the dedicated connection', function () {
+    $path = storage_path('framework/testing/analytics_'.Str::random(8).'.sqlite');
+    touch($path);
+
+    AnalyticsRecord::query()->create([
+        'user_id' => User::factory()->create()->getKey(),
+        'oc' => '364007',
+        'os' => '417',
+        'status' => 'Aceito com Ressalvas',
+    ]);
+
+    config([
+        'database.connections.analytics' => [
+            'driver' => 'sqlite',
+            'database' => $path,
+            'prefix' => '',
+            'foreign_key_constraints' => true,
+        ],
+        'analytics.database.connection' => 'analytics',
+    ]);
+
+    DB::purge('analytics');
+
+    $this->artisan('analytics:database')->assertSuccessful();
+
+    $this->artisan('analytics:database', ['--copy' => true])->assertSuccessful();
+
+    $copied = AnalyticsRecord::on('analytics')->firstOrFail();
+
+    expect($copied->oc)->toBe('364007')
+        ->and($copied->os)->toBe('417')
+        ->and($copied->status)->toBe('Aceito com Ressalvas')
+        ->and(AnalyticsRecord::on('analytics')->count())->toBe(1);
+
+    DB::purge('analytics');
+    @unlink($path);
+});

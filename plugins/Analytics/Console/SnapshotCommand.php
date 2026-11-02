@@ -5,6 +5,7 @@ namespace Plugins\Analytics\Console;
 use App\Models\User;
 use Illuminate\Console\Command;
 use Plugins\Analytics\Services\AnalyticsSnapshotter;
+use Plugins\Analytics\Support\AnalyticsDatabase;
 
 class SnapshotCommand extends Command
 {
@@ -27,6 +28,12 @@ class SnapshotCommand extends Command
      */
     public function handle(AnalyticsSnapshotter $snapshotter): int
     {
+        if (! AnalyticsDatabase::schema()->hasTable('analytics_snapshots')) {
+            $this->error('A tabela de snapshots ainda não foi migrada. Rode analytics:database.');
+
+            return self::FAILURE;
+        }
+
         $userId = $this->option('user');
 
         if ($userId !== null) {

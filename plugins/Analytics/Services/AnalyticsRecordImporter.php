@@ -5,11 +5,11 @@ namespace Plugins\Analytics\Services;
 use App\Models\User;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Support\Carbon;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
 use PhpOffice\PhpSpreadsheet\Shared\Date as ExcelDate;
 use Plugins\Analytics\Models\AnalyticsRecord;
+use Plugins\Analytics\Support\AnalyticsDatabase;
 use Throwable;
 
 /**
@@ -93,7 +93,7 @@ class AnalyticsRecordImporter
             throw ValidationException::withMessages(['import' => $errors]);
         }
 
-        return DB::transaction(function () use ($user, $operations): array {
+        return AnalyticsDatabase::transaction(function () use ($user, $operations): array {
             $created = 0;
             $updated = 0;
             $unchanged = 0;

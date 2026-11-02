@@ -2,15 +2,15 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\Schema;
+use Plugins\Analytics\Support\AnalyticsDatabase;
 
 return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('analytics_afl_records', function (Blueprint $table) {
+        AnalyticsDatabase::schema()->create('analytics_afl_records', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('user_id')->constrained()->cascadeOnDelete();
+            $table->unsignedBigInteger('user_id')->index();
             $table->string('code', 60);
             $table->string('general_status')->nullable();
             $table->string('site_id_a')->nullable();
@@ -130,6 +130,6 @@ return new class extends Migration
 
     public function down(): void
     {
-        Schema::dropIfExists('analytics_afl_records');
+        AnalyticsDatabase::schema()->dropIfExists('analytics_afl_records');
     }
 };

@@ -29,6 +29,27 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Database
+    |--------------------------------------------------------------------------
+    |
+    | Optional dedicated connection for the analytics tables. Leave the
+    | connection empty to store the data on the application database.
+    |
+    */
+
+    'database' => [
+        'connection' => env('ANALYTICS_DB_CONNECTION'),
+        'host' => env('ANALYTICS_DB_HOST', '127.0.0.1'),
+        'port' => env('ANALYTICS_DB_PORT', '5432'),
+        'database' => env('ANALYTICS_DB_DATABASE', 'documentation_analytics'),
+        'username' => env('ANALYTICS_DB_USERNAME'),
+        'password' => env('ANALYTICS_DB_PASSWORD'),
+        'search_path' => env('ANALYTICS_DB_SCHEMA', 'public'),
+        'sslmode' => env('ANALYTICS_DB_SSLMODE', 'prefer'),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Snapshots
     |--------------------------------------------------------------------------
     |

@@ -4,10 +4,10 @@ namespace Plugins\Analytics\Services;
 
 use App\Models\User;
 use Illuminate\Support\Carbon;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use PhpOffice\PhpSpreadsheet\Shared\Date as ExcelDate;
 use Plugins\Analytics\Models\AnalyticsAflRecord;
+use Plugins\Analytics\Support\AnalyticsDatabase;
 use Throwable;
 
 /**
@@ -138,7 +138,62 @@ class AnalyticsAflImporter
     /**
      * @var list<string>
      */
-    private const DATE_FIELDS = ['access_approval_a', 'access_approval_b', 'access_end_a', 'access_end_b', 'access_request_a', 'access_request_b', 'access_start_a', 'access_start_b', 'activation_registered_on', 'billed_on', 'created_on', 'crq_end_a', 'crq_end_b', 'crq_start_a', 'crq_start_b', 'gr_ia_on', 'invoice_issued_on', 'mos_actual_on', 'mos_planned_on'];
+    private const DATE_FIELDS = [
+        'activation_registered_on',
+        'request_date',
+        'created_on',
+        'access_request_a',
+        'access_approval_a',
+        'access_start_a',
+        'access_end_a',
+        'crq_start_a',
+        'crq_end_a',
+        'access_request_b',
+        'access_approval_b',
+        'access_start_b',
+        'access_end_b',
+        'crq_start_b',
+        'crq_end_b',
+        'mos_planned_on',
+        'mos_actual_on',
+        'activity_planned_start_a',
+        'activity_actual_start_a',
+        'activity_planned_end_a',
+        'activity_actual_end_a',
+        'activity_planned_start_b',
+        'activity_actual_start_b',
+        'activity_planned_end_b',
+        'activity_actual_end_b',
+        'activation_planned_start_a',
+        'activation_actual_start_a',
+        'activation_planned_end_a',
+        'activation_actual_end_a',
+        'activation_planned_start_b',
+        'activation_actual_start_b',
+        'activation_planned_end_b',
+        'activation_actual_end_b',
+        'documentation_planned_start_a',
+        'documentation_actual_start_a',
+        'documentation_planned_end_a',
+        'documentation_actual_end_a',
+        'documentation_sent_a',
+        'documentation_planned_start_b',
+        'documentation_actual_start_b',
+        'documentation_planned_end_b',
+        'documentation_actual_end_b',
+        'documentation_sent_b',
+        'acceptance_planned_start_a',
+        'acceptance_actual_start_a',
+        'acceptance_planned_end_a',
+        'acceptance_actual_end_a',
+        'acceptance_planned_start_b',
+        'acceptance_actual_start_b',
+        'acceptance_planned_end_b',
+        'acceptance_actual_end_b',
+        'invoice_issued_on',
+        'billed_on',
+        'gr_ia_on',
+    ];
 
     /**
      * @var list<string>
@@ -198,7 +253,7 @@ class AnalyticsAflImporter
             throw ValidationException::withMessages(['import' => $errors]);
         }
 
-        return DB::transaction(function () use ($user, $operations, $skipped): array {
+        return AnalyticsDatabase::transaction(function () use ($user, $operations, $skipped): array {
             $created = 0;
             $updated = 0;
             $unchanged = 0;

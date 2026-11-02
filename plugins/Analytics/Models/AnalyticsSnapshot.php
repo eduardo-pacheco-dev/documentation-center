@@ -4,7 +4,6 @@ namespace Plugins\Analytics\Models;
 
 use App\Models\User;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 #[Fillable([
@@ -12,7 +11,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
     'captured_on',
     'metrics',
 ])]
-class AnalyticsSnapshot extends Model
+class AnalyticsSnapshot extends AnalyticsModel
 {
     /**
      * The user the snapshot belongs to (null for the global snapshot).

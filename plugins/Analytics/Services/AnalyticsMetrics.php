@@ -17,12 +17,13 @@ use App\Plugins\PluginRepository;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\Schema;
 use Plugins\Analytics\Models\AnalyticsAflRecord;
 use Plugins\Analytics\Models\AnalyticsRecord;
 use Plugins\Analytics\Models\AnalyticsSnapshot;
+use Plugins\Analytics\Support\AnalyticsDatabase;
 
 /**
  * Collects the metrics shown by the analytics dashboard.
@@ -285,6 +286,10 @@ class AnalyticsMetrics
      */
     public function snapshots(): array
     {
+        if (! $this->hasSnapshotsTable()) {
+            return [];
+        }
+
         return AnalyticsSnapshot::query()
             ->where('user_id', $this->user?->getKey())
             ->latest('captured_on')
@@ -442,6 +447,133 @@ class AnalyticsMetrics
     }
 
     /**
+     * The latest FAMs records, paginated for the API.
+     *
+     * @return LengthAwarePaginator<int, array<string, mixed>>
+     */
+    public function recordsList(int $perPage = 25, ?string $search = null): LengthAwarePaginator
+    {
+        $perPage = max(1, min(100, $perPage));
+
+        if (! $this->hasRecordsTable()) {
+            return new LengthAwarePaginator([], 0, $perPage);
+        }
+
+        $paginator = $this->latestRecords()
+            ->when($search !== null && $search !== '', fn (Builder $query) => $query->where(function (Builder $inner) use ($search): void {
+                $inner->where('oc', 'like', "%{$search}%")
+                    ->orWhere('os', 'like', "%{$search}%")
+                    ->orWhere('node_name', 'like', "%{$search}%")
+                    ->orWhere('location', 'like', "%{$search}%")
+                    ->orWhere('city', 'like', "%{$search}%")
+                    ->orWhere('process_stage', 'like', "%{$search}%");
+            }))
+            ->orderByDesc('created_on')
+            ->orderByDesc('id')
+            ->paginate($perPage);
+
+        $counts = $this->versionCounts(collect($paginator->items()));
+
+        $paginator->setCollection(
+            $paginator->getCollection()->map(fn (AnalyticsRecord $record): array => [
+                ...$record->toArray(),
+                'created_on' => $record->created_on?->toDateString(),
+                'versions' => $counts[$record->oc.'|'.$record->os] ?? 1,
+            ]),
+        );
+
+        return $paginator;
+    }
+
+    /**
+     * Every stored version of the given OC + OS pair.
+     *
+     * @return list<array<string, mixed>>
+     */
+    public function recordHistory(string $oc, string $os): array
+    {
+        if (! $this->hasRecordsTable()) {
+            return [];
+        }
+
+        return AnalyticsRecord::query()
+            ->when($this->user !== null, fn (Builder $query) => $query->where('user_id', $this->user->getKey()))
+            ->where('oc', $oc)
+            ->where('os', $os)
+            ->orderBy('id')
+            ->get()
+            ->map(fn (AnalyticsRecord $record): array => [
+                ...$record->toArray(),
+                'created_on' => $record->created_on?->toDateString(),
+                'imported_at' => $record->created_at?->toIso8601String(),
+            ])
+            ->all();
+    }
+
+    /**
+     * The latest AFL records, paginated for the API.
+     *
+     * @return LengthAwarePaginator<int, array<string, mixed>>
+     */
+    public function aflRecordsList(int $perPage = 25, ?string $search = null): LengthAwarePaginator
+    {
+        $perPage = max(1, min(100, $perPage));
+
+        if (! $this->hasAflTable()) {
+            return new LengthAwarePaginator([], 0, $perPage);
+        }
+
+        $paginator = $this->latestAflRecords()
+            ->when($search !== null && $search !== '', fn (Builder $query) => $query->where(function (Builder $inner) use ($search): void {
+                $inner->where('code', 'like', "%{$search}%")
+                    ->orWhere('project', 'like', "%{$search}%")
+                    ->orWhere('site_id_a', 'like', "%{$search}%")
+                    ->orWhere('site_id_b', 'like', "%{$search}%")
+                    ->orWhere('supervisor', 'like', "%{$search}%")
+                    ->orWhere('general_status', 'like', "%{$search}%");
+            }))
+            ->orderByDesc('created_on')
+            ->orderByDesc('id')
+            ->paginate($perPage);
+
+        $counts = $this->aflVersionCounts(collect($paginator->items()));
+
+        $paginator->setCollection(
+            $paginator->getCollection()->map(fn (AnalyticsAflRecord $record): array => [
+                ...$record->toArray(),
+                'created_on' => $record->created_on?->toDateString(),
+                'versions' => $counts[(string) $record->code] ?? 1,
+            ]),
+        );
+
+        return $paginator;
+    }
+
+    /**
+     * Every stored version of the given AFL code.
+     *
+     * @return list<array<string, mixed>>
+     */
+    public function aflHistory(string $code): array
+    {
+        if (! $this->hasAflTable()) {
+            return [];
+        }
+
+        return AnalyticsAflRecord::query()
+            ->when($this->user !== null, fn (Builder $query) => $query->where('user_id', $this->user->getKey()))
+            ->where('code', $code)
+            ->orderBy('id')
+            ->get()
+            ->map(fn (AnalyticsAflRecord $record): array => [
+                ...$record->toArray(),
+                'created_on' => $record->created_on?->toDateString(),
+                'imported_at' => $record->created_at?->toIso8601String(),
+            ])
+            ->all();
+    }
+
+    /**
      * The latest recorded version of every OC + OS pair.
      *
      * @return Builder<AnalyticsRecord>
@@ -535,7 +667,7 @@ class AnalyticsMetrics
 
     private function hasRecordsTable(): bool
     {
-        return $this->hasRecordsTable ??= Schema::hasTable('analytics_records');
+        return $this->hasRecordsTable ??= AnalyticsDatabase::schema()->hasTable('analytics_records');
     }
 
     /**
@@ -718,9 +850,14 @@ class AnalyticsMetrics
             ->all();
     }
 
+    private function hasSnapshotsTable(): bool
+    {
+        return AnalyticsDatabase::schema()->hasTable('analytics_snapshots');
+    }
+
     private function hasAflTable(): bool
     {
-        return $this->hasAflTable ??= Schema::hasTable('analytics_afl_records');
+        return $this->hasAflTable ??= AnalyticsDatabase::schema()->hasTable('analytics_afl_records');
     }
 
     /**

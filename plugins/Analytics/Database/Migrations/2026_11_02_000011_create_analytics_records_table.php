@@ -2,15 +2,15 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\Schema;
+use Plugins\Analytics\Support\AnalyticsDatabase;
 
 return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('analytics_records', function (Blueprint $table) {
+        AnalyticsDatabase::schema()->create('analytics_records', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('user_id')->constrained()->cascadeOnDelete();
+            $table->unsignedBigInteger('user_id')->index();
             $table->string('oc', 60);
             $table->string('os', 60);
             $table->date('created_on')->nullable();
@@ -37,6 +37,6 @@ return new class extends Migration
 
     public function down(): void
     {
-        Schema::dropIfExists('analytics_records');
+        AnalyticsDatabase::schema()->dropIfExists('analytics_records');
     }
 };
