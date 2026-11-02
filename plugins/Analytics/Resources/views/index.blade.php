@@ -129,7 +129,7 @@
                     <span class="text-[11px] font-medium text-gray-400 dark:text-gray-500">{{ $card['hint'] }}</span>
                 </div>
 
-                <p class="mt-4 truncate text-2xl font-semibold tracking-tight text-gray-900 sm:text-3xl dark:text-white">{{ $card['value'] }}</p>
+                <p class="mt-4 truncate text-xl font-semibold tracking-tight text-gray-900 sm:text-2xl dark:text-white">{{ $card['value'] }}</p>
                 <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">{{ $card['label'] }}</p>
             </div>
         @endforeach
@@ -149,7 +149,7 @@
                 {{ $tab['label'] }}
 
                 @if ($tab['count'] !== null)
-                    <span class="rounded-full bg-gray-100 px-1.5 py-0.5 text-[10px] font-semibold text-gray-500 dark:bg-white/10 dark:text-gray-400">{{ $tab['count'] }}</span>
+                    <span class="text-[10px] font-medium leading-none text-gray-400 dark:text-gray-500">{{ $tab['count'] }}</span>
                 @endif
             </button>
         @endforeach
