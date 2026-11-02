@@ -257,29 +257,37 @@ class AnalyticsAflImporter
             $created = 0;
             $updated = 0;
             $unchanged = 0;
+            $inserts = [];
 
-            foreach ($operations as $attributes) {
-                $latest = AnalyticsAflRecord::query()
-                    ->where('user_id', $user->getKey())
-                    ->where('code', $attributes['code'])
-                    ->latest('id')
-                    ->first();
+            foreach (array_chunk($operations, 250) as $chunk) {
+                $latestByCode = $this->latestRecordsForChunk($user, $chunk);
 
-                if ($latest === null) {
-                    AnalyticsAflRecord::query()->create([...$attributes, 'user_id' => $user->getKey()]);
-                    $created++;
+                foreach ($chunk as $attributes) {
+                    $key = mb_strtoupper((string) $attributes['code']);
+                    $latest = $latestByCode[$key] ?? null;
 
-                    continue;
+                    if ($latest !== null && $this->isSameVersion($latest, $attributes)) {
+                        $unchanged++;
+
+                        continue;
+                    }
+
+                    $inserts[] = [
+                        ...$attributes,
+                        'user_id' => $user->getKey(),
+                    ];
+
+                    $latest === null ? $created++ : $updated++;
+
+                    if (count($inserts) >= 250) {
+                        $this->insertRecords($inserts);
+                        $inserts = [];
+                    }
                 }
+            }
 
-                if ($this->isSameVersion($latest, $attributes)) {
-                    $unchanged++;
-
-                    continue;
-                }
-
-                AnalyticsAflRecord::query()->create([...$attributes, 'user_id' => $user->getKey()]);
-                $updated++;
+            if ($inserts !== []) {
+                $this->insertRecords($inserts);
             }
 
             return [
@@ -289,6 +297,47 @@ class AnalyticsAflImporter
                 'skipped' => $skipped,
             ];
         });
+    }
+
+    /**
+     * Fetch the latest stored version for each AFL code in a chunk.
+     *
+     * @param  array<int, array<string, mixed>>  $operations
+     * @return array<string, AnalyticsAflRecord>
+     */
+    private function latestRecordsForChunk(User $user, array $operations): array
+    {
+        $codes = array_values(array_unique(array_map(
+            fn (array $attributes): string => (string) $attributes['code'],
+            $operations,
+        )));
+
+        return AnalyticsAflRecord::query()
+            ->where('user_id', $user->getKey())
+            ->whereIn('code', $codes)
+            ->orderBy('id')
+            ->get()
+            ->keyBy(fn (AnalyticsAflRecord $record): string => mb_strtoupper((string) $record->code))
+            ->all();
+    }
+
+    /**
+     * Insert a batch of records, adding the timestamps manually.
+     *
+     * @param  array<int, array<string, mixed>>  $records
+     */
+    private function insertRecords(array $records): void
+    {
+        $timestamp = now();
+
+        foreach ($records as &$record) {
+            $record['created_at'] = $timestamp;
+            $record['updated_at'] = $timestamp;
+        }
+
+        unset($record);
+
+        AnalyticsAflRecord::query()->insert($records);
     }
 
     /**

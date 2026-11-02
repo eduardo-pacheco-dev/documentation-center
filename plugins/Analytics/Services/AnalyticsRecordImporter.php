@@ -4,6 +4,7 @@ namespace Plugins\Analytics\Services;
 
 use App\Models\User;
 use Illuminate\Contracts\Validation\ValidationRule;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
@@ -104,38 +105,37 @@ class AnalyticsRecordImporter
             $created = 0;
             $updated = 0;
             $unchanged = 0;
+            $inserts = [];
 
-            foreach ($operations as $attributes) {
-                $latest = AnalyticsRecord::query()
-                    ->where('user_id', $user->getKey())
-                    ->where('oc', $attributes['oc'])
-                    ->where('os', $attributes['os'])
-                    ->latest('id')
-                    ->first();
+            foreach (array_chunk($operations, 250) as $chunk) {
+                $latestByKey = $this->latestRecordsForChunk($user, $chunk);
 
-                if ($latest === null) {
-                    AnalyticsRecord::query()->create([
+                foreach ($chunk as $attributes) {
+                    $key = mb_strtoupper($attributes['oc']).'|'.mb_strtoupper($attributes['os']);
+                    $latest = $latestByKey[$key] ?? null;
+
+                    if ($latest !== null && $this->isSameVersion($latest, $attributes)) {
+                        $unchanged++;
+
+                        continue;
+                    }
+
+                    $inserts[] = [
                         ...$attributes,
                         'user_id' => $user->getKey(),
-                    ]);
+                    ];
 
-                    $created++;
+                    $latest === null ? $created++ : $updated++;
 
-                    continue;
+                    if (count($inserts) >= 500) {
+                        $this->insertRecords($inserts);
+                        $inserts = [];
+                    }
                 }
+            }
 
-                if ($this->isSameVersion($latest, $attributes)) {
-                    $unchanged++;
-
-                    continue;
-                }
-
-                AnalyticsRecord::query()->create([
-                    ...$attributes,
-                    'user_id' => $user->getKey(),
-                ]);
-
-                $updated++;
+            if ($inserts !== []) {
+                $this->insertRecords($inserts);
             }
 
             return [
@@ -145,6 +145,50 @@ class AnalyticsRecordImporter
                 'skipped' => $skipped,
             ];
         });
+    }
+
+    /**
+     * Fetch the latest stored version for each OC + OS pair in a chunk.
+     *
+     * @param  array<int, array<string, mixed>>  $operations
+     * @return array<string, AnalyticsRecord>
+     */
+    private function latestRecordsForChunk(User $user, array $operations): array
+    {
+        $query = AnalyticsRecord::query()->where('user_id', $user->getKey());
+
+        $query->where(function (Builder $query) use ($operations): void {
+            foreach ($operations as $attributes) {
+                $query->orWhere(function (Builder $query) use ($attributes): void {
+                    $query->where('oc', $attributes['oc'])->where('os', $attributes['os']);
+                });
+            }
+        });
+
+        return $query
+            ->orderBy('id')
+            ->get()
+            ->keyBy(fn (AnalyticsRecord $record): string => mb_strtoupper($record->oc).'|'.mb_strtoupper($record->os))
+            ->all();
+    }
+
+    /**
+     * Insert a batch of records, adding the timestamps manually.
+     *
+     * @param  array<int, array<string, mixed>>  $records
+     */
+    private function insertRecords(array $records): void
+    {
+        $timestamp = now();
+
+        foreach ($records as &$record) {
+            $record['created_at'] = $timestamp;
+            $record['updated_at'] = $timestamp;
+        }
+
+        unset($record);
+
+        AnalyticsRecord::query()->insert($records);
     }
 
     /**
