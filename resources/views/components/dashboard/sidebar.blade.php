@@ -1,9 +1,17 @@
 @php
     use App\Enums\AdminModule;
+    use App\Plugins\PluginRepository;
+    use Illuminate\Support\Facades\Route;
 
     $enabledModules = AdminModule::enabledFor(auth()->user());
     $primaryNav = array_filter($enabledModules, fn (AdminModule $module): bool => $module->isPrimary());
     $moduleNav = array_filter($enabledModules, fn (AdminModule $module): bool => ! $module->isPrimary());
+
+    $pluginNav = collect(app(PluginRepository::class)->navigation())
+        ->filter(fn (array $item): bool => Route::has($item['route']));
+
+    $pluginPrimaryNav = $pluginNav->where('primary', true);
+    $pluginModuleNav = $pluginNav->where('primary', false);
 @endphp
 
 <aside
@@ -26,12 +34,32 @@
                 :active="request()->routeIs($module->activePattern())"
             />
         @endforeach
+
+        @foreach ($pluginPrimaryNav as $item)
+            <x-dashboard.sidebar-item
+                :href="route($item['route'])"
+                :icon="$item['icon']"
+                :label="$item['label']"
+                :module="$item['label']"
+                :active="request()->routeIs($item['active'])"
+            />
+        @endforeach
     </nav>
 
     <div class="flex w-full flex-col gap-1 border-t border-gray-200/80 pt-2 dark:border-white/10">
         @if (count($moduleNav) > 0)
             <x-dashboard.modules-menu :items="$moduleNav" />
         @endif
+
+        @foreach ($pluginModuleNav as $item)
+            <x-dashboard.sidebar-item
+                :href="route($item['route'])"
+                :icon="$item['icon']"
+                :label="$item['label']"
+                :module="$item['label']"
+                :active="request()->routeIs($item['active'])"
+            />
+        @endforeach
 
         <x-dashboard.sidebar-item
             :href="route('settings')"

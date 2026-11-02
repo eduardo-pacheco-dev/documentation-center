@@ -1,0 +1,23 @@
+{
+    "name": "Stations",
+    "alias": "stations",
+    "description": "Gestão independente de stations: cadastro, documentos, comentários, enlaces, importação e busca de endereço.",
+    "version": "1.0.0",
+    "icon": "signal",
+    "active": false,
+    "priority": 20,
+    "providers": [
+        "Plugins\\Stations\\Providers\\StationsServiceProvider"
+    ],
+    "navigation": [
+        {
+            "label": "Stations",
+            "route": "stations.index",
+            "icon": "signal",
+            "primary": false
+        }
+    ],
+    "aliases": [],
+    "files": [],
+    "requires": []
+}

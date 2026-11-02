@@ -176,6 +176,40 @@ class Plugin
     }
 
     /**
+     * The navigation items the plugin contributes to the sidebar.
+     *
+     * @return list<array{label: string, route: string, icon: string, active: string, primary: bool}>
+     */
+    public function navigation(): array
+    {
+        $items = $this->get('navigation', []);
+
+        if (! is_array($items)) {
+            return [];
+        }
+
+        $navigation = [];
+
+        foreach ($items as $item) {
+            if (! is_array($item) || ! is_string($item['label'] ?? null) || ! is_string($item['route'] ?? null)) {
+                continue;
+            }
+
+            $route = $item['route'];
+
+            $navigation[] = [
+                'label' => $item['label'],
+                'route' => $route,
+                'icon' => is_string($item['icon'] ?? null) ? $item['icon'] : 'cube',
+                'active' => str_ends_with($route, '.index') ? str_replace('.index', '.*', $route) : $route,
+                'primary' => (bool) ($item['primary'] ?? false),
+            ];
+        }
+
+        return $navigation;
+    }
+
+    /**
      * Whether the plugin is currently enabled.
      */
     public function enabled(): bool
