@@ -6,7 +6,7 @@ use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
 
 /**
- * Resolves the period and scope shared by the dashboard and the API.
+ * Resolves the period and scope shared by the dashboard.
  */
 class AnalyticsContext
 {
@@ -74,23 +74,5 @@ class AnalyticsContext
             'period' => $this->days,
             'scope' => $this->scope === 'global' ? 'global' : null,
         ]);
-    }
-
-    /**
-     * The JSON meta block shared by the API responses.
-     *
-     * @return array<string, mixed>
-     */
-    public function meta(): array
-    {
-        return [
-            'period' => [
-                'from' => $this->from->toDateString(),
-                'to' => $this->to->toDateString(),
-                'days' => $this->days,
-            ],
-            'scope' => $this->scope,
-            'generated_at' => CarbonImmutable::now()->toIso8601String(),
-        ];
     }
 }
