@@ -51,11 +51,14 @@ class PluginEnableCommand extends Command
         } catch (\Throwable $exception) {
             $plugin->disable();
             $plugins->clear();
+            $this->callSilently('route:clear');
 
             $this->error("Plugin [{$plugin->getAlias()}] migrations failed: {$exception->getMessage()}");
 
             return self::FAILURE;
         }
+
+        $this->callSilently('route:clear');
 
         $this->components->info("Plugin [{$plugin->getAlias()}] enabled.");
 

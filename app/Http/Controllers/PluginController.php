@@ -11,6 +11,7 @@ use App\Plugins\PluginRemover;
 use App\Plugins\PluginRepository;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Artisan;
 
 class PluginController extends Controller
 {
@@ -60,6 +61,7 @@ class PluginController extends Controller
             } catch (\Throwable $exception) {
                 $plugin->disable();
                 $this->plugins->clear();
+                $this->clearRouteCache();
 
                 return back()->withErrors([
                     'plugin' => sprintf('Não foi possível habilitar %s: %s', $plugin->getName(), $exception->getMessage()),
@@ -70,6 +72,7 @@ class PluginController extends Controller
         }
 
         $this->plugins->clear();
+        $this->clearRouteCache();
 
         return back()->with(
             'status',
@@ -95,5 +98,13 @@ class PluginController extends Controller
         }
 
         return back()->with('status', sprintf('Plugin %s removido.', $plugin->getName()));
+    }
+
+    /**
+     * Drop the cached routes so the new plugin route set is used.
+     */
+    private function clearRouteCache(): void
+    {
+        Artisan::call('route:clear');
     }
 }
