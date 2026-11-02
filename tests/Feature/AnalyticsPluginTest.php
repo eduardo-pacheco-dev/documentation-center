@@ -4,6 +4,10 @@ use App\Models\Document;
 use App\Models\Project;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
+use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
+use Plugins\Analytics\Models\AnalyticsRecord;
 use Plugins\Analytics\Models\AnalyticsSnapshot;
 use Plugins\Stations\Models\Station;
 
@@ -168,3 +172,231 @@ it('requires a valid user for the snapshot command', function () {
         ->expectsOutputToContain('was not found')
         ->assertFailed();
 });
+
+it('imports oc and os records from a spreadsheet', function () {
+    $user = User::factory()->create();
+
+    $path = analyticsRecordSheet([
+        ['364007', '417', '16/08/2017', 'NOKIA', '', 'Acesso FAM', 'Obra Civil, Infra Cabeamento, Quadro de Energia e Energização', 'ENODEB', 'R. João Pessoa, 116-190, Aimorés - MG, 35200-000, Brazil', '', 'MG', '7NLAMGV28', 'MGAOR_0001', 'Max da Silva Costa', 'Aceito com Ressalvas'],
+        ['362293', '8171', '26/10/2017', 'NOKIA', '', 'Acesso FAM', 'Instalação', 'ENODEB', 'R. Pres. Costa e Silva, 2-50, Nova Viçosa - BA, 45920-000, Brazil', 'Nova Vicosa', 'BA', '7NLNVIT01', 'BANVV_0001', '', 'Criado pelo NetFlow'],
+    ]);
+
+    $this->actingAs($user)
+        ->post('/admin/analytics/records/import', [
+            'file' => new UploadedFile($path, 'oc-os.xlsx', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', null, true),
+        ])
+        ->assertRedirect()
+        ->assertSessionHasNoErrors();
+
+    $record = AnalyticsRecord::query()
+        ->where('oc', '364007')
+        ->firstOrFail();
+
+    expect($record->user_id)->toBe($user->getKey())
+        ->and($record->os)->toBe('417')
+        ->and($record->created_on->toDateString())->toBe('2017-08-16')
+        ->and($record->supplier)->toBe('NOKIA')
+        ->and($record->process_stage)->toBe('Obra Civil, Infra Cabeamento, Quadro de Energia e Energização')
+        ->and($record->element_type)->toBe('ENODEB')
+        ->and($record->state)->toBe('MG')
+        ->and($record->node_name)->toBe('7NLAMGV28')
+        ->and($record->location)->toBe('MGAOR_0001')
+        ->and($record->operator)->toBe('Max da Silva Costa')
+        ->and($record->status)->toBe('Aceito com Ressalvas')
+        ->and(AnalyticsRecord::query()->count())->toBe(2);
+
+    @unlink($path);
+});
+
+it('creates a new version when an imported row changes', function () {
+    $user = User::factory()->create();
+
+    $first = analyticsRecordSheet([['364007', '417', '16/08/2017', 'NOKIA', '', 'Acesso FAM', 'Obra Civil', 'ENODEB', 'Rua A', 'Aimorés', 'MG', '7NLAMGV28', 'MGAOR_0001', '', 'Criado pelo NetFlow']]);
+    $second = analyticsRecordSheet([['364007', '417', '16/08/2017', 'NOKIA', '', 'Acesso FAM', 'Instalação', 'ENODEB', 'Rua A', 'Aimorés', 'MG', '7NLAMGV28', 'MGAOR_0001', '', 'Aceito com Ressalvas']]);
+
+    $this->actingAs($user)->post('/admin/analytics/records/import', [
+        'file' => new UploadedFile($first, 'oc-os.xlsx', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', null, true),
+    ]);
+
+    $this->actingAs($user)
+        ->post('/admin/analytics/records/import', [
+            'file' => new UploadedFile($second, 'oc-os.xlsx', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', null, true),
+        ])
+        ->assertSessionHas('status', 'Importação FAMs concluída: 0 novo(s), 1 atualizado(s) e 0 sem alteração.');
+
+    $records = AnalyticsRecord::query()->orderBy('id')->get();
+
+    expect($records)->toHaveCount(2)
+        ->and($records->first()->status)->toBe('Criado pelo NetFlow')
+        ->and($records->last()->process_stage)->toBe('Instalação')
+        ->and($records->last()->status)->toBe('Aceito com Ressalvas');
+
+    @unlink($first);
+    @unlink($second);
+});
+
+it('ignores an unchanged row when importing again', function () {
+    $user = User::factory()->create();
+
+    $sheet = analyticsRecordSheet([['364007', '417', '16/08/2017', 'NOKIA', '', 'Acesso FAM', 'Instalação', 'ENODEB', 'Rua A', 'Aimorés', 'MG', '7NLAMGV28', 'MGAOR_0001', '', 'Aceito com Ressalvas']]);
+
+    $this->actingAs($user)->post('/admin/analytics/records/import', [
+        'file' => new UploadedFile($sheet, 'oc-os.xlsx', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', null, true),
+    ]);
+
+    $this->actingAs($user)
+        ->post('/admin/analytics/records/import', [
+            'file' => new UploadedFile($sheet, 'oc-os.xlsx', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', null, true),
+        ])
+        ->assertSessionHas('status', 'Importação FAMs concluída: 0 novo(s), 0 atualizado(s) e 1 sem alteração.');
+
+    expect(AnalyticsRecord::query()->count())->toBe(1);
+
+    @unlink($sheet);
+});
+
+it('rejects an oc and os row with an invalid creation date', function () {
+    $user = User::factory()->create();
+
+    $path = analyticsRecordSheet([['364007', '417', '31/02/2017', 'NOKIA', '', 'Acesso FAM', 'Instalação', 'ENODEB', '', '', 'MG', '', '', '', 'Criado pelo NetFlow']]);
+
+    $this->actingAs($user)
+        ->post('/admin/analytics/records/import', [
+            'file' => new UploadedFile($path, 'oc-os.xlsx', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', null, true),
+        ])
+        ->assertSessionHasErrors('import');
+
+    expect(AnalyticsRecord::query()->count())->toBe(0);
+
+    @unlink($path);
+});
+
+it('requires oc and os to import records', function () {
+    $user = User::factory()->create();
+
+    $path = analyticsRecordSheet([['', '', '16/08/2017', 'NOKIA', '', 'Acesso FAM', 'Instalação', 'ENODEB', '', '', 'MG', '', '', '', 'Criado pelo NetFlow']]);
+
+    $this->actingAs($user)
+        ->post('/admin/analytics/records/import', [
+            'file' => new UploadedFile($path, 'oc-os.xlsx', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', null, true),
+        ])
+        ->assertSessionHasErrors('import');
+
+    expect(AnalyticsRecord::query()->count())->toBe(0);
+
+    @unlink($path);
+});
+
+it('downloads the oc and os import template', function () {
+    $this->actingAs(User::factory()->create())
+        ->get('/admin/analytics/records/template')
+        ->assertOk()
+        ->assertHeader('content-type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+});
+
+it('shows the imported records in the dashboard and scopes them by user', function () {
+    $user = User::factory()->create();
+    $other = User::factory()->create();
+
+    AnalyticsRecord::query()->create([
+        'user_id' => $user->getKey(),
+        'oc' => '364007',
+        'os' => '417',
+        'created_on' => now()->toDateString(),
+        'process_stage' => 'Instalação',
+        'status' => 'Aceito com Ressalvas',
+    ]);
+
+    AnalyticsRecord::query()->create([
+        'user_id' => $other->getKey(),
+        'oc' => '999999',
+        'os' => '999',
+        'created_on' => now()->toDateString(),
+        'process_stage' => 'Obra Civil',
+        'status' => 'Criado pelo NetFlow',
+    ]);
+
+    $this->actingAs($user)
+        ->get('/admin/analytics')
+        ->assertOk()
+        ->assertSee('Importar dados FAMs')
+        ->assertSee('364007')
+        ->assertDontSee('999999')
+        ->assertViewHas('recordsSummary', fn (array $summary): bool => $summary['total'] === 1)
+        ->assertViewHas('recentRecords', fn (array $records): bool => count($records) === 1);
+});
+
+it('uses the latest version of each oc and os in the dashboard while keeping the history', function () {
+    $user = User::factory()->create();
+
+    AnalyticsRecord::query()->create([
+        'user_id' => $user->getKey(),
+        'oc' => '364007',
+        'os' => '417',
+        'created_on' => now()->toDateString(),
+        'process_stage' => 'Obra Civil',
+        'status' => 'Criado pelo NetFlow',
+    ]);
+
+    AnalyticsRecord::query()->create([
+        'user_id' => $user->getKey(),
+        'oc' => '364007',
+        'os' => '417',
+        'created_on' => now()->toDateString(),
+        'process_stage' => 'Instalação',
+        'status' => 'Aceito com Ressalvas',
+    ]);
+
+    $this->actingAs($user)
+        ->get('/admin/analytics')
+        ->assertOk()
+        ->assertSee('Histórico de alterações FAMs')
+        ->assertViewHas('recordsSummary', fn (array $summary): bool => $summary['total'] === 1 && $summary['versions'] === 2)
+        ->assertViewHas('recordsByStatus', fn (array $breakdown): bool => $breakdown['labels'] === ['Aceito com Ressalvas'])
+        ->assertViewHas('recentRecords', fn (array $records): bool => count($records) === 1 && $records[0]['versions'] === 2)
+        ->assertViewHas('recordChanges', fn (array $changes): bool => count($changes) === 1);
+});
+
+it('exports the oc and os breakdowns as csv', function () {
+    $user = User::factory()->create();
+
+    AnalyticsRecord::query()->create([
+        'user_id' => $user->getKey(),
+        'oc' => '364007',
+        'os' => '417',
+        'created_on' => now()->toDateString(),
+        'process_stage' => 'Instalação',
+        'status' => 'Aceito com Ressalvas',
+    ]);
+
+    $response = $this->actingAs($user)
+        ->get('/admin/analytics/export?period=30')
+        ->assertOk();
+
+    expect($response->streamedContent())
+        ->toContain('Etapa do processo')
+        ->toContain('Instalação,1')
+        ->toContain('Status FAMs');
+});
+
+/**
+ * Build an XLSX spreadsheet with the OC/OS import headings.
+ *
+ * @param  array<int, array<int, string>>  $rows
+ */
+function analyticsRecordSheet(array $rows): string
+{
+    $spreadsheet = new Spreadsheet;
+    $sheet = $spreadsheet->getActiveSheet();
+
+    $sheet->fromArray([
+        ['OC', 'OS', 'Data Criação', 'Fornecedor', 'Fornecedor Fiscalização', 'Tipo Projeto', 'Etapa Processo', 'Tipo Elemento', 'Endereço de Atendimento', 'Cidade', 'Estado', 'Node Name', 'Localização', 'Operador', 'Status'],
+        ...$rows,
+    ], null, 'A1');
+
+    $path = tempnam(sys_get_temp_dir(), 'oc_os_').'.xlsx';
+
+    (new Xlsx($spreadsheet))->save($path);
+
+    return $path;
+}

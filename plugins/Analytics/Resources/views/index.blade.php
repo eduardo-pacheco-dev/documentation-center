@@ -16,6 +16,10 @@
         $cards[] = ['label' => 'Stations ativas', 'value' => $summary['stations']['active'], 'hint' => $summary['stations']['total'].' no total', 'icon' => 'signal', 'tone' => 'teal'];
     }
 
+    if (is_array($recordsSummary)) {
+        $cards[] = ['label' => 'Registros FAMs', 'value' => $recordsSummary['total'], 'hint' => $recordsSummary['versions'].' versões no histórico', 'icon' => 'table-cells', 'tone' => 'indigo'];
+    }
+
     $toneClasses = [
         'indigo' => 'bg-indigo-50 text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-400',
         'sky' => 'bg-sky-50 text-sky-600 dark:bg-sky-500/10 dark:text-sky-400',
@@ -52,6 +56,23 @@
             </x-ui.action>
         </form>
     </x-ui.page-header>
+
+    @error('import')
+        <div class="mt-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300">
+            <p class="font-semibold">Não foi possível importar a planilha.</p>
+            <ul class="mt-2 list-inside list-disc space-y-1">
+                @foreach (explode("\n", $message) as $line)
+                    <li>{{ $line }}</li>
+                @endforeach
+            </ul>
+        </div>
+    @enderror
+
+    @error('file')
+        <div class="mt-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300">
+            {{ $message }}
+        </div>
+    @enderror
 
     <section class="{{ $cardClass }} mt-6 flex flex-wrap items-center gap-3 p-4">
         <form method="GET" action="{{ route('analytics.index') }}" class="flex flex-wrap items-center gap-2">
@@ -244,6 +265,168 @@
         </section>
     </div>
 
+    @if (is_array($recordsSummary))
+        <div class="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-3">
+            <section class="{{ $cardClass }} p-5">
+                <h2 class="{{ $labelClass }}">Importar dados FAMs</h2>
+                <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                    Planilha de FAMs com OC, OS, data de criação, fornecedor, etapa do processo, elemento, endereço, node name, localização e status.
+                    Reimportar gera uma nova versão sempre que houver alteração, preservando o histórico por OC + OS.
+                </p>
+
+                <a href="{{ route('analytics.records.template') }}" class="mt-3 inline-flex items-center gap-1.5 text-sm font-medium text-indigo-600 hover:text-indigo-500 dark:text-indigo-400">
+                    <x-icon name="arrow-down-tray" class="h-4 w-4" />
+                    Baixar modelo (.xlsx)
+                </a>
+
+                <form method="POST" action="{{ route('analytics.records.import') }}" enctype="multipart/form-data" class="mt-4">
+                    @csrf
+                    <input type="hidden" name="period" value="{{ $days }}">
+                    <input type="hidden" name="scope" value="{{ $scope }}">
+
+                    <label for="records-file" class="block text-sm font-medium text-gray-700 dark:text-gray-200">Arquivo</label>
+                    <input id="records-file" name="file" type="file" accept=".xlsx,.xls,.csv" required class="mt-1 block w-full cursor-pointer rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-sm dark:border-white/10 dark:bg-white/[0.03] dark:text-gray-300">
+
+                    <button type="submit" class="mt-3 inline-flex h-10 items-center gap-1.5 rounded-xl bg-indigo-600 px-4 text-sm font-semibold text-white transition hover:bg-indigo-500">
+                        <x-icon name="arrow-up-tray" class="h-4 w-4" />
+                        Importar planilha
+                    </button>
+                </form>
+
+                <div class="mt-4 flex flex-wrap gap-2 border-t border-gray-100 pt-3 text-xs text-gray-500 dark:border-white/10 dark:text-gray-400">
+                    <span>{{ $recordsSummary['total'] }} registros FAMs</span>
+                    <span>·</span>
+                    <span>{{ $recordsSummary['versions'] }} versões</span>
+                    <span>·</span>
+                    <span>{{ $recordsSummary['in_period'] }} no período</span>
+                </div>
+            </section>
+
+            <section class="{{ $cardClass }} p-5">
+                <h2 class="{{ $labelClass }}">Etapas do processo</h2>
+
+                @if ($recordsByStage['labels'] === [])
+                    <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">Nenhum registro importado.</p>
+                @else
+                    <div class="relative mt-4 h-64 w-full">
+                        <canvas id="analytics-records-stages"></canvas>
+                    </div>
+                @endif
+            </section>
+
+            <section class="{{ $cardClass }} p-5">
+                <h2 class="{{ $labelClass }}">Status FAMs</h2>
+
+                @if ($recordsByStatus['labels'] === [])
+                    <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">Nenhum status registrado.</p>
+                @else
+                    <ul class="mt-4 space-y-2">
+                        @foreach ($recordsByStatus['labels'] as $index => $statusLabel)
+                            <li class="flex items-center justify-between gap-2 text-sm">
+                                <span class="min-w-0 truncate text-gray-600 dark:text-gray-300">{{ $statusLabel }}</span>
+                                <span class="shrink-0 font-medium text-gray-900 dark:text-gray-100">{{ $recordsByStatus['values'][$index] }}</span>
+                            </li>
+                        @endforeach
+                    </ul>
+                @endif
+
+                @if ($recordsBySupplier['labels'] !== [])
+                    <div class="mt-4 border-t border-gray-100 pt-4 dark:border-white/10">
+                        <p class="text-xs font-medium text-gray-500 dark:text-gray-400">Fornecedores</p>
+
+                        <ul class="mt-2 space-y-1.5">
+                            @foreach ($recordsBySupplier['labels'] as $index => $supplierLabel)
+                                <li class="flex items-center justify-between gap-2 text-sm">
+                                    <span class="min-w-0 truncate text-gray-600 dark:text-gray-300">{{ $supplierLabel }}</span>
+                                    <span class="shrink-0 font-medium text-gray-900 dark:text-gray-100">{{ $recordsBySupplier['values'][$index] }}</span>
+                                </li>
+                            @endforeach
+                        </ul>
+                    </div>
+                @endif
+            </section>
+        </div>
+
+        @if ($recentRecords !== [])
+            <section class="{{ $cardClass }} mt-4">
+                <div class="p-5">
+                    <h2 class="{{ $labelClass }}">Últimos registros FAMs</h2>
+                </div>
+
+                <div class="w-full overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-100 text-sm dark:divide-white/10">
+                        <thead class="bg-gray-50/80 text-left text-[11px] font-semibold uppercase tracking-[0.12em] text-gray-400 dark:bg-white/[0.03] dark:text-gray-500">
+                            <tr>
+                                <th class="px-5 py-3 font-semibold">OC</th>
+                                <th class="px-5 py-3 font-semibold">OS</th>
+                                <th class="px-5 py-3 font-semibold">Criação</th>
+                                <th class="px-5 py-3 font-semibold">Fornecedor</th>
+                                <th class="px-5 py-3 font-semibold">Etapa</th>
+                                <th class="px-5 py-3 font-semibold">Local</th>
+                                <th class="px-5 py-3 font-semibold">Node</th>
+                                <th class="px-5 py-3 font-semibold">Status</th>
+                                <th class="px-5 py-3 font-semibold">Versões</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-100 dark:divide-white/10">
+                            @foreach ($recentRecords as $record)
+                                <tr class="hover:bg-gray-50/70 dark:hover:bg-white/[0.03]">
+                                    <td class="whitespace-nowrap px-5 py-3 font-mono text-xs text-gray-900 dark:text-gray-100">{{ $record['oc'] }}</td>
+                                    <td class="whitespace-nowrap px-5 py-3 font-mono text-xs text-gray-900 dark:text-gray-100">{{ $record['os'] }}</td>
+                                    <td class="whitespace-nowrap px-5 py-3 text-gray-600 dark:text-gray-300">{{ $record['created_on'] ?: '—' }}</td>
+                                    <td class="whitespace-nowrap px-5 py-3 text-gray-600 dark:text-gray-300">{{ $record['supplier'] ?: '—' }}</td>
+                                    <td class="px-5 py-3 text-gray-600 dark:text-gray-300">{{ $record['process_stage'] ?: '—' }}</td>
+                                    <td class="whitespace-nowrap px-5 py-3 text-gray-600 dark:text-gray-300">
+                                        {{ $record['city'] ?: '—' }}{{ $record['state'] ? ' / '.$record['state'] : '' }}
+                                    </td>
+                                    <td class="whitespace-nowrap px-5 py-3 font-mono text-xs text-gray-600 dark:text-gray-300">{{ $record['node_name'] ?: '—' }}</td>
+                                    <td class="whitespace-nowrap px-5 py-3 text-gray-600 dark:text-gray-300">{{ $record['status'] ?: '—' }}</td>
+                                    <td class="whitespace-nowrap px-5 py-3">
+                                        <x-ui.badge :tone="$record['versions'] > 1 ? 'indigo' : 'gray'">{{ $record['versions'] }}</x-ui.badge>
+                                    </td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        @endif
+
+        @if ($recordChanges !== [])
+            <section class="{{ $cardClass }} mt-4">
+                <div class="p-5">
+                    <h2 class="{{ $labelClass }}">Histórico de alterações FAMs</h2>
+                    <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Novas versões gravadas nas reimportações, da mais recente para a mais antiga.</p>
+                </div>
+
+                <div class="w-full overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-100 text-sm dark:divide-white/10">
+                        <thead class="bg-gray-50/80 text-left text-[11px] font-semibold uppercase tracking-[0.12em] text-gray-400 dark:bg-white/[0.03] dark:text-gray-500">
+                            <tr>
+                                <th class="px-5 py-3 font-semibold">Importado em</th>
+                                <th class="px-5 py-3 font-semibold">OC</th>
+                                <th class="px-5 py-3 font-semibold">OS</th>
+                                <th class="px-5 py-3 font-semibold">Etapa</th>
+                                <th class="px-5 py-3 font-semibold">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-100 dark:divide-white/10">
+                            @foreach ($recordChanges as $change)
+                                <tr class="hover:bg-gray-50/70 dark:hover:bg-white/[0.03]">
+                                    <td class="whitespace-nowrap px-5 py-3 text-gray-600 dark:text-gray-300">{{ $change['imported_at'] ?: '—' }}</td>
+                                    <td class="whitespace-nowrap px-5 py-3 font-mono text-xs text-gray-900 dark:text-gray-100">{{ $change['oc'] }}</td>
+                                    <td class="whitespace-nowrap px-5 py-3 font-mono text-xs text-gray-900 dark:text-gray-100">{{ $change['os'] }}</td>
+                                    <td class="px-5 py-3 text-gray-600 dark:text-gray-300">{{ $change['process_stage'] ?: '—' }}</td>
+                                    <td class="px-5 py-3 text-gray-600 dark:text-gray-300">{{ $change['status'] ?: '—' }}</td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        @endif
+    @endif
+
     @if ($snapshots !== [])
         <section class="{{ $cardClass }} mt-4">
             <div class="p-5">
@@ -289,6 +472,7 @@
             const tasksByList = @json($tasksByList);
             const formStatuses = @json($formStatuses);
             const snapshotSeries = @json($snapshotSeries);
+            const recordsByStage = @json($recordsByStage);
 
             const isDark = document.documentElement.classList.contains('dark');
             const labelColor = isDark ? '#d1d5db' : '#6b7280';
@@ -416,6 +600,36 @@
                             scales: {
                                 y: { beginAtZero: true, ticks: { precision: 0 } },
                                 x: { grid: { display: false }, ticks: { maxRotation: 0, autoSkip: true } },
+                            },
+                        },
+                    });
+                }
+
+                const stages = document.getElementById('analytics-records-stages');
+
+                if (stages) {
+                    new Chart(stages, {
+                        type: 'bar',
+                        data: {
+                            labels: recordsByStage.labels,
+                            datasets: [{ data: recordsByStage.values, backgroundColor: '#0ea5e9', borderRadius: 6, maxBarThickness: 32 }],
+                        },
+                        options: {
+                            indexAxis: 'y',
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: { legend: { display: false } },
+                            scales: {
+                                x: { beginAtZero: true, ticks: { precision: 0 } },
+                                y: {
+                                    ticks: {
+                                        autoSkip: false,
+                                        callback(value) {
+                                            const label = this.getLabelForValue(value);
+                                            return label.length > 24 ? label.slice(0, 24) + '…' : label;
+                                        },
+                                    },
+                                },
                             },
                         },
                     });

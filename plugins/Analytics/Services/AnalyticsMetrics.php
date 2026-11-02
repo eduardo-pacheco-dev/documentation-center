@@ -18,6 +18,9 @@ use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Schema;
+use Plugins\Analytics\Models\AnalyticsRecord;
 use Plugins\Analytics\Models\AnalyticsSnapshot;
 
 /**
@@ -53,6 +56,8 @@ class AnalyticsMetrics
 
     /** @var array<string, string>|null */
     private ?array $bucketKeys = null;
+
+    private ?bool $hasRecordsTable = null;
 
     public function __construct(
         public readonly CarbonImmutable $from,
@@ -116,6 +121,7 @@ class AnalyticsMetrics
                 'total' => (clone $agenda)->count(),
                 'in_period' => (clone $agenda)->whereBetween('start_at', [$this->from, $this->to])->count(),
             ],
+            'records' => $this->recordsSummary(),
             'stations' => $this->stationsSummary(),
         ];
     }
@@ -132,6 +138,7 @@ class AnalyticsMetrics
             'projects' => $this->bucketCounts(Project::class),
             'work_orders' => $this->bucketCounts(WorkOrder::class),
             'documents' => $this->bucketCounts(Document::class),
+            'records' => $this->recordBucketCounts(),
         ];
     }
 
@@ -307,6 +314,225 @@ class AnalyticsMetrics
             'projects' => array_map(fn (array $snapshot): int => (int) ($snapshot['metrics']['projects']['total'] ?? 0), $snapshots),
             'work_orders' => array_map(fn (array $snapshot): int => (int) ($snapshot['metrics']['work_orders']['total'] ?? 0), $snapshots),
         ];
+    }
+
+    /**
+     * The imported OC/OS records indicators.
+     *
+     * @return array{total: int, in_period: int}|null
+     */
+    public function recordsSummary(): ?array
+    {
+        if (! $this->hasRecordsTable()) {
+            return null;
+        }
+
+        $query = $this->latestRecords();
+
+        return [
+            'total' => (clone $query)->count(),
+            'in_period' => (clone $query)
+                ->whereBetween('created_on', [$this->from->toDateString(), $this->to->toDateString()])
+                ->count(),
+            'versions' => AnalyticsRecord::query()
+                ->when($this->user !== null, fn (Builder $inner) => $inner->where('user_id', $this->user->getKey()))
+                ->count(),
+        ];
+    }
+
+    /**
+     * The imported records grouped by process stage.
+     *
+     * @return array{labels: list<string>, values: list<int>}
+     */
+    public function recordsByStage(): array
+    {
+        return $this->recordBreakdown('process_stage');
+    }
+
+    /**
+     * The imported records grouped by status.
+     *
+     * @return array{labels: list<string>, values: list<int>}
+     */
+    public function recordsByStatus(): array
+    {
+        return $this->recordBreakdown('status');
+    }
+
+    /**
+     * The imported records grouped by supplier.
+     *
+     * @return array{labels: list<string>, values: list<int>}
+     */
+    public function recordsBySupplier(): array
+    {
+        return $this->recordBreakdown('supplier');
+    }
+
+    /**
+     * The latest imported records for the current scope.
+     *
+     * @return list<array<string, string|null>>
+     */
+    public function recentRecords(int $limit = 8): array
+    {
+        if (! $this->hasRecordsTable()) {
+            return [];
+        }
+
+        $records = $this->latestRecords()
+            ->orderByDesc('created_on')
+            ->orderByDesc('id')
+            ->limit($limit)
+            ->get();
+
+        $counts = $this->versionCounts($records);
+
+        return $records
+            ->map(fn (AnalyticsRecord $record): array => [
+                'oc' => $record->oc,
+                'os' => $record->os,
+                'created_on' => $record->created_on?->format('d/m/Y'),
+                'supplier' => $record->supplier,
+                'process_stage' => $record->process_stage,
+                'city' => $record->city,
+                'state' => $record->state,
+                'node_name' => $record->node_name,
+                'location' => $record->location,
+                'status' => $record->status,
+                'versions' => $counts[$record->oc.'|'.$record->os] ?? 1,
+            ])
+            ->all();
+    }
+
+    /**
+     * The latest changes recorded for the imported FAMs, newest first.
+     *
+     * @return list<array<string, string|null|int>>
+     */
+    public function recentRecordChanges(int $limit = 8): array
+    {
+        if (! $this->hasRecordsTable()) {
+            return [];
+        }
+
+        $firstIds = AnalyticsRecord::query()
+            ->selectRaw('MIN(id)')
+            ->when($this->user !== null, fn (Builder $query) => $query->where('user_id', $this->user->getKey()))
+            ->groupBy('oc', 'os');
+
+        return AnalyticsRecord::query()
+            ->whereNotIn('id', $firstIds)
+            ->when($this->user !== null, fn (Builder $query) => $query->where('user_id', $this->user->getKey()))
+            ->orderByDesc('id')
+            ->limit($limit)
+            ->get()
+            ->map(fn (AnalyticsRecord $record): array => [
+                'oc' => $record->oc,
+                'os' => $record->os,
+                'status' => $record->status,
+                'process_stage' => $record->process_stage,
+                'imported_at' => $record->created_at?->format('d/m/Y H:i'),
+            ])
+            ->all();
+    }
+
+    /**
+     * The latest recorded version of every OC + OS pair.
+     *
+     * @return Builder<AnalyticsRecord>
+     */
+    private function latestRecords(): Builder
+    {
+        $latestIds = AnalyticsRecord::query()
+            ->selectRaw('MAX(id)')
+            ->when($this->user !== null, fn (Builder $query) => $query->where('user_id', $this->user->getKey()))
+            ->groupBy('oc', 'os');
+
+        return AnalyticsRecord::query()->whereIn('id', $latestIds);
+    }
+
+    /**
+     * Count how many versions exist for each OC + OS pair of the given records.
+     *
+     * @param  Collection<int, AnalyticsRecord>  $records
+     * @return array<string, int>
+     */
+    private function versionCounts($records): array
+    {
+        if ($records->isEmpty()) {
+            return [];
+        }
+
+        $counts = AnalyticsRecord::query()
+            ->when($this->user !== null, fn (Builder $query) => $query->where('user_id', $this->user->getKey()))
+            ->where(function (Builder $query) use ($records): void {
+                foreach ($records as $record) {
+                    $query->orWhere(fn (Builder $inner) => $inner
+                        ->where('oc', $record->oc)
+                        ->where('os', $record->os));
+                }
+            })
+            ->selectRaw('oc, os, count(*) as total')
+            ->groupBy('oc', 'os')
+            ->get();
+
+        return $counts
+            ->mapWithKeys(fn ($row): array => [$row->oc.'|'.$row->os => (int) $row->total])
+            ->all();
+    }
+
+    /**
+     * @return array{labels: list<string>, values: list<int>}
+     */
+    private function recordBreakdown(string $column): array
+    {
+        if (! $this->hasRecordsTable()) {
+            return ['labels' => [], 'values' => []];
+        }
+
+        $rows = $this->latestRecords()
+            ->whereNotNull($column)
+            ->where($column, '!=', '')
+            ->selectRaw("{$column} as label, count(*) as total")
+            ->groupBy($column)
+            ->orderByDesc('total')
+            ->limit((int) config('analytics.ranking_limit', 6))
+            ->get();
+
+        return [
+            'labels' => $rows->pluck('label')->map(fn ($label): string => (string) $label)->all(),
+            'values' => $rows->pluck('total')->map(fn ($total): int => (int) $total)->all(),
+        ];
+    }
+
+    /**
+     * @return list<int>
+     */
+    private function recordBucketCounts(): array
+    {
+        if (! $this->hasRecordsTable()) {
+            return array_fill(0, count($this->buckets()), 0);
+        }
+
+        $format = $this->from->diffInDays($this->to) <= 31 ? 'Y-m-d' : 'Y-m';
+
+        $counts = $this->latestRecords()
+            ->whereBetween('created_on', [$this->from->toDateString(), $this->to->toDateString()])
+            ->pluck('created_on')
+            ->groupBy(fn ($date): string => Carbon::parse($date)->format($format))
+            ->map(fn ($group): int => $group->count());
+
+        return array_values(array_map(
+            fn (string $key): int => (int) ($counts[$key] ?? 0),
+            array_keys($this->buckets()),
+        ));
+    }
+
+    private function hasRecordsTable(): bool
+    {
+        return $this->hasRecordsTable ??= Schema::hasTable('analytics_records');
     }
 
     /**

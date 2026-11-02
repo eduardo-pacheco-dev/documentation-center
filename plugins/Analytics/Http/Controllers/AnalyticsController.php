@@ -7,8 +7,14 @@ use Carbon\CarbonImmutable;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
+use Maatwebsite\Excel\Facades\Excel;
+use Plugins\Analytics\Exports\AnalyticsRecordsTemplateExport;
+use Plugins\Analytics\Http\Requests\ImportAnalyticsRecordsRequest;
+use Plugins\Analytics\Imports\AnalyticsRecordsImport;
 use Plugins\Analytics\Services\AnalyticsMetrics;
+use Plugins\Analytics\Services\AnalyticsRecordImporter;
 use Plugins\Analytics\Services\AnalyticsSnapshotter;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class AnalyticsController extends Controller
@@ -32,6 +38,12 @@ class AnalyticsController extends Controller
             'topProjects' => $metrics->topProjects(),
             'snapshots' => $metrics->snapshots(),
             'snapshotSeries' => $metrics->snapshotSeries(),
+            'recordsSummary' => $metrics->recordsSummary(),
+            'recordsByStage' => $metrics->recordsByStage(),
+            'recordsByStatus' => $metrics->recordsByStatus(),
+            'recordsBySupplier' => $metrics->recordsBySupplier(),
+            'recentRecords' => $metrics->recentRecords(),
+            'recordChanges' => $metrics->recentRecordChanges(),
             'from' => $period['from'],
             'to' => $period['to'],
             'days' => $period['days'],
@@ -84,6 +96,20 @@ class AnalyticsController extends Controller
             }
 
             fputcsv($handle, []);
+            fputcsv($handle, ['Etapa do processo', 'Registros']);
+
+            foreach ($metrics->recordsByStage()['labels'] as $index => $label) {
+                fputcsv($handle, [$label, $metrics->recordsByStage()['values'][$index] ?? 0]);
+            }
+
+            fputcsv($handle, []);
+            fputcsv($handle, ['Status FAMs', 'Registros']);
+
+            foreach ($metrics->recordsByStatus()['labels'] as $index => $label) {
+                fputcsv($handle, [$label, $metrics->recordsByStatus()['values'][$index] ?? 0]);
+            }
+
+            fputcsv($handle, []);
             fputcsv($handle, ['Lista de tarefas', 'Tarefas']);
 
             foreach ($metrics->tasksByList()['labels'] as $index => $label) {
@@ -108,6 +134,33 @@ class AnalyticsController extends Controller
             ->with('status', $scope === 'global'
                 ? 'Snapshot global gerado.'
                 : 'Seu snapshot foi gerado com sucesso.');
+    }
+
+    /**
+     * Import the FAMs spreadsheet into the analytics records.
+     */
+    public function importRecords(ImportAnalyticsRecordsRequest $request, AnalyticsRecordImporter $importer): RedirectResponse
+    {
+        $sheets = Excel::toArray(new AnalyticsRecordsImport, $request->file('file'));
+
+        $result = $importer->import($request->user(), $sheets[0] ?? []);
+
+        return redirect()
+            ->route('analytics.index', $request->only(['period', 'scope']))
+            ->with('status', sprintf(
+                'Importação FAMs concluída: %d novo(s), %d atualizado(s) e %d sem alteração.',
+                $result['created'],
+                $result['updated'],
+                $result['unchanged'],
+            ));
+    }
+
+    /**
+     * Download the FAMs import template.
+     */
+    public function recordsTemplate(): BinaryFileResponse
+    {
+        return Excel::download(new AnalyticsRecordsTemplateExport, 'modelo-analytics-fams.xlsx');
     }
 
     /**
