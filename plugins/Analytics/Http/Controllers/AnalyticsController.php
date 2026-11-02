@@ -3,19 +3,21 @@
 namespace Plugins\Analytics\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 use Maatwebsite\Excel\Facades\Excel;
+use Plugins\Analytics\Enums\AnalyticsImportStatus;
 use Plugins\Analytics\Exports\AnalyticsAflTemplateExport;
 use Plugins\Analytics\Exports\AnalyticsRecordsTemplateExport;
 use Plugins\Analytics\Http\Requests\ImportAnalyticsAflRequest;
 use Plugins\Analytics\Http\Requests\ImportAnalyticsRecordsRequest;
-use Plugins\Analytics\Imports\AnalyticsAflImport;
-use Plugins\Analytics\Imports\AnalyticsRecordsImport;
-use Plugins\Analytics\Services\AnalyticsAflImporter;
+use Plugins\Analytics\Jobs\ProcessAnalyticsImportJob;
+use Plugins\Analytics\Models\AnalyticsImport;
 use Plugins\Analytics\Services\AnalyticsContext;
-use Plugins\Analytics\Services\AnalyticsRecordImporter;
 use Plugins\Analytics\Services\AnalyticsSnapshotter;
 use Plugins\Analytics\Support\AnalyticsDatabase;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
@@ -32,6 +34,7 @@ class AnalyticsController extends Controller
         $metrics = $context->metrics;
         $period = ['from' => $context->from, 'to' => $context->to, 'days' => $context->days];
         $scope = $context->scope;
+        $recentImports = $this->recentImports($request);
 
         return view('analytics::index', [
             'summary' => $metrics->summary(),
@@ -63,6 +66,8 @@ class AnalyticsController extends Controller
             'scope' => $scope,
             'isGlobal' => $metrics->isGlobal(),
             'periods' => (array) config('analytics.periods', [30, 7, 90, 365]),
+            'recentImports' => $recentImports,
+            'hasPendingImports' => $recentImports->contains(fn (AnalyticsImport $import): bool => ! $import->isFinished()),
         ]);
     }
 
@@ -170,41 +175,121 @@ class AnalyticsController extends Controller
     }
 
     /**
-     * Import the FAMs spreadsheet into the analytics records.
+     * Queue the FAMs spreadsheet import.
      */
-    public function importRecords(ImportAnalyticsRecordsRequest $request, AnalyticsRecordImporter $importer): RedirectResponse
+    public function importRecords(ImportAnalyticsRecordsRequest $request): RedirectResponse
     {
-        $sheets = Excel::toArray(new AnalyticsRecordsImport, $request->file('file'));
-
-        $result = $importer->import($request->user(), $sheets[0] ?? []);
-
-        return redirect()
-            ->route('analytics.index', $request->only(['period', 'scope']))
-            ->with('status', sprintf(
-                'Importação FAMs concluída: %d novo(s), %d atualizado(s) e %d sem alteração.',
-                $result['created'],
-                $result['updated'],
-                $result['unchanged'],
-            ));
+        return $this->queueImport($request, AnalyticsImport::TYPE_FAMS, 'Importação FAMs');
     }
 
     /**
-     * Import the AFL spreadsheet into the analytics records.
+     * Queue the AFL spreadsheet import.
      */
-    public function importAfl(ImportAnalyticsAflRequest $request, AnalyticsAflImporter $importer): RedirectResponse
+    public function importAfl(ImportAnalyticsAflRequest $request): RedirectResponse
     {
-        $sheets = Excel::toArray(new AnalyticsAflImport, $request->file('file'));
+        return $this->queueImport($request, AnalyticsImport::TYPE_AFL, 'Importação AFL');
+    }
 
-        $result = $importer->import($request->user(), $sheets[0] ?? []);
+    /**
+     * Return the HTML of the latest imports so the dashboard can refresh them.
+     */
+    public function importsStatus(Request $request): JsonResponse
+    {
+        $imports = $this->recentImports($request);
 
-        return redirect()
-            ->route('analytics.index', $request->only(['period', 'scope']))
-            ->with('status', sprintf(
-                'Importação AFL concluída: %d novo(s), %d atualizado(s) e %d sem alteração.',
-                $result['created'],
-                $result['updated'],
-                $result['unchanged'],
-            ));
+        return response()->json([
+            'html' => view('analytics::partials.import-history', ['imports' => $imports])->render(),
+            'progress_html' => view('analytics::partials.import-progress', ['imports' => $imports])->render(),
+            'pending' => $imports->contains(fn (AnalyticsImport $import): bool => ! $import->isFinished()),
+            'imports' => $imports->map(fn (AnalyticsImport $import): array => [
+                'id' => $import->getKey(),
+                'type' => $import->type,
+                'status' => $import->status->value,
+                'status_label' => $import->status->label(),
+                'original_name' => $import->original_name,
+                'total_rows' => $import->total_rows,
+                'created_at' => $import->created_at?->toIso8601String(),
+                'summary' => $import->summary(),
+            ])->values(),
+        ]);
+    }
+
+    /**
+     * Store the uploaded spreadsheet and dispatch its processing job.
+     */
+    private function queueImport(Request $request, string $type, string $label): RedirectResponse
+    {
+        $file = $request->file('file');
+        $path = $file->store('analytics-imports', 'local');
+
+        if (! is_string($path)) {
+            throw ValidationException::withMessages(['file' => 'Não foi possível armazenar o arquivo enviado.']);
+        }
+
+        $import = AnalyticsImport::query()->create([
+            'user_id' => $request->user()->getKey(),
+            'type' => $type,
+            'status' => AnalyticsImportStatus::Pending,
+            'original_name' => $file->getClientOriginalName(),
+            'path' => $path,
+        ]);
+
+        ProcessAnalyticsImportJob::dispatch($import);
+
+        $import->refresh();
+
+        $redirect = redirect()
+            ->route('analytics.index', $request->only(['period', 'scope']));
+
+        if ($import->status === AnalyticsImportStatus::Failed) {
+            return $redirect->withErrors(['import' => $import->errors ?? ['A importação falhou.']]);
+        }
+
+        if ($import->status === AnalyticsImportStatus::Completed) {
+            return $redirect->with('status', $this->completedMessage($label, $import));
+        }
+
+        return $redirect
+            ->with('status', "{$label} enfileirada. O andamento aparece em “Importações recentes”.")
+            ->with('import_started', true);
+    }
+
+    /**
+     * The success message shown after a synchronous import finishes.
+     */
+    private function completedMessage(string $label, AnalyticsImport $import): string
+    {
+        $message = sprintf(
+            '%s concluída: %d novo(s), %d atualizado(s) e %d sem alteração.',
+            $label,
+            $import->created_count,
+            $import->updated_count,
+            $import->unchanged_count,
+        );
+
+        if ($import->skipped_count > 0) {
+            $message .= sprintf(' %d linha(s) vazia(s) ignorada(s).', $import->skipped_count);
+        }
+
+        return $message;
+    }
+
+    /**
+     * The latest imports requested by the authenticated user.
+     *
+     * @return Collection<int, AnalyticsImport>
+     */
+    private function recentImports(Request $request): Collection
+    {
+        if (! AnalyticsDatabase::schema()->hasTable('analytics_imports')) {
+            return collect();
+        }
+
+        return AnalyticsImport::query()
+            ->ownedBy($request->user())
+            ->latest()
+            ->limit(5)
+            ->get();
     }
 
     /**

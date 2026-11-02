@@ -309,5 +309,72 @@
         });
 
         document.querySelectorAll('[role="dialog"][data-open]').forEach(openImportModal);
+
+        const importHistory = document.querySelector('[data-import-history]');
+        const importProgress = document.querySelector('[data-import-progress]');
+        const importHeaderIndicator = document.querySelector('[data-import-header-indicator]');
+        const importStatusUrl = @json(route('analytics.imports.status'));
+        let importPoll = null;
+
+        const setImportProcessing = (processing) => {
+            if (importProgress) {
+                importProgress.classList.toggle('hidden', !processing);
+            }
+
+            if (importHeaderIndicator) {
+                importHeaderIndicator.classList.toggle('hidden', !processing);
+            }
+
+            document.querySelectorAll('[data-import-file], [data-import-submit]').forEach((field) => {
+                field.disabled = processing;
+            });
+
+            document.querySelectorAll('[data-import-dropzone]').forEach((dropzone) => {
+                dropzone.classList.toggle('pointer-events-none', processing);
+                dropzone.classList.toggle('opacity-60', processing);
+            });
+        };
+
+        const pollImportHistory = async () => {
+            if (!importHistory) {
+                return;
+            }
+
+            try {
+                const response = await fetch(importStatusUrl, {
+                    headers: { Accept: 'application/json' },
+                    credentials: 'same-origin',
+                });
+
+                if (!response.ok) {
+                    return;
+                }
+
+                const payload = await response.json();
+
+                if (typeof payload.html === 'string') {
+                    importHistory.innerHTML = payload.html;
+                }
+
+                if (importProgress && typeof payload.progress_html === 'string') {
+                    importProgress.innerHTML = payload.progress_html;
+                }
+
+                setImportProcessing(payload.pending === true);
+
+                if (!payload.pending && importPoll) {
+                    clearInterval(importPoll);
+                    importPoll = null;
+                }
+            } catch (error) {
+                console.error('Analytics: falha ao atualizar as importações', error);
+            }
+        };
+
+        setImportProcessing(@json($hasPendingImports));
+
+        if (importHistory && @json($hasPendingImports)) {
+            importPoll = setInterval(pollImportHistory, 4000);
+        }
     })();
 </script>

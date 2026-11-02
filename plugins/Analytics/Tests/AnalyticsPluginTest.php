@@ -3,9 +3,13 @@
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Queue;
+use Illuminate\Support\Facades\Storage;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
+use Plugins\Analytics\Jobs\ProcessAnalyticsImportJob;
 use Plugins\Analytics\Models\AnalyticsAflRecord;
+use Plugins\Analytics\Models\AnalyticsImport;
 use Plugins\Analytics\Models\AnalyticsRecord;
 use Plugins\Analytics\Models\AnalyticsSnapshot;
 use Plugins\Analytics\Services\AnalyticsAflImporter;
@@ -194,6 +198,50 @@ it('imports oc and os records from a spreadsheet', function () {
     @unlink($path);
 });
 
+it('queues spreadsheet imports and exposes their progress', function () {
+    Queue::fake();
+    Storage::fake('local');
+
+    $user = User::factory()->create();
+
+    $path = analyticsRecordSheet([['364007', '417', '16/08/2017', 'NOKIA', '', 'Acesso FAM', 'Obra Civil', 'ENODEB', 'Rua A', 'Aimorés', 'MG', '7NLAMGV28', 'MGAOR_0001', '', 'Criado pelo NetFlow']]);
+
+    $this->actingAs($user)
+        ->post('/admin/analytics/records/import', [
+            'file' => new UploadedFile($path, 'oc-os.xlsx', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', null, true),
+        ])
+        ->assertSessionHasNoErrors()
+        ->assertSessionHas('status', 'Importação FAMs enfileirada. O andamento aparece em “Importações recentes”.')
+        ->assertSessionHas('import_started', true);
+
+    $import = AnalyticsImport::query()->sole();
+
+    expect($import->status->value)->toBe('pending')
+        ->and($import->original_name)->toBe('oc-os.xlsx')
+        ->and($import->created_count)->toBe(0)
+        ->and(AnalyticsRecord::query()->count())->toBe(0);
+
+    Storage::disk('local')->assertExists($import->path);
+
+    Queue::assertPushed(ProcessAnalyticsImportJob::class, fn (ProcessAnalyticsImportJob $job): bool => $job->import->is($import));
+
+    Storage::disk('local')->delete($import->path);
+
+    $this->actingAs($user)
+        ->get('/admin/analytics/imports/status')
+        ->assertOk()
+        ->assertJson(['pending' => true])
+        ->assertJsonFragment(['original_name' => 'oc-os.xlsx']);
+
+    $this->actingAs($user)
+        ->get('/admin/analytics')
+        ->assertOk()
+        ->assertSee('Processando importação FAMs')
+        ->assertSee('data-import-progress', false);
+
+    @unlink($path);
+});
+
 it('creates a new version when an imported row changes', function () {
     $user = User::factory()->create();
 
@@ -252,7 +300,8 @@ it('rejects an oc and os row with an invalid creation date', function () {
         ])
         ->assertSessionHasErrors('import');
 
-    expect(AnalyticsRecord::query()->count())->toBe(0);
+    expect(AnalyticsRecord::query()->count())->toBe(0)
+        ->and(AnalyticsImport::query()->sole()->status->value)->toBe('failed');
 
     @unlink($path);
 });

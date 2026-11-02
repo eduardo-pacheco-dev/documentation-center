@@ -34,6 +34,21 @@
         :description="'Indicadores de '.$from->format('d/m/Y').' a '.$to->format('d/m/Y').' · '.($isGlobal ? 'visão global' : 'seus dados')"
         icon="chart-bar"
     >
+        @if ($hasPendingImports)
+            <button
+                type="button"
+                data-import-header-indicator
+                data-modal-open="analytics-import-modal"
+                class="inline-flex h-10 items-center gap-2 rounded-xl border border-indigo-200 bg-indigo-50 px-3 text-sm font-semibold text-indigo-700 transition hover:bg-indigo-100 dark:border-indigo-500/30 dark:bg-indigo-500/10 dark:text-indigo-300 dark:hover:bg-indigo-500/20"
+            >
+                <span class="relative flex h-2 w-2">
+                    <span class="absolute inline-flex h-full w-full animate-ping rounded-full bg-indigo-500 opacity-60"></span>
+                    <span class="relative inline-flex h-2 w-2 rounded-full bg-indigo-600"></span>
+                </span>
+                Importando…
+            </button>
+        @endif
+
         @if (is_array($recordsSummary) || is_array($aflSummary))
             <x-ui.action type="button" variant="secondary" icon="arrow-up-tray" data-modal-open="analytics-import-modal">
                 Importar

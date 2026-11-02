@@ -6,6 +6,7 @@ use Illuminate\Console\Command;
 use Illuminate\Database\Migrations\Migrator;
 use Illuminate\Support\Facades\DB;
 use Plugins\Analytics\Models\AnalyticsAflRecord;
+use Plugins\Analytics\Models\AnalyticsImport;
 use Plugins\Analytics\Models\AnalyticsRecord;
 use Plugins\Analytics\Models\AnalyticsSnapshot;
 use Plugins\Analytics\Support\AnalyticsDatabase;
@@ -43,6 +44,7 @@ class DatabaseCommand extends Command
         'analytics_snapshots' => AnalyticsSnapshot::class,
         'analytics_records' => AnalyticsRecord::class,
         'analytics_afl_records' => AnalyticsAflRecord::class,
+        'analytics_imports' => AnalyticsImport::class,
     ];
 
     /**

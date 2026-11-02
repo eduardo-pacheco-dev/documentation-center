@@ -12,6 +12,7 @@
     'days',
     'scope',
     'modalTarget',
+    'disabled' => false,
 ])
 
 @php
@@ -52,7 +53,12 @@
         <input type="hidden" name="scope" value="{{ $scope }}">
         <input type="hidden" name="modal" value="{{ $modalTarget }}">
 
-        <label for="{{ $fileId }}" class="group flex cursor-pointer items-center gap-3 rounded-xl border border-dashed border-gray-300 bg-gray-50/60 px-4 py-3 text-left transition {{ $palette['dropzone'] }} dark:border-white/15 dark:bg-white/[0.02]">
+        <label for="{{ $fileId }}" data-import-dropzone @class([
+            'group flex cursor-pointer items-center gap-3 rounded-xl border border-dashed border-gray-300 bg-gray-50/60 px-4 py-3 text-left transition',
+            $palette['dropzone'],
+            'dark:border-white/15 dark:bg-white/[0.02]',
+            'pointer-events-none opacity-60' => $disabled,
+        ])>
             <span class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white shadow-sm {{ $palette['icon'] }} dark:bg-white/10">
                 <x-icon name="arrow-up-tray" class="h-4 w-4" />
             </span>
@@ -62,7 +68,7 @@
                 <span class="block text-xs text-gray-400 dark:text-gray-500">.xlsx, .xls ou .csv (até {{ $maxSize }})</span>
             </span>
 
-            <input id="{{ $fileId }}" name="file" type="file" accept=".xlsx,.xls,.csv" required class="sr-only">
+            <input id="{{ $fileId }}" name="file" type="file" accept=".xlsx,.xls,.csv" required data-import-file @disabled($disabled) class="sr-only">
         </label>
 
         <div class="flex flex-wrap items-center justify-between gap-3">
@@ -70,7 +76,7 @@
                 <p class="text-xs text-gray-500 dark:text-gray-400">{{ implode(' · ', $summary) }}</p>
             @endif
 
-            <button type="submit" class="ml-auto inline-flex h-9 shrink-0 items-center justify-center gap-1.5 rounded-xl px-4 text-sm font-semibold text-white transition {{ $palette['button'] }}">
+            <button type="submit" data-import-submit @disabled($disabled) class="ml-auto inline-flex h-9 shrink-0 items-center justify-center gap-1.5 rounded-xl px-4 text-sm font-semibold text-white transition disabled:cursor-not-allowed disabled:opacity-60 {{ $palette['button'] }}">
                 <x-icon name="arrow-up-tray" class="h-4 w-4" />
                 {{ $submitLabel }}
             </button>

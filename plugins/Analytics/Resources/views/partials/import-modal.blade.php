@@ -1,5 +1,6 @@
 @php
-    $importModalOpen = $errors->any() && in_array(old('modal'), ['import-fams', 'import-afl'], true);
+    $importModalOpen = session('import_started') === true
+        || ($errors->any() && in_array(old('modal'), ['import-fams', 'import-afl'], true));
 @endphp
 
 <x-ui.modal
@@ -9,6 +10,10 @@
     max-width="max-w-3xl"
     :data-open="$importModalOpen ? true : null"
 >
+    <div data-import-progress role="status" aria-live="polite" @class(['hidden' => ! $hasPendingImports])>
+        @include('analytics::partials.import-progress', ['imports' => $recentImports])
+    </div>
+
     @if ($errors->has('import') || $errors->has('file'))
         <div data-modal-error class="space-y-3">
             @error('import')
@@ -35,6 +40,7 @@
                 file-id="records-file"
                 max-size="10 MB"
                 modal-target="import-fams"
+                :disabled="$hasPendingImports"
                 :summary="[
                     $recordsSummary['total'].' registros',
                     $recordsSummary['versions'].' versões',
@@ -56,6 +62,7 @@
                 tone="rose"
                 max-size="20 MB"
                 modal-target="import-afl"
+                :disabled="$hasPendingImports"
                 :summary="[
                     $aflSummary['total'].' registros',
                     $aflSummary['versions'].' versões',
@@ -65,5 +72,9 @@
                 :scope="$scope"
             />
         @endif
+    </div>
+
+    <div data-import-history>
+        @include('analytics::partials.import-history', ['imports' => $recentImports])
     </div>
 </x-ui.modal>
