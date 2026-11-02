@@ -5,7 +5,9 @@ namespace Plugins\Analytics\Console;
 use Illuminate\Console\Command;
 use Illuminate\Database\Migrations\Migrator;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Schema;
+use Plugins\Analytics\Models\AnalyticsAflRecord;
+use Plugins\Analytics\Models\AnalyticsRecord;
+use Plugins\Analytics\Models\AnalyticsSnapshot;
 use Plugins\Analytics\Support\AnalyticsDatabase;
 use Throwable;
 
@@ -38,9 +40,9 @@ class DatabaseCommand extends Command
      * @var list<string>
      */
     private const TABLES = [
-        'analytics_snapshots',
-        'analytics_records',
-        'analytics_afl_records',
+        'analytics_snapshots' => AnalyticsSnapshot::class,
+        'analytics_records' => AnalyticsRecord::class,
+        'analytics_afl_records' => AnalyticsAflRecord::class,
     ];
 
     /**
@@ -64,14 +66,16 @@ class DatabaseCommand extends Command
             return self::FAILURE;
         }
 
-        $migrator->setConnection($connection);
+        $defaultConnection = (string) config('database.default');
 
-        if (! $migrator->repositoryExists()) {
-            $migrator->getRepository()->createRepository();
-        }
+        $migrator->usingConnection($connection, function () use ($migrator): void {
+            if (! $migrator->repositoryExists()) {
+                $migrator->getRepository()->createRepository();
+            }
+        });
 
         if ($this->option('fresh')) {
-            foreach (self::TABLES as $table) {
+            foreach (array_keys(self::TABLES) as $table) {
                 AnalyticsDatabase::schema()->dropIfExists($table);
             }
 
@@ -85,46 +89,51 @@ class DatabaseCommand extends Command
 
         $path = base_path('plugins/Analytics/Database/Migrations');
 
-        $migrator->run([$path], ['pretend' => false]);
+        $migrator->usingConnection($connection, function () use ($migrator, $path): void {
+            $migrator->run([$path], ['pretend' => false]);
+        });
 
         $this->components->info("Migrations executadas na conexão [{$connection}].");
 
         if ($this->option('copy')) {
-            $this->copyFromDefaultConnection($connection);
+            $this->copyFromDefaultConnection($connection, $defaultConnection);
         }
 
         return self::SUCCESS;
     }
 
     /**
-     * Copy the analytics rows from the application database.
+     * Copy the analytics rows from the application database using Eloquent.
      */
-    private function copyFromDefaultConnection(string $connection): void
+    private function copyFromDefaultConnection(string $connection, string $default): void
     {
-        $source = DB::connection();
-        $target = DB::connection($connection);
+        $targetName = $connection;
 
-        foreach (self::TABLES as $table) {
-            if (! Schema::connection(null)->hasTable($table) || ! AnalyticsDatabase::schema()->hasTable($table)) {
+        foreach (self::TABLES as $table => $model) {
+            $source = $model::on($default);
+            $target = $model::on($targetName);
+
+            if (! $source->getModel()->getConnection()->getSchemaBuilder()->hasTable($table)
+                || ! $target->getModel()->getConnection()->getSchemaBuilder()->hasTable($table)) {
                 $this->line("Ignorando {$table}: tabela ausente na origem ou no destino.");
 
                 continue;
             }
 
-            $target->table($table)->truncate();
+            $target->truncate();
 
             $count = 0;
 
-            $source->table($table)->orderBy('id')->chunk(500, function ($rows) use ($target, $table, &$count): void {
-                $data = $rows->map(fn ($row): array => (array) $row)->all();
+            $source->orderBy('id')->chunkById(500, function ($rows) use ($target, &$count): void {
+                $data = $rows->map(fn ($row): array => $row->getAttributes())->all();
 
-                $target->table($table)->insert($data);
+                $target->insert($data);
 
                 $count += count($data);
             });
 
-            if ($target->getDriverName() === 'pgsql') {
-                $target->statement(
+            if ($target->getModel()->getConnection()->getDriverName() === 'pgsql') {
+                $target->getModel()->getConnection()->statement(
                     "SELECT setval(pg_get_serial_sequence('{$table}', 'id'), COALESCE((SELECT MAX(id) FROM {$table}), 1))",
                 );
             }

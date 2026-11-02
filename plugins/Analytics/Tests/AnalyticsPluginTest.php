@@ -623,3 +623,54 @@ it('requires a dedicated connection to prepare the analytics database', function
         ->expectsOutputToContain('ANALYTICS_DB_CONNECTION')
         ->assertFailed();
 });
+
+it('routes analytics models to the dedicated connection while core models stay on the default one', function () {
+    config([
+        'database.connections.analytics' => config('database.connections.sqlite'),
+        'analytics.database.connection' => 'analytics',
+    ]);
+
+    expect((new AnalyticsRecord)->getConnectionName())->toBe('analytics')
+        ->and((new AnalyticsSnapshot)->getConnectionName())->toBe('analytics')
+        ->and((new AnalyticsAflRecord)->getConnectionName())->toBe('analytics')
+        ->and((new AnalyticsRecord)->getConnection()->getName())->toBe('analytics')
+        ->and((new Project)->getConnection()->getName())->toBe('sqlite');
+});
+
+it('migrates and copies the analytics rows to the dedicated connection', function () {
+    $path = storage_path('framework/testing/analytics_'.Str::random(8).'.sqlite');
+    touch($path);
+
+    AnalyticsRecord::query()->create([
+        'user_id' => User::factory()->create()->getKey(),
+        'oc' => '364007',
+        'os' => '417',
+        'status' => 'Aceito com Ressalvas',
+    ]);
+
+    config([
+        'database.connections.analytics' => [
+            'driver' => 'sqlite',
+            'database' => $path,
+            'prefix' => '',
+            'foreign_key_constraints' => true,
+        ],
+        'analytics.database.connection' => 'analytics',
+    ]);
+
+    DB::purge('analytics');
+
+    $this->artisan('analytics:database')->assertSuccessful();
+
+    $this->artisan('analytics:database', ['--copy' => true])->assertSuccessful();
+
+    $copied = AnalyticsRecord::on('analytics')->firstOrFail();
+
+    expect($copied->oc)->toBe('364007')
+        ->and($copied->os)->toBe('417')
+        ->and($copied->status)->toBe('Aceito com Ressalvas')
+        ->and(AnalyticsRecord::on('analytics')->count())->toBe(1);
+
+    DB::purge('analytics');
+    @unlink($path);
+});

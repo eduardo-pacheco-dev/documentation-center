@@ -4,10 +4,10 @@ namespace Plugins\Analytics\Services;
 
 use App\Models\User;
 use Illuminate\Support\Carbon;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use PhpOffice\PhpSpreadsheet\Shared\Date as ExcelDate;
 use Plugins\Analytics\Models\AnalyticsAflRecord;
+use Plugins\Analytics\Support\AnalyticsDatabase;
 use Throwable;
 
 /**
@@ -253,7 +253,7 @@ class AnalyticsAflImporter
             throw ValidationException::withMessages(['import' => $errors]);
         }
 
-        return DB::transaction(function () use ($user, $operations, $skipped): array {
+        return AnalyticsDatabase::transaction(function () use ($user, $operations, $skipped): array {
             $created = 0;
             $updated = 0;
             $unchanged = 0;

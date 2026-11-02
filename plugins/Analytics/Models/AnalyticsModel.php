@@ -18,6 +18,6 @@ abstract class AnalyticsModel extends Model
      */
     public function getConnectionName(): ?string
     {
-        return AnalyticsDatabase::connection() ?? $this->connection;
+        return $this->connection ?? AnalyticsDatabase::connection();
     }
 }

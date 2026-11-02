@@ -2,7 +2,9 @@
 
 namespace Plugins\Analytics\Support;
 
+use Closure;
 use Illuminate\Database\Schema\Builder;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 /**
@@ -30,5 +32,13 @@ class AnalyticsDatabase
     public static function schema(): Builder
     {
         return Schema::connection(static::connection());
+    }
+
+    /**
+     * Run a callback inside a transaction on the analytics connection.
+     */
+    public static function transaction(Closure $callback): mixed
+    {
+        return DB::connection(static::connection())->transaction($callback);
     }
 }
