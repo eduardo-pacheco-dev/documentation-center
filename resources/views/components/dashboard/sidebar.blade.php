@@ -4,12 +4,18 @@
     use Illuminate\Support\Facades\Route;
     use Illuminate\Support\Str;
 
-    $enabledModules = AdminModule::enabledFor(auth()->user());
+    $pluginModules = app(PluginRepository::class)->modules();
+
+    $enabledModules = array_filter(
+        AdminModule::enabledFor(auth()->user()),
+        fn (AdminModule $module): bool => ! in_array($module->value, $pluginModules, true),
+    );
     $primaryNav = array_filter($enabledModules, fn (AdminModule $module): bool => $module->isPrimary());
     $moduleNav = array_filter($enabledModules, fn (AdminModule $module): bool => ! $module->isPrimary());
 
     $pluginNav = collect(app(PluginRepository::class)->navigation())
-        ->filter(fn (array $item): bool => Route::has($item['route']));
+        ->filter(fn (array $item): bool => Route::has($item['route']))
+        ->filter(fn (array $item): bool => $item['module'] === null || auth()->user()->hasModule($item['module']));
 
     $pluginPrimaryNav = $pluginNav->where('primary', true);
     $pluginModuleNav = $pluginNav->where('primary', false);

@@ -1,5 +1,16 @@
 {
+    "agenda": true,
     "analytics": true,
+    "catalog": true,
+    "clients": true,
+    "erbs": true,
+    "files": true,
+    "forms": true,
+    "colaboradores": true,
+    "radio-links": true,
     "example": false,
-    "stations": true
+    "projects": true,
+    "tasks": true,
+    "templates": true,
+    "work-orders": true
 }

@@ -2,15 +2,15 @@
 
 namespace App\Console\Commands;
 
-use App\Models\Form;
-use App\Models\FormResponse;
-use App\Services\Forms\ImageThumbnailer;
 use Illuminate\Console\Attributes\Description;
 use Illuminate\Console\Attributes\Signature;
 use Illuminate\Console\Command;
 use Illuminate\Contracts\Filesystem\Filesystem;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Plugins\Forms\Models\Form;
+use Plugins\Forms\Models\FormResponse;
+use Plugins\Forms\Services\ImageThumbnailer;
 use Throwable;
 
 #[Signature('forms:backfill-image-thumbnails {--dry-run : Gera as miniaturas sem salvar as alterações}')]

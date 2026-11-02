@@ -1,0 +1,24 @@
+{
+    "name": "Templates",
+    "alias": "templates",
+    "description": "Templates de formulários com etapas reutilizáveis.",
+    "version": "1.0.0",
+    "icon": "document-duplicate",
+    "active": true,
+    "priority": 21,
+    "providers": [
+        "Plugins\\Templates\\Providers\\TemplatesServiceProvider"
+    ],
+    "navigation": [
+        {
+            "label": "Templates",
+            "route": "admin.form-templates.index",
+            "icon": "document-duplicate",
+            "primary": false,
+            "module": "form-templates"
+        }
+    ],
+    "aliases": [],
+    "files": [],
+    "requires": ["forms"]
+}

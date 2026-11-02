@@ -1,0 +1,609 @@
+<?php
+
+use App\Enums\ErbOperator;
+use App\Enums\ErbTechnology;
+use App\Models\User;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Plugins\Catalog\Models\CatalogItem;
+use Plugins\Clients\Models\Client;
+use Plugins\Erbs\Models\Erb;
+use Plugins\Projects\Models\Project;
+use Plugins\RadioLinks\Models\RadioLink;
+use Plugins\WorkOrders\Models\WorkOrder;
+
+uses(RefreshDatabase::class);
+
+it('requires an authenticated user to open the ERBs area', function () {
+    $this->get('/admin/erbs')->assertRedirect('/login');
+});
+
+it('lists only the ERBs the user owns and shows the site and end identifiers instead of the code', function () {
+    $owner = User::factory()->create();
+
+    Erb::factory()->create([
+        'user_id' => $owner->getKey(),
+        'code' => 'ERB-00001',
+        'site_id' => 'SITE-ALFA-01',
+        'name' => 'ERB do Titular',
+        'end_id' => 'EST-ALFA-01',
+    ]);
+    Erb::factory()->create([
+        'code' => 'ERB-09999',
+        'site_id' => 'SITE-BETA-99',
+        'name' => 'ERB Alheia',
+        'end_id' => 'EST-BETA-99',
+    ]);
+
+    $this->actingAs($owner)
+        ->get('/admin/erbs')
+        ->assertOk()
+        ->assertSee('SITE-ALFA-01')
+        ->assertSee('EST-ALFA-01')
+        ->assertDontSee('ERB-00001')
+        ->assertDontSee('ERB do Titular')
+        ->assertDontSee('SITE-BETA-99')
+        ->assertDontSee('EST-BETA-99');
+});
+
+it('does not prefill the create modal with an existing ERB from the list', function () {
+    $owner = User::factory()->create();
+
+    Erb::factory()->create([
+        'user_id' => $owner->getKey(),
+        'code' => 'ERB-00001',
+        'name' => 'ERB Existente',
+        'end_id' => 'EST-EXIST-1',
+        'street' => 'Rua Existente',
+    ]);
+
+    $this->actingAs($owner)
+        ->get('/admin/erbs')
+        ->assertOk()
+        ->assertDontSee('value="EST-EXIST-1"', false)
+        ->assertDontSee('value="Rua Existente"', false);
+});
+
+it('filters the ERB list by search term and status', function () {
+    $owner = User::factory()->create();
+
+    Erb::factory()->create([
+        'user_id' => $owner->getKey(),
+        'code' => 'ERB-00001',
+        'name' => 'Alpha Norte',
+        'status' => 'active',
+        'end_id' => 'EST-ALFA-01',
+    ]);
+    Erb::factory()->maintenance()->create([
+        'user_id' => $owner->getKey(),
+        'code' => 'ERB-00002',
+        'name' => 'Beta Sul',
+        'end_id' => 'EST-BETA-02',
+    ]);
+
+    $this->actingAs($owner)
+        ->get('/admin/erbs?search=Alpha')
+        ->assertOk()
+        ->assertSee('EST-ALFA-01')
+        ->assertDontSee('EST-BETA-02');
+
+    $this->actingAs($owner)
+        ->get('/admin/erbs?status=maintenance')
+        ->assertOk()
+        ->assertSee('EST-BETA-02')
+        ->assertDontSee('EST-ALFA-01');
+});
+
+it('stores the site and end identifiers when creating an ERB', function () {
+    $user = User::factory()->create();
+
+    $this->actingAs($user)->post('/admin/erbs', [
+        'code' => 'ERB-00050',
+        'name' => 'ERB Central',
+        'site_id' => 'PABLM',
+        'end_id' => 'PABLM_0001',
+    ])->assertRedirect();
+
+    $erb = Erb::query()->firstOrFail();
+
+    expect($erb->site_id)->toBe('PABLM')
+        ->and($erb->end_id)->toBe('PABLM_0001');
+});
+
+it('filters the ERB list by site and end identifiers', function () {
+    $owner = User::factory()->create();
+
+    $alpha = Erb::factory()->create([
+        'user_id' => $owner->getKey(),
+        'code' => 'ERB-00001',
+        'name' => 'Alpha Norte',
+        'site_id' => 'PABLM',
+        'end_id' => 'PABLM_0001',
+    ]);
+    $beta = Erb::factory()->create([
+        'user_id' => $owner->getKey(),
+        'code' => 'ERB-00002',
+        'name' => 'Beta Sul',
+        'site_id' => 'PABXA',
+        'end_id' => 'PABXA_0002',
+    ]);
+
+    $this->actingAs($owner)
+        ->get('/admin/erbs?search=PABLM_0001')
+        ->assertOk()
+        ->assertSee(route('admin.erbs.show', $alpha), false)
+        ->assertDontSee(route('admin.erbs.show', $beta), false);
+
+    $this->actingAs($owner)
+        ->get('/admin/erbs?search=PABXA')
+        ->assertOk()
+        ->assertSee(route('admin.erbs.show', $beta), false)
+        ->assertDontSee(route('admin.erbs.show', $alpha), false);
+});
+
+it('renders the ERB list in the alternate view modes', function () {
+    $owner = User::factory()->create();
+
+    Erb::factory()->create([
+        'user_id' => $owner->getKey(),
+        'code' => 'ERB-00001',
+        'site_id' => 'SITE-VIEW-1',
+        'name' => 'Alpha Norte',
+    ]);
+
+    $this->actingAs($owner)->get('/admin/erbs?view=cards')->assertOk()->assertSee('SITE-VIEW-1');
+    $this->actingAs($owner)->get('/admin/erbs?view=compact')->assertOk()->assertSee('SITE-VIEW-1');
+});
+
+it('creates an ERB owned by the authenticated user', function () {
+    $user = User::factory()->create();
+
+    $this->actingAs($user)->get('/admin/erbs/create')->assertOk();
+
+    $response = $this->actingAs($user)->post('/admin/erbs', [
+        'site_id' => 'PABLM',
+        'end_id' => 'PABLM_0001',
+        'operator' => 'Vivo',
+        'technology' => '4G/5G',
+        'status' => 'active',
+        'street' => 'Avenida Paulista',
+        'number' => '1000',
+        'complement' => 'Torre A',
+        'neighborhood' => 'Bela Vista',
+        'city' => 'São Paulo',
+        'state' => 'SP',
+        'zip' => '01310-100',
+        'latitude' => '-23.5614140',
+        'longitude' => '-46.6558810',
+        'notes' => 'Cobertura da região central.',
+    ]);
+
+    $erb = Erb::query()->firstOrFail();
+
+    $response->assertRedirect(route('admin.erbs.show', $erb));
+
+    expect($erb->user_id)->toBe($user->getKey())
+        ->and($erb->code)->toBe('ERB-0001')
+        ->and($erb->name)->toBe('PABLM')
+        ->and($erb->site_id)->toBe('PABLM')
+        ->and($erb->end_id)->toBe('PABLM_0001')
+        ->and($erb->operator)->toBe('Vivo')
+        ->and($erb->city)->toBe('São Paulo')
+        ->and($erb->status->value)->toBe('active');
+
+    $this->actingAs($user)
+        ->get(route('admin.erbs.show', $erb))
+        ->assertOk()
+        ->assertSee('ERB-0001')
+        ->assertSee('Vivo');
+});
+
+it('renders the map section with the ERB coordinates', function () {
+    $user = User::factory()->create();
+
+    $erb = Erb::factory()->create([
+        'user_id' => $user->getKey(),
+        'latitude' => '-23.5614140',
+        'longitude' => '-46.6558810',
+    ]);
+
+    $this->actingAs($user)
+        ->get(route('admin.erbs.show', $erb))
+        ->assertOk()
+        ->assertSee('id="erb-map"', false)
+        ->assertSee('leaflet@1.9.4/dist/leaflet.js', false)
+        ->assertSee('https://tile.openstreetmap.org/{z}/{x}/{y}.png', false)
+        ->assertDontSee('basemaps.cartocdn.com', false)
+        ->assertSee('-23,56141', false);
+});
+
+it('shows a map empty state when the ERB has no coordinates', function () {
+    $user = User::factory()->create();
+
+    $erb = Erb::factory()->create([
+        'user_id' => $user->getKey(),
+        'latitude' => null,
+        'longitude' => null,
+    ]);
+
+    $this->actingAs($user)
+        ->get(route('admin.erbs.show', $erb))
+        ->assertOk()
+        ->assertDontSee('id="erb-map"', false)
+        ->assertSee('Coordenadas não informadas');
+});
+
+it('renders the stepped create ERB modal on the list page', function () {
+    $user = User::factory()->create();
+
+    $this->actingAs($user)
+        ->get('/admin/erbs')
+        ->assertOk()
+        ->assertSee('data-modal-open="erb-create-modal"', false)
+        ->assertSee('id="erb-create-modal"', false)
+        ->assertSee('data-wizard-panel', false);
+});
+
+it('does not render the code, name or AFL integration fields on the ERB forms', function () {
+    $user = User::factory()->create();
+
+    foreach (['/admin/erbs', '/admin/erbs/create'] as $url) {
+        $this->actingAs($user)
+            ->get($url)
+            ->assertOk()
+            ->assertDontSee('name="code"', false)
+            ->assertDontSee('name="name"', false)
+            ->assertDontSee('name="assigned_to"', false)
+            ->assertDontSee('name="nokia_smp_id"', false)
+            ->assertDontSee('name="service_order_id"', false)
+            ->assertDontSee('data-wizard-title="Integração AFL"', false);
+    }
+});
+
+it('renders the operator and technology comboboxes with the allowed options', function () {
+    $user = User::factory()->create();
+
+    $response = $this->actingAs($user)->get('/admin/erbs/create')->assertOk();
+
+    $response->assertSee('name="operator"', false)
+        ->assertSee('name="technology"', false)
+        ->assertSee('Selecione a operadora', false)
+        ->assertSee('Selecione a tecnologia', false);
+
+    foreach (ErbOperator::cases() as $operator) {
+        $response->assertSee('value="'.$operator->value.'"', false);
+    }
+
+    foreach (ErbTechnology::cases() as $technology) {
+        $response->assertSee('value="'.$technology->value.'"', false);
+    }
+});
+
+it('rejects operators and technologies outside the allowed options', function () {
+    $user = User::factory()->create();
+
+    $this->actingAs($user)
+        ->post('/admin/erbs', [
+            'site_id' => 'PABLM',
+            'operator' => 'Nextel',
+            'technology' => '6G',
+        ])
+        ->assertSessionHasErrors(['operator', 'technology']);
+
+    expect(Erb::query()->count())->toBe(0);
+});
+
+it('reopens the create ERB modal when validation fails', function () {
+    $user = User::factory()->create();
+
+    $this->actingAs($user)
+        ->from('/admin/erbs')
+        ->followingRedirects()
+        ->post('/admin/erbs', ['modal' => 'create', 'name' => 'Sem código'])
+        ->assertOk()
+        ->assertSee('data-open', false);
+});
+
+it('defaults the ERB status to active when it is not sent', function () {
+    $user = User::factory()->create();
+
+    $this->actingAs($user)->post('/admin/erbs', [
+        'site_id' => 'PABLM',
+    ])->assertRedirect();
+
+    expect(Erb::query()->firstOrFail()->status->value)->toBe('active');
+});
+
+it('rejects an ERB without a site or end identifier', function () {
+    $user = User::factory()->create();
+
+    $this->actingAs($user)
+        ->post('/admin/erbs', [])
+        ->assertSessionHasErrors(['site_id', 'end_id']);
+
+    expect(Erb::query()->count())->toBe(0);
+});
+
+it('rejects a duplicate code owned by the same user', function () {
+    $user = User::factory()->create();
+
+    Erb::factory()->create(['user_id' => $user->getKey(), 'code' => 'ERB-00042']);
+
+    $this->actingAs($user)
+        ->post('/admin/erbs', ['code' => 'ERB-00042', 'site_id' => 'PABLM'])
+        ->assertSessionHasErrors('code');
+});
+
+it('rejects invalid coordinates', function () {
+    $user = User::factory()->create();
+
+    $this->actingAs($user)
+        ->post('/admin/erbs', [
+            'site_id' => 'PABLM',
+            'latitude' => '-120',
+            'longitude' => '200',
+        ])
+        ->assertSessionHasErrors(['latitude', 'longitude']);
+});
+
+it('forbids a stranger from managing the ERB', function () {
+    $stranger = User::factory()->create();
+    $erb = Erb::factory()->create();
+
+    $this->actingAs($stranger)->get("/admin/erbs/{$erb->getKey()}")->assertForbidden();
+    $this->actingAs($stranger)->get("/admin/erbs/{$erb->getKey()}/edit")->assertForbidden();
+    $this->actingAs($stranger)->put("/admin/erbs/{$erb->getKey()}", ['code' => 'ERB-1', 'name' => 'Tentativa'])->assertForbidden();
+    $this->actingAs($stranger)->delete("/admin/erbs/{$erb->getKey()}")->assertForbidden();
+});
+
+it('updates the ERB details', function () {
+    $user = User::factory()->create();
+    $erb = Erb::factory()->create(['user_id' => $user->getKey(), 'code' => 'ERB-00042']);
+
+    $this->actingAs($user)->get("/admin/erbs/{$erb->getKey()}/edit")->assertRedirect(route('admin.erbs.show', $erb).'#edit');
+
+    $this->actingAs($user)
+        ->put("/admin/erbs/{$erb->getKey()}", [
+            'code' => 'ERB-00042',
+            'name' => 'Nome Atualizado',
+            'status' => 'inactive',
+        ])
+        ->assertSessionHas('status');
+
+    $erb->refresh();
+
+    expect($erb->name)->toBe('Nome Atualizado')
+        ->and($erb->status->value)->toBe('inactive');
+});
+
+it('soft deletes the ERB', function () {
+    $user = User::factory()->create();
+    $erb = Erb::factory()->create(['user_id' => $user->getKey()]);
+
+    $this->actingAs($user)
+        ->delete("/admin/erbs/{$erb->getKey()}")
+        ->assertRedirect(route('admin.erbs.index'));
+
+    expect($erb->refresh()->trashed())->toBeTrue();
+
+    $this->actingAs($user)->get('/admin/erbs')->assertOk()->assertDontSee($erb->site_id);
+});
+
+it('links an ERB to the work orders the user owns', function () {
+    $owner = User::factory()->create();
+    $client = Client::factory()->create(['user_id' => $owner->getKey()]);
+    $erb = Erb::factory()->create(['user_id' => $owner->getKey()]);
+    $catalogItem = CatalogItem::factory()->create(['user_id' => $owner->getKey()]);
+
+    $this->actingAs($owner)->post('/admin/work-orders', [
+        'client_id' => $client->getKey(),
+        'erb_id' => $erb->getKey(),
+        'priority' => 'normal',
+        'status' => 'open',
+        'opened_at' => '2026-01-10',
+        'items' => [
+            ['catalog_item_id' => $catalogItem->getKey(), 'quantity' => 1],
+        ],
+    ])->assertRedirect();
+
+    expect(WorkOrder::query()->firstOrFail()->erb_id)->toBe($erb->getKey());
+});
+
+it('rejects an ERB that belongs to another user on a work order', function () {
+    $owner = User::factory()->create();
+    $client = Client::factory()->create(['user_id' => $owner->getKey()]);
+    $foreignErb = Erb::factory()->create();
+    $catalogItem = CatalogItem::factory()->create(['user_id' => $owner->getKey()]);
+
+    $this->actingAs($owner)->post('/admin/work-orders', [
+        'client_id' => $client->getKey(),
+        'erb_id' => $foreignErb->getKey(),
+        'priority' => 'normal',
+        'opened_at' => '2026-01-10',
+        'items' => [
+            ['catalog_item_id' => $catalogItem->getKey(), 'quantity' => 1],
+        ],
+    ])->assertSessionHasErrors('erb_id');
+});
+
+it('links an ERB to a project', function () {
+    $user = User::factory()->create();
+    $erb = Erb::factory()->create(['user_id' => $user->getKey()]);
+
+    $this->actingAs($user)->post('/admin/projects', [
+        'name' => 'Projeto da torre',
+        'start_date' => '2026-01-10',
+        'erb_id' => $erb->getKey(),
+    ])->assertRedirect();
+
+    expect(Project::query()->firstOrFail()->erb_id)->toBe($erb->getKey());
+});
+
+it('shows the relation editors for projects, work orders and radio links', function () {
+    $user = User::factory()->create();
+    $erb = Erb::factory()->create(['user_id' => $user->getKey()]);
+
+    $this->actingAs($user)
+        ->get(route('admin.erbs.show', $erb))
+        ->assertOk()
+        ->assertSee('data-modal-open="erb-projects-modal"', false)
+        ->assertSee('data-modal-open="erb-work-orders-modal"', false)
+        ->assertSee('data-modal-open="erb-radio-links-modal"', false)
+        ->assertSee('data-modal-search', false)
+        ->assertSee('x-model="search"', false)
+        ->assertSee(route('admin.erbs.relations.projects', $erb), false)
+        ->assertSee(route('admin.erbs.relations.work-orders', $erb), false)
+        ->assertSee(route('admin.erbs.relations.radio-links', $erb), false)
+        ->assertSeeInOrder(['Observações', 'data-modal-open="erb-edit-modal"'], false);
+});
+
+it('renders the ERB edit form as a modal on the detail page', function () {
+    $user = User::factory()->create();
+    $erb = Erb::factory()->create(['user_id' => $user->getKey()]);
+
+    $this->actingAs($user)
+        ->get(route('admin.erbs.show', $erb))
+        ->assertOk()
+        ->assertSee('data-modal-open="erb-edit-modal"', false)
+        ->assertSee('id="erb-edit-modal"', false)
+        ->assertSee('data-modal-hash="edit"', false)
+        ->assertSee('data-wizard-steps', false)
+        ->assertSee('data-wizard-submit', false)
+        ->assertSee(route('admin.erbs.update', $erb), false);
+});
+
+it('redirects the ERB edit route to the detail page modal', function () {
+    $user = User::factory()->create();
+    $erb = Erb::factory()->create(['user_id' => $user->getKey()]);
+
+    $this->actingAs($user)
+        ->get(route('admin.erbs.edit', $erb))
+        ->assertRedirect(route('admin.erbs.show', $erb).'#edit');
+});
+
+it('reopens the edit ERB modal when validation fails', function () {
+    $user = User::factory()->create();
+    $erb = Erb::factory()->create(['user_id' => $user->getKey()]);
+
+    $this->actingAs($user)
+        ->from(route('admin.erbs.show', $erb))
+        ->followingRedirects()
+        ->put(route('admin.erbs.update', $erb), ['modal' => 'edit', 'state' => 'XX'])
+        ->assertOk()
+        ->assertSee('id="erb-edit-modal"', false)
+        ->assertSee('data-open', false);
+});
+
+it('links the selected projects to the ERB and deletes the unselected ones', function () {
+    $user = User::factory()->create();
+    $erb = Erb::factory()->create(['user_id' => $user->getKey()]);
+
+    $kept = Project::factory()->create(['user_id' => $user->getKey(), 'erb_id' => $erb->getKey()]);
+    $removed = Project::factory()->create(['user_id' => $user->getKey(), 'erb_id' => $erb->getKey()]);
+    $added = Project::factory()->create(['user_id' => $user->getKey(), 'erb_id' => null]);
+
+    $this->actingAs($user)
+        ->put(route('admin.erbs.relations.projects', $erb), [
+            'projects' => [$kept->getKey(), $added->getKey()],
+        ])
+        ->assertRedirect();
+
+    expect($kept->fresh()->erb_id)->toBe($erb->getKey())
+        ->and($added->fresh()->erb_id)->toBe($erb->getKey())
+        ->and(Project::withTrashed()->findOrFail($removed->getKey())->trashed())->toBeTrue();
+});
+
+it('links the selected work orders to the ERB and deletes the unselected ones', function () {
+    $user = User::factory()->create();
+    $erb = Erb::factory()->create(['user_id' => $user->getKey()]);
+
+    $kept = WorkOrder::factory()->create(['user_id' => $user->getKey(), 'erb_id' => $erb->getKey()]);
+    $removed = WorkOrder::factory()->create(['user_id' => $user->getKey(), 'erb_id' => $erb->getKey()]);
+    $added = WorkOrder::factory()->create(['user_id' => $user->getKey(), 'erb_id' => null]);
+
+    $this->actingAs($user)
+        ->put(route('admin.erbs.relations.work-orders', $erb), [
+            'work_orders' => [$kept->getKey(), $added->getKey()],
+        ])
+        ->assertRedirect();
+
+    expect($kept->fresh()->erb_id)->toBe($erb->getKey())
+        ->and($added->fresh()->erb_id)->toBe($erb->getKey())
+        ->and(WorkOrder::withTrashed()->findOrFail($removed->getKey())->trashed())->toBeTrue();
+});
+
+it('links the selected radio links to an ERB end and deletes the unselected ones', function () {
+    $user = User::factory()->create();
+    $erb = Erb::factory()->create(['user_id' => $user->getKey()]);
+    $otherErb = Erb::factory()->create(['user_id' => $user->getKey()]);
+
+    $kept = RadioLink::factory()->create([
+        'user_id' => $user->getKey(),
+        'erb_a_id' => $erb->getKey(),
+        'erb_b_id' => $otherErb->getKey(),
+    ]);
+    $removed = RadioLink::factory()->create([
+        'user_id' => $user->getKey(),
+        'erb_a_id' => $otherErb->getKey(),
+        'erb_b_id' => $erb->getKey(),
+    ]);
+    $added = RadioLink::factory()->create([
+        'user_id' => $user->getKey(),
+        'erb_a_id' => $otherErb->getKey(),
+        'erb_b_id' => Erb::factory()->create(['user_id' => $user->getKey()])->getKey(),
+    ]);
+
+    $this->actingAs($user)
+        ->put(route('admin.erbs.relations.radio-links', $erb), [
+            'radio_links' => [
+                $kept->getKey() => ['end' => 'a'],
+                $added->getKey() => ['end' => 'b'],
+                $removed->getKey() => ['end' => ''],
+            ],
+        ])
+        ->assertRedirect();
+
+    expect($kept->fresh()->erb_a_id)->toBe($erb->getKey())
+        ->and($added->fresh()->erb_b_id)->toBe($erb->getKey())
+        ->and(RadioLink::withTrashed()->findOrFail($removed->getKey())->trashed())->toBeTrue();
+});
+
+it('rejects moving a radio link to the end already used by the ERB', function () {
+    $user = User::factory()->create();
+    $erb = Erb::factory()->create(['user_id' => $user->getKey()]);
+
+    $radioLink = RadioLink::factory()->create([
+        'user_id' => $user->getKey(),
+        'erb_a_id' => $erb->getKey(),
+        'erb_b_id' => Erb::factory()->create(['user_id' => $user->getKey()])->getKey(),
+    ]);
+
+    $this->actingAs($user)
+        ->put(route('admin.erbs.relations.radio-links', $erb), [
+            'radio_links' => [
+                $radioLink->getKey() => ['end' => 'b'],
+            ],
+        ])
+        ->assertSessionHasErrors('radio_links');
+
+    expect($radioLink->fresh()->erb_a_id)->toBe($erb->getKey())
+        ->and($radioLink->fresh()->erb_b_id)->not->toBe($erb->getKey())
+        ->and($radioLink->fresh()->trashed())->toBeFalse();
+});
+
+it('forbids managing the relations of an ERB owned by another user', function () {
+    $owner = User::factory()->create();
+    $intruder = User::factory()->create();
+    $erb = Erb::factory()->create(['user_id' => $owner->getKey()]);
+
+    $this->actingAs($intruder)
+        ->put(route('admin.erbs.relations.projects', $erb), ['projects' => []])
+        ->assertForbidden();
+
+    $this->actingAs($intruder)
+        ->put(route('admin.erbs.relations.work-orders', $erb), ['work_orders' => []])
+        ->assertForbidden();
+
+    $this->actingAs($intruder)
+        ->put(route('admin.erbs.relations.radio-links', $erb), ['radio_links' => []])
+        ->assertForbidden();
+});

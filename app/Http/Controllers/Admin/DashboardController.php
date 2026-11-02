@@ -2,23 +2,23 @@
 
 namespace App\Http\Controllers\Admin;
 
-use App\Enums\ProjectStatus;
-use App\Enums\WorkOrderStatus;
 use App\Http\Controllers\Controller;
-use App\Models\CatalogItem;
-use App\Models\Client;
-use App\Models\Colaborador;
-use App\Models\Document;
-use App\Models\Erb;
-use App\Models\Form;
-use App\Models\FormTemplate;
-use App\Models\Project;
-use App\Models\RadioLink;
 use App\Models\ShortLink;
 use App\Models\User;
-use App\Models\WorkOrder;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
+use Plugins\Catalog\Models\CatalogItem;
+use Plugins\Clients\Models\Client;
+use Plugins\Colaboradores\Models\Colaborador;
+use Plugins\Erbs\Models\Erb;
+use Plugins\Files\Models\Document;
+use Plugins\Forms\Models\Form;
+use Plugins\Projects\Enums\ProjectStatus;
+use Plugins\Projects\Models\Project;
+use Plugins\RadioLinks\Models\RadioLink;
+use Plugins\Templates\Models\FormTemplate;
+use Plugins\WorkOrders\Enums\WorkOrderStatus;
+use Plugins\WorkOrders\Models\WorkOrder;
 
 class DashboardController extends Controller
 {

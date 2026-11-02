@@ -4,10 +4,10 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\StoreEquipmentDocumentRequest;
-use App\Models\Document;
 use App\Models\Equipment;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Plugins\Files\Models\Document;
 
 class EquipmentDocumentController extends Controller
 {

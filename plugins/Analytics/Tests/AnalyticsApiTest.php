@@ -1,11 +1,11 @@
 <?php
 
-use App\Models\Project;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Testing\TestResponse;
 use Plugins\Analytics\Models\AnalyticsAflRecord;
 use Plugins\Analytics\Models\AnalyticsRecord;
+use Plugins\Projects\Models\Project;
 
 uses(RefreshDatabase::class);
 

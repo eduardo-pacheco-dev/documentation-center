@@ -1,0 +1,24 @@
+{
+    "name": "Arquivos",
+    "alias": "files",
+    "description": "Biblioteca de arquivos e pastas do usuário, com pré-visualização, download, links e lixeira.",
+    "version": "1.0.0",
+    "icon": "document-text",
+    "active": true,
+    "priority": 19,
+    "providers": [
+        "Plugins\\Files\\Providers\\FilesServiceProvider"
+    ],
+    "navigation": [
+        {
+            "label": "Arquivos",
+            "route": "admin.files.index",
+            "icon": "document-text",
+            "primary": false,
+            "module": "files"
+        }
+    ],
+    "aliases": [],
+    "files": [],
+    "requires": []
+}

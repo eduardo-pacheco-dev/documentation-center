@@ -203,6 +203,7 @@ class Plugin
                 'icon' => is_string($item['icon'] ?? null) ? $item['icon'] : 'cube',
                 'active' => str_ends_with($route, '.index') ? str_replace('.index', '.*', $route) : $route,
                 'primary' => (bool) ($item['primary'] ?? false),
+                'module' => is_string($item['module'] ?? null) && $item['module'] !== '' ? $item['module'] : null,
             ];
         }
 

@@ -2,9 +2,9 @@
 
 namespace App\Http\Resources;
 
-use App\Enums\ErbStatus;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
+use Plugins\Erbs\Enums\ErbStatus;
 
 class SiteResource extends JsonResource
 {

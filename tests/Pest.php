@@ -1,15 +1,15 @@
 <?php
 
-use App\Enums\DependencyType;
-use App\Models\Project;
-use App\Models\Resource;
-use App\Models\ResourceAssignment;
-use App\Models\Task;
-use App\Models\TaskDependency;
-use App\Models\TodoList;
-use App\Models\TodoTask;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Plugins\Projects\Enums\DependencyType;
+use Plugins\Projects\Models\Project;
+use Plugins\Projects\Models\Resource;
+use Plugins\Projects\Models\ResourceAssignment;
+use Plugins\Projects\Models\Task;
+use Plugins\Projects\Models\TaskDependency;
+use Plugins\Tasks\Models\TodoList;
+use Plugins\Tasks\Models\TodoTask;
 use Tests\TestCase;
 
 /*

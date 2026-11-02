@@ -3,7 +3,6 @@
 namespace Database\Seeders;
 
 use App\Enums\ShortLinkType;
-use App\Models\Document;
 use App\Models\ShortLink;
 use App\Models\User;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
@@ -11,6 +10,7 @@ use Illuminate\Database\Seeder;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
+use Plugins\Files\Models\Document;
 
 class ShortLinkSeeder extends Seeder
 {

@@ -2,17 +2,7 @@
 
 namespace Plugins\Analytics\Services;
 
-use App\Enums\AgendaEventStatus;
-use App\Enums\ProjectStatus;
-use App\Enums\WorkOrderStatus;
-use App\Models\AgendaEvent;
-use App\Models\Document;
-use App\Models\Form;
-use App\Models\Project;
-use App\Models\TodoList;
-use App\Models\TodoTask;
 use App\Models\User;
-use App\Models\WorkOrder;
 use App\Plugins\PluginRepository;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
@@ -21,10 +11,20 @@ use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Schema;
+use Plugins\Agenda\Enums\AgendaEventStatus;
+use Plugins\Agenda\Models\AgendaEvent;
 use Plugins\Analytics\Models\AnalyticsAflRecord;
 use Plugins\Analytics\Models\AnalyticsRecord;
 use Plugins\Analytics\Models\AnalyticsSnapshot;
 use Plugins\Analytics\Support\AnalyticsDatabase;
+use Plugins\Files\Models\Document;
+use Plugins\Forms\Models\Form;
+use Plugins\Projects\Enums\ProjectStatus;
+use Plugins\Projects\Models\Project;
+use Plugins\Tasks\Models\TodoList;
+use Plugins\Tasks\Models\TodoTask;
+use Plugins\WorkOrders\Enums\WorkOrderStatus;
+use Plugins\WorkOrders\Models\WorkOrder;
 
 /**
  * Collects the metrics shown by the analytics dashboard.

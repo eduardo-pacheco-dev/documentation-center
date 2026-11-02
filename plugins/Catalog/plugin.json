@@ -1,0 +1,24 @@
+{
+    "name": "Catálogo",
+    "alias": "catalog",
+    "description": "Catálogo de produtos e serviços com códigos sequenciais, preços, custos, estoque e status.",
+    "version": "1.0.0",
+    "icon": "cube",
+    "active": true,
+    "priority": 15,
+    "providers": [
+        "Plugins\\Catalog\\Providers\\CatalogServiceProvider"
+    ],
+    "navigation": [
+        {
+            "label": "Catálogo",
+            "route": "admin.catalog.index",
+            "icon": "cube",
+            "primary": false,
+            "module": "catalog"
+        }
+    ],
+    "aliases": [],
+    "files": [],
+    "requires": []
+}

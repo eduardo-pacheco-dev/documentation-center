@@ -3,11 +3,11 @@
 namespace Database\Factories;
 
 use App\Enums\ShortLinkType;
-use App\Models\Document;
 use App\Models\ShortLink;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Facades\Hash;
+use Plugins\Files\Models\Document;
 
 /**
  * @extends Factory<ShortLink>

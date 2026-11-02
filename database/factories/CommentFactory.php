@@ -3,9 +3,9 @@
 namespace Database\Factories;
 
 use App\Models\Comment;
-use App\Models\Erb;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
+use Plugins\Erbs\Models\Erb;
 
 /**
  * @extends Factory<Comment>

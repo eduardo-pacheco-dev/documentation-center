@@ -4,10 +4,10 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Resources\SiteResource;
-use App\Models\Erb;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use OpenApi\Attributes as OA;
+use Plugins\Erbs\Models\Erb;
 
 #[OA\Schema(
     schema: 'Site',

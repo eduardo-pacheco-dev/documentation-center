@@ -1,12 +1,12 @@
 <?php
 
-use App\Models\Erb;
-use App\Models\Form;
-use App\Models\Project;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
+use Plugins\Erbs\Models\Erb;
+use Plugins\Forms\Models\Form;
+use Plugins\Projects\Models\Project;
 
 uses(RefreshDatabase::class);
 

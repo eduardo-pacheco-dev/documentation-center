@@ -1,0 +1,24 @@
+{
+    "name": "Ordens de Serviço",
+    "alias": "work-orders",
+    "description": "Ordens de serviço com itens, documentos, comentários, importação, exportação e vínculo com projetos.",
+    "version": "1.0.0",
+    "icon": "clipboard-document-list",
+    "active": true,
+    "priority": 25,
+    "providers": [
+        "Plugins\\WorkOrders\\Providers\\WorkOrdersServiceProvider"
+    ],
+    "navigation": [
+        {
+            "label": "Ordens de serviço",
+            "route": "admin.work-orders.index",
+            "icon": "clipboard-document-list",
+            "primary": false,
+            "module": "work-orders"
+        }
+    ],
+    "aliases": [],
+    "files": [],
+    "requires": []
+}

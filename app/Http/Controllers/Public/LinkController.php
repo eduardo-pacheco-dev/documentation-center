@@ -6,7 +6,6 @@ use App\Enums\ShortLinkType;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreDocumentsRequest;
 use App\Http\Requests\UnlockLinkRequest;
-use App\Models\Document;
 use App\Models\ShortLink;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Response;
@@ -14,6 +13,7 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
+use Plugins\Files\Models\Document;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class LinkController extends Controller

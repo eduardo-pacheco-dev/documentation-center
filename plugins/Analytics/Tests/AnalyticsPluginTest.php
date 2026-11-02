@@ -1,7 +1,5 @@
 <?php
 
-use App\Models\Document;
-use App\Models\Project;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
@@ -11,7 +9,8 @@ use Plugins\Analytics\Models\AnalyticsAflRecord;
 use Plugins\Analytics\Models\AnalyticsRecord;
 use Plugins\Analytics\Models\AnalyticsSnapshot;
 use Plugins\Analytics\Services\AnalyticsAflImporter;
-use Plugins\Stations\Models\Station;
+use Plugins\Files\Models\Document;
+use Plugins\Projects\Models\Project;
 
 uses(RefreshDatabase::class);
 
@@ -78,21 +77,6 @@ it('forbids regular users from using the global scope', function () {
     $this->actingAs(User::factory()->create())
         ->get('/admin/analytics?scope=global')
         ->assertForbidden();
-});
-
-it('includes the stations indicators when the stations plugin is enabled', function () {
-    $user = User::factory()->create();
-
-    $station = Station::factory()->create(['user_id' => $user->getKey()]);
-
-    $this->actingAs($user)
-        ->get('/admin/analytics')
-        ->assertOk()
-        ->assertViewHas('summary', fn (array $summary): bool => is_array($summary['stations'])
-            && $summary['stations']['total'] === 1
-            && $summary['stations']['active'] === 1);
-
-    $station->forceDelete();
 });
 
 it('applies the selected period to the indicators', function () {
@@ -673,13 +657,4 @@ it('migrates and copies the analytics rows to the dedicated connection', functio
 
     DB::purge('analytics');
     @unlink($path);
-});
-
-it('skips the stations indicators when the stations table is missing', function () {
-    Schema::drop('stations');
-
-    $this->actingAs(User::factory()->create())
-        ->get('/admin/analytics')
-        ->assertOk()
-        ->assertViewHas('summary', fn (array $summary): bool => $summary['stations'] === null);
 });

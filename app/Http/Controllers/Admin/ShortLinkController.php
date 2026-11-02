@@ -7,13 +7,13 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreDocumentsRequest;
 use App\Http\Requests\StoreShortLinkRequest;
 use App\Http\Requests\UpdateShortLinkRequest;
-use App\Models\Document;
 use App\Models\ShortLink;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\View\View;
+use Plugins\Files\Models\Document;
 
 class ShortLinkController extends Controller
 {

@@ -1,10 +1,10 @@
 <?php
 
-use App\Models\Document;
 use App\Models\ShortLink;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
+use Plugins\Files\Models\Document;
 
 uses(RefreshDatabase::class);
 
