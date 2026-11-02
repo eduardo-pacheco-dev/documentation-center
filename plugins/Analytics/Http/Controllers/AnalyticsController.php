@@ -20,6 +20,7 @@ use Plugins\Analytics\Models\AnalyticsImport;
 use Plugins\Analytics\Services\AnalyticsContext;
 use Plugins\Analytics\Services\AnalyticsSnapshotter;
 use Plugins\Analytics\Support\AnalyticsDatabase;
+use Plugins\Analytics\Support\AnalyticsImportProgress;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
@@ -67,6 +68,7 @@ class AnalyticsController extends Controller
             'isGlobal' => $metrics->isGlobal(),
             'periods' => (array) config('analytics.periods', [30, 7, 90, 365]),
             'recentImports' => $recentImports,
+            'importProgress' => $this->importProgress($recentImports),
             'hasPendingImports' => $recentImports->contains(fn (AnalyticsImport $import): bool => ! $import->isFinished()),
         ]);
     }
@@ -196,21 +198,33 @@ class AnalyticsController extends Controller
     public function importsStatus(Request $request): JsonResponse
     {
         $imports = $this->recentImports($request);
+        $progress = $this->importProgress($imports);
 
         return response()->json([
             'html' => view('analytics::partials.import-history', ['imports' => $imports])->render(),
-            'progress_html' => view('analytics::partials.import-progress', ['imports' => $imports])->render(),
+            'progress_html' => view('analytics::partials.import-progress', [
+                'imports' => $imports,
+                'progress' => $progress,
+            ])->render(),
             'pending' => $imports->contains(fn (AnalyticsImport $import): bool => ! $import->isFinished()),
-            'imports' => $imports->map(fn (AnalyticsImport $import): array => [
-                'id' => $import->getKey(),
-                'type' => $import->type,
-                'status' => $import->status->value,
-                'status_label' => $import->status->label(),
-                'original_name' => $import->original_name,
-                'total_rows' => $import->total_rows,
-                'created_at' => $import->created_at?->toIso8601String(),
-                'summary' => $import->summary(),
-            ])->values(),
+            'imports' => $imports->map(function (AnalyticsImport $import) use ($progress): array {
+                $state = $progress[$import->getKey()] ?? null;
+
+                return [
+                    'id' => $import->getKey(),
+                    'type' => $import->type,
+                    'status' => $import->status->value,
+                    'status_label' => $import->status->label(),
+                    'original_name' => $import->original_name,
+                    'total_rows' => $import->total_rows,
+                    'processed_rows' => $import->processedRows($state),
+                    'percentage' => $import->progressPercentage($state),
+                    'created_at' => $import->created_at?->toIso8601String(),
+                    'started_at' => $import->started_at?->toIso8601String(),
+                    'completed_at' => $import->completed_at?->toIso8601String(),
+                    'summary' => $import->summary(),
+                ];
+            })->values(),
         ]);
     }
 
@@ -296,6 +310,24 @@ class AnalyticsController extends Controller
             ->latest()
             ->limit(5)
             ->get();
+    }
+
+    /**
+     * The live progress of the running imports, keyed by import id.
+     *
+     * @param  Collection<int, AnalyticsImport>  $imports
+     * @return array<int, array{processed: int, total: int, created: int, updated: int, unchanged: int, skipped: int}>
+     */
+    private function importProgress(Collection $imports): array
+    {
+        return $imports
+            ->filter(fn (AnalyticsImport $import): bool => ! $import->isFinished())
+            ->mapWithKeys(function (AnalyticsImport $import): array {
+                $progress = AnalyticsImportProgress::get($import->getKey());
+
+                return $progress === null ? [] : [$import->getKey() => $progress];
+            })
+            ->all();
     }
 
     /**

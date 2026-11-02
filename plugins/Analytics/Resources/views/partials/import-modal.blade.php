@@ -11,7 +11,7 @@
     :data-open="$importModalOpen ? true : null"
 >
     <div data-import-progress role="status" aria-live="polite" @class(['hidden' => ! $hasPendingImports])>
-        @include('analytics::partials.import-progress', ['imports' => $recentImports])
+        @include('analytics::partials.import-progress', ['imports' => $recentImports, 'progress' => $importProgress ?? []])
     </div>
 
     @if ($errors->has('import') || $errors->has('file'))

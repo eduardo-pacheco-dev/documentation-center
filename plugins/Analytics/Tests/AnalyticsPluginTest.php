@@ -13,6 +13,8 @@ use Plugins\Analytics\Models\AnalyticsImport;
 use Plugins\Analytics\Models\AnalyticsRecord;
 use Plugins\Analytics\Models\AnalyticsSnapshot;
 use Plugins\Analytics\Services\AnalyticsAflImporter;
+use Plugins\Analytics\Services\AnalyticsRecordImporter;
+use Plugins\Analytics\Support\AnalyticsImportProgress;
 use Plugins\Files\Models\Document;
 use Plugins\Projects\Models\Project;
 
@@ -227,17 +229,34 @@ it('queues spreadsheet imports and exposes their progress', function () {
 
     Storage::disk('local')->delete($import->path);
 
+    $import->markProcessing(5);
+
+    AnalyticsImportProgress::put($import->getKey(), [
+        'processed' => 2,
+        'total' => 5,
+        'created' => 1,
+        'updated' => 1,
+        'unchanged' => 0,
+        'skipped' => 0,
+    ]);
+
     $this->actingAs($user)
         ->get('/admin/analytics/imports/status')
         ->assertOk()
         ->assertJson(['pending' => true])
-        ->assertJsonFragment(['original_name' => 'oc-os.xlsx']);
+        ->assertJsonFragment(['original_name' => 'oc-os.xlsx'])
+        ->assertJsonPath('imports.0.processed_rows', 2)
+        ->assertJsonPath('imports.0.percentage', 40)
+        ->assertSee('2 de 5 linhas processadas');
 
     $this->actingAs($user)
         ->get('/admin/analytics')
         ->assertOk()
-        ->assertSee('Processando importação FAMs')
+        ->assertSee('Importando FAMs')
+        ->assertSee('2 de 5 linhas processadas')
         ->assertSee('data-import-progress', false);
+
+    AnalyticsImportProgress::forget($import->getKey());
 
     @unlink($path);
 });
@@ -648,6 +667,45 @@ it('exports the afl breakdowns as csv', function () {
     expect($response->streamedContent())
         ->toContain('Status geral AFL')
         ->toContain('Status de faturamento AFL');
+});
+
+it('reports progress while importing fams records', function () {
+    $user = User::factory()->create();
+    $reports = [];
+
+    $result = app(AnalyticsRecordImporter::class)->import($user, [
+        ['oc' => '100', 'os' => '1', 'status' => 'Aberto'],
+        ['oc' => '101', 'os' => '2', 'status' => 'Fechado'],
+    ], function (array $progress) use (&$reports): void {
+        $reports[] = $progress;
+    });
+
+    $last = end($reports);
+
+    expect($result['created'])->toBe(2)
+        ->and($reports)->not->toBeEmpty()
+        ->and($last['processed'])->toBe(2)
+        ->and($last['total'])->toBe(2);
+});
+
+it('reports progress while importing afl records', function () {
+    $user = User::factory()->create();
+    $reports = [];
+
+    $row = array_fill(0, count(AnalyticsAflImporter::FIELDS), null);
+    $row[0] = 'PROGRESS-001';
+    $row[1] = 'Pendente OS/PO';
+
+    $result = app(AnalyticsAflImporter::class)->import($user, [$row], function (array $progress) use (&$reports): void {
+        $reports[] = $progress;
+    });
+
+    $last = end($reports);
+
+    expect($result['created'])->toBe(1)
+        ->and($reports)->not->toBeEmpty()
+        ->and($last['processed'])->toBe(1)
+        ->and($last['total'])->toBe(1);
 });
 
 /**

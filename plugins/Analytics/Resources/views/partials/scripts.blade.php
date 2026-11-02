@@ -374,7 +374,8 @@
         setImportProcessing(@json($hasPendingImports));
 
         if (importHistory && @json($hasPendingImports)) {
-            importPoll = setInterval(pollImportHistory, 4000);
+            pollImportHistory();
+            importPoll = setInterval(pollImportHistory, 2000);
         }
     })();
 </script>

@@ -101,6 +101,89 @@ class AnalyticsImport extends AnalyticsModel
     }
 
     /**
+     * The number of rows already handled by the importer.
+     *
+     * @param  array{processed?: int}|null  $progress
+     */
+    public function processedRows(?array $progress = null): int
+    {
+        if ($progress !== null) {
+            return max(0, (int) ($progress['processed'] ?? 0));
+        }
+
+        return (int) $this->created_count
+            + (int) $this->updated_count
+            + (int) $this->unchanged_count
+            + (int) $this->skipped_count;
+    }
+
+    /**
+     * The progress percentage while the import runs, or 100 when completed.
+     *
+     * @param  array{processed?: int, total?: int}|null  $progress
+     */
+    public function progressPercentage(?array $progress = null): ?int
+    {
+        if ($this->status === AnalyticsImportStatus::Completed) {
+            return 100;
+        }
+
+        $total = (int) ($progress['total'] ?? $this->total_rows ?? 0);
+
+        if ($total <= 0) {
+            return null;
+        }
+
+        return max(0, min(99, (int) floor($this->processedRows($progress) / $total * 100)));
+    }
+
+    /**
+     * How long the running import has been processing.
+     */
+    public function elapsedLabel(): ?string
+    {
+        if ($this->started_at === null) {
+            return null;
+        }
+
+        return $this->formatDuration(max(0, (int) $this->started_at->diffInSeconds(now())));
+    }
+
+    /**
+     * How long the finished import took.
+     */
+    public function durationLabel(): ?string
+    {
+        if ($this->started_at === null || $this->completed_at === null) {
+            return null;
+        }
+
+        return $this->formatDuration(max(0, (int) $this->started_at->diffInSeconds($this->completed_at)));
+    }
+
+    /**
+     * Format a number of seconds as a short human readable duration.
+     */
+    private function formatDuration(int $seconds): string
+    {
+        if ($seconds < 60) {
+            return "{$seconds}s";
+        }
+
+        $minutes = intdiv($seconds, 60);
+        $remainingSeconds = $seconds % 60;
+
+        if ($minutes < 60) {
+            return $remainingSeconds > 0 ? "{$minutes}min {$remainingSeconds}s" : "{$minutes}min";
+        }
+
+        $hours = intdiv($minutes, 60);
+        $remainingMinutes = $minutes % 60;
+
+        return $remainingMinutes > 0 ? "{$hours}h {$remainingMinutes}min" : "{$hours}h";
+    }
+
+    /**
      * Flag the import as being processed.
      */
     public function markProcessing(?int $totalRows = null): void

@@ -13,6 +13,7 @@ use Plugins\Analytics\Imports\AnalyticsRecordsImport;
 use Plugins\Analytics\Models\AnalyticsImport;
 use Plugins\Analytics\Services\AnalyticsAflImporter;
 use Plugins\Analytics\Services\AnalyticsRecordImporter;
+use Plugins\Analytics\Support\AnalyticsImportProgress;
 use Throwable;
 
 /**
@@ -49,6 +50,8 @@ class ProcessAnalyticsImportJob implements ShouldQueue
     {
         $this->import->markProcessing();
 
+        AnalyticsImportProgress::forget($this->import->getKey());
+
         $disk = Storage::disk('local');
 
         if (! $disk->exists($this->import->path)) {
@@ -65,6 +68,21 @@ class ProcessAnalyticsImportJob implements ShouldQueue
             return;
         }
 
+        $lastReportAt = 0.0;
+
+        $reportProgress = function (array $progress) use (&$lastReportAt): void {
+            $now = microtime(true);
+            $finished = ($progress['processed'] ?? 0) >= ($progress['total'] ?? 1);
+
+            if (! $finished && ($now - $lastReportAt) < 1.5) {
+                return;
+            }
+
+            $lastReportAt = $now;
+
+            AnalyticsImportProgress::put($this->import->getKey(), $progress);
+        };
+
         try {
             $path = $disk->path($this->import->path);
 
@@ -74,14 +92,14 @@ class ProcessAnalyticsImportJob implements ShouldQueue
 
                 $this->import->markProcessing(count($rows));
 
-                $result = $afl->import($user, $rows);
+                $result = $afl->import($user, $rows, $reportProgress);
             } else {
                 $sheets = Excel::toArray(new AnalyticsRecordsImport, $path);
                 $rows = $sheets[0] ?? [];
 
                 $this->import->markProcessing(count($rows));
 
-                $result = $records->import($user, $rows);
+                $result = $records->import($user, $rows, $reportProgress);
             }
 
             $this->import->markCompleted($result);
@@ -94,6 +112,8 @@ class ProcessAnalyticsImportJob implements ShouldQueue
 
             throw $exception;
         } finally {
+            AnalyticsImportProgress::forget($this->import->getKey());
+
             $disk->delete($this->import->path);
         }
     }

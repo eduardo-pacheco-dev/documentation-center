@@ -3,6 +3,7 @@
 namespace Plugins\Analytics\Services;
 
 use App\Models\User;
+use Closure;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Carbon;
@@ -25,11 +26,12 @@ class AnalyticsRecordImporter
 {
     /**
      * @param  array<int, array<string, mixed>>  $rows
+     * @param  (Closure(array{processed: int, total: int, created: int, updated: int, unchanged: int, skipped: int}): void)|null  $onProgress
      * @return array{created: int, updated: int, unchanged: int, skipped: int}
      *
      * @throws ValidationException
      */
-    public function import(User $user, array $rows): array
+    public function import(User $user, array $rows, ?Closure $onProgress = null): array
     {
         $operations = [];
         $operationIndexByKey = [];
@@ -101,11 +103,23 @@ class AnalyticsRecordImporter
             throw ValidationException::withMessages(['import' => $errors]);
         }
 
-        return AnalyticsDatabase::transaction(function () use ($user, $operations, $skipped): array {
+        return AnalyticsDatabase::transaction(function () use ($user, $operations, $skipped, $onProgress): array {
             $created = 0;
             $updated = 0;
             $unchanged = 0;
             $inserts = [];
+            $total = count($operations) + $skipped;
+
+            $report = function () use ($onProgress, &$created, &$updated, &$unchanged, $skipped, $total): void {
+                $onProgress?->__invoke([
+                    'processed' => $created + $updated + $unchanged + $skipped,
+                    'total' => $total,
+                    'created' => $created,
+                    'updated' => $updated,
+                    'unchanged' => $unchanged,
+                    'skipped' => $skipped,
+                ]);
+            };
 
             foreach (array_chunk($operations, 250) as $chunk) {
                 $latestByKey = $this->latestRecordsForChunk($user, $chunk);
@@ -132,11 +146,15 @@ class AnalyticsRecordImporter
                         $inserts = [];
                     }
                 }
+
+                $report();
             }
 
             if ($inserts !== []) {
                 $this->insertRecords($inserts);
             }
+
+            $report();
 
             return [
                 'created' => $created,

@@ -15,12 +15,20 @@
                             <span class="text-xs text-gray-400 dark:text-gray-500">{{ $import->created_at->format('d/m/Y H:i') }}</span>
                         </div>
 
-                        @if ($import->total_rows > 0)
-                            <span class="text-xs text-gray-400 dark:text-gray-500">{{ $import->total_rows }} linha(s)</span>
-                        @endif
+                        <span class="text-xs text-gray-400 dark:text-gray-500">
+                            @if ($import->total_rows > 0)
+                                {{ number_format($import->total_rows, 0, ',', '.') }} linha(s)
+                            @endif
+                            @if ($import->durationLabel() !== null)
+                                · {{ $import->durationLabel() }}
+                            @endif
+                        </span>
                     </div>
 
-                    <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">{{ $import->summary() }}</p>
+                    <p class="mt-1 truncate text-xs text-gray-500 dark:text-gray-400">
+                        <span class="font-medium text-gray-600 dark:text-gray-300">{{ $import->original_name }}</span>
+                        — {{ $import->summary() }}
+                    </p>
                 </li>
             @endforeach
         </ul>
