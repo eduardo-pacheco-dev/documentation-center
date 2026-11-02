@@ -87,6 +87,19 @@ class PluginRepository
     }
 
     /**
+     * The navigation items contributed by the enabled plugins.
+     *
+     * @return list<array{label: string, route: string, icon: string, active: string, primary: bool}>
+     */
+    public function navigation(): array
+    {
+        return $this->enabled()
+            ->flatMap(fn (Plugin $plugin): array => $plugin->navigation())
+            ->values()
+            ->all();
+    }
+
+    /**
      * The scanned paths.
      *
      * @return list<string>

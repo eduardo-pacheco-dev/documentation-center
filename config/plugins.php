@@ -63,7 +63,7 @@ return [
     |
     */
 
-    'statuses' => storage_path('plugin_statuses.json'),
+    'statuses' => env('PLUGIN_STATUSES', storage_path('plugin_statuses.json')),
 
     /*
     |--------------------------------------------------------------------------
