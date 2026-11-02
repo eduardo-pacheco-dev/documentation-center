@@ -20,6 +20,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Schema;
 use Plugins\Analytics\Models\AnalyticsAflRecord;
 use Plugins\Analytics\Models\AnalyticsRecord;
 use Plugins\Analytics\Models\AnalyticsSnapshot;
@@ -873,7 +874,7 @@ class AnalyticsMetrics
 
         $model = 'Plugins\\Stations\\Models\\Station';
 
-        if (! class_exists($model)) {
+        if (! class_exists($model) || ! Schema::hasTable('stations')) {
             return null;
         }
 

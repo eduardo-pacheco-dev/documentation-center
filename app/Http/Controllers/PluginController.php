@@ -6,6 +6,7 @@ use App\Http\Requests\UploadPluginRequest;
 use App\Plugins\Exceptions\PluginInstallException;
 use App\Plugins\Exceptions\PluginRemovalException;
 use App\Plugins\PluginInstaller;
+use App\Plugins\PluginMigrator;
 use App\Plugins\PluginRemover;
 use App\Plugins\PluginRepository;
 use Illuminate\Http\RedirectResponse;
@@ -16,6 +17,7 @@ class PluginController extends Controller
     public function __construct(
         private readonly PluginRepository $plugins,
         private readonly PluginInstaller $installer,
+        private readonly PluginMigrator $migrator,
         private readonly PluginRemover $remover,
     ) {}
 
@@ -52,6 +54,17 @@ class PluginController extends Controller
 
         if ($validated['enabled']) {
             $plugin->enable();
+
+            try {
+                $this->migrator->migrate($plugin);
+            } catch (\Throwable $exception) {
+                $plugin->disable();
+                $this->plugins->clear();
+
+                return back()->withErrors([
+                    'plugin' => sprintf('Não foi possível habilitar %s: %s', $plugin->getName(), $exception->getMessage()),
+                ]);
+            }
         } else {
             $plugin->disable();
         }

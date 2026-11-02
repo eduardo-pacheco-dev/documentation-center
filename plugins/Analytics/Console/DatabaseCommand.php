@@ -87,13 +87,20 @@ class DatabaseCommand extends Command
             $this->components->info('Tabelas de analytics removidas.');
         }
 
-        $path = base_path('plugins/Analytics/Database/Migrations');
+        $tablesExist = collect(array_keys(self::TABLES))
+            ->every(fn (string $table): bool => AnalyticsDatabase::schema()->hasTable($table));
 
-        $migrator->usingConnection($connection, function () use ($migrator, $path): void {
-            $migrator->run([$path], ['pretend' => false]);
-        });
+        if ($this->option('fresh') || ! $tablesExist) {
+            $path = base_path('plugins/Analytics/Database/Migrations');
 
-        $this->components->info("Migrations executadas na conexão [{$connection}].");
+            $migrator->usingConnection($connection, function () use ($migrator, $path): void {
+                $migrator->run([$path], ['pretend' => false]);
+            });
+
+            $this->components->info("Migrations executadas na conexão [{$connection}].");
+        } else {
+            $this->components->info('Tabelas já existem; migrations ignoradas.');
+        }
 
         if ($this->option('copy')) {
             $this->copyFromDefaultConnection($connection, $defaultConnection);
