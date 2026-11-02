@@ -17,6 +17,7 @@ use Plugins\Analytics\Services\AnalyticsAflImporter;
 use Plugins\Analytics\Services\AnalyticsContext;
 use Plugins\Analytics\Services\AnalyticsRecordImporter;
 use Plugins\Analytics\Services\AnalyticsSnapshotter;
+use Plugins\Analytics\Support\AnalyticsDatabase;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
@@ -154,6 +155,10 @@ class AnalyticsController extends Controller
     public function snapshot(Request $request, AnalyticsSnapshotter $snapshotter): RedirectResponse
     {
         $context = AnalyticsContext::fromRequest($request);
+
+        if (! AnalyticsDatabase::schema()->hasTable('analytics_snapshots')) {
+            return back()->withErrors(['snapshot' => 'A tabela de snapshots ainda não foi migrada no banco de analytics.']);
+        }
 
         $snapshotter->capture($context->metrics->user);
 

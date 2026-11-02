@@ -617,3 +617,9 @@ function analyticsAflSheet(array $rows): string
 
     return $path;
 }
+
+it('requires a dedicated connection to prepare the analytics database', function () {
+    $this->artisan('analytics:database')
+        ->expectsOutputToContain('ANALYTICS_DB_CONNECTION')
+        ->assertFailed();
+});

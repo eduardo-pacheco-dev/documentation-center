@@ -20,10 +20,10 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\Schema;
 use Plugins\Analytics\Models\AnalyticsAflRecord;
 use Plugins\Analytics\Models\AnalyticsRecord;
 use Plugins\Analytics\Models\AnalyticsSnapshot;
+use Plugins\Analytics\Support\AnalyticsDatabase;
 
 /**
  * Collects the metrics shown by the analytics dashboard.
@@ -286,6 +286,10 @@ class AnalyticsMetrics
      */
     public function snapshots(): array
     {
+        if (! $this->hasSnapshotsTable()) {
+            return [];
+        }
+
         return AnalyticsSnapshot::query()
             ->where('user_id', $this->user?->getKey())
             ->latest('captured_on')
@@ -663,7 +667,7 @@ class AnalyticsMetrics
 
     private function hasRecordsTable(): bool
     {
-        return $this->hasRecordsTable ??= Schema::hasTable('analytics_records');
+        return $this->hasRecordsTable ??= AnalyticsDatabase::schema()->hasTable('analytics_records');
     }
 
     /**
@@ -846,9 +850,14 @@ class AnalyticsMetrics
             ->all();
     }
 
+    private function hasSnapshotsTable(): bool
+    {
+        return AnalyticsDatabase::schema()->hasTable('analytics_snapshots');
+    }
+
     private function hasAflTable(): bool
     {
-        return $this->hasAflTable ??= Schema::hasTable('analytics_afl_records');
+        return $this->hasAflTable ??= AnalyticsDatabase::schema()->hasTable('analytics_afl_records');
     }
 
     /**

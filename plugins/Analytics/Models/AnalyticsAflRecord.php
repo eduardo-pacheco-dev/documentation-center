@@ -5,7 +5,6 @@ namespace Plugins\Analytics\Models;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 #[Fillable([
@@ -119,7 +118,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
     'last_changed_at',
     'last_user',
 ])]
-class AnalyticsAflRecord extends Model
+class AnalyticsAflRecord extends AnalyticsModel
 {
     /**
      * The user that imported the record.

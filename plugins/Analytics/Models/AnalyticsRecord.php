@@ -5,7 +5,6 @@ namespace Plugins\Analytics\Models;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 #[Fillable([
@@ -26,7 +25,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
     'operator',
     'status',
 ])]
-class AnalyticsRecord extends Model
+class AnalyticsRecord extends AnalyticsModel
 {
     /**
      * The user that imported the record.

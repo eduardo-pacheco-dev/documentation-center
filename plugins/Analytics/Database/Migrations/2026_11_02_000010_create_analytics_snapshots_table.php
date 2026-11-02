@@ -2,15 +2,15 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\Schema;
+use Plugins\Analytics\Support\AnalyticsDatabase;
 
 return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('analytics_snapshots', function (Blueprint $table) {
+        AnalyticsDatabase::schema()->create('analytics_snapshots', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('user_id')->nullable()->constrained()->cascadeOnDelete();
+            $table->unsignedBigInteger('user_id')->nullable()->index();
             $table->date('captured_on');
             $table->json('metrics');
             $table->timestamps();
@@ -22,6 +22,6 @@ return new class extends Migration
 
     public function down(): void
     {
-        Schema::dropIfExists('analytics_snapshots');
+        AnalyticsDatabase::schema()->dropIfExists('analytics_snapshots');
     }
 };
