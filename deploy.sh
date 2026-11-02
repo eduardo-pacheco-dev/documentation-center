@@ -177,19 +177,19 @@ log "Clearing stale caches"
 php artisan optimize:clear --except=cache
 
 log "Ensuring storage directories and writable paths"
-mkdir -p storage/framework/cache/data storage/framework/views storage/framework/sessions storage/logs bootstrap/cache
+mkdir -p storage/framework/cache/data storage/framework/views storage/framework/sessions storage/logs bootstrap/cache plugins
 
 if [ "$(id -u)" -eq 0 ]; then
     if RESOLVED_WEB_USER="$(resolve_web_user)"; then
         log "Granting ownership of writable paths to '$RESOLVED_WEB_USER'"
-        chown -R "$RESOLVED_WEB_USER":"$RESOLVED_WEB_USER" storage bootstrap/cache
-        chmod -R ug+rwX storage bootstrap/cache
+        chown -R "$RESOLVED_WEB_USER":"$RESOLVED_WEB_USER" storage bootstrap/cache plugins
+        chmod -R ug+rwX storage bootstrap/cache plugins
     else
         fail "Could not determine the web user; set the WEB_USER secret to the user that runs PHP-FPM"
     fi
 else
-    log "Warning: running as non-root; cannot change ownership. Ensure '$(id -un)' owns storage and bootstrap/cache."
-    chmod -R ug+rwX storage bootstrap/cache 2>/dev/null || true
+    log "Warning: running as non-root; cannot change ownership. Ensure '$(id -un)' owns storage, bootstrap/cache and plugins."
+    chmod -R ug+rwX storage bootstrap/cache plugins 2>/dev/null || true
 fi
 
 if grep -qE '^APP_KEY=\r?$' .env; then

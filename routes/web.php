@@ -400,6 +400,7 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
         Route::patch('users/{user}/toggle', [UserController::class, 'toggle'])->name('users.toggle');
 
         Route::get('plugins', [PluginController::class, 'index'])->name('plugins.index');
+        Route::post('plugins', [PluginController::class, 'store'])->name('plugins.store');
         Route::patch('plugins/{alias}', [PluginController::class, 'update'])->name('plugins.update');
     });
 });

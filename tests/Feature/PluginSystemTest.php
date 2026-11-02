@@ -1,11 +1,14 @@
 <?php
 
 use App\Models\User;
+use App\Plugins\Exceptions\PluginInstallException;
 use App\Plugins\Exceptions\PluginNotFoundException;
 use App\Plugins\Plugin;
 use App\Plugins\PluginActivator;
+use App\Plugins\PluginInstaller;
 use App\Plugins\PluginRepository;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Str;
@@ -78,6 +81,7 @@ it('registers the routes and views of an enabled plugin', function () {
     app(PluginRepository::class)->findOrFail('example')->enable();
 
     app()->register(ExampleServiceProvider::class);
+    Route::getRoutes()->refreshNameLookups();
 
     expect(Route::has('plugins.example.index'))->toBeTrue();
 
@@ -180,3 +184,187 @@ it('scaffolds a new plugin through the artisan command', function () {
 
     File::deleteDirectory($path);
 });
+
+it('installs a plugin from a zip archive', function () {
+    $pluginsPath = storage_path('framework/testing/plugins_'.Str::random(8));
+
+    config(['plugins.paths.plugins' => $pluginsPath]);
+    File::ensureDirectoryExists($pluginsPath);
+    app()->forgetInstance(PluginRepository::class);
+
+    $archive = pluginArchive([
+        'plugin.json' => pluginManifestJson('uploaded-plugin', ['version' => '1.2.3']),
+        'Routes/web.php' => "<?php\n",
+    ]);
+
+    $plugin = app(PluginInstaller::class)->install($archive);
+
+    expect($plugin->getAlias())->toBe('uploaded-plugin')
+        ->and($plugin->getVersion())->toBe('1.2.3')
+        ->and($plugin->disabled())->toBeTrue()
+        ->and($pluginsPath.'/UploadedPlugin/plugin.json')->toBeReadableFile()
+        ->and($pluginsPath.'/UploadedPlugin/Routes/web.php')->toBeReadableFile();
+
+    File::delete($archive);
+    File::deleteDirectory($pluginsPath);
+});
+
+it('installs a plugin wrapped in a single directory', function () {
+    $pluginsPath = storage_path('framework/testing/plugins_'.Str::random(8));
+
+    config(['plugins.paths.plugins' => $pluginsPath]);
+    File::ensureDirectoryExists($pluginsPath);
+    app()->forgetInstance(PluginRepository::class);
+
+    $archive = pluginArchive([
+        'MyWrappedPlugin/plugin.json' => pluginManifestJson('wrapped-plugin'),
+        'MyWrappedPlugin/README.md' => '# Wrapped',
+    ]);
+
+    $plugin = app(PluginInstaller::class)->install($archive);
+
+    expect($plugin->getAlias())->toBe('wrapped-plugin')
+        ->and($pluginsPath.'/WrappedPlugin/README.md')->toBeReadableFile();
+
+    File::delete($archive);
+    File::deleteDirectory($pluginsPath);
+});
+
+it('rejects an archive without a manifest', function () {
+    $archive = pluginArchive(['README.md' => '# No manifest']);
+
+    try {
+        app(PluginInstaller::class)->install($archive);
+    } finally {
+        File::delete($archive);
+    }
+})->throws(PluginInstallException::class);
+
+it('rejects an archive holding more than one plugin', function () {
+    $archive = pluginArchive([
+        'First/plugin.json' => pluginManifestJson('first-plugin'),
+        'Second/plugin.json' => pluginManifestJson('second-plugin'),
+    ]);
+
+    try {
+        app(PluginInstaller::class)->install($archive);
+    } finally {
+        File::delete($archive);
+    }
+})->throws(PluginInstallException::class);
+
+it('rejects an archive with an invalid alias', function () {
+    $archive = pluginArchive(['plugin.json' => pluginManifestJson('../evil')]);
+
+    try {
+        app(PluginInstaller::class)->install($archive);
+    } finally {
+        File::delete($archive);
+    }
+})->throws(PluginInstallException::class);
+
+it('refuses to overwrite an installed plugin', function () {
+    $archive = pluginArchive(['plugin.json' => pluginManifestJson('example')]);
+
+    try {
+        app(PluginInstaller::class)->install($archive);
+    } finally {
+        File::delete($archive);
+    }
+})->throws(PluginInstallException::class);
+
+it('installs a plugin through the admin upload form', function () {
+    $pluginsPath = storage_path('framework/testing/plugins_'.Str::random(8));
+
+    config(['plugins.paths.plugins' => $pluginsPath]);
+    File::ensureDirectoryExists($pluginsPath);
+    app()->forgetInstance(PluginRepository::class);
+
+    $archive = pluginArchive(['plugin.json' => pluginManifestJson('form-plugin')]);
+
+    $this->actingAs(User::factory()->admin()->create())
+        ->post('/admin/plugins', [
+            'file' => new UploadedFile($archive, 'plugin.zip', 'application/zip', null, true),
+        ])
+        ->assertRedirect()
+        ->assertSessionHasNoErrors()
+        ->assertSessionHas('status');
+
+    expect($pluginsPath.'/FormPlugin/plugin.json')->toBeReadableFile();
+
+    File::delete($archive);
+    File::deleteDirectory($pluginsPath);
+});
+
+it('validates the uploaded plugin archive', function () {
+    $this->actingAs(User::factory()->admin()->create())
+        ->post('/admin/plugins', [
+            'file' => UploadedFile::fake()->create('plugin.txt', 8, 'text/plain'),
+        ])
+        ->assertSessionHasErrors('file');
+});
+
+it('requires an administrator to upload plugins', function () {
+    $this->actingAs(User::factory()->create())
+        ->post('/admin/plugins', [
+            'file' => UploadedFile::fake()->create('plugin.zip', 8, 'application/zip'),
+        ])
+        ->assertForbidden();
+});
+
+it('installs a plugin through the artisan command', function () {
+    $pluginsPath = storage_path('framework/testing/plugins_'.Str::random(8));
+
+    config(['plugins.paths.plugins' => $pluginsPath]);
+    File::ensureDirectoryExists($pluginsPath);
+    app()->forgetInstance(PluginRepository::class);
+
+    $archive = pluginArchive(['plugin.json' => pluginManifestJson('cli-plugin')]);
+
+    $this->artisan('plugin:install', ['file' => $archive])
+        ->expectsOutputToContain('cli-plugin')
+        ->assertSuccessful();
+
+    expect($pluginsPath.'/CliPlugin/plugin.json')->toBeReadableFile();
+
+    File::delete($archive);
+    File::deleteDirectory($pluginsPath);
+});
+
+/**
+ * Build a ZIP archive holding the given files.
+ *
+ * @param  array<string, string>  $files
+ */
+function pluginArchive(array $files): string
+{
+    $path = storage_path('framework/testing/plugin_'.Str::random(10).'.zip');
+
+    $zip = new ZipArchive;
+    $zip->open($path, ZipArchive::CREATE | ZipArchive::OVERWRITE);
+
+    foreach ($files as $name => $contents) {
+        $zip->addFromString($name, $contents);
+    }
+
+    $zip->close();
+
+    return $path;
+}
+
+/**
+ * Build a minimal plugin.json payload.
+ *
+ * @param  array<string, mixed>  $overrides
+ */
+function pluginManifestJson(string $alias, array $overrides = []): string
+{
+    return json_encode([
+        'name' => Str::headline($alias),
+        'alias' => $alias,
+        'version' => '1.0.0',
+        'active' => false,
+        'providers' => [],
+        ...$overrides,
+    ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+}

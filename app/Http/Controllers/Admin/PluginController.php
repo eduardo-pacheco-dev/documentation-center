@@ -3,7 +3,10 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\UploadPluginRequest;
+use App\Plugins\Exceptions\PluginInstallException;
 use App\Plugins\Plugin;
+use App\Plugins\PluginInstaller;
 use App\Plugins\PluginRepository;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -11,7 +14,10 @@ use Illuminate\View\View;
 
 class PluginController extends Controller
 {
-    public function __construct(private readonly PluginRepository $plugins) {}
+    public function __construct(
+        private readonly PluginRepository $plugins,
+        private readonly PluginInstaller $installer,
+    ) {}
 
     /**
      * List every discovered plugin and its status.
@@ -28,6 +34,26 @@ class PluginController extends Controller
                 'disabled' => $plugins->filter(fn (Plugin $plugin): bool => $plugin->disabled())->count(),
             ],
         ]);
+    }
+
+    /**
+     * Install a plugin from an uploaded ZIP archive.
+     */
+    public function store(UploadPluginRequest $request): RedirectResponse
+    {
+        try {
+            $plugin = $this->installer->install((string) $request->file('file')?->getRealPath());
+        } catch (PluginInstallException $exception) {
+            return back()->withErrors(['file' => $exception->getMessage()]);
+        }
+
+        return back()->with(
+            'status',
+            sprintf(
+                'Plugin %s instalado com sucesso. Habilite-o para carregar seus providers e rotas.',
+                $plugin->getName(),
+            ),
+        );
     }
 
     /**

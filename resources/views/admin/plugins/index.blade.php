@@ -54,6 +54,57 @@
         Após criar um plugin, rode <code class="rounded bg-white/60 px-1.5 py-0.5 text-xs dark:bg-black/20">composer dump-autoload</code>.
     </x-ui.alert>
 
+    <section class="mt-6 rounded-2xl border border-gray-200/70 bg-white p-5 shadow-sm dark:border-gray-800 dark:bg-gray-900">
+        <div class="flex flex-wrap items-start justify-between gap-4">
+            <div>
+                <h2 class="flex items-center gap-2 text-base font-semibold text-gray-900 dark:text-gray-100">
+                    <x-icon name="arrow-up-tray" class="h-5 w-5 text-gray-400 dark:text-gray-500" />
+                    Instalar plugin via ZIP
+                </h2>
+                <p class="mt-1 max-w-2xl text-sm text-gray-500 dark:text-gray-400">
+                    Envie um arquivo <code class="rounded bg-gray-100 px-1.5 py-0.5 text-xs dark:bg-gray-800">.zip</code> contendo um
+                    <code class="rounded bg-gray-100 px-1.5 py-0.5 text-xs dark:bg-gray-800">plugin.json</code> na raiz ou dentro de uma única pasta.
+                    O plugin é instalado desabilitado — revise o código antes de habilitá-lo.
+                </p>
+            </div>
+        </div>
+
+        <form
+            method="POST"
+            action="{{ route('admin.plugins.store') }}"
+            enctype="multipart/form-data"
+            class="mt-4 flex flex-wrap items-end gap-3"
+        >
+            @csrf
+
+            <div class="w-full max-w-md">
+                <label for="plugin-file" class="block text-sm font-medium text-gray-700 dark:text-gray-200">Arquivo do plugin</label>
+                <input
+                    id="plugin-file"
+                    name="file"
+                    type="file"
+                    accept=".zip,application/zip"
+                    required
+                    class="mt-1 block w-full cursor-pointer rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 shadow-sm transition file:mr-3 file:rounded-lg file:border-0 file:bg-indigo-50 file:px-3 file:py-1.5 file:text-sm file:font-semibold file:text-indigo-600 hover:file:bg-indigo-100 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200 dark:file:bg-indigo-500/10 dark:file:text-indigo-300"
+                >
+            </div>
+
+            <button type="submit" class="{{ $primaryButton }}">
+                <x-icon name="arrow-up-tray" class="h-4 w-4" />
+                Instalar plugin
+            </button>
+        </form>
+
+        @error('file')
+            <p class="mt-2 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
+        @enderror
+
+        <p class="mt-3 flex items-start gap-2 text-xs text-amber-600 dark:text-amber-400">
+            <x-icon name="exclamation-triangle" class="mt-0.5 h-3.5 w-3.5 shrink-0" />
+            Plugins executam código PHP com as permissões da aplicação. Instale apenas arquivos de origem confiável.
+        </p>
+    </section>
+
     @if ($plugins->isEmpty())
         <div class="mt-6 rounded-2xl border border-gray-200/70 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900">
             <x-ui.empty-state
