@@ -7,6 +7,8 @@ use App\Http\Requests\DeleteAccountRequest;
 use App\Http\Requests\UpdateModulesRequest;
 use App\Http\Requests\UpdatePasswordRequest;
 use App\Http\Requests\UpdateThemeRequest;
+use App\Plugins\Plugin;
+use App\Plugins\PluginRepository;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\View\View;
 
@@ -15,9 +17,11 @@ class SettingsController extends Controller
     /**
      * Show the settings page for the authenticated user.
      */
-    public function show(): View
+    public function show(PluginRepository $plugins): View
     {
         $user = auth()->user();
+
+        $installedPlugins = $user->is_admin ? $plugins->all() : collect();
 
         return view('settings.show', [
             'user' => $user,
@@ -26,6 +30,12 @@ class SettingsController extends Controller
                 fn (AdminModule $module): string => $module->value,
                 AdminModule::enabledFor($user),
             ),
+            'plugins' => $installedPlugins,
+            'pluginStats' => [
+                'total' => $installedPlugins->count(),
+                'enabled' => $installedPlugins->filter(fn (Plugin $plugin): bool => $plugin->enabled())->count(),
+                'disabled' => $installedPlugins->filter(fn (Plugin $plugin): bool => $plugin->disabled())->count(),
+            ],
         ]);
     }
 

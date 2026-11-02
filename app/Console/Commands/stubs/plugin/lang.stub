@@ -1,0 +1,6 @@
+<?php
+
+return [
+    'name' => '__NAME__',
+    'description' => '__DESCRIPTION__',
+];

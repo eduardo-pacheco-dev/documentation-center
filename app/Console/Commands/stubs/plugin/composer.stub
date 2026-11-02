@@ -1,0 +1,20 @@
+{
+    "name": "__VENDOR__/plugin-__ALIAS__",
+    "description": "__DESCRIPTION__",
+    "type": "library",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "__AUTHOR_NAME__",
+            "email": "__AUTHOR_EMAIL__"
+        }
+    ],
+    "autoload": {
+        "psr-4": {
+            "__NAMESPACE__\\": ""
+        }
+    },
+    "config": {
+        "sort-packages": true
+    }
+}

@@ -54,6 +54,7 @@ use App\Http\Controllers\Admin\WorkOrderItemDocumentController;
 use App\Http\Controllers\Admin\WorkOrderProjectController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\RegisteredUserController;
+use App\Http\Controllers\PluginController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\Public\FormFillController;
 use App\Http\Controllers\Public\LinkController;
@@ -130,6 +131,12 @@ Route::middleware('auth')->group(function () {
     Route::put('settings/modules', [SettingsController::class, 'updateModules'])->name('settings.modules.update');
     Route::put('settings/password', [SettingsController::class, 'updatePassword'])->name('settings.password.update');
     Route::delete('settings/account', [SettingsController::class, 'destroy'])->name('settings.account.destroy');
+
+    Route::middleware('admin')->group(function () {
+        Route::post('settings/plugins', [PluginController::class, 'store'])->name('settings.plugins.store');
+        Route::patch('settings/plugins/{alias}', [PluginController::class, 'update'])->name('settings.plugins.update');
+        Route::delete('settings/plugins/{alias}', [PluginController::class, 'destroy'])->name('settings.plugins.destroy');
+    });
 });
 
 /*
