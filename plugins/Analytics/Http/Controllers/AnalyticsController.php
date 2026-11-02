@@ -8,9 +8,13 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 use Maatwebsite\Excel\Facades\Excel;
+use Plugins\Analytics\Exports\AnalyticsAflTemplateExport;
 use Plugins\Analytics\Exports\AnalyticsRecordsTemplateExport;
+use Plugins\Analytics\Http\Requests\ImportAnalyticsAflRequest;
 use Plugins\Analytics\Http\Requests\ImportAnalyticsRecordsRequest;
+use Plugins\Analytics\Imports\AnalyticsAflImport;
 use Plugins\Analytics\Imports\AnalyticsRecordsImport;
+use Plugins\Analytics\Services\AnalyticsAflImporter;
 use Plugins\Analytics\Services\AnalyticsMetrics;
 use Plugins\Analytics\Services\AnalyticsRecordImporter;
 use Plugins\Analytics\Services\AnalyticsSnapshotter;
@@ -44,6 +48,12 @@ class AnalyticsController extends Controller
             'recordsBySupplier' => $metrics->recordsBySupplier(),
             'recentRecords' => $metrics->recentRecords(),
             'recordChanges' => $metrics->recentRecordChanges(),
+            'aflSummary' => $metrics->aflSummary(),
+            'aflByStatus' => $metrics->aflByStatus(),
+            'aflByBillingStatus' => $metrics->aflByBillingStatus(),
+            'aflByProject' => $metrics->aflByProject(),
+            'recentAflRecords' => $metrics->recentAflRecords(),
+            'aflChanges' => $metrics->recentAflChanges(),
             'from' => $period['from'],
             'to' => $period['to'],
             'days' => $period['days'],
@@ -110,6 +120,20 @@ class AnalyticsController extends Controller
             }
 
             fputcsv($handle, []);
+            fputcsv($handle, ['Status geral AFL', 'Registros']);
+
+            foreach ($metrics->aflByStatus()['labels'] as $index => $label) {
+                fputcsv($handle, [$label, $metrics->aflByStatus()['values'][$index] ?? 0]);
+            }
+
+            fputcsv($handle, []);
+            fputcsv($handle, ['Status de faturamento AFL', 'Registros']);
+
+            foreach ($metrics->aflByBillingStatus()['labels'] as $index => $label) {
+                fputcsv($handle, [$label, $metrics->aflByBillingStatus()['values'][$index] ?? 0]);
+            }
+
+            fputcsv($handle, []);
             fputcsv($handle, ['Lista de tarefas', 'Tarefas']);
 
             foreach ($metrics->tasksByList()['labels'] as $index => $label) {
@@ -153,6 +177,33 @@ class AnalyticsController extends Controller
                 $result['updated'],
                 $result['unchanged'],
             ));
+    }
+
+    /**
+     * Import the AFL spreadsheet into the analytics records.
+     */
+    public function importAfl(ImportAnalyticsAflRequest $request, AnalyticsAflImporter $importer): RedirectResponse
+    {
+        $sheets = Excel::toArray(new AnalyticsAflImport, $request->file('file'));
+
+        $result = $importer->import($request->user(), $sheets[0] ?? []);
+
+        return redirect()
+            ->route('analytics.index', $request->only(['period', 'scope']))
+            ->with('status', sprintf(
+                'Importação AFL concluída: %d novo(s), %d atualizado(s) e %d sem alteração.',
+                $result['created'],
+                $result['updated'],
+                $result['unchanged'],
+            ));
+    }
+
+    /**
+     * Download the AFL import template.
+     */
+    public function aflTemplate(): BinaryFileResponse
+    {
+        return Excel::download(new AnalyticsAflTemplateExport, 'modelo-analytics-afl.xlsx');
     }
 
     /**

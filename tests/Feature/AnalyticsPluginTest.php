@@ -7,8 +7,10 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
+use Plugins\Analytics\Models\AnalyticsAflRecord;
 use Plugins\Analytics\Models\AnalyticsRecord;
 use Plugins\Analytics\Models\AnalyticsSnapshot;
+use Plugins\Analytics\Services\AnalyticsAflImporter;
 use Plugins\Stations\Models\Station;
 
 uses(RefreshDatabase::class);
@@ -395,6 +397,213 @@ function analyticsRecordSheet(array $rows): string
     ], null, 'A1');
 
     $path = tempnam(sys_get_temp_dir(), 'oc_os_').'.xlsx';
+
+    (new Xlsx($spreadsheet))->save($path);
+
+    return $path;
+}
+
+it('imports afl records from a spreadsheet', function () {
+    $user = User::factory()->create();
+
+    $path = analyticsAflSheet([[
+        'code' => 'AFL20260620',
+        'general_status' => 'Pendente OS/PO',
+        'site_id_a' => '4G-JQIT19',
+        'project' => 'CT_REUSO',
+        'description' => 'VISTORIA',
+        'supervisor' => 'Fabricio Paes',
+        'coordinator' => 'Djalma Teixeira',
+        'oc_tim' => '1311997',
+        'boq_status' => 'Aprovado',
+        'created_on' => '2026-05-05 00:00:00',
+        'billing_status' => 'Não aplicável',
+        'billed_value' => '1.234,56',
+        'is_billed' => 'false',
+        'last_changed_at' => '2026-05-05 12:48:50',
+        'last_user' => 'robert@aflengenharia.com',
+    ]]);
+
+    $this->actingAs($user)
+        ->post('/admin/analytics/afl/import', [
+            'file' => new UploadedFile($path, 'afl.xlsx', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', null, true),
+        ])
+        ->assertRedirect()
+        ->assertSessionHasNoErrors();
+
+    $record = AnalyticsAflRecord::query()->firstOrFail();
+
+    expect($record->user_id)->toBe($user->getKey())
+        ->and($record->code)->toBe('AFL20260620')
+        ->and($record->general_status)->toBe('Pendente OS/PO')
+        ->and($record->site_id_a)->toBe('4G-JQIT19')
+        ->and($record->project)->toBe('CT_REUSO')
+        ->and($record->oc_tim)->toBe('1311997')
+        ->and($record->created_on->toDateString())->toBe('2026-05-05')
+        ->and($record->billing_status)->toBe('Não aplicável')
+        ->and((float) $record->billed_value)->toBe(1234.56)
+        ->and($record->is_billed)->toBeFalse()
+        ->and($record->last_changed_at->format('Y-m-d H:i:s'))->toBe('2026-05-05 12:48:50')
+        ->and($record->last_user)->toBe('robert@aflengenharia.com');
+
+    @unlink($path);
+});
+
+it('creates a new afl version when the row changes and ignores unchanged rows', function () {
+    $user = User::factory()->create();
+
+    $base = [
+        'code' => 'AFL20260630',
+        'general_status' => 'Pendente OS/PO',
+        'project' => 'CT_MW',
+        'supervisor' => 'Fabricio Paes',
+        'billing_status' => 'Não aplicável',
+    ];
+
+    $first = analyticsAflSheet([$base]);
+    $changed = analyticsAflSheet([[...$base, 'general_status' => 'Concluída']]);
+
+    $this->actingAs($user)->post('/admin/analytics/afl/import', [
+        'file' => new UploadedFile($first, 'afl.xlsx', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', null, true),
+    ]);
+
+    $this->actingAs($user)
+        ->post('/admin/analytics/afl/import', [
+            'file' => new UploadedFile($first, 'afl.xlsx', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', null, true),
+        ])
+        ->assertSessionHas('status', 'Importação AFL concluída: 0 novo(s), 0 atualizado(s) e 1 sem alteração.');
+
+    expect(AnalyticsAflRecord::query()->count())->toBe(1);
+
+    $this->actingAs($user)
+        ->post('/admin/analytics/afl/import', [
+            'file' => new UploadedFile($changed, 'afl.xlsx', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', null, true),
+        ])
+        ->assertSessionHas('status', 'Importação AFL concluída: 0 novo(s), 1 atualizado(s) e 0 sem alteração.');
+
+    $records = AnalyticsAflRecord::query()->orderBy('id')->get();
+
+    expect($records)->toHaveCount(2)
+        ->and($records->first()->general_status)->toBe('Pendente OS/PO')
+        ->and($records->last()->general_status)->toBe('Concluída');
+
+    @unlink($first);
+    @unlink($changed);
+});
+
+it('requires the afl code to import a row', function () {
+    $user = User::factory()->create();
+
+    $path = analyticsAflSheet([['project' => 'CT_MW']]);
+
+    $this->actingAs($user)
+        ->post('/admin/analytics/afl/import', [
+            'file' => new UploadedFile($path, 'afl.xlsx', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', null, true),
+        ])
+        ->assertSessionHasErrors('import');
+
+    expect(AnalyticsAflRecord::query()->count())->toBe(0);
+
+    @unlink($path);
+});
+
+it('downloads the afl import template', function () {
+    $this->actingAs(User::factory()->create())
+        ->get('/admin/analytics/afl/template')
+        ->assertOk()
+        ->assertHeader('content-type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+});
+
+it('shows the afl indicators and history in the dashboard', function () {
+    $user = User::factory()->create();
+    $other = User::factory()->create();
+
+    AnalyticsAflRecord::query()->create([
+        'user_id' => $user->getKey(),
+        'code' => 'AFL20260620',
+        'general_status' => 'Pendente OS/PO',
+        'project' => 'CT_REUSO',
+        'created_on' => now()->toDateString(),
+        'billing_status' => 'Não aplicável',
+    ]);
+
+    AnalyticsAflRecord::query()->create([
+        'user_id' => $user->getKey(),
+        'code' => 'AFL20260620',
+        'general_status' => 'Concluída',
+        'project' => 'CT_REUSO',
+        'created_on' => now()->toDateString(),
+        'billing_status' => 'Faturado',
+    ]);
+
+    AnalyticsAflRecord::query()->create([
+        'user_id' => $other->getKey(),
+        'code' => 'AFL-OTHER',
+        'general_status' => 'Pendente OS/PO',
+    ]);
+
+    $this->actingAs($user)
+        ->get('/admin/analytics')
+        ->assertOk()
+        ->assertSee('Importar dados AFL')
+        ->assertSee('Histórico de alterações AFL')
+        ->assertDontSee('AFL-OTHER')
+        ->assertViewHas('aflSummary', fn (array $summary): bool => $summary['total'] === 1 && $summary['versions'] === 2)
+        ->assertViewHas('aflByStatus', fn (array $breakdown): bool => $breakdown['labels'] === ['Concluída'])
+        ->assertViewHas('recentAflRecords', fn (array $records): bool => count($records) === 1 && $records[0]['versions'] === 2)
+        ->assertViewHas('aflChanges', fn (array $changes): bool => count($changes) === 1);
+});
+
+it('exports the afl breakdowns as csv', function () {
+    $user = User::factory()->create();
+
+    AnalyticsAflRecord::query()->create([
+        'user_id' => $user->getKey(),
+        'code' => 'AFL20260620',
+        'general_status' => 'Pendente OS/PO',
+        'billing_status' => 'Não aplicável',
+    ]);
+
+    $response = $this->actingAs($user)
+        ->get('/admin/analytics/export?period=30')
+        ->assertOk();
+
+    expect($response->streamedContent())
+        ->toContain('Status geral AFL')
+        ->toContain('Status de faturamento AFL');
+});
+
+/**
+ * Build an XLSX spreadsheet with the AFL layout.
+ *
+ * @param  array<int, array<string, string>>  $rows
+ */
+function analyticsAflSheet(array $rows): string
+{
+    $fields = AnalyticsAflImporter::FIELDS;
+    $headers = $fields;
+    $headers[0] = 'Cód_AFL';
+
+    $spreadsheet = new Spreadsheet;
+    $sheet = $spreadsheet->getActiveSheet();
+
+    $sheet->fromArray([$headers], null, 'A1');
+
+    $line = 2;
+
+    foreach ($rows as $row) {
+        $cells = [];
+
+        foreach ($fields as $field) {
+            $cells[] = $row[$field] ?? null;
+        }
+
+        $sheet->fromArray([$cells], null, 'A'.$line);
+
+        $line++;
+    }
+
+    $path = tempnam(sys_get_temp_dir(), 'afl_').'.xlsx';
 
     (new Xlsx($spreadsheet))->save($path);
 

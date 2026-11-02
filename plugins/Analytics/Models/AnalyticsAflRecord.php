@@ -1,0 +1,176 @@
+<?php
+
+namespace Plugins\Analytics\Models;
+
+use App\Models\User;
+use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+
+#[Fillable([
+    'user_id',
+    'code',
+    'general_status',
+    'site_id_a',
+    'end_id_a',
+    'site_id_b',
+    'end_id_b',
+    'project',
+    'description',
+    'supervisor',
+    'coordinator',
+    'oc_tim',
+    'chave_mw',
+    'smp_nokia',
+    'general_notes',
+    'activation_registered_on',
+    'boq_status',
+    'request_date',
+    'created_on',
+    'boq_number',
+    'boq_notes',
+    'access_status',
+    'access_request_a',
+    'access_approval_a',
+    'access_start_a',
+    'access_end_a',
+    'crq_a',
+    'crq_start_a',
+    'crq_end_a',
+    'access_request_b',
+    'access_approval_b',
+    'access_start_b',
+    'access_end_b',
+    'crq_b',
+    'crq_start_b',
+    'crq_end_b',
+    'access_notes',
+    'mos_status',
+    'mos_planned_on',
+    'mos_actual_on',
+    'mos_notes',
+    'activity_status',
+    'activity_responsible_a',
+    'activity_planned_start_a',
+    'activity_actual_start_a',
+    'activity_planned_end_a',
+    'activity_actual_end_a',
+    'activity_responsible_b',
+    'activity_planned_start_b',
+    'activity_actual_start_b',
+    'activity_planned_end_b',
+    'activity_actual_end_b',
+    'activity_notes',
+    'activation_status',
+    'activation_responsible_a',
+    'activation_planned_start_a',
+    'activation_actual_start_a',
+    'activation_planned_end_a',
+    'activation_actual_end_a',
+    'activation_responsible_b',
+    'activation_planned_start_b',
+    'activation_actual_start_b',
+    'activation_planned_end_b',
+    'activation_actual_end_b',
+    'activation_notes',
+    'documentation_status',
+    'documentation_responsible_a',
+    'documentation_planned_start_a',
+    'documentation_actual_start_a',
+    'documentation_planned_end_a',
+    'documentation_actual_end_a',
+    'documentation_sent_a',
+    'documentation_responsible_b',
+    'documentation_planned_start_b',
+    'documentation_actual_start_b',
+    'documentation_planned_end_b',
+    'documentation_actual_end_b',
+    'documentation_sent_b',
+    'documentation_directory',
+    'documentation_notes',
+    'acceptance_status',
+    'acceptance_responsible_a',
+    'acceptance_planned_start_a',
+    'acceptance_actual_start_a',
+    'acceptance_planned_end_a',
+    'acceptance_actual_end_a',
+    'acceptance_responsible_b',
+    'acceptance_planned_start_b',
+    'acceptance_actual_start_b',
+    'acceptance_planned_end_b',
+    'acceptance_actual_end_b',
+    'acceptance_notes',
+    'billing_status',
+    'billed_value',
+    'contracted_value',
+    'invoice_value',
+    'invoice_number',
+    'invoice_issued_on',
+    'billed_on',
+    'service_po',
+    'gr_ia',
+    'gr_ia_on',
+    'is_billed',
+    'advance_billing',
+    'billed_percentage',
+    'billing_notes',
+    'os_cancelled',
+    'last_changed_at',
+    'last_user',
+])]
+class AnalyticsAflRecord extends Model
+{
+    /**
+     * The user that imported the record.
+     */
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
+    }
+
+    /**
+     * Restrict a query to the records the user owns.
+     */
+    public function scopeOwnedBy(Builder $query, User $user): Builder
+    {
+        return $query->where('user_id', $user->getKey());
+    }
+
+    /**
+     * Get the attributes that should be cast.
+     *
+     * @return array<string, string>
+     */
+    protected function casts(): array
+    {
+        return [
+            'access_approval_a' => 'date',
+            'access_approval_b' => 'date',
+            'access_end_a' => 'date',
+            'access_end_b' => 'date',
+            'access_request_a' => 'date',
+            'access_request_b' => 'date',
+            'access_start_a' => 'date',
+            'access_start_b' => 'date',
+            'activation_registered_on' => 'date',
+            'billed_on' => 'date',
+            'created_on' => 'date',
+            'crq_end_a' => 'date',
+            'crq_end_b' => 'date',
+            'crq_start_a' => 'date',
+            'crq_start_b' => 'date',
+            'gr_ia_on' => 'date',
+            'invoice_issued_on' => 'date',
+            'mos_actual_on' => 'date',
+            'mos_planned_on' => 'date',
+            'last_changed_at' => 'datetime',
+            'billed_percentage' => 'decimal:2',
+            'billed_value' => 'decimal:2',
+            'contracted_value' => 'decimal:2',
+            'invoice_value' => 'decimal:2',
+            'is_billed' => 'boolean',
+            'os_cancelled' => 'boolean',
+        ];
+    }
+}

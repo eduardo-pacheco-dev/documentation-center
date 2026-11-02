@@ -20,6 +20,10 @@
         $cards[] = ['label' => 'Registros FAMs', 'value' => $recordsSummary['total'], 'hint' => $recordsSummary['versions'].' versões no histórico', 'icon' => 'table-cells', 'tone' => 'indigo'];
     }
 
+    if (is_array($aflSummary)) {
+        $cards[] = ['label' => 'Registros AFL', 'value' => $aflSummary['total'], 'hint' => $aflSummary['versions'].' versões no histórico', 'icon' => 'flag', 'tone' => 'rose'];
+    }
+
     $toneClasses = [
         'indigo' => 'bg-indigo-50 text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-400',
         'sky' => 'bg-sky-50 text-sky-600 dark:bg-sky-500/10 dark:text-sky-400',
@@ -427,6 +431,162 @@
         @endif
     @endif
 
+    @if (is_array($aflSummary))
+        <div class="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-3">
+            <section class="{{ $cardClass }} p-5">
+                <h2 class="{{ $labelClass }}">Importar dados AFL</h2>
+                <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                    Planilha AFL com Cód_AFL, status geral, sites/ends A e B, projeto, OC, SMP, etapas de acesso, atividade, ativação,
+                    documentação, aceitação e faturamento. Reimportar gera uma nova versão quando houver alteração.
+                </p>
+
+                <a href="{{ route('analytics.afl.template') }}" class="mt-3 inline-flex items-center gap-1.5 text-sm font-medium text-indigo-600 hover:text-indigo-500 dark:text-indigo-400">
+                    <x-icon name="arrow-down-tray" class="h-4 w-4" />
+                    Baixar modelo (.xlsx)
+                </a>
+
+                <form method="POST" action="{{ route('analytics.afl.import') }}" enctype="multipart/form-data" class="mt-4">
+                    @csrf
+                    <input type="hidden" name="period" value="{{ $days }}">
+                    <input type="hidden" name="scope" value="{{ $scope }}">
+
+                    <label for="afl-file" class="block text-sm font-medium text-gray-700 dark:text-gray-200">Arquivo</label>
+                    <input id="afl-file" name="file" type="file" accept=".xlsx,.xls,.csv" required class="mt-1 block w-full cursor-pointer rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-sm dark:border-white/10 dark:bg-white/[0.03] dark:text-gray-300">
+
+                    <button type="submit" class="mt-3 inline-flex h-10 items-center gap-1.5 rounded-xl bg-rose-600 px-4 text-sm font-semibold text-white transition hover:bg-rose-500">
+                        <x-icon name="arrow-up-tray" class="h-4 w-4" />
+                        Importar planilha
+                    </button>
+                </form>
+
+                <div class="mt-4 flex flex-wrap gap-2 border-t border-gray-100 pt-3 text-xs text-gray-500 dark:border-white/10 dark:text-gray-400">
+                    <span>{{ $aflSummary['total'] }} registros AFL</span>
+                    <span>·</span>
+                    <span>{{ $aflSummary['versions'] }} versões</span>
+                    <span>·</span>
+                    <span>{{ $aflSummary['in_period'] }} no período</span>
+                </div>
+            </section>
+
+            <section class="{{ $cardClass }} p-5">
+                <h2 class="{{ $labelClass }}">Status geral AFL</h2>
+
+                @if ($aflByStatus['labels'] === [])
+                    <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">Nenhum registro AFL importado.</p>
+                @else
+                    <div class="relative mt-4 h-64 w-full">
+                        <canvas id="analytics-afl-status"></canvas>
+                    </div>
+                @endif
+            </section>
+
+            <section class="{{ $cardClass }} p-5">
+                <h2 class="{{ $labelClass }}">Faturamento AFL</h2>
+
+                @if ($aflByBillingStatus['labels'] === [])
+                    <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">Nenhum status de faturamento registrado.</p>
+                @else
+                    <ul class="mt-4 space-y-2">
+                        @foreach ($aflByBillingStatus['labels'] as $index => $label)
+                            <li class="flex items-center justify-between gap-2 text-sm">
+                                <span class="min-w-0 truncate text-gray-600 dark:text-gray-300">{{ $label }}</span>
+                                <span class="shrink-0 font-medium text-gray-900 dark:text-gray-100">{{ $aflByBillingStatus['values'][$index] }}</span>
+                            </li>
+                        @endforeach
+                    </ul>
+                @endif
+
+                @if ($aflByProject['labels'] !== [])
+                    <div class="mt-4 border-t border-gray-100 pt-4 dark:border-white/10">
+                        <p class="text-xs font-medium text-gray-500 dark:text-gray-400">Projetos</p>
+
+                        <ul class="mt-2 space-y-1.5">
+                            @foreach ($aflByProject['labels'] as $index => $label)
+                                <li class="flex items-center justify-between gap-2 text-sm">
+                                    <span class="min-w-0 truncate text-gray-600 dark:text-gray-300">{{ $label }}</span>
+                                    <span class="shrink-0 font-medium text-gray-900 dark:text-gray-100">{{ $aflByProject['values'][$index] }}</span>
+                                </li>
+                            @endforeach
+                        </ul>
+                    </div>
+                @endif
+            </section>
+        </div>
+
+        @if ($recentAflRecords !== [])
+            <section class="{{ $cardClass }} mt-4">
+                <div class="p-5">
+                    <h2 class="{{ $labelClass }}">Últimos registros AFL</h2>
+                </div>
+
+                <div class="w-full overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-100 text-sm dark:divide-white/10">
+                        <thead class="bg-gray-50/80 text-left text-[11px] font-semibold uppercase tracking-[0.12em] text-gray-400 dark:bg-white/[0.03] dark:text-gray-500">
+                            <tr>
+                                <th class="px-5 py-3 font-semibold">Código</th>
+                                <th class="px-5 py-3 font-semibold">Projeto</th>
+                                <th class="px-5 py-3 font-semibold">Site A / B</th>
+                                <th class="px-5 py-3 font-semibold">Supervisor</th>
+                                <th class="px-5 py-3 font-semibold">Status geral</th>
+                                <th class="px-5 py-3 font-semibold">Faturamento</th>
+                                <th class="px-5 py-3 font-semibold">Versões</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-100 dark:divide-white/10">
+                            @foreach ($recentAflRecords as $record)
+                                <tr class="hover:bg-gray-50/70 dark:hover:bg-white/[0.03]">
+                                    <td class="whitespace-nowrap px-5 py-3 font-mono text-xs text-gray-900 dark:text-gray-100">{{ $record['code'] }}</td>
+                                    <td class="whitespace-nowrap px-5 py-3 text-gray-600 dark:text-gray-300">{{ $record['project'] ?: '—' }}</td>
+                                    <td class="whitespace-nowrap px-5 py-3 font-mono text-xs text-gray-600 dark:text-gray-300">
+                                        {{ $record['site_a'] ?: '—' }} / {{ $record['site_b'] ?: '—' }}
+                                    </td>
+                                    <td class="whitespace-nowrap px-5 py-3 text-gray-600 dark:text-gray-300">{{ $record['supervisor'] ?: '—' }}</td>
+                                    <td class="whitespace-nowrap px-5 py-3 text-gray-600 dark:text-gray-300">{{ $record['general_status'] ?: '—' }}</td>
+                                    <td class="whitespace-nowrap px-5 py-3 text-gray-600 dark:text-gray-300">{{ $record['billing_status'] ?: '—' }}</td>
+                                    <td class="whitespace-nowrap px-5 py-3">
+                                        <x-ui.badge :tone="$record['versions'] > 1 ? 'indigo' : 'gray'">{{ $record['versions'] }}</x-ui.badge>
+                                    </td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        @endif
+
+        @if ($aflChanges !== [])
+            <section class="{{ $cardClass }} mt-4">
+                <div class="p-5">
+                    <h2 class="{{ $labelClass }}">Histórico de alterações AFL</h2>
+                    <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Novas versões gravadas nas reimportações, da mais recente para a mais antiga.</p>
+                </div>
+
+                <div class="w-full overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-100 text-sm dark:divide-white/10">
+                        <thead class="bg-gray-50/80 text-left text-[11px] font-semibold uppercase tracking-[0.12em] text-gray-400 dark:bg-white/[0.03] dark:text-gray-500">
+                            <tr>
+                                <th class="px-5 py-3 font-semibold">Importado em</th>
+                                <th class="px-5 py-3 font-semibold">Código</th>
+                                <th class="px-5 py-3 font-semibold">Status geral</th>
+                                <th class="px-5 py-3 font-semibold">Faturamento</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-100 dark:divide-white/10">
+                            @foreach ($aflChanges as $change)
+                                <tr class="hover:bg-gray-50/70 dark:hover:bg-white/[0.03]">
+                                    <td class="whitespace-nowrap px-5 py-3 text-gray-600 dark:text-gray-300">{{ $change['imported_at'] ?: '—' }}</td>
+                                    <td class="whitespace-nowrap px-5 py-3 font-mono text-xs text-gray-900 dark:text-gray-100">{{ $change['code'] }}</td>
+                                    <td class="px-5 py-3 text-gray-600 dark:text-gray-300">{{ $change['general_status'] ?: '—' }}</td>
+                                    <td class="px-5 py-3 text-gray-600 dark:text-gray-300">{{ $change['billing_status'] ?: '—' }}</td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        @endif
+    @endif
+
     @if ($snapshots !== [])
         <section class="{{ $cardClass }} mt-4">
             <div class="p-5">
@@ -473,6 +633,7 @@
             const formStatuses = @json($formStatuses);
             const snapshotSeries = @json($snapshotSeries);
             const recordsByStage = @json($recordsByStage);
+            const aflByStatus = @json($aflByStatus);
 
             const isDark = document.documentElement.classList.contains('dark');
             const labelColor = isDark ? '#d1d5db' : '#6b7280';
@@ -627,6 +788,36 @@
                                         callback(value) {
                                             const label = this.getLabelForValue(value);
                                             return label.length > 24 ? label.slice(0, 24) + '…' : label;
+                                        },
+                                    },
+                                },
+                            },
+                        },
+                    });
+                }
+
+                const aflStatus = document.getElementById('analytics-afl-status');
+
+                if (aflStatus) {
+                    new Chart(aflStatus, {
+                        type: 'bar',
+                        data: {
+                            labels: aflByStatus.labels,
+                            datasets: [{ data: aflByStatus.values, backgroundColor: '#f43f5e', borderRadius: 6, maxBarThickness: 32 }],
+                        },
+                        options: {
+                            indexAxis: 'y',
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: { legend: { display: false } },
+                            scales: {
+                                x: { beginAtZero: true, ticks: { precision: 0 } },
+                                y: {
+                                    ticks: {
+                                        autoSkip: false,
+                                        callback(value) {
+                                            const label = this.getLabelForValue(value);
+                                            return label.length > 26 ? label.slice(0, 26) + '…' : label;
                                         },
                                     },
                                 },

@@ -20,6 +20,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Schema;
+use Plugins\Analytics\Models\AnalyticsAflRecord;
 use Plugins\Analytics\Models\AnalyticsRecord;
 use Plugins\Analytics\Models\AnalyticsSnapshot;
 
@@ -58,6 +59,8 @@ class AnalyticsMetrics
     private ?array $bucketKeys = null;
 
     private ?bool $hasRecordsTable = null;
+
+    private ?bool $hasAflTable = null;
 
     public function __construct(
         public readonly CarbonImmutable $from,
@@ -533,6 +536,191 @@ class AnalyticsMetrics
     private function hasRecordsTable(): bool
     {
         return $this->hasRecordsTable ??= Schema::hasTable('analytics_records');
+    }
+
+    /**
+     * The imported AFL indicators.
+     *
+     * @return array{total: int, in_period: int, versions: int}|null
+     */
+    public function aflSummary(): ?array
+    {
+        if (! $this->hasAflTable()) {
+            return null;
+        }
+
+        $query = $this->latestAflRecords();
+
+        return [
+            'total' => (clone $query)->count(),
+            'in_period' => (clone $query)
+                ->whereBetween('created_on', [$this->from->toDateString(), $this->to->toDateString()])
+                ->count(),
+            'versions' => AnalyticsAflRecord::query()
+                ->when($this->user !== null, fn (Builder $inner) => $inner->where('user_id', $this->user->getKey()))
+                ->count(),
+        ];
+    }
+
+    /**
+     * The AFL records grouped by general status.
+     *
+     * @return array{labels: list<string>, values: list<int>}
+     */
+    public function aflByStatus(): array
+    {
+        return $this->aflBreakdown('general_status');
+    }
+
+    /**
+     * The AFL records grouped by billing status.
+     *
+     * @return array{labels: list<string>, values: list<int>}
+     */
+    public function aflByBillingStatus(): array
+    {
+        return $this->aflBreakdown('billing_status');
+    }
+
+    /**
+     * The AFL records grouped by project.
+     *
+     * @return array{labels: list<string>, values: list<int>}
+     */
+    public function aflByProject(): array
+    {
+        return $this->aflBreakdown('project');
+    }
+
+    /**
+     * The latest AFL records for the current scope.
+     *
+     * @return list<array<string, mixed>>
+     */
+    public function recentAflRecords(int $limit = 8): array
+    {
+        if (! $this->hasAflTable()) {
+            return [];
+        }
+
+        $records = $this->latestAflRecords()
+            ->orderByDesc('created_on')
+            ->orderByDesc('id')
+            ->limit($limit)
+            ->get();
+
+        $counts = $this->aflVersionCounts($records);
+
+        return $records
+            ->map(fn (AnalyticsAflRecord $record): array => [
+                'code' => $record->code,
+                'project' => $record->project,
+                'site_a' => $record->site_id_a,
+                'site_b' => $record->site_id_b,
+                'supervisor' => $record->supervisor,
+                'general_status' => $record->general_status,
+                'billing_status' => $record->billing_status,
+                'created_on' => $record->created_on?->format('d/m/Y'),
+                'versions' => $counts[$record->code] ?? 1,
+            ])
+            ->all();
+    }
+
+    /**
+     * The latest AFL changes, newest first.
+     *
+     * @return list<array<string, mixed>>
+     */
+    public function recentAflChanges(int $limit = 8): array
+    {
+        if (! $this->hasAflTable()) {
+            return [];
+        }
+
+        $firstIds = AnalyticsAflRecord::query()
+            ->selectRaw('MIN(id)')
+            ->when($this->user !== null, fn (Builder $query) => $query->where('user_id', $this->user->getKey()))
+            ->groupBy('code');
+
+        return AnalyticsAflRecord::query()
+            ->whereNotIn('id', $firstIds)
+            ->when($this->user !== null, fn (Builder $query) => $query->where('user_id', $this->user->getKey()))
+            ->orderByDesc('id')
+            ->limit($limit)
+            ->get()
+            ->map(fn (AnalyticsAflRecord $record): array => [
+                'code' => $record->code,
+                'general_status' => $record->general_status,
+                'billing_status' => $record->billing_status,
+                'imported_at' => $record->created_at?->format('d/m/Y H:i'),
+            ])
+            ->all();
+    }
+
+    /**
+     * The latest recorded version of every AFL code.
+     *
+     * @return Builder<AnalyticsAflRecord>
+     */
+    private function latestAflRecords(): Builder
+    {
+        $latestIds = AnalyticsAflRecord::query()
+            ->selectRaw('MAX(id)')
+            ->when($this->user !== null, fn (Builder $query) => $query->where('user_id', $this->user->getKey()))
+            ->groupBy('code');
+
+        return AnalyticsAflRecord::query()->whereIn('id', $latestIds);
+    }
+
+    /**
+     * @return array{labels: list<string>, values: list<int>}
+     */
+    private function aflBreakdown(string $column): array
+    {
+        if (! $this->hasAflTable()) {
+            return ['labels' => [], 'values' => []];
+        }
+
+        $rows = $this->latestAflRecords()
+            ->whereNotNull($column)
+            ->where($column, '!=', '')
+            ->selectRaw("{$column} as label, count(*) as total")
+            ->groupBy($column)
+            ->orderByDesc('total')
+            ->limit((int) config('analytics.ranking_limit', 6))
+            ->get();
+
+        return [
+            'labels' => $rows->pluck('label')->map(fn ($label): string => (string) $label)->all(),
+            'values' => $rows->pluck('total')->map(fn ($total): int => (int) $total)->all(),
+        ];
+    }
+
+    /**
+     * @param  Collection<int, AnalyticsAflRecord>  $records
+     * @return array<string, int>
+     */
+    private function aflVersionCounts($records): array
+    {
+        if ($records->isEmpty()) {
+            return [];
+        }
+
+        $counts = AnalyticsAflRecord::query()
+            ->when($this->user !== null, fn (Builder $query) => $query->where('user_id', $this->user->getKey()))
+            ->whereIn('code', $records->pluck('code')->all())
+            ->selectRaw('code, count(*) as total')
+            ->groupBy('code')
+            ->get();
+
+        return $counts
+            ->mapWithKeys(fn ($row): array => [(string) $row->code => (int) $row->total])
+            ->all();
+    }
+
+    private function hasAflTable(): bool
+    {
+        return $this->hasAflTable ??= Schema::hasTable('analytics_afl_records');
     }
 
     /**
