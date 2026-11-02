@@ -1,4 +1,4 @@
-@if (auth()->user()->hasModule(\App\Enums\AdminModule::WorkOrders->value))
+@if (auth()->user()->hasModule(\App\Enums\AdminModule::WorkOrders->value) && \Illuminate\Support\Facades\Route::has('admin.work-orders.create'))
     <a
         href="{{ route('admin.work-orders.create') }}"
         class="group relative mb-3 inline-flex h-10 items-center rounded-xl border border-gray-300 bg-white text-gray-700 transition hover:border-gray-900 hover:text-gray-900 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:hover:border-white dark:hover:text-white"
