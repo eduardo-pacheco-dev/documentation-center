@@ -23,11 +23,12 @@ it('requires authentication to access stations', function () {
     $this->get('/admin/stations')->assertRedirect('/login');
 });
 
-it('shows the stations module in the sidebar when the plugin is enabled', function () {
+it('shows the stations module alongside the other modules in the sidebar', function () {
     $this->actingAs(User::factory()->admin()->create())
         ->get('/admin')
         ->assertOk()
-        ->assertSee('data-module="stations"', false);
+        ->assertSee('data-module="stations"', false)
+        ->assertSeeInOrder(['data-module="erbs"', 'data-module="stations"'], false);
 });
 
 it('lists only the stations owned by the authenticated user', function () {
