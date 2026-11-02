@@ -9,6 +9,7 @@ use App\Plugins\PluginInstaller;
 use App\Plugins\PluginRepository;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Str;
@@ -128,6 +129,8 @@ it('hides the plugins section from regular users', function () {
 });
 
 it('allows administrators to enable and disable a plugin', function () {
+    Artisan::spy();
+
     $user = User::factory()->admin()->create();
 
     $this->actingAs($user)
@@ -142,6 +145,8 @@ it('allows administrators to enable and disable a plugin', function () {
         ->assertRedirect();
 
     expect(json_decode(File::get($this->statusesPath), true))->toBe(['example' => false]);
+
+    Artisan::shouldHaveReceived('call')->with('route:clear')->twice();
 });
 
 it('validates the enabled field when toggling a plugin', function () {

@@ -14,6 +14,22 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
+use Plugins\Agenda\Models\AgendaCalendar;
+use Plugins\Agenda\Models\AgendaEvent;
+use Plugins\Backups\Models\Backup;
+use Plugins\Catalog\Models\CatalogItem;
+use Plugins\Clients\Models\Client;
+use Plugins\Colaboradores\Models\Colaborador;
+use Plugins\Equipments\Models\Equipment;
+use Plugins\Erbs\Models\Erb;
+use Plugins\Files\Models\Document;
+use Plugins\Files\Models\Folder;
+use Plugins\Forms\Models\Form;
+use Plugins\Projects\Models\Project;
+use Plugins\RadioLinks\Models\RadioLink;
+use Plugins\Tasks\Models\TodoList;
+use Plugins\Tasks\Models\TodoTask;
+use Plugins\WorkOrders\Models\WorkOrder;
 
 #[Fillable(['name', 'surname', 'email', 'password', 'theme', 'enabled_modules', 'form_settings'])]
 #[Hidden(['password', 'remember_token'])]

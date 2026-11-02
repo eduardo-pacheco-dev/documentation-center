@@ -1,9 +1,9 @@
 <?php
 
-use App\Models\Form;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
+use Plugins\Forms\Models\Form;
 
 uses(RefreshDatabase::class);
 

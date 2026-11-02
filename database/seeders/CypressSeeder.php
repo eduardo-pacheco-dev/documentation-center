@@ -2,24 +2,24 @@
 
 namespace Database\Seeders;
 
-use App\Enums\AgendaColor;
-use App\Enums\WorkOrderStatus;
-use App\Models\AgendaCalendar;
-use App\Models\AgendaCalendarShare;
-use App\Models\AgendaEvent;
-use App\Models\CatalogItem;
-use App\Models\Client;
-use App\Models\Colaborador;
-use App\Models\Document;
-use App\Models\Erb;
-use App\Models\Form;
-use App\Models\Project;
-use App\Models\RadioLink;
-use App\Models\ShortLink;
 use App\Models\User;
-use App\Models\WorkOrder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Seeder;
+use Plugins\Agenda\Enums\AgendaColor;
+use Plugins\Agenda\Models\AgendaCalendar;
+use Plugins\Agenda\Models\AgendaCalendarShare;
+use Plugins\Agenda\Models\AgendaEvent;
+use Plugins\Catalog\Models\CatalogItem;
+use Plugins\Clients\Models\Client;
+use Plugins\Colaboradores\Models\Colaborador;
+use Plugins\Erbs\Models\Erb;
+use Plugins\Files\Models\Document;
+use Plugins\Forms\Models\Form;
+use Plugins\Links\Models\ShortLink;
+use Plugins\Projects\Models\Project;
+use Plugins\RadioLinks\Models\RadioLink;
+use Plugins\WorkOrders\Enums\WorkOrderStatus;
+use Plugins\WorkOrders\Models\WorkOrder;
 
 /**
  * Deterministic fixtures used by the Cypress end-to-end suite.

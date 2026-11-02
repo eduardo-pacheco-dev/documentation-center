@@ -2,11 +2,11 @@
 
 namespace App\Http\Requests;
 
-use App\Models\Folder;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
+use Plugins\Files\Models\Folder;
 
 class UpdateFolderRequest extends FormRequest
 {

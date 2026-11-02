@@ -1,11 +1,11 @@
 <?php
 
-use App\Enums\WorkOrderStatus;
-use App\Models\Erb;
 use App\Models\User;
-use App\Models\WorkOrder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
+use Plugins\Erbs\Models\Erb;
+use Plugins\WorkOrders\Enums\WorkOrderStatus;
+use Plugins\WorkOrders\Models\WorkOrder;
 
 uses(RefreshDatabase::class);
 

@@ -1,0 +1,24 @@
+{
+    "name": "Agenda",
+    "alias": "agenda",
+    "description": "Agenda com calendários, eventos, participantes, lembretes, recorrências e importação/exportação ICS.",
+    "version": "1.0.0",
+    "icon": "calendar-days",
+    "active": true,
+    "priority": 24,
+    "providers": [
+        "Plugins\\Agenda\\Providers\\AgendaServiceProvider"
+    ],
+    "navigation": [
+        {
+            "label": "Agenda",
+            "route": "admin.agenda.index",
+            "icon": "calendar-days",
+            "primary": false,
+            "module": "agenda"
+        }
+    ],
+    "aliases": [],
+    "files": [],
+    "requires": []
+}

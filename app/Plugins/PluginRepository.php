@@ -100,6 +100,25 @@ class PluginRepository
     }
 
     /**
+     * The admin module keys declared by every plugin, enabled or not.
+     *
+     * The core navigation skips these modules so the plugin navigation is the
+     * single source of truth and respects the plugin enabled state.
+     *
+     * @return list<string>
+     */
+    public function modules(): array
+    {
+        return $this->all()
+            ->flatMap(fn (Plugin $plugin): array => $plugin->navigation())
+            ->pluck('module')
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
+    }
+
+    /**
      * The scanned paths.
      *
      * @return list<string>

@@ -44,6 +44,7 @@ class PluginDisableCommand extends Command
         $plugin->disable();
 
         $plugins->clear();
+        $this->callSilently('route:clear');
 
         $this->components->info("Plugin [{$plugin->getAlias()}] disabled.");
 

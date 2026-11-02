@@ -22,7 +22,7 @@
 
             <x-dashboard.notifications-menu />
 
-            @if (auth()->user()->hasModule(\App\Enums\AdminModule::WorkOrders->value))
+            @if (auth()->user()->hasModule(\App\Enums\AdminModule::WorkOrders->value) && \Illuminate\Support\Facades\Route::has('admin.work-orders.create'))
                 <a
                     href="{{ route('admin.work-orders.create') }}"
                     class="hidden h-9 items-center gap-1.5 rounded-xl bg-gray-900 px-3.5 text-sm font-semibold text-white shadow-sm transition hover:bg-gray-800 sm:inline-flex dark:bg-white dark:text-gray-900 dark:hover:bg-gray-200"

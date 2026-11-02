@@ -1,6 +1,6 @@
 @php
-    use App\Enums\TodoColor;
-    use App\Enums\TodoIcon;
+    use Plugins\Tasks\Enums\TodoColor;
+    use Plugins\Tasks\Enums\TodoIcon;
 
     $label = 'block text-sm font-medium text-gray-700 dark:text-gray-300';
     $input = 'mt-1 w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 transition focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 dark:border-gray-700 dark:bg-white/[0.03] dark:text-gray-200';

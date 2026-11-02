@@ -41,7 +41,7 @@
             <div>
                 <label for="task-detail-repeat" class="{{ $fieldLabel }}">Repetição</label>
                 <select id="task-detail-repeat" data-task-repeat name="repeat_type" class="{{ $fieldInput }}">
-                    @foreach (App\Enums\TodoRepeat::cases() as $repeat)
+                    @foreach (Plugins\Tasks\Enums\TodoRepeat::cases() as $repeat)
                         <option value="{{ $repeat->value }}">{{ $repeat->label() }}</option>
                     @endforeach
                 </select>

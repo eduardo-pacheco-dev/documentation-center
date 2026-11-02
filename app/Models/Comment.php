@@ -8,6 +8,10 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Plugins\Erbs\Models\Erb;
+use Plugins\Files\Models\Document;
+use Plugins\RadioLinks\Models\RadioLink;
+use Plugins\WorkOrders\Models\WorkOrder;
 
 #[Fillable([
     'user_id',

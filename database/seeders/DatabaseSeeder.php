@@ -5,6 +5,20 @@ namespace Database\Seeders;
 use App\Models\User;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
+use Plugins\Agenda\Database\Seeders\AgendaSeeder;
+use Plugins\Catalog\Database\Seeders\CatalogItemSeeder;
+use Plugins\Clients\Database\Seeders\ClientSeeder;
+use Plugins\Colaboradores\Database\Seeders\ColaboradorSeeder;
+use Plugins\Equipments\Database\Seeders\EquipmentSeeder;
+use Plugins\Erbs\Database\Seeders\ErbSeeder;
+use Plugins\Forms\Database\Seeders\FormResponseSeeder;
+use Plugins\Forms\Database\Seeders\FormSeeder;
+use Plugins\Links\Database\Seeders\ShortLinkSeeder;
+use Plugins\Projects\Database\Seeders\ProjectSeeder;
+use Plugins\RadioLinks\Database\Seeders\RadioLinkSeeder;
+use Plugins\Tasks\Database\Seeders\TodoSeeder;
+use Plugins\Templates\Database\Seeders\FormTemplateSeeder;
+use Plugins\WorkOrders\Database\Seeders\WorkOrderSeeder;
 
 class DatabaseSeeder extends Seeder
 {
