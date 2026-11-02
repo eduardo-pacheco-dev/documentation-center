@@ -4,7 +4,9 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\UploadPluginRequest;
 use App\Plugins\Exceptions\PluginInstallException;
+use App\Plugins\Exceptions\PluginRemovalException;
 use App\Plugins\PluginInstaller;
+use App\Plugins\PluginRemover;
 use App\Plugins\PluginRepository;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -14,6 +16,7 @@ class PluginController extends Controller
     public function __construct(
         private readonly PluginRepository $plugins,
         private readonly PluginInstaller $installer,
+        private readonly PluginRemover $remover,
     ) {}
 
     /**
@@ -63,5 +66,21 @@ class PluginController extends Controller
                 $validated['enabled'] ? 'habilitado' : 'desabilitado',
             ),
         );
+    }
+
+    /**
+     * Remove the given plugin and delete its files.
+     */
+    public function destroy(string $alias): RedirectResponse
+    {
+        $plugin = $this->plugins->findOrFail($alias);
+
+        try {
+            $this->remover->remove($plugin->getAlias());
+        } catch (PluginRemovalException $exception) {
+            return back()->withErrors(['plugin' => $exception->getMessage()]);
+        }
+
+        return back()->with('status', sprintf('Plugin %s removido.', $plugin->getName()));
     }
 }

@@ -111,17 +111,38 @@
                                     @endif
                                 </td>
 
-                                <td class="whitespace-nowrap px-4 py-3 text-right">
-                                    <form method="POST" action="{{ route('settings.plugins.update', ['alias' => $plugin->getAlias()]) }}">
-                                        @csrf
-                                        @method('PATCH')
-                                        <input type="hidden" name="enabled" value="{{ $plugin->enabled() ? 0 : 1 }}">
+                                <td class="whitespace-nowrap px-4 py-3">
+                                    <div class="flex flex-wrap items-center justify-end gap-2">
+                                        <form method="POST" action="{{ route('settings.plugins.update', ['alias' => $plugin->getAlias()]) }}">
+                                            @csrf
+                                            @method('PATCH')
+                                            <input type="hidden" name="enabled" value="{{ $plugin->enabled() ? 0 : 1 }}">
 
-                                        <button type="submit" class="{{ $primaryButton }}">
-                                            <x-icon :name="$plugin->enabled() ? 'x-circle' : 'play'" class="h-4 w-4" />
-                                            {{ $plugin->enabled() ? 'Desabilitar' : 'Habilitar' }}
-                                        </button>
-                                    </form>
+                                            <button type="submit" class="{{ $primaryButton }}">
+                                                <x-icon :name="$plugin->enabled() ? 'x-circle' : 'play'" class="h-4 w-4" />
+                                                {{ $plugin->enabled() ? 'Desabilitar' : 'Habilitar' }}
+                                            </button>
+                                        </form>
+
+                                        <form
+                                            method="POST"
+                                            action="{{ route('settings.plugins.destroy', ['alias' => $plugin->getAlias()]) }}"
+                                            data-confirm="Remover o plugin {{ $plugin->getName() }}? Os arquivos em plugins/ serão apagados e essa ação não pode ser desfeita."
+                                            data-confirm-title="Remover plugin"
+                                            data-confirm-label="Remover"
+                                        >
+                                            @csrf
+                                            @method('DELETE')
+
+                                            <button
+                                                type="submit"
+                                                class="inline-flex items-center justify-center gap-1.5 rounded-xl border border-red-200 bg-white px-3 py-2 text-sm font-semibold text-red-600 shadow-sm transition hover:border-red-300 hover:bg-red-50 dark:border-red-900 dark:bg-gray-900 dark:text-red-400 dark:hover:bg-red-950/40"
+                                            >
+                                                <x-icon name="trash" class="h-4 w-4" />
+                                                Remover
+                                            </button>
+                                        </form>
+                                    </div>
                                 </td>
                             </tr>
                         @endforeach

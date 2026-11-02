@@ -135,6 +135,7 @@ Route::middleware('auth')->group(function () {
     Route::middleware('admin')->group(function () {
         Route::post('settings/plugins', [PluginController::class, 'store'])->name('settings.plugins.store');
         Route::patch('settings/plugins/{alias}', [PluginController::class, 'update'])->name('settings.plugins.update');
+        Route::delete('settings/plugins/{alias}', [PluginController::class, 'destroy'])->name('settings.plugins.destroy');
     });
 });
 

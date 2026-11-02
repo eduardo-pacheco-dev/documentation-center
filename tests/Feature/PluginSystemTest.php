@@ -369,3 +369,84 @@ function pluginManifestJson(string $alias, array $overrides = []): string
         ...$overrides,
     ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
 }
+
+it('removes a plugin and its files', function () {
+    $pluginsPath = storage_path('framework/testing/plugins_'.Str::random(8));
+
+    config(['plugins.paths.plugins' => $pluginsPath]);
+    app()->forgetInstance(PluginRepository::class);
+
+    $pluginPath = pluginDirectory($pluginsPath, 'removable-plugin');
+
+    app(PluginRepository::class)->findOrFail('removable-plugin')->enable();
+
+    $this->actingAs(User::factory()->admin()->create())
+        ->delete('/settings/plugins/removable-plugin')
+        ->assertRedirect()
+        ->assertSessionHas('status');
+
+    expect($pluginPath)->not->toBeDirectory()
+        ->and(json_decode(File::get($this->statusesPath), true))->toBe([])
+        ->and(app(PluginRepository::class)->has('removable-plugin'))->toBeFalse();
+
+    File::deleteDirectory($pluginsPath);
+});
+
+it('removes a plugin through the artisan command', function () {
+    $pluginsPath = storage_path('framework/testing/plugins_'.Str::random(8));
+
+    config(['plugins.paths.plugins' => $pluginsPath]);
+    app()->forgetInstance(PluginRepository::class);
+
+    $pluginPath = pluginDirectory($pluginsPath, 'cli-removable');
+
+    $this->artisan('plugin:remove', ['alias' => 'cli-removable', '--force' => true])
+        ->expectsOutputToContain('cli-removable')
+        ->assertSuccessful();
+
+    expect($pluginPath)->not->toBeDirectory();
+
+    File::deleteDirectory($pluginsPath);
+});
+
+it('asks for confirmation before removing a plugin through the artisan command', function () {
+    $pluginsPath = storage_path('framework/testing/plugins_'.Str::random(8));
+
+    config(['plugins.paths.plugins' => $pluginsPath]);
+    app()->forgetInstance(PluginRepository::class);
+
+    $pluginPath = pluginDirectory($pluginsPath, 'kept-plugin');
+
+    $this->artisan('plugin:remove', ['alias' => 'kept-plugin'])
+        ->expectsConfirmation('Remove plugin [kept-plugin]? Its files will be deleted.', 'no')
+        ->assertSuccessful();
+
+    expect($pluginPath)->toBeDirectory();
+
+    File::deleteDirectory($pluginsPath);
+});
+
+it('requires an administrator to remove plugins', function () {
+    $this->actingAs(User::factory()->create())
+        ->delete('/settings/plugins/example')
+        ->assertForbidden();
+});
+
+it('returns not found when removing an unknown plugin', function () {
+    $this->actingAs(User::factory()->admin()->create())
+        ->delete('/settings/plugins/missing-plugin')
+        ->assertNotFound();
+});
+
+/**
+ * Create a minimal plugin directory in the given plugins path.
+ */
+function pluginDirectory(string $pluginsPath, string $alias): string
+{
+    $directory = rtrim($pluginsPath, '/').'/'.Str::studly($alias);
+
+    File::ensureDirectoryExists($directory);
+    File::put($directory.'/plugin.json', pluginManifestJson($alias));
+
+    return $directory;
+}
