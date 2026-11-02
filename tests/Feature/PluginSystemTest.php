@@ -111,27 +111,34 @@ it('fails when enabling an unknown plugin through the artisan command', function
         ->assertFailed();
 });
 
-it('shows the plugins page to administrators', function () {
+it('shows the plugins section inside the settings page for administrators', function () {
     $this->actingAs(User::factory()->admin()->create())
-        ->get('/admin/plugins')
+        ->get('/settings')
         ->assertOk()
-        ->assertSee('Plugins')
+        ->assertSee('Instalar plugin via ZIP')
         ->assertSee('Example')
         ->assertSee('1.0.0');
+});
+
+it('hides the plugins section from regular users', function () {
+    $this->actingAs(User::factory()->create())
+        ->get('/settings')
+        ->assertOk()
+        ->assertDontSee('Instalar plugin via ZIP');
 });
 
 it('allows administrators to enable and disable a plugin', function () {
     $user = User::factory()->admin()->create();
 
     $this->actingAs($user)
-        ->patch('/admin/plugins/example', ['enabled' => 1])
+        ->patch('/settings/plugins/example', ['enabled' => 1])
         ->assertRedirect()
         ->assertSessionHas('status');
 
     expect(json_decode(File::get($this->statusesPath), true))->toBe(['example' => true]);
 
     $this->actingAs($user)
-        ->patch('/admin/plugins/example', ['enabled' => 0])
+        ->patch('/settings/plugins/example', ['enabled' => 0])
         ->assertRedirect();
 
     expect(json_decode(File::get($this->statusesPath), true))->toBe(['example' => false]);
@@ -139,27 +146,29 @@ it('allows administrators to enable and disable a plugin', function () {
 
 it('validates the enabled field when toggling a plugin', function () {
     $this->actingAs(User::factory()->admin()->create())
-        ->patch('/admin/plugins/example', [])
+        ->patch('/settings/plugins/example', [])
         ->assertSessionHasErrors('enabled');
 });
 
 it('requires an administrator to manage plugins', function () {
     $this->actingAs(User::factory()->create())
-        ->get('/admin/plugins')
+        ->post('/settings/plugins', [
+            'file' => UploadedFile::fake()->create('plugin.zip', 8, 'application/zip'),
+        ])
         ->assertForbidden();
 
     $this->actingAs(User::factory()->create())
-        ->patch('/admin/plugins/example', ['enabled' => 1])
+        ->patch('/settings/plugins/example', ['enabled' => 1])
         ->assertForbidden();
 });
 
 it('requires authentication to manage plugins', function () {
-    $this->get('/admin/plugins')->assertRedirect('/login');
+    $this->patch('/settings/plugins/example', ['enabled' => 1])->assertRedirect('/login');
 });
 
 it('returns not found for unknown plugin aliases', function () {
     $this->actingAs(User::factory()->admin()->create())
-        ->patch('/admin/plugins/missing-plugin', ['enabled' => 1])
+        ->patch('/settings/plugins/missing-plugin', ['enabled' => 1])
         ->assertNotFound();
 });
 
@@ -283,7 +292,7 @@ it('installs a plugin through the admin upload form', function () {
     $archive = pluginArchive(['plugin.json' => pluginManifestJson('form-plugin')]);
 
     $this->actingAs(User::factory()->admin()->create())
-        ->post('/admin/plugins', [
+        ->post('/settings/plugins', [
             'file' => new UploadedFile($archive, 'plugin.zip', 'application/zip', null, true),
         ])
         ->assertRedirect()
@@ -298,18 +307,10 @@ it('installs a plugin through the admin upload form', function () {
 
 it('validates the uploaded plugin archive', function () {
     $this->actingAs(User::factory()->admin()->create())
-        ->post('/admin/plugins', [
+        ->post('/settings/plugins', [
             'file' => UploadedFile::fake()->create('plugin.txt', 8, 'text/plain'),
         ])
         ->assertSessionHasErrors('file');
-});
-
-it('requires an administrator to upload plugins', function () {
-    $this->actingAs(User::factory()->create())
-        ->post('/admin/plugins', [
-            'file' => UploadedFile::fake()->create('plugin.zip', 8, 'application/zip'),
-        ])
-        ->assertForbidden();
 });
 
 it('installs a plugin through the artisan command', function () {

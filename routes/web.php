@@ -27,7 +27,6 @@ use App\Http\Controllers\Admin\FormController;
 use App\Http\Controllers\Admin\FormEvaluationController;
 use App\Http\Controllers\Admin\FormSettingsController;
 use App\Http\Controllers\Admin\FormTemplateController;
-use App\Http\Controllers\Admin\PluginController;
 use App\Http\Controllers\Admin\ProjectAssignmentController;
 use App\Http\Controllers\Admin\ProjectBaselineController;
 use App\Http\Controllers\Admin\ProjectController;
@@ -55,6 +54,7 @@ use App\Http\Controllers\Admin\WorkOrderItemDocumentController;
 use App\Http\Controllers\Admin\WorkOrderProjectController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\RegisteredUserController;
+use App\Http\Controllers\PluginController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\Public\FormFillController;
 use App\Http\Controllers\Public\LinkController;
@@ -131,6 +131,11 @@ Route::middleware('auth')->group(function () {
     Route::put('settings/modules', [SettingsController::class, 'updateModules'])->name('settings.modules.update');
     Route::put('settings/password', [SettingsController::class, 'updatePassword'])->name('settings.password.update');
     Route::delete('settings/account', [SettingsController::class, 'destroy'])->name('settings.account.destroy');
+
+    Route::middleware('admin')->group(function () {
+        Route::post('settings/plugins', [PluginController::class, 'store'])->name('settings.plugins.store');
+        Route::patch('settings/plugins/{alias}', [PluginController::class, 'update'])->name('settings.plugins.update');
+    });
 });
 
 /*
@@ -398,9 +403,5 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
 
         Route::resource('users', UserController::class)->only(['index', 'store', 'update', 'destroy']);
         Route::patch('users/{user}/toggle', [UserController::class, 'toggle'])->name('users.toggle');
-
-        Route::get('plugins', [PluginController::class, 'index'])->name('plugins.index');
-        Route::post('plugins', [PluginController::class, 'store'])->name('plugins.store');
-        Route::patch('plugins/{alias}', [PluginController::class, 'update'])->name('plugins.update');
     });
 });

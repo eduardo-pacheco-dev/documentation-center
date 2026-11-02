@@ -1,16 +1,13 @@
 <?php
 
-namespace App\Http\Controllers\Admin;
+namespace App\Http\Controllers;
 
-use App\Http\Controllers\Controller;
-use App\Http\Requests\Admin\UploadPluginRequest;
+use App\Http\Requests\UploadPluginRequest;
 use App\Plugins\Exceptions\PluginInstallException;
-use App\Plugins\Plugin;
 use App\Plugins\PluginInstaller;
 use App\Plugins\PluginRepository;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\View\View;
 
 class PluginController extends Controller
 {
@@ -18,23 +15,6 @@ class PluginController extends Controller
         private readonly PluginRepository $plugins,
         private readonly PluginInstaller $installer,
     ) {}
-
-    /**
-     * List every discovered plugin and its status.
-     */
-    public function index(): View
-    {
-        $plugins = $this->plugins->all();
-
-        return view('admin.plugins.index', [
-            'plugins' => $plugins,
-            'stats' => [
-                'total' => $plugins->count(),
-                'enabled' => $plugins->filter(fn (Plugin $plugin): bool => $plugin->enabled())->count(),
-                'disabled' => $plugins->filter(fn (Plugin $plugin): bool => $plugin->disabled())->count(),
-            ],
-        ]);
-    }
 
     /**
      * Install a plugin from an uploaded ZIP archive.

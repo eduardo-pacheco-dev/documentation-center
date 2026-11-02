@@ -1,4 +1,14 @@
 <x-layouts.admin title="Configurações">
+    @php
+        $sections = ['aparencia', 'modulos'];
+
+        if ($user->is_admin) {
+            $sections[] = 'plugins';
+        }
+
+        $sections = [...$sections, 'senha', 'conta'];
+    @endphp
+
     <h1 class="text-xl font-semibold">Configurações</h1>
     <p class="mt-1 text-sm text-gray-500">Gerencie a aparência, a segurança e a sua conta.</p>
 
@@ -7,7 +17,7 @@
             <nav
                 x-data="{
                     active: 'aparencia',
-                    sections: ['aparencia', 'modulos', 'senha', 'conta'],
+                    sections: @js($sections),
                     init() {
                         const hash = window.location.hash.slice(1);
 
@@ -55,6 +65,19 @@
                 >
                     Módulos
                 </a>
+
+                @if ($user->is_admin)
+                    <a
+                        href="#plugins"
+                        @click="active = 'plugins'"
+                        :class="active === 'plugins'
+                            ? 'bg-gray-100 text-gray-900 dark:bg-gray-800 dark:text-white'
+                            : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-gray-100'"
+                        class="whitespace-nowrap rounded-md px-3 py-2 text-sm font-medium"
+                    >
+                        Plugins
+                    </a>
+                @endif
 
                 <a
                     href="#senha"
@@ -232,6 +255,10 @@
                     Salvar módulos
                 </button>
             </form>
+
+            @if ($user->is_admin)
+                @include('settings.partials.plugins')
+            @endif
 
             <form
                 id="senha"
