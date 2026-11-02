@@ -33,6 +33,15 @@
             <x-dashboard.modules-menu :items="$moduleNav" />
         @endif
 
+        @if (auth()->user()?->is_admin)
+            <x-dashboard.sidebar-item
+                :href="route('admin.plugins.index')"
+                icon="cog-6-tooth"
+                label="Plugins"
+                :active="request()->routeIs('admin.plugins.*')"
+            />
+        @endif
+
         <x-dashboard.sidebar-item
             :href="route('settings')"
             icon="adjustments-horizontal"

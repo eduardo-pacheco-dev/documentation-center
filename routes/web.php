@@ -27,6 +27,7 @@ use App\Http\Controllers\Admin\FormController;
 use App\Http\Controllers\Admin\FormEvaluationController;
 use App\Http\Controllers\Admin\FormSettingsController;
 use App\Http\Controllers\Admin\FormTemplateController;
+use App\Http\Controllers\Admin\PluginController;
 use App\Http\Controllers\Admin\ProjectAssignmentController;
 use App\Http\Controllers\Admin\ProjectBaselineController;
 use App\Http\Controllers\Admin\ProjectController;
@@ -397,5 +398,8 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
 
         Route::resource('users', UserController::class)->only(['index', 'store', 'update', 'destroy']);
         Route::patch('users/{user}/toggle', [UserController::class, 'toggle'])->name('users.toggle');
+
+        Route::get('plugins', [PluginController::class, 'index'])->name('plugins.index');
+        Route::patch('plugins/{alias}', [PluginController::class, 'update'])->name('plugins.update');
     });
 });

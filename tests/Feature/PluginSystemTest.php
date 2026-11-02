@@ -1,0 +1,182 @@
+<?php
+
+use App\Models\User;
+use App\Plugins\Exceptions\PluginNotFoundException;
+use App\Plugins\Plugin;
+use App\Plugins\PluginActivator;
+use App\Plugins\PluginRepository;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Str;
+use Plugins\Example\Providers\ExampleServiceProvider;
+
+uses(RefreshDatabase::class);
+
+beforeEach(function () {
+    $this->statusesPath = storage_path('framework/testing/plugin_statuses_'.Str::random(8).'.json');
+
+    config(['plugins.statuses' => $this->statusesPath]);
+
+    app()->forgetInstance(PluginActivator::class);
+    app()->forgetInstance(PluginRepository::class);
+});
+
+afterEach(function () {
+    File::delete($this->statusesPath);
+});
+
+it('discovers the bundled example plugin', function () {
+    $plugin = app(PluginRepository::class)->findOrFail('example');
+
+    expect($plugin)->toBeInstanceOf(Plugin::class)
+        ->and($plugin->getAlias())->toBe('example')
+        ->and($plugin->getVersion())->toBe('1.0.0')
+        ->and($plugin->getName())->toBe('Example')
+        ->and($plugin->getPath())->toBe(base_path('plugins/Example'))
+        ->and($plugin->providers())->toContain(ExampleServiceProvider::class)
+        ->and($plugin->getExtraPath('Routes/web.php'))->toBe(base_path('plugins/Example/Routes/web.php'));
+});
+
+it('normalizes aliases to kebab case', function () {
+    $plugin = app(PluginRepository::class)->findOrFail('Example');
+
+    expect($plugin->getAlias())->toBe('example')
+        ->and($plugin->getStudlyName())->toBe('Example');
+});
+
+it('fails when a plugin does not exist', function () {
+    app(PluginRepository::class)->findOrFail('missing-plugin');
+})->throws(PluginNotFoundException::class);
+
+it('enables and disables plugins through the status file', function () {
+    $plugins = app(PluginRepository::class);
+    $plugin = $plugins->findOrFail('example');
+
+    expect($plugin->disabled())->toBeTrue();
+
+    $plugin->enable();
+
+    expect($plugin->enabled())->toBeTrue()
+        ->and(json_decode(File::get($this->statusesPath), true))->toBe(['example' => true]);
+
+    $plugin->disable();
+
+    expect($plugin->disabled())->toBeTrue()
+        ->and(json_decode(File::get($this->statusesPath), true))->toBe(['example' => false]);
+});
+
+it('legacy manifest active flag is used when there is no stored status', function () {
+    File::put($this->statusesPath, json_encode([]));
+
+    app()->forgetInstance(PluginActivator::class);
+
+    expect(app(PluginRepository::class)->findOrFail('example')->disabled())->toBeTrue();
+});
+
+it('registers the routes and views of an enabled plugin', function () {
+    app(PluginRepository::class)->findOrFail('example')->enable();
+
+    app()->register(ExampleServiceProvider::class);
+
+    expect(Route::has('plugins.example.index'))->toBeTrue();
+
+    $this->get('/plugins/example')
+        ->assertOk()
+        ->assertSee('Example')
+        ->assertSee('Plugin carregado com sucesso.');
+});
+
+it('lists plugins through the artisan command', function () {
+    $this->artisan('plugin:list')
+        ->expectsOutputToContain('example')
+        ->assertSuccessful();
+});
+
+it('enables and disables plugins through the artisan commands', function () {
+    $this->artisan('plugin:enable', ['alias' => 'example'])->assertSuccessful();
+    $this->artisan('plugin:list', ['--only' => 'enabled'])->expectsOutputToContain('example')->assertSuccessful();
+
+    $this->artisan('plugin:disable', ['alias' => 'example'])->assertSuccessful();
+    $this->artisan('plugin:list', ['--only' => 'disabled'])->expectsOutputToContain('example')->assertSuccessful();
+});
+
+it('fails when enabling an unknown plugin through the artisan command', function () {
+    $this->artisan('plugin:enable', ['alias' => 'missing-plugin'])
+        ->expectsOutputToContain('was not found')
+        ->assertFailed();
+});
+
+it('shows the plugins page to administrators', function () {
+    $this->actingAs(User::factory()->admin()->create())
+        ->get('/admin/plugins')
+        ->assertOk()
+        ->assertSee('Plugins')
+        ->assertSee('Example')
+        ->assertSee('1.0.0');
+});
+
+it('allows administrators to enable and disable a plugin', function () {
+    $user = User::factory()->admin()->create();
+
+    $this->actingAs($user)
+        ->patch('/admin/plugins/example', ['enabled' => 1])
+        ->assertRedirect()
+        ->assertSessionHas('status');
+
+    expect(json_decode(File::get($this->statusesPath), true))->toBe(['example' => true]);
+
+    $this->actingAs($user)
+        ->patch('/admin/plugins/example', ['enabled' => 0])
+        ->assertRedirect();
+
+    expect(json_decode(File::get($this->statusesPath), true))->toBe(['example' => false]);
+});
+
+it('validates the enabled field when toggling a plugin', function () {
+    $this->actingAs(User::factory()->admin()->create())
+        ->patch('/admin/plugins/example', [])
+        ->assertSessionHasErrors('enabled');
+});
+
+it('requires an administrator to manage plugins', function () {
+    $this->actingAs(User::factory()->create())
+        ->get('/admin/plugins')
+        ->assertForbidden();
+
+    $this->actingAs(User::factory()->create())
+        ->patch('/admin/plugins/example', ['enabled' => 1])
+        ->assertForbidden();
+});
+
+it('requires authentication to manage plugins', function () {
+    $this->get('/admin/plugins')->assertRedirect('/login');
+});
+
+it('returns not found for unknown plugin aliases', function () {
+    $this->actingAs(User::factory()->admin()->create())
+        ->patch('/admin/plugins/missing-plugin', ['enabled' => 1])
+        ->assertNotFound();
+});
+
+it('scaffolds a new plugin through the artisan command', function () {
+    $path = storage_path('framework/testing/plugins_'.Str::random(8));
+
+    config(['plugins.paths.plugins' => $path]);
+
+    File::ensureDirectoryExists($path);
+
+    $this->artisan('plugin:make', ['alias' => 'My Plugin'])->assertSuccessful();
+
+    expect($path.'/MyPlugin/plugin.json')->toBeReadableFile()
+        ->and($path.'/MyPlugin/Providers/MyPluginServiceProvider.php')->toBeReadableFile()
+        ->and($path.'/MyPlugin/Routes/web.php')->toBeReadableFile()
+        ->and($path.'/MyPlugin/Resources/views/index.blade.php')->toBeReadableFile();
+
+    $manifest = json_decode(File::get($path.'/MyPlugin/plugin.json'), true);
+
+    expect($manifest['alias'])->toBe('my-plugin')
+        ->and($manifest['providers'])->toBe(['Plugins\\MyPlugin\\Providers\\MyPluginServiceProvider']);
+
+    File::deleteDirectory($path);
+});

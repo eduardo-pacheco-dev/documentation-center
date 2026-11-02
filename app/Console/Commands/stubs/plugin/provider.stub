@@ -1,0 +1,63 @@
+<?php
+
+namespace __NAMESPACE__\Providers;
+
+use Illuminate\Support\Facades\Route;
+use Illuminate\Support\ServiceProvider;
+
+class __STUDLY__ServiceProvider extends ServiceProvider
+{
+    /**
+     * Register the plugin services.
+     */
+    public function register(): void
+    {
+        $this->mergeConfigFrom(__DIR__.'/../Config/config.php', '__ALIAS__');
+
+        $this->loadRoutes();
+    }
+
+    /**
+     * Bootstrap the plugin services.
+     */
+    public function boot(): void
+    {
+        $this->loadViews();
+        $this->loadTranslations();
+
+        if (is_dir(__DIR__.'/../Database/Migrations')) {
+            $this->loadMigrationsFrom(__DIR__.'/../Database/Migrations');
+        }
+    }
+
+    /**
+     * Load the plugin routes.
+     */
+    protected function loadRoutes(): void
+    {
+        if (app()->routesAreCached()) {
+            return;
+        }
+
+        Route::middleware('web')
+            ->prefix('plugins/__ALIAS__')
+            ->name('plugins.__ALIAS__.')
+            ->group(__DIR__.'/../Routes/web.php');
+    }
+
+    /**
+     * Load the plugin views under the plugin alias namespace.
+     */
+    protected function loadViews(): void
+    {
+        $this->loadViewsFrom(__DIR__.'/../Resources/views', '__ALIAS__');
+    }
+
+    /**
+     * Load the plugin translations under the plugin alias namespace.
+     */
+    protected function loadTranslations(): void
+    {
+        $this->loadTranslationsFrom(__DIR__.'/../Resources/lang', '__ALIAS__');
+    }
+}

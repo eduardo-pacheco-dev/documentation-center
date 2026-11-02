@@ -1,0 +1,20 @@
+# __NAME__
+
+Plugin `__ALIAS__` for this application.
+
+## Structure
+
+- `plugin.json` — manifest (alias, version, providers, dependencies).
+- `Providers/__STUDLY__ServiceProvider.php` — registers routes, views, translations, migrations and config.
+- `Routes/web.php` — routes served under `/plugins/__ALIAS__`.
+- `Resources/views` — views available as `__ALIAS__::index`.
+- `Resources/lang` — translations available as `__ALIAS__::general.name`.
+- `Config/config.php` — plugin configuration available as `config('__ALIAS__.key')`.
+
+## Usage
+
+```bash
+php artisan plugin:enable __ALIAS__
+php artisan plugin:list
+php artisan plugin:disable __ALIAS__
+```

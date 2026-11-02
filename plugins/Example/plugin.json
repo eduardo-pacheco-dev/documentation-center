@@ -1,0 +1,15 @@
+{
+    "name": "Example",
+    "alias": "example",
+    "description": "Plugin de exemplo que demonstra manifesto, provider, rotas, views e traduções.",
+    "version": "1.0.0",
+    "icon": "cube",
+    "active": false,
+    "priority": 10,
+    "providers": [
+        "Plugins\\Example\\Providers\\ExampleServiceProvider"
+    ],
+    "aliases": [],
+    "files": [],
+    "requires": []
+}
