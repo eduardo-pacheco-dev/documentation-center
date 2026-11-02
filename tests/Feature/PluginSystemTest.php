@@ -14,6 +14,7 @@ use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Str;
 use Plugins\Example\Providers\ExampleServiceProvider;
+use Tests\Support\MigrationProbeServiceProvider;
 use Tests\Support\PluginLifecycleSpy;
 
 uses(RefreshDatabase::class);
@@ -496,6 +497,27 @@ it('runs the plugin migrations when enabling it from the settings page', functio
     File::deleteDirectory($path);
 });
 
+it('registers the plugin providers before running its migrations', function () {
+    $path = storage_path('framework/testing/plugins_'.Str::random(8));
+
+    config([
+        'plugins.paths.plugins' => $path,
+        'plugins.provider_probe' => false,
+    ]);
+    app()->forgetInstance(PluginRepository::class);
+
+    pluginWithProviderMigration($path, 'provider-before-migration');
+
+    $this->artisan('plugin:enable', ['alias' => 'provider-before-migration'])
+        ->assertSuccessful();
+
+    expect(config('plugins.provider_probe'))->toBeTrue()
+        ->and(Schema::hasTable('provider_probe_widgets'))->toBeTrue();
+
+    Schema::dropIfExists('provider_probe_widgets');
+    File::deleteDirectory($path);
+});
+
 /**
  * Create a plugin containing a migration that creates the migrated_widgets table.
  */
@@ -528,6 +550,50 @@ return new class extends Migration
     public function down(): void
     {
         Schema::dropIfExists('migrated_widgets');
+    }
+};
+PHP,
+    );
+}
+
+/**
+ * Create a plugin whose provider is required by its migration.
+ */
+function pluginWithProviderMigration(string $pluginsPath, string $alias): void
+{
+    $directory = rtrim($pluginsPath, '/').'/'.Str::studly($alias);
+
+    File::ensureDirectoryExists($directory.'/Database/Migrations');
+
+    File::put($directory.'/plugin.json', pluginManifestJson($alias, [
+        'providers' => [MigrationProbeServiceProvider::class],
+    ]));
+
+    File::put(
+        $directory.'/Database/Migrations/2026_01_01_000000_create_provider_probe_widgets_table.php',
+        <<<'PHP'
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up(): void
+    {
+        if (config('plugins.provider_probe') !== true) {
+            throw new RuntimeException('The plugin provider was not registered before migrating.');
+        }
+
+        Schema::create('provider_probe_widgets', function (Blueprint $table): void {
+            $table->id();
+        });
+    }
+
+    public function down(): void
+    {
+        Schema::dropIfExists('provider_probe_widgets');
     }
 };
 PHP,

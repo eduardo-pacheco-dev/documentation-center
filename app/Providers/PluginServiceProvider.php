@@ -51,8 +51,12 @@ class PluginServiceProvider extends ServiceProvider
 
     /**
      * Register the plugin providers, aliases and files.
+     *
+     * Called by the plugin loader for every enabled plugin and by the
+     * migrator before running a plugin's migrations, so migrations can rely
+     * on the plugin configuration and container bindings being available.
      */
-    private function registerPlugin(Plugin $plugin): void
+    public function registerPlugin(Plugin $plugin): void
     {
         if (config('plugins.autoload.composer') === 'register') {
             $this->requireComposerAutoload($plugin);
