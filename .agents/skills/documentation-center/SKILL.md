@@ -49,6 +49,7 @@ metadata:
 
 ## Qualidade
 
+- Testes de plugin ficam dentro do próprio plugin: `plugins/<Nome>/Tests/*Test.php` (já cobertos pelo `phpunit.xml` e pelo `tests/Pest.php`). Testes do core continuam em `tests/Feature` e `tests/Unit`.
 - Rode `vendor/bin/pint --dirty --format agent` antes de finalizar qualquer mudança em PHP.
 - Use `php artisan test --compact <caminho>` para o escopo afetado e peça ao usuário a suíte completa.
 - Não crie scripts de verificação ou tinker quando já existe teste cobrindo o comportamento.
