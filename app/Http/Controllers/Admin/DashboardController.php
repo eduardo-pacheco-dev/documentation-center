@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\ShortLink;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -13,6 +12,7 @@ use Plugins\Colaboradores\Models\Colaborador;
 use Plugins\Erbs\Models\Erb;
 use Plugins\Files\Models\Document;
 use Plugins\Forms\Models\Form;
+use Plugins\Links\Models\ShortLink;
 use Plugins\Projects\Enums\ProjectStatus;
 use Plugins\Projects\Models\Project;
 use Plugins\RadioLinks\Models\RadioLink;

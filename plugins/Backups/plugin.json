@@ -1,0 +1,24 @@
+{
+    "name": "Backups",
+    "alias": "backups",
+    "description": "Geração, download, importação e restauração de backups do banco de dados.",
+    "version": "1.0.0",
+    "icon": "rectangle-stack",
+    "active": true,
+    "priority": 29,
+    "providers": [
+        "Plugins\\Backups\\Providers\\BackupsServiceProvider"
+    ],
+    "navigation": [
+        {
+            "label": "Backups",
+            "route": "admin.backups.index",
+            "icon": "rectangle-stack",
+            "primary": false,
+            "module": "backups"
+        }
+    ],
+    "aliases": [],
+    "files": [],
+    "requires": []
+}

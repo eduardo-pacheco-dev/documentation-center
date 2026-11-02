@@ -1,12 +1,12 @@
 <?php
 
-use Plugins\Files\Models\Document;
-use Plugins\Files\Models\Folder;
-use App\Models\ShortLink;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
+use Plugins\Files\Models\Document;
+use Plugins\Files\Models\Folder;
+use Plugins\Links\Models\ShortLink;
 
 uses(RefreshDatabase::class);
 

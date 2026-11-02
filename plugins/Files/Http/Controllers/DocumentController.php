@@ -2,20 +2,20 @@
 
 namespace Plugins\Files\Http\Controllers;
 
-use App\Enums\ShortLinkType;
 use App\Http\Controllers\Controller;
-use App\Http\Requests\GenerateDownloadLinkRequest;
 use App\Http\Requests\MoveDocumentsRequest;
 use App\Http\Requests\RenameDocumentRequest;
 use App\Http\Requests\StoreDocumentsRequest;
-use Plugins\Files\Models\Document;
-use Plugins\Files\Models\Folder;
-use App\Models\ShortLink;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
+use Plugins\Files\Models\Document;
+use Plugins\Files\Models\Folder;
+use Plugins\Links\Enums\ShortLinkType;
+use Plugins\Links\Http\Requests\GenerateDownloadLinkRequest;
+use Plugins\Links\Models\ShortLink;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class DocumentController extends Controller

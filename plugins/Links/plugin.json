@@ -1,0 +1,24 @@
+{
+    "name": "Links",
+    "alias": "links",
+    "description": "Links curtos com senha, upload de documentos, expiração e API pública.",
+    "version": "1.0.0",
+    "icon": "link",
+    "active": true,
+    "priority": 28,
+    "providers": [
+        "Plugins\\Links\\Providers\\LinksServiceProvider"
+    ],
+    "navigation": [
+        {
+            "label": "Links",
+            "route": "admin.links.index",
+            "icon": "link",
+            "primary": false,
+            "module": "links"
+        }
+    ],
+    "aliases": [],
+    "files": [],
+    "requires": []
+}

@@ -2,7 +2,6 @@
 
 namespace Database\Seeders;
 
-use App\Models\ShortLink;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Seeder;
@@ -16,6 +15,7 @@ use Plugins\Colaboradores\Models\Colaborador;
 use Plugins\Erbs\Models\Erb;
 use Plugins\Files\Models\Document;
 use Plugins\Forms\Models\Form;
+use Plugins\Links\Models\ShortLink;
 use Plugins\Projects\Models\Project;
 use Plugins\RadioLinks\Models\RadioLink;
 use Plugins\WorkOrders\Enums\WorkOrderStatus;

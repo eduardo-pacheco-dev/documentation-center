@@ -1,11 +1,15 @@
 @php
     $money = fn (float $value): string => 'R$ '.number_format($value, 2, ',', '.');
 
+    $moduleRoute = function (string $name, mixed $parameters = []): string {
+        return \Illuminate\Support\Facades\Route::has($name) ? route($name, $parameters) : '#';
+    };
+
     $stats = [
-        ['module' => 'clients', 'label' => 'Clientes', 'value' => $counts['clients'], 'icon' => 'building-office', 'url' => route('admin.clients.index'), 'caption' => 'Cadastrados na base'],
-        ['module' => 'work-orders', 'label' => 'OS abertas', 'value' => $counts['openWorkOrders'], 'icon' => 'clipboard-document-list', 'url' => route('admin.work-orders.index', ['status' => 'open']), 'caption' => 'Aguardando atendimento'],
-        ['module' => 'projects', 'label' => 'Projetos ativos', 'value' => $counts['projects'], 'icon' => 'briefcase', 'url' => route('admin.projects.index'), 'caption' => 'Em execução'],
-        ['module' => 'files', 'label' => 'Arquivos', 'value' => $counts['documents'], 'icon' => 'document-text', 'url' => route('admin.files.index'), 'caption' => 'Documentos armazenados'],
+        ['module' => 'clients', 'label' => 'Clientes', 'value' => $counts['clients'], 'icon' => 'building-office', 'url' => $moduleRoute('admin.clients.index'), 'caption' => 'Cadastrados na base'],
+        ['module' => 'work-orders', 'label' => 'OS abertas', 'value' => $counts['openWorkOrders'], 'icon' => 'clipboard-document-list', 'url' => $moduleRoute('admin.work-orders.index', ['status' => 'open']), 'caption' => 'Aguardando atendimento'],
+        ['module' => 'projects', 'label' => 'Projetos ativos', 'value' => $counts['projects'], 'icon' => 'briefcase', 'url' => $moduleRoute('admin.projects.index'), 'caption' => 'Em execução'],
+        ['module' => 'files', 'label' => 'Arquivos', 'value' => $counts['documents'], 'icon' => 'document-text', 'url' => $moduleRoute('admin.files.index'), 'caption' => 'Documentos armazenados'],
     ];
 
     $enabledModules = auth()->user()->enabledModules();
@@ -51,10 +55,10 @@
     $chartTotal = collect($monthlyWorkOrders)->sum('count');
 
     $quickActions = [
-        ['module' => 'work-orders', 'label' => 'Nova ordem de serviço', 'icon' => 'clipboard-document-list', 'url' => route('admin.work-orders.create')],
-        ['module' => 'clients', 'label' => 'Novo cliente', 'icon' => 'building-office', 'url' => route('admin.clients.create')],
-        ['module' => 'projects', 'label' => 'Novo projeto', 'icon' => 'briefcase', 'url' => route('admin.projects.create')],
-        ['module' => 'files', 'label' => 'Enviar arquivo', 'icon' => 'arrow-up-tray', 'url' => route('admin.files.index')],
+        ['module' => 'work-orders', 'label' => 'Nova ordem de serviço', 'icon' => 'clipboard-document-list', 'url' => $moduleRoute('admin.work-orders.create')],
+        ['module' => 'clients', 'label' => 'Novo cliente', 'icon' => 'building-office', 'url' => $moduleRoute('admin.clients.create')],
+        ['module' => 'projects', 'label' => 'Novo projeto', 'icon' => 'briefcase', 'url' => $moduleRoute('admin.projects.create')],
+        ['module' => 'files', 'label' => 'Enviar arquivo', 'icon' => 'arrow-up-tray', 'url' => $moduleRoute('admin.files.index')],
     ];
 
     $quickActions = array_values(array_filter($quickActions, fn (array $action): bool => in_array($action['module'], $enabledModules, true)));
@@ -77,7 +81,7 @@
             </span>
             @if (auth()->user()->hasModule('work-orders'))
                 <a
-                    href="{{ route('admin.work-orders.create') }}"
+                    href="{{ $moduleRoute('admin.work-orders.create') }}"
                     class="inline-flex h-9 items-center gap-1.5 rounded-xl bg-gray-900 px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-gray-800 dark:bg-white dark:text-gray-900 dark:hover:bg-gray-200"
                 >
                     <x-icon name="plus" class="h-4 w-4" />
@@ -120,7 +124,7 @@
                         <x-icon name="chart-bar" class="h-3.5 w-3.5" />
                         {{ number_format($chartTotal, 0, ',', '.') }} no período
                     </span>
-                    <a href="{{ route('admin.work-orders.index') }}" class="inline-flex items-center gap-1 text-xs font-medium text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">
+                    <a href="{{ $moduleRoute('admin.work-orders.index') }}" class="inline-flex items-center gap-1 text-xs font-medium text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">
                         Ver todas
                         <x-icon name="chevron-right" class="h-3.5 w-3.5" />
                     </a>
@@ -193,7 +197,7 @@
                     <h2 class="text-base font-semibold text-gray-900 dark:text-white">Status das OS</h2>
                     <p class="mt-0.5 text-sm text-gray-500 dark:text-gray-400">Distribuição atual</p>
                 </div>
-                <a href="{{ route('admin.work-orders.index') }}" class="text-xs font-medium text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">Detalhes</a>
+                <a href="{{ $moduleRoute('admin.work-orders.index') }}" class="text-xs font-medium text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">Detalhes</a>
             </div>
 
             <div class="relative mx-auto mt-5 h-36 w-36">
@@ -225,7 +229,7 @@
             <div class="mt-5 space-y-1">
                 @foreach ($statusBreakdown as $status)
                     <a
-                        href="{{ route('admin.work-orders.index', ['status' => $status['key']]) }}"
+                        href="{{ $moduleRoute('admin.work-orders.index', ['status' => $status['key']]) }}"
                         class="flex items-center gap-2.5 rounded-lg px-2 py-2 transition hover:bg-gray-50 dark:hover:bg-white/5"
                     >
                         <span class="h-2 w-2 shrink-0 rounded-full {{ $status['dot'] }}"></span>
@@ -249,7 +253,7 @@
                     <h2 class="text-base font-semibold text-gray-900 dark:text-white">Ordens de serviço recentes</h2>
                     <p class="mt-0.5 text-xs text-gray-500 dark:text-gray-400">Últimos registros criados</p>
                 </div>
-                <a href="{{ route('admin.work-orders.index') }}" class="inline-flex items-center gap-1 text-xs font-medium text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">
+                <a href="{{ $moduleRoute('admin.work-orders.index') }}" class="inline-flex items-center gap-1 text-xs font-medium text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">
                     Ver todas
                     <x-icon name="chevron-right" class="h-3.5 w-3.5" />
                 </a>
@@ -273,7 +277,7 @@
                             @foreach ($recentWorkOrders as $workOrder)
                                 <tr class="group transition hover:bg-gray-50/70 dark:hover:bg-white/[0.03]">
                                     <td class="px-5 py-3">
-                                        <a href="{{ route('admin.work-orders.show', $workOrder) }}" class="text-sm font-semibold text-gray-900 hover:underline dark:text-white">
+                                        <a href="{{ $moduleRoute('admin.work-orders.show', $workOrder) }}" class="text-sm font-semibold text-gray-900 hover:underline dark:text-white">
                                             {{ $workOrder->number }}
                                         </a>
                                     </td>
@@ -295,7 +299,7 @@
                 <section class="overflow-hidden rounded-2xl border border-gray-200/80 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)] dark:border-white/10 dark:bg-[#171716]">
                     <div class="flex items-center justify-between gap-3 border-b border-gray-100 px-5 py-4 dark:border-white/10">
                         <h2 class="text-base font-semibold text-gray-900 dark:text-white">Arquivos recentes</h2>
-                        <a href="{{ route('admin.files.index') }}" class="text-xs font-medium text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">Ver todos</a>
+                        <a href="{{ $moduleRoute('admin.files.index') }}" class="text-xs font-medium text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">Ver todos</a>
                     </div>
 
                     <div class="divide-y divide-gray-100 dark:divide-white/10">

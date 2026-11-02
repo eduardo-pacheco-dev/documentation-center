@@ -3,13 +3,7 @@
 namespace Plugins\Files\Models;
 
 use App\Models\Comment;
-use App\Models\Equipment;
-use Plugins\Erbs\Models\Erb;
-use App\Models\ShortLink;
 use App\Models\User;
-use Plugins\WorkOrders\Models\WorkOrder;
-use Plugins\WorkOrders\Models\WorkOrderItem;
-use Plugins\Files\Database\Factories\DocumentFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -17,8 +11,14 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\Storage;
-use Plugins\RadioLinks\Models\RadioLink;
 use Plugins\Clients\Models\Client;
+use Plugins\Equipments\Models\Equipment;
+use Plugins\Erbs\Models\Erb;
+use Plugins\Files\Database\Factories\DocumentFactory;
+use Plugins\Links\Models\ShortLink;
+use Plugins\RadioLinks\Models\RadioLink;
+use Plugins\WorkOrders\Models\WorkOrder;
+use Plugins\WorkOrders\Models\WorkOrderItem;
 
 #[Fillable(['user_id', 'uploaded_via_short_link_id', 'folder_id', 'client_id', 'erb_id', 'radio_link_id', 'work_order_item_id', 'work_order_id', 'equipment_id', 'comment_id', 'original_name', 'path', 'disk', 'mime_type', 'size'])]
 class Document extends Model
