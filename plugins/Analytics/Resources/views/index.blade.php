@@ -34,6 +34,12 @@
         :description="'Indicadores de '.$from->format('d/m/Y').' a '.$to->format('d/m/Y').' · '.($isGlobal ? 'visão global' : 'seus dados')"
         icon="chart-bar"
     >
+        @if (is_array($recordsSummary) || is_array($aflSummary))
+            <x-ui.action type="button" variant="secondary" icon="arrow-up-tray" data-modal-open="analytics-import-modal">
+                Importar
+            </x-ui.action>
+        @endif
+
         <x-ui.action :href="route('analytics.export', array_filter(['period' => $days, 'scope' => $scopeQuery]))" variant="secondary" icon="arrow-down-tray">
             Exportar CSV
         </x-ui.action>
@@ -57,18 +63,6 @@
         :is-admin="auth()->user()?->is_admin"
     />
 
-    @error('import')
-        <x-analytics::error-summary
-            class="mt-4"
-            title="Não foi possível importar a planilha."
-            :lines="explode(chr(10), $message)"
-        />
-    @enderror
-
-    @error('file')
-        <x-ui.alert tone="error" class="mt-4">{{ $message }}</x-ui.alert>
-    @enderror
-
     <x-analytics::metric-grid :cards="$cards" class="mt-4" />
 
     <x-analytics::tabs :tabs="$tabs" class="mt-6" />
@@ -79,6 +73,10 @@
         @include('analytics::partials.afl')
         @include('analytics::partials.snapshots')
     </div>
+
+    @if (is_array($recordsSummary) || is_array($aflSummary))
+        @include('analytics::partials.import-modal')
+    @endif
 
     @include('analytics::partials.scripts')
 </x-layouts.admin>

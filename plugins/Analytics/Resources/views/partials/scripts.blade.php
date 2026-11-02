@@ -266,5 +266,48 @@
         const names = panels.map((panel) => panel.dataset.panel);
 
         activate(names.includes(initial) ? initial : 'overview', false);
+
+        const openImportModal = (modal) => {
+            modal.classList.remove('hidden');
+            document.body.classList.add('overflow-hidden');
+
+            const error = modal.querySelector('[data-modal-error]');
+            if (error) {
+                error.scrollIntoView({ block: 'center' });
+            }
+        };
+
+        const closeImportModal = (modal) => {
+            modal.classList.add('hidden');
+            document.body.classList.remove('overflow-hidden');
+        };
+
+        document.addEventListener('click', (event) => {
+            const opener = event.target.closest('[data-modal-open]');
+
+            if (opener) {
+                event.preventDefault();
+
+                const modal = document.getElementById(opener.dataset.modalOpen);
+                if (modal) {
+                    openImportModal(modal);
+                }
+
+                return;
+            }
+
+            const closer = event.target.closest('[data-modal-close]');
+            if (closer) {
+                closeImportModal(closer.closest('[role="dialog"]'));
+            }
+        });
+
+        document.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape') {
+                document.querySelectorAll('[role="dialog"]:not(.hidden)').forEach(closeImportModal);
+            }
+        });
+
+        document.querySelectorAll('[role="dialog"][data-open]').forEach(openImportModal);
     })();
 </script>

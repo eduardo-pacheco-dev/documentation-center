@@ -5,24 +5,7 @@
             A tabela de registros FAMs ainda não foi migrada.
         </x-analytics::card>
     @else
-        <div class="grid grid-cols-1 gap-4 xl:grid-cols-3">
-            <x-analytics::import-panel
-                title="Importar dados FAMs"
-                description="OC, OS, fornecedor, etapa, elemento, endereço, node name, localização e status. Reimportar cria uma nova versão quando houver alteração."
-                action="analytics.records.import"
-                template-route="analytics.records.template"
-                submit-label="Importar FAMs"
-                file-id="records-file"
-                max-size="10 MB"
-                :summary="[
-                    $recordsSummary['total'].' registros',
-                    $recordsSummary['versions'].' versões',
-                    $recordsSummary['in_period'].' no período',
-                ]"
-                :days="$days"
-                :scope="$scope"
-            />
-
+        <div class="grid grid-cols-1 gap-4 xl:grid-cols-2">
             <x-analytics::panel title="Etapas do processo">
                 @if ($recordsByStage['labels'] === [])
                     <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">Nenhum registro FAMs importado.</p>

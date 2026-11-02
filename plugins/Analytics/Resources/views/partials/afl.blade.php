@@ -5,25 +5,7 @@
             A tabela de registros AFL ainda não foi migrada.
         </x-analytics::card>
     @else
-        <div class="grid grid-cols-1 gap-4 xl:grid-cols-3">
-            <x-analytics::import-panel
-                title="Importar dados AFL"
-                description="Layout AFL completo (108 colunas): acesso, atividade, ativação, documentação, aceitação e faturamento. Reimportar cria uma nova versão quando houver alteração."
-                action="analytics.afl.import"
-                template-route="analytics.afl.template"
-                submit-label="Importar AFL"
-                file-id="afl-file"
-                tone="rose"
-                max-size="20 MB"
-                :summary="[
-                    $aflSummary['total'].' registros',
-                    $aflSummary['versions'].' versões',
-                    $aflSummary['in_period'].' no período',
-                ]"
-                :days="$days"
-                :scope="$scope"
-            />
-
+        <div class="grid grid-cols-1 gap-4 xl:grid-cols-2">
             <x-analytics::panel title="Status geral AFL">
                 @if ($aflByStatus['labels'] === [])
                     <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">Nenhum registro AFL importado.</p>

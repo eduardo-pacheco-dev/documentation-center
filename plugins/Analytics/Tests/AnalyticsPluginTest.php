@@ -273,6 +273,21 @@ it('requires oc and os to import records', function () {
     @unlink($path);
 });
 
+it('reopens the import modal when an import fails', function () {
+    $user = User::factory()->create();
+
+    $this->actingAs($user)
+        ->post('/admin/analytics/records/import', ['modal' => 'import-fams'])
+        ->assertSessionHasErrors('file');
+
+    $this->actingAs($user)
+        ->get('/admin/analytics')
+        ->assertOk()
+        ->assertSee('data-modal-open="analytics-import-modal"', false)
+        ->assertSee('analytics-import-modal', false)
+        ->assertSee('data-open', false);
+});
+
 it('downloads the oc and os import template', function () {
     $this->actingAs(User::factory()->create())
         ->get('/admin/analytics/records/template')
