@@ -450,3 +450,78 @@ function pluginDirectory(string $pluginsPath, string $alias): string
 
     return $directory;
 }
+
+it('runs the plugin migrations when enabling it through the artisan command', function () {
+    $path = storage_path('framework/testing/plugins_'.Str::random(8));
+
+    config(['plugins.paths.plugins' => $path]);
+    app()->forgetInstance(PluginRepository::class);
+
+    pluginWithMigration($path, 'migrated-plugin');
+
+    $this->artisan('plugin:enable', ['alias' => 'migrated-plugin'])
+        ->expectsOutputToContain('migration(s) executed')
+        ->assertSuccessful();
+
+    expect(Schema::hasTable('migrated_widgets'))->toBeTrue();
+
+    Schema::dropIfExists('migrated_widgets');
+    File::deleteDirectory($path);
+});
+
+it('runs the plugin migrations when enabling it from the settings page', function () {
+    $path = storage_path('framework/testing/plugins_'.Str::random(8));
+
+    config(['plugins.paths.plugins' => $path]);
+    app()->forgetInstance(PluginRepository::class);
+
+    pluginWithMigration($path, 'settings-migrated');
+
+    $this->actingAs(User::factory()->admin()->create())
+        ->patch('/settings/plugins/settings-migrated', ['enabled' => 1])
+        ->assertRedirect()
+        ->assertSessionHasNoErrors();
+
+    expect(Schema::hasTable('migrated_widgets'))->toBeTrue();
+
+    Schema::dropIfExists('migrated_widgets');
+    File::deleteDirectory($path);
+});
+
+/**
+ * Create a plugin containing a migration that creates the migrated_widgets table.
+ */
+function pluginWithMigration(string $pluginsPath, string $alias): void
+{
+    $directory = rtrim($pluginsPath, '/').'/'.Str::studly($alias);
+
+    File::ensureDirectoryExists($directory.'/Database/Migrations');
+
+    File::put($directory.'/plugin.json', pluginManifestJson($alias));
+
+    File::put(
+        $directory.'/Database/Migrations/2026_01_01_000000_create_migrated_widgets_table.php',
+        <<<'PHP'
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up(): void
+    {
+        Schema::create('migrated_widgets', function (Blueprint $table): void {
+            $table->id();
+        });
+    }
+
+    public function down(): void
+    {
+        Schema::dropIfExists('migrated_widgets');
+    }
+};
+PHP,
+    );
+}

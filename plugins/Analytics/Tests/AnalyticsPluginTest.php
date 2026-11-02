@@ -674,3 +674,12 @@ it('migrates and copies the analytics rows to the dedicated connection', functio
     DB::purge('analytics');
     @unlink($path);
 });
+
+it('skips the stations indicators when the stations table is missing', function () {
+    Schema::drop('stations');
+
+    $this->actingAs(User::factory()->create())
+        ->get('/admin/analytics')
+        ->assertOk()
+        ->assertViewHas('summary', fn (array $summary): bool => $summary['stations'] === null);
+});

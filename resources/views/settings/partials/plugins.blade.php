@@ -58,6 +58,12 @@
                 <p class="mt-2 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
             @enderror
 
+            @error('plugin')
+                <div class="mt-3 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300">
+                    {{ $message }}
+                </div>
+            @enderror
+
             <p class="mt-3 flex items-start gap-2 text-xs text-amber-600 dark:text-amber-400">
                 <x-icon name="exclamation-triangle" class="mt-0.5 h-3.5 w-3.5 shrink-0" />
                 Plugins executam código PHP com as permissões da aplicação. Instale apenas arquivos de origem confiável.

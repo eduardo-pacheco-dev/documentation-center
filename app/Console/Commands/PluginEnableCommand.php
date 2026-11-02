@@ -3,6 +3,7 @@
 namespace App\Console\Commands;
 
 use App\Plugins\Exceptions\PluginNotFoundException;
+use App\Plugins\PluginMigrator;
 use App\Plugins\PluginRepository;
 use Illuminate\Console\Command;
 
@@ -25,7 +26,7 @@ class PluginEnableCommand extends Command
     /**
      * Execute the console command.
      */
-    public function handle(PluginRepository $plugins): int
+    public function handle(PluginRepository $plugins, PluginMigrator $migrator): int
     {
         try {
             $plugin = $plugins->findOrFail((string) $this->argument('alias'));
@@ -45,7 +46,22 @@ class PluginEnableCommand extends Command
 
         $plugins->clear();
 
+        try {
+            $migrations = $migrator->migrate($plugin);
+        } catch (\Throwable $exception) {
+            $plugin->disable();
+            $plugins->clear();
+
+            $this->error("Plugin [{$plugin->getAlias()}] migrations failed: {$exception->getMessage()}");
+
+            return self::FAILURE;
+        }
+
         $this->components->info("Plugin [{$plugin->getAlias()}] enabled.");
+
+        if ($migrations !== []) {
+            $this->components->info(count($migrations).' migration(s) executed.');
+        }
 
         return self::SUCCESS;
     }
