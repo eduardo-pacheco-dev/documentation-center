@@ -219,6 +219,12 @@ class AnalyticsController extends Controller
      */
     private function queueImport(Request $request, string $type, string $label): RedirectResponse
     {
+        if (! AnalyticsDatabase::schema()->hasTable('analytics_imports')) {
+            throw ValidationException::withMessages([
+                'file' => 'A tabela de importações ainda não foi migrada no banco de analytics.',
+            ]);
+        }
+
         $file = $request->file('file');
         $path = $file->store('analytics-imports', 'local');
 
