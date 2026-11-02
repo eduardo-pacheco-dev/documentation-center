@@ -3,6 +3,7 @@
 namespace App\Plugins\Exceptions;
 
 use RuntimeException;
+use Throwable;
 
 class PluginRemovalException extends RuntimeException
 {
@@ -14,5 +15,14 @@ class PluginRemovalException extends RuntimeException
     public static function couldNotDelete(string $path): self
     {
         return new self("Não foi possível apagar {$path}. Verifique as permissões do diretório.");
+    }
+
+    public static function uninstallFailed(string $alias, Throwable $previous): self
+    {
+        return new self(
+            "Não foi possível executar a desinstalação do plugin [{$alias}]: {$previous->getMessage()}",
+            0,
+            $previous,
+        );
     }
 }

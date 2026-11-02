@@ -54,18 +54,21 @@ class PluginController extends Controller
         $plugin = $this->plugins->findOrFail($alias);
 
         if ($validated['enabled']) {
-            $plugin->enable();
+            if ($plugin->disabled()) {
+                $plugin->enable();
 
-            try {
-                $this->migrator->migrate($plugin);
-            } catch (\Throwable $exception) {
-                $plugin->disable();
-                $this->plugins->clear();
-                $this->clearRouteCache();
+                try {
+                    $this->migrator->migrate($plugin);
+                    $plugin->install();
+                } catch (\Throwable $exception) {
+                    $plugin->disable();
+                    $this->plugins->clear();
+                    $this->clearRouteCache();
 
-                return back()->withErrors([
-                    'plugin' => sprintf('Não foi possível habilitar %s: %s', $plugin->getName(), $exception->getMessage()),
-                ]);
+                    return back()->withErrors([
+                        'plugin' => sprintf('Não foi possível habilitar %s: %s', $plugin->getName(), $exception->getMessage()),
+                    ]);
+                }
             }
         } else {
             $plugin->disable();

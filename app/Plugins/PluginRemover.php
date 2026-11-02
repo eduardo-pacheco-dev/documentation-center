@@ -33,9 +33,26 @@ class PluginRemover
             throw PluginRemovalException::outsidePluginsPath($plugin->getPath());
         }
 
+        try {
+            $plugin->uninstall();
+        } catch (\Throwable $exception) {
+            throw PluginRemovalException::uninstallFailed($plugin->getAlias(), $exception);
+        }
+
         $this->app->make(PluginActivator::class)->delete($plugin);
 
         if (! $this->files->deleteDirectory($path)) {
+            throw PluginRemovalException::couldNotDelete($path);
+        }
+
+        // Windows can briefly lock the directory after its files are removed.
+        for ($attempt = 0; $this->files->isDirectory($path) && $attempt < 2; $attempt++) {
+            usleep(100_000);
+            clearstatcache();
+            $this->files->deleteDirectory($path);
+        }
+
+        if ($this->files->isDirectory($path)) {
             throw PluginRemovalException::couldNotDelete($path);
         }
 
@@ -49,6 +66,9 @@ class PluginRemover
      */
     private function isInside(string $path, string $root): bool
     {
-        return $path !== $root && str_starts_with($path.'/', rtrim($root, '/').'/');
+        $path = str_replace('\\', '/', $path);
+        $root = rtrim(str_replace('\\', '/', $root), '/');
+
+        return $path !== $root && str_starts_with($path.'/', $root.'/');
     }
 }
