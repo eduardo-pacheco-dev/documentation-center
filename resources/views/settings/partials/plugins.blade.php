@@ -1,149 +1,140 @@
-@php
-    $buttonClass = 'inline-flex items-center justify-center gap-1.5 rounded-none bg-gray-900 px-3 py-2 text-sm font-medium text-white transition hover:bg-gray-700 dark:bg-white dark:text-gray-900 dark:hover:bg-gray-200';
-    $dangerButtonClass = 'inline-flex items-center justify-center gap-1.5 rounded-none border border-red-300 bg-white px-3 py-2 text-sm font-medium text-red-600 transition hover:border-red-500 hover:bg-red-50 dark:border-red-900 dark:bg-gray-900 dark:text-red-400 dark:hover:bg-red-950/40';
-@endphp
+<section id="plugins" class="{{ $cardClass }} scroll-mt-6">
+    <div class="{{ $headerClass }}">
+        <span class="{{ $tileClass }}">
+            <x-icon name="cog-6-tooth" class="h-5 w-5" />
+        </span>
 
-<section
-    id="plugins"
-    class="{{ $cardClass }}"
->
-    <div class="flex flex-wrap items-start justify-between gap-3">
-        <div>
-            <h2 class="{{ $titleClass }}">Plugins</h2>
+        <div class="min-w-0">
+            <div class="flex flex-wrap items-center gap-2">
+                <h2 class="{{ $titleClass }}">Plugins</h2>
+                <x-ui.badge tone="indigo">{{ $pluginStats['total'] }}</x-ui.badge>
+                <x-ui.badge tone="green">{{ $pluginStats['enabled'] }} habilitados</x-ui.badge>
+
+                @if ($pluginStats['disabled'] > 0)
+                    <x-ui.badge tone="amber">{{ $pluginStats['disabled'] }} desabilitados</x-ui.badge>
+                @endif
+            </div>
+
             <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                Extensões instaladas em <code class="border border-gray-200 bg-gray-50 px-1.5 py-0.5 text-xs dark:border-gray-700 dark:bg-gray-800">plugins/</code>.
+                Extensões instaladas em <code class="rounded bg-gray-100 px-1.5 py-0.5 text-xs text-gray-600 dark:bg-white/[0.06] dark:text-gray-300">plugins/</code>.
                 A mudança vale para as próximas requisições; reinicie os workers com
-                <code class="border border-gray-200 bg-gray-50 px-1.5 py-0.5 text-xs dark:border-gray-700 dark:bg-gray-800">php artisan queue:restart</code>.
+                <code class="rounded bg-gray-100 px-1.5 py-0.5 text-xs text-gray-600 dark:bg-white/[0.06] dark:text-gray-300">php artisan queue:restart</code>.
             </p>
-        </div>
-
-        <div class="flex flex-wrap items-center gap-1.5">
-            <x-ui.badge tone="gray">{{ $pluginStats['total'] }} instalados</x-ui.badge>
-            <x-ui.badge tone="green">{{ $pluginStats['enabled'] }} habilitados</x-ui.badge>
-            <x-ui.badge tone="amber">{{ $pluginStats['disabled'] }} desabilitados</x-ui.badge>
         </div>
     </div>
 
-    <form
-        method="POST"
-        action="{{ route('settings.plugins.store') }}"
-        enctype="multipart/form-data"
-        class="mt-4 border border-dashed border-gray-300 p-4 dark:border-gray-700"
-    >
-        @csrf
+    <div class="{{ $bodyClass }}">
+        <form
+            method="POST"
+            action="{{ route('settings.plugins.store') }}"
+            enctype="multipart/form-data"
+            class="rounded-2xl border border-dashed border-gray-300 p-4 dark:border-white/15"
+        >
+            @csrf
 
-        <label for="plugin-file" class="block text-sm font-medium text-gray-700 dark:text-gray-200">Instalar plugin via ZIP</label>
-        <p class="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
-            Envie um <code class="border border-gray-200 bg-gray-50 px-1 py-0.5 dark:border-gray-700 dark:bg-gray-800">.zip</code> com um
-            <code class="border border-gray-200 bg-gray-50 px-1 py-0.5 dark:border-gray-700 dark:bg-gray-800">plugin.json</code> na raiz ou dentro de uma única pasta.
-            O plugin é instalado desabilitado.
-        </p>
+            <label for="plugin-file" class="block text-sm font-medium text-gray-700 dark:text-gray-200">Instalar plugin via ZIP</label>
+            <p class="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
+                Envie um <code class="rounded bg-gray-100 px-1 py-0.5 text-gray-600 dark:bg-white/[0.06] dark:text-gray-300">.zip</code> com um
+                <code class="rounded bg-gray-100 px-1 py-0.5 text-gray-600 dark:bg-white/[0.06] dark:text-gray-300">plugin.json</code> na raiz ou dentro de uma única pasta.
+                O plugin é instalado desabilitado.
+            </p>
 
-        <div class="mt-3 flex flex-wrap items-center gap-2">
-            <input
-                id="plugin-file"
-                name="file"
-                type="file"
-                accept=".zip,application/zip"
-                required
-                class="block w-full max-w-xs cursor-pointer rounded-none border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 transition file:mr-3 file:rounded-none file:border-0 file:border-r file:border-gray-300 file:bg-gray-100 file:px-3 file:py-1 file:text-sm file:font-medium file:text-gray-700 hover:file:bg-gray-200 focus:border-gray-900 focus:outline-none focus:ring-1 focus:ring-gray-900/20 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200 dark:file:border-gray-700 dark:file:bg-gray-800 dark:file:text-gray-200 dark:hover:file:bg-gray-700"
-            >
+            <div class="mt-3 flex flex-wrap items-center gap-2">
+                <input
+                    id="plugin-file"
+                    name="file"
+                    type="file"
+                    accept=".zip,application/zip"
+                    required
+                    class="block h-10 w-full max-w-xs cursor-pointer rounded-xl border border-gray-200 bg-gray-50 px-3 text-sm text-gray-600 transition file:mr-3 file:rounded-lg file:border-0 file:bg-white file:px-3 file:py-1 file:text-sm file:font-medium file:text-gray-700 hover:file:bg-gray-100 focus:border-indigo-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/15 dark:border-white/10 dark:bg-white/[0.03] dark:text-gray-300 dark:file:bg-white/10 dark:file:text-gray-200 dark:hover:file:bg-white/20"
+                >
 
-            <button type="submit" class="{{ $buttonClass }}">
-                <x-icon name="arrow-up-tray" class="h-4 w-4" />
-                Instalar
-            </button>
-        </div>
-
-        @error('file')
-            <p class="mt-2 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
-        @enderror
-
-        <p class="mt-3 flex items-start gap-2 text-xs text-amber-700 dark:text-amber-400">
-            <x-icon name="exclamation-triangle" class="mt-0.5 h-3.5 w-3.5 shrink-0" />
-            Plugins executam código PHP com as permissões da aplicação. Instale apenas arquivos de origem confiável.
-        </p>
-    </form>
-
-    @if ($plugins->isEmpty())
-        <p class="mt-4 border border-gray-200 px-4 py-8 text-center text-sm text-gray-500 dark:border-gray-800 dark:text-gray-400">
-            Nenhum plugin encontrado. Crie um com
-            <code class="border border-gray-200 bg-gray-50 px-1.5 py-0.5 text-xs dark:border-gray-700 dark:bg-gray-800">php artisan plugin:make meu-plugin</code>.
-        </p>
-    @else
-        <div class="mt-4 overflow-hidden border border-gray-200 dark:border-gray-800">
-            <div class="overflow-x-auto">
-                <table class="min-w-full divide-y divide-gray-200 text-sm dark:divide-gray-800">
-                    <thead class="bg-gray-50 text-left text-xs font-medium uppercase tracking-wide text-gray-500 dark:bg-gray-800/60 dark:text-gray-400">
-                        <tr>
-                            <th class="px-4 py-3 font-medium">Plugin</th>
-                            <th class="px-4 py-3 font-medium">Versão</th>
-                            <th class="px-4 py-3 font-medium">Status</th>
-                            <th class="px-4 py-3 text-right font-medium">Ações</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
-                        @foreach ($plugins as $plugin)
-                            <tr class="transition hover:bg-gray-50 dark:hover:bg-gray-800/40">
-                                <td class="px-4 py-3">
-                                    <p class="flex items-center gap-2 font-medium text-gray-900 dark:text-gray-100">
-                                        <x-icon :name="$plugin->get('icon', 'cog-6-tooth')" class="h-4 w-4 text-gray-400 dark:text-gray-500" />
-                                        {{ $plugin->getName() }}
-                                    </p>
-                                    <p class="mt-0.5 font-mono text-xs text-gray-500 dark:text-gray-400">{{ $plugin->getAlias() }}</p>
-
-                                    @if ($plugin->getDescription())
-                                        <p class="mt-1 max-w-md text-xs text-gray-500 dark:text-gray-400">{{ $plugin->getDescription() }}</p>
-                                    @endif
-                                </td>
-
-                                <td class="whitespace-nowrap px-4 py-3 text-gray-500 dark:text-gray-400">
-                                    v{{ $plugin->getVersion() ?? '—' }}
-                                </td>
-
-                                <td class="whitespace-nowrap px-4 py-3">
-                                    @if ($plugin->enabled())
-                                        <x-ui.badge tone="green">Habilitado</x-ui.badge>
-                                    @else
-                                        <x-ui.badge tone="amber">Desabilitado</x-ui.badge>
-                                    @endif
-                                </td>
-
-                                <td class="whitespace-nowrap px-4 py-3">
-                                    <div class="flex flex-wrap items-center justify-end gap-2">
-                                        <form method="POST" action="{{ route('settings.plugins.update', ['alias' => $plugin->getAlias()]) }}">
-                                            @csrf
-                                            @method('PATCH')
-                                            <input type="hidden" name="enabled" value="{{ $plugin->enabled() ? 0 : 1 }}">
-
-                                            <button type="submit" class="{{ $buttonClass }}">
-                                                <x-icon :name="$plugin->enabled() ? 'x-circle' : 'play'" class="h-4 w-4" />
-                                                {{ $plugin->enabled() ? 'Desabilitar' : 'Habilitar' }}
-                                            </button>
-                                        </form>
-
-                                        <form
-                                            method="POST"
-                                            action="{{ route('settings.plugins.destroy', ['alias' => $plugin->getAlias()]) }}"
-                                            data-confirm="Remover o plugin {{ $plugin->getName() }}? Os arquivos em plugins/ serão apagados e essa ação não pode ser desfeita."
-                                            data-confirm-title="Remover plugin"
-                                            data-confirm-label="Remover"
-                                        >
-                                            @csrf
-                                            @method('DELETE')
-
-                                            <button type="submit" class="{{ $dangerButtonClass }}">
-                                                <x-icon name="trash" class="h-4 w-4" />
-                                                Remover
-                                            </button>
-                                        </form>
-                                    </div>
-                                </td>
-                            </tr>
-                        @endforeach
-                    </tbody>
-                </table>
+                <x-ui.action type="submit" icon="arrow-up-tray">
+                    Instalar
+                </x-ui.action>
             </div>
-        </div>
-    @endif
+
+            @error('file')
+                <p class="mt-2 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
+            @enderror
+
+            <p class="mt-3 flex items-start gap-2 text-xs text-amber-600 dark:text-amber-400">
+                <x-icon name="exclamation-triangle" class="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                Plugins executam código PHP com as permissões da aplicação. Instale apenas arquivos de origem confiável.
+            </p>
+        </form>
+
+        @if ($plugins->isEmpty())
+            <div class="mt-4 rounded-2xl border border-gray-200/80 dark:border-white/10">
+                <x-ui.empty-state
+                    icon="cog-6-tooth"
+                    title="Nenhum plugin instalado"
+                    description="Envie um arquivo ZIP acima ou crie um com 'php artisan plugin:make meu-plugin'."
+                    tone="indigo"
+                    shape="square"
+                />
+            </div>
+        @else
+            <ul class="mt-4 divide-y divide-gray-100 overflow-hidden rounded-2xl border border-gray-200/80 dark:divide-white/10 dark:border-white/10">
+                @foreach ($plugins as $plugin)
+                    <li class="flex flex-col gap-3 px-4 py-4 transition hover:bg-gray-50/70 sm:flex-row sm:items-center dark:hover:bg-white/[0.03]">
+                        <span class="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-400">
+                            <x-icon :name="$plugin->get('icon', 'cog-6-tooth')" class="h-4 w-4" />
+                        </span>
+
+                        <div class="min-w-0 flex-1">
+                            <div class="flex flex-wrap items-center gap-2">
+                                <p class="font-medium text-gray-900 dark:text-gray-100">{{ $plugin->getName() }}</p>
+                                <x-ui.badge tone="gray">v{{ $plugin->getVersion() ?? '—' }}</x-ui.badge>
+
+                                @if ($plugin->enabled())
+                                    <x-ui.badge tone="green">Habilitado</x-ui.badge>
+                                @else
+                                    <x-ui.badge tone="amber">Desabilitado</x-ui.badge>
+                                @endif
+                            </div>
+
+                            <p class="mt-0.5 font-mono text-xs text-gray-500 dark:text-gray-400">{{ $plugin->getAlias() }}</p>
+
+                            @if ($plugin->getDescription())
+                                <p class="mt-1 max-w-xl text-xs text-gray-500 dark:text-gray-400">{{ $plugin->getDescription() }}</p>
+                            @endif
+                        </div>
+
+                        <div class="flex shrink-0 flex-wrap items-center gap-2 sm:justify-end">
+                            <form method="POST" action="{{ route('settings.plugins.update', ['alias' => $plugin->getAlias()]) }}">
+                                @csrf
+                                @method('PATCH')
+                                <input type="hidden" name="enabled" value="{{ $plugin->enabled() ? 0 : 1 }}">
+
+                                <x-ui.action
+                                    type="submit"
+                                    size="sm"
+                                    :variant="$plugin->enabled() ? 'secondary' : 'primary'"
+                                    :icon="$plugin->enabled() ? 'x-circle' : 'play'"
+                                >
+                                    {{ $plugin->enabled() ? 'Desabilitar' : 'Habilitar' }}
+                                </x-ui.action>
+                            </form>
+
+                            <form
+                                method="POST"
+                                action="{{ route('settings.plugins.destroy', ['alias' => $plugin->getAlias()]) }}"
+                                data-confirm="Remover o plugin {{ $plugin->getName() }}? Os arquivos em plugins/ serão apagados e essa ação não pode ser desfeita."
+                                data-confirm-title="Remover plugin"
+                                data-confirm-label="Remover"
+                            >
+                                @csrf
+                                @method('DELETE')
+
+                                <x-ui.action type="submit" size="sm" variant="danger" icon="trash" aria-label="Remover {{ $plugin->getName() }}">
+                                    Remover
+                                </x-ui.action>
+                            </form>
+                        </div>
+                    </li>
+                @endforeach
+            </ul>
+        @endif
+    </div>
 </section>
