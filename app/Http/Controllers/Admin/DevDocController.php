@@ -9,6 +9,7 @@ use App\Models\DevDoc;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
 
@@ -45,6 +46,7 @@ class DevDocController extends Controller
 
         return view('admin.dev-docs.index', [
             'documents' => $documents,
+            'navigation' => $this->navigation(),
             'search' => $search,
             'category' => $category,
             'categories' => DevDocCategory::cases(),
@@ -95,6 +97,7 @@ class DevDocController extends Controller
 
         return view('admin.dev-docs.show', [
             'document' => $devDoc,
+            'navigation' => $this->navigation(),
             'renderedContent' => Str::markdown($devDoc->content, [
                 'html_input' => 'escape',
                 'allow_unsafe_links' => false,
@@ -138,6 +141,26 @@ class DevDocController extends Controller
         return redirect()
             ->route('admin.dev-docs.index')
             ->with('status', 'Documento excluído com sucesso.');
+    }
+
+    /**
+     * Build the navigation tree for the wiki sidebar.
+     *
+     * @return Collection<int, array{category: DevDocCategory, documents: Collection<int, DevDoc>}>
+     */
+    private function navigation(): Collection
+    {
+        $documents = DevDoc::query()->orderBy('title')->get();
+
+        return collect(DevDocCategory::cases())
+            ->map(fn (DevDocCategory $category): array => [
+                'category' => $category,
+                'documents' => $documents
+                    ->filter(fn (DevDoc $document): bool => $document->category === $category)
+                    ->values(),
+            ])
+            ->filter(fn (array $group): bool => $group['documents']->isNotEmpty())
+            ->values();
     }
 
     /**

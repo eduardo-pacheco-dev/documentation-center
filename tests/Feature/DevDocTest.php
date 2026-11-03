@@ -123,13 +123,15 @@ test('administrators can search and filter documents', function () {
         ->get('/admin/dev-docs?search=Deploy')
         ->assertOk()
         ->assertSee('Deploy da API')
-        ->assertDontSee('Componentes de frontend');
+        ->assertViewHas('documents', fn ($documents): bool => $documents->total() === 1
+            && $documents->first()->title === 'Deploy da API');
 
     $this->actingAs($admin)
         ->get('/admin/dev-docs?category='.DevDocCategory::Frontend->value)
         ->assertOk()
         ->assertSee('Componentes de frontend')
-        ->assertDontSee('Deploy da API');
+        ->assertViewHas('documents', fn ($documents): bool => $documents->total() === 1
+            && $documents->first()->title === 'Componentes de frontend');
 });
 
 test('the document content is rendered as escaped markdown', function () {
