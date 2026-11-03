@@ -179,29 +179,8 @@
                                     </x-ui.badge>
                                 </td>
 
-                                <td class="px-5 py-4">
-                                    <div class="flex items-center justify-end gap-1">
-                                        <x-ui.action :href="route('admin.stations.show', $station)" variant="ghost" size="sm" icon="eye">
-                                            Ver
-                                        </x-ui.action>
-
-                                        <x-ui.action :href="route('admin.stations.edit', $station)" variant="ghost" size="sm" icon="pencil-square">
-                                            Editar
-                                        </x-ui.action>
-
-                                        <form method="POST" action="{{ route('admin.stations.destroy', $station) }}" data-confirm-delete="Excluir a estação {{ $station->station_id ?: $station->site_id }}? Essa ação não pode ser desfeita.">
-                                            @csrf
-                                            @method('DELETE')
-
-                                            <button
-                                                type="submit"
-                                                class="inline-flex h-9 items-center gap-1.5 rounded-xl px-3 text-xs font-semibold text-red-600 transition hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-500/10"
-                                            >
-                                                <x-icon name="trash" class="h-4 w-4" />
-                                                Excluir
-                                            </button>
-                                        </form>
-                                    </div>
+                                <td class="px-5 py-4 text-right">
+                                    <x-stations::partials.actions-menu :station="$station" />
                                 </td>
                             </tr>
                         @endforeach

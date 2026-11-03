@@ -72,7 +72,10 @@ test('stations can be listed', function () {
         ->assertOk()
         ->assertSee('SPJAB051M')
         ->assertSee('SPABC123')
-        ->assertSee('LAS PALMAS');
+        ->assertSee('LAS PALMAS')
+        ->assertSee('Abrir menu de ações')
+        ->assertSee('Ver detalhes')
+        ->assertSee('role="menu"', false);
 });
 
 test('stations can be searched by site, station or address', function () {
