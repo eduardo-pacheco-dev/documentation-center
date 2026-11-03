@@ -19,6 +19,8 @@ use Plugins\Stations\Models\StationComment;
 use Plugins\Stations\Models\StationStorageSetting;
 use Plugins\Stations\Providers\StationsServiceProvider;
 use Plugins\Stations\Support\CoordinateParser;
+use Plugins\Stations\Support\StationExport;
+use Plugins\Stations\Support\StationExportAll;
 use Plugins\Stations\Support\StationImporter;
 use Plugins\Stations\Support\StationStorage;
 
@@ -898,4 +900,110 @@ test('new attachments are stored on the configured provider disk', function () {
     expect($attachment->disk)->toBe(StationStorage::DISK_AWS);
 
     Storage::disk(StationStorage::DISK_AWS)->assertExists($attachment->path);
+});
+
+test('all station data can be exported to excel', function () {
+    $user = User::factory()->create(['name' => 'Ana', 'surname' => 'Souza']);
+    $station = Station::factory()->create([
+        'site_id' => 'SPEXPORT1',
+        'station_id' => 'SPEXPORT1',
+        'logradouro' => 'RUA DA EXPORTAÇÃO',
+        'municipio' => 'SAO PAULO',
+        'estado' => 'SP',
+    ]);
+
+    StationAttachment::factory()->for($station)->ppiTssr()->create([
+        'original_name' => 'ppi-estacao.pdf',
+    ]);
+
+    StationComment::factory()->for($station)->for($user)->create([
+        'body' => 'Comentário de exportação.',
+    ]);
+
+    $fileName = app(StationExport::class)->fileName($station);
+
+    $response = $this->actingAs($user)
+        ->get(route('admin.stations.export', $station))
+        ->assertOk()
+        ->assertDownload($fileName);
+
+    $path = sys_get_temp_dir().'/station-export-'.Str::random(8).'.xlsx';
+    file_put_contents($path, $response->streamedContent());
+
+    $spreadsheet = IOFactory::load($path);
+
+    expect($spreadsheet->getSheetNames())
+        ->toBe(['Estação', 'Anexos', 'Comentários']);
+
+    $stationText = collect($spreadsheet->getSheet(0)->toArray())->flatten()->filter()->implode(' | ');
+    $attachmentsText = collect($spreadsheet->getSheetByName('Anexos')->toArray())->flatten()->filter()->implode(' | ');
+    $commentsText = collect($spreadsheet->getSheetByName('Comentários')->toArray())->flatten()->filter()->implode(' | ');
+
+    expect($stationText)
+        ->toContain('SPEXPORT1')
+        ->toContain('RUA DA EXPORTAÇÃO')
+        ->toContain('Criado em');
+
+    expect($attachmentsText)
+        ->toContain('ppi-estacao.pdf')
+        ->toContain('PPI/TSSR');
+
+    expect($commentsText)
+        ->toContain('Comentário de exportação.')
+        ->toContain('Ana Souza');
+
+    $spreadsheet->disconnectWorksheets();
+    @unlink($path);
+});
+
+test('all stations can be exported to excel with a sites summary', function () {
+    Station::factory()->create([
+        'site_id' => 'SPALL001',
+        'station_id' => 'SPALL001',
+        'logradouro' => 'RUA UM',
+        'municipio' => 'SAO PAULO',
+        'estado' => 'SP',
+    ]);
+
+    Station::factory()->create([
+        'site_id' => 'SPALL002',
+        'station_id' => 'SPALL002',
+        'logradouro' => 'RUA DOIS',
+        'municipio' => 'CAMPINAS',
+        'estado' => 'SP',
+    ]);
+
+    $fileName = app(StationExportAll::class)->fileName();
+
+    $response = $this->actingAs(User::factory()->create())
+        ->get(route('admin.stations.export-all'))
+        ->assertOk()
+        ->assertDownload($fileName);
+
+    $path = sys_get_temp_dir().'/stations-export-'.Str::random(8).'.xlsx';
+    file_put_contents($path, $response->streamedContent());
+
+    $spreadsheet = IOFactory::load($path);
+
+    expect($spreadsheet->getSheetNames())
+        ->toBe(['Estações', 'Sites']);
+
+    $stationsText = collect($spreadsheet->getSheetByName('Estações')->toArray())->flatten()->filter()->implode(' | ');
+    $sitesText = collect($spreadsheet->getSheetByName('Sites')->toArray())->flatten()->filter()->implode(' | ');
+
+    expect($stationsText)
+        ->toContain('SPALL001')
+        ->toContain('RUA UM')
+        ->toContain('SPALL002')
+        ->toContain('RUA DOIS')
+        ->toContain('Atualizado em');
+
+    expect($sitesText)
+        ->toContain('SPALL001')
+        ->toContain('SPALL002')
+        ->toContain('SAO PAULO')
+        ->toContain('CAMPINAS');
+
+    $spreadsheet->disconnectWorksheets();
+    @unlink($path);
 });

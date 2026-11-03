@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 use Plugins\Stations\Http\Controllers\StationAttachmentController;
 use Plugins\Stations\Http\Controllers\StationCommentController;
 use Plugins\Stations\Http\Controllers\StationController;
+use Plugins\Stations\Http\Controllers\StationExportController;
 use Plugins\Stations\Http\Controllers\StationImportController;
 use Plugins\Stations\Http\Controllers\StationStorageSettingsController;
 
@@ -17,7 +18,9 @@ Route::middleware('auth')
         Route::get('import', [StationImportController::class, 'create'])->name('import');
         Route::post('import', [StationImportController::class, 'store'])->name('import.store');
         Route::get('import/template', [StationImportController::class, 'template'])->name('import.template');
+        Route::get('export-all', [StationExportController::class, 'exportAll'])->name('export-all');
         Route::get('{station}', [StationController::class, 'show'])->name('show');
+        Route::get('{station}/export', [StationExportController::class, 'export'])->name('export');
         Route::get('{station}/edit', [StationController::class, 'edit'])->name('edit');
         Route::put('{station}', [StationController::class, 'update'])->name('update');
         Route::delete('{station}', [StationController::class, 'destroy'])->name('destroy');

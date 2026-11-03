@@ -212,6 +212,10 @@
         </div>
 
         <div class="flex flex-wrap items-center gap-2">
+            <x-ui.action :href="route('admin.stations.export', $station)" icon="arrow-down-tray" variant="secondary">
+                Exportar
+            </x-ui.action>
+
             <x-ui.action :href="route('admin.stations.edit', $station)" icon="pencil-square" variant="secondary">
                 Editar
             </x-ui.action>
