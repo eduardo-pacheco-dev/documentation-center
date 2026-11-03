@@ -34,7 +34,7 @@
 
     <div class="mt-5">
         @if ($files->isEmpty())
-            <div class="rounded-2xl border border-dashed border-gray-200 bg-gray-50/60 px-5 py-8 text-center dark:border-white/10 dark:bg-white/[0.02]">
+            <div class="rounded-2xl border border-dashed border-gray-300 bg-white px-5 py-8 text-center dark:border-white/15 dark:bg-[#171716]">
                 <x-icon :name="$icon" class="mx-auto h-6 w-6 text-gray-400 dark:text-gray-500" />
                 <p class="mt-3 text-sm font-medium text-gray-700 dark:text-gray-200">{{ $emptyTitle }}</p>
                 <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">{{ $emptyDescription }}</p>
@@ -43,7 +43,7 @@
             <ul class="divide-y divide-gray-100 dark:divide-white/10">
                 @foreach ($files as $file)
                     <li class="flex flex-wrap items-center gap-3 py-3.5">
-                        <span class="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-gray-200 bg-gray-50 text-[10px] font-bold tracking-wide text-gray-500 dark:border-white/10 dark:bg-white/5 dark:text-gray-400">
+                        <span class="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gray-50 text-[10px] font-bold tracking-wide text-gray-500 dark:bg-white/5 dark:text-gray-400">
                             {{ $file->extension() }}
                         </span>
 
@@ -106,9 +106,9 @@
 
         <label
             for="{{ $inputId }}"
-            class="flex cursor-pointer flex-col items-center justify-center rounded-2xl border border-dashed border-gray-300 bg-gray-50/60 px-5 py-7 text-center transition hover:border-indigo-300 hover:bg-indigo-50/40 dark:border-gray-700 dark:bg-white/[0.02] dark:hover:border-indigo-500/40 dark:hover:bg-indigo-500/[0.06]"
+            class="flex cursor-pointer flex-col items-center justify-center rounded-2xl border border-dashed border-gray-300 bg-white px-5 py-7 text-center transition hover:border-indigo-300 dark:border-gray-700 dark:bg-[#171716] dark:hover:border-indigo-500/40"
         >
-            <span class="inline-flex h-10 w-10 items-center justify-center rounded-full bg-white text-indigo-600 shadow-sm dark:bg-white/10 dark:text-indigo-300">
+            <span class="inline-flex h-10 w-10 items-center justify-center rounded-full bg-indigo-50 text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-300">
                 <x-icon name="arrow-up-tray" class="h-5 w-5" />
             </span>
 

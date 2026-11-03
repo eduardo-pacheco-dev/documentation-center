@@ -94,82 +94,88 @@
         <span class="truncate text-gray-400 dark:text-gray-500">{{ $station->station_id ?: $station->site_id }}</span>
     </nav>
 
-    <section class="relative mt-4 overflow-hidden rounded-3xl border border-gray-200/80 bg-white dark:border-white/10 dark:bg-[#171716]">
-        <div class="absolute inset-x-0 top-0 h-32 bg-gradient-to-br from-indigo-50 via-sky-50 to-transparent dark:from-indigo-500/10 dark:via-sky-500/5"></div>
+    <div class="mt-4 flex flex-wrap items-start justify-between gap-4">
+        <div class="flex min-w-0 items-start gap-3">
+            <span class="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-400">
+                <x-icon name="signal" class="h-5 w-5" />
+            </span>
 
-        <div class="relative p-5 sm:p-7">
-            <div class="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
-                <div class="flex min-w-0 items-start gap-4">
-                    <span class="inline-flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-white text-indigo-600 shadow-sm ring-1 ring-gray-200/80 dark:bg-white/10 dark:text-indigo-300 dark:ring-white/10">
-                        <x-icon name="signal" class="h-7 w-7" />
-                    </span>
-
-                    <div class="min-w-0">
-                        <p class="text-[11px] font-semibold uppercase tracking-[0.18em] text-indigo-600 dark:text-indigo-400">Estação</p>
-                        <h1 class="mt-1 truncate text-2xl font-semibold tracking-tight text-gray-900 sm:text-3xl dark:text-white">
-                            {{ $station->station_id ?: $station->site_id }}
-                        </h1>
-                        <p class="mt-1 font-mono text-xs text-gray-500 dark:text-gray-400">SITE {{ $station->site_id }}</p>
-
-                        <div class="mt-3 flex flex-wrap items-center gap-2">
-                            <x-ui.badge :tone="$statusTone">{{ $station->status ?: 'Sem status' }}</x-ui.badge>
-
-                            @if ($station->tecnologia)
-                                <x-ui.badge tone="indigo">{{ $station->tecnologia }}</x-ui.badge>
-                            @endif
-
-                            @if ($station->tipo_de_elemento)
-                                <span class="text-xs font-medium text-gray-500 dark:text-gray-400">{{ $station->tipo_de_elemento }}</span>
-                            @endif
-                        </div>
-                    </div>
-                </div>
-
+            <div class="min-w-0">
                 <div class="flex flex-wrap items-center gap-2">
-                    <x-ui.action :href="route('admin.stations.edit', $station)" icon="pencil-square" variant="secondary">
-                        Editar
-                    </x-ui.action>
+                    <x-ui.badge :tone="$statusTone">{{ $station->status ?: 'Sem status' }}</x-ui.badge>
 
-                    <form method="POST" action="{{ route('admin.stations.destroy', $station) }}" data-confirm-delete="Excluir a estação {{ $station->station_id ?: $station->site_id }}? Essa ação não pode ser desfeita.">
-                        @csrf
-                        @method('DELETE')
+                    @if ($station->tecnologia)
+                        <x-ui.badge tone="indigo">{{ $station->tecnologia }}</x-ui.badge>
+                    @endif
 
-                        <button type="submit" class="inline-flex h-10 items-center gap-1.5 rounded-xl border border-red-200 px-4 text-sm font-semibold text-red-600 transition hover:bg-red-50 dark:border-red-900/60 dark:text-red-400 dark:hover:bg-red-950/40">
-                            <x-icon name="trash" class="h-4 w-4" />
-                            Excluir
-                        </button>
-                    </form>
+                    @if ($station->tipo_de_elemento)
+                        <span class="text-xs font-medium text-gray-500 dark:text-gray-400">{{ $station->tipo_de_elemento }}</span>
+                    @endif
                 </div>
+
+                <h1 class="mt-2 truncate text-2xl font-semibold tracking-tight text-gray-900 sm:text-3xl dark:text-white">
+                    {{ $station->station_id ?: $station->site_id }}
+                </h1>
+
+                <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                    <span class="font-mono text-xs">SITE {{ $station->site_id }}</span>
+
+                    @if ($enderecoCompleto)
+                        <span class="mx-1 text-gray-300 dark:text-gray-600" aria-hidden="true">·</span>
+                        {{ $enderecoCompleto }}
+                    @endif
+                </p>
+
+                <p class="mt-2 text-xs text-gray-400 dark:text-gray-500">
+                    criado <x-relative-time :value="$station->created_at" />
+                    · atualizado <x-relative-time :value="$station->updated_at" />
+                </p>
             </div>
-
-            <dl class="relative mt-6 grid gap-4 border-t border-gray-200/80 pt-5 text-sm sm:grid-cols-3 dark:border-white/10">
-                <div>
-                    <dt class="text-[11px] font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">Endereço</dt>
-                    <dd class="mt-1 font-medium text-gray-700 dark:text-gray-200">{{ $enderecoCompleto ?: 'Não informado' }}</dd>
-                </div>
-
-                <div>
-                    <dt class="text-[11px] font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">Coordenadas</dt>
-                    <dd class="mt-1 font-medium text-gray-700 dark:text-gray-200">
-                        @if ($hasCoordinates)
-                            {{ $latitude }}, {{ $longitude }}
-                        @else
-                            Não informadas
-                        @endif
-                    </dd>
-                </div>
-
-                <div>
-                    <dt class="text-[11px] font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">Última atualização</dt>
-                    <dd class="mt-1 font-medium text-gray-700 dark:text-gray-200">
-                        <x-relative-time :value="$station->updated_at" />
-                    </dd>
-                </div>
-            </dl>
         </div>
-    </section>
 
-    <nav aria-label="Seções da estação" class="sticky top-2 z-20 mt-4 flex gap-1 overflow-x-auto rounded-2xl border border-gray-200/80 bg-white/90 p-1.5 shadow-sm backdrop-blur dark:border-white/10 dark:bg-[#171716]/90">
+        <div class="flex flex-wrap items-center gap-2">
+            <x-ui.action :href="route('admin.stations.edit', $station)" icon="pencil-square" variant="secondary">
+                Editar
+            </x-ui.action>
+
+            <form method="POST" action="{{ route('admin.stations.destroy', $station) }}" data-confirm-delete="Excluir a estação {{ $station->station_id ?: $station->site_id }}? Essa ação não pode ser desfeita.">
+                @csrf
+                @method('DELETE')
+
+                <button type="submit" class="inline-flex h-10 items-center gap-1.5 rounded-xl border border-red-200 px-4 text-sm font-semibold text-red-600 transition hover:bg-red-50 dark:border-red-900/60 dark:text-red-400 dark:hover:bg-red-950/40">
+                    <x-icon name="trash" class="h-4 w-4" />
+                    Excluir
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <dl class="mt-4 grid gap-4 rounded-2xl border border-gray-200/80 bg-white px-4 py-3 text-sm sm:grid-cols-3 dark:border-white/10 dark:bg-[#171716]">
+        <div>
+            <dt class="text-[11px] font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">Endereço</dt>
+            <dd class="mt-1 font-medium text-gray-700 dark:text-gray-200">{{ $enderecoCompleto ?: 'Não informado' }}</dd>
+        </div>
+
+        <div>
+            <dt class="text-[11px] font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">Coordenadas</dt>
+            <dd class="mt-1 font-medium text-gray-700 dark:text-gray-200">
+                @if ($hasCoordinates)
+                    {{ $latitude }}, {{ $longitude }}
+                @else
+                    Não informadas
+                @endif
+            </dd>
+        </div>
+
+        <div>
+            <dt class="text-[11px] font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">Última atualização</dt>
+            <dd class="mt-1 font-medium text-gray-700 dark:text-gray-200">
+                <x-relative-time :value="$station->updated_at" />
+            </dd>
+        </div>
+    </dl>
+
+    <nav aria-label="Seções da estação" class="sticky top-2 z-40 mt-4 flex gap-1 overflow-x-auto rounded-2xl border border-gray-200/80 bg-white p-1.5 dark:border-white/10 dark:bg-[#171716]">
         @foreach ([
             'informacoes' => 'Informações',
             'localizacao' => 'Localização',
@@ -213,7 +219,7 @@
 
         <div class="mt-5 grid gap-4 lg:grid-cols-2">
             @foreach ($fieldGroups as $group)
-                <div class="rounded-2xl border border-gray-100 bg-gray-50/50 p-4 dark:border-white/10 dark:bg-white/[0.02]">
+                <div class="rounded-2xl border border-gray-200/80 p-4 dark:border-white/10">
                     <div class="flex items-center gap-2">
                         <x-icon :name="$group['icon']" class="h-4 w-4 text-gray-400 dark:text-gray-500" />
                         <h3 class="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">{{ $group['title'] }}</h3>
@@ -247,7 +253,7 @@
         </div>
 
         <div class="mt-5 grid gap-4 lg:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)]">
-            <div class="rounded-2xl border border-gray-100 bg-gray-50/50 p-4 dark:border-white/10 dark:bg-white/[0.02]">
+            <div class="rounded-2xl border border-gray-200/80 p-4 dark:border-white/10">
                 <h3 class="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Endereço</h3>
 
                 <dl class="mt-3 divide-y divide-gray-200/70 dark:divide-white/10">
@@ -261,16 +267,16 @@
             </div>
 
             <div class="flex flex-col gap-3">
-                <div class="rounded-2xl border border-gray-100 bg-gray-50/50 p-4 dark:border-white/10 dark:bg-white/[0.02]">
+                <div class="rounded-2xl border border-gray-200/80 p-4 dark:border-white/10">
                     <h3 class="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Coordenadas</h3>
 
                     <div class="mt-3 grid grid-cols-2 gap-2">
-                        <div class="rounded-xl border border-gray-200 bg-white px-3 py-3 dark:border-white/10 dark:bg-[#171716]">
+                        <div class="rounded-xl bg-gray-50 px-3 py-3 dark:bg-white/5">
                             <p class="text-[10px] font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">Latitude</p>
                             <p class="mt-1 font-mono text-sm font-semibold text-gray-800 dark:text-gray-100">{{ $display($station->latitude) }}</p>
                         </div>
 
-                        <div class="rounded-xl border border-gray-200 bg-white px-3 py-3 dark:border-white/10 dark:bg-[#171716]">
+                        <div class="rounded-xl bg-gray-50 px-3 py-3 dark:bg-white/5">
                             <p class="text-[10px] font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">Longitude</p>
                             <p class="mt-1 font-mono text-sm font-semibold text-gray-800 dark:text-gray-100">{{ $display($station->longitude) }}</p>
                         </div>
@@ -318,7 +324,7 @@
         </div>
 
         @if ($hasCoordinates)
-            <div class="mt-5 overflow-hidden rounded-2xl border border-gray-200 dark:border-white/10">
+            <div class="relative z-0 mt-5 overflow-hidden rounded-2xl border border-gray-200 dark:border-white/10">
                 <div id="station-map" class="h-[340px] w-full bg-gray-100 sm:h-[400px] dark:bg-white/5"></div>
             </div>
 
@@ -326,7 +332,7 @@
                 Mapa © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer" class="underline decoration-dotted underline-offset-2 hover:text-gray-600 dark:hover:text-gray-300">OpenStreetMap</a>
             </p>
         @else
-            <div class="mt-5 rounded-2xl border border-dashed border-gray-200 bg-gray-50/60 px-5 py-10 text-center dark:border-white/10 dark:bg-white/[0.02]">
+            <div class="mt-5 rounded-2xl border border-dashed border-gray-300 bg-white px-5 py-10 text-center dark:border-white/15 dark:bg-[#171716]">
                 <x-icon name="map-pin" class="mx-auto h-6 w-6 text-gray-400 dark:text-gray-500" />
                 <p class="mt-3 text-sm font-medium text-gray-700 dark:text-gray-200">Coordenadas não informadas</p>
                 <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Edite a estação e informe a latitude e a longitude para exibir o mapa.</p>
