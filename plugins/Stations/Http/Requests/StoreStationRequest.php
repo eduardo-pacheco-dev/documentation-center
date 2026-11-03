@@ -20,25 +20,34 @@ class StoreStationRequest extends FormRequest
      */
     protected function prepareForValidation(): void
     {
-        if ($this->filled('cep')) {
-            $this->merge([
-                'cep' => preg_replace('/\D/', '', (string) $this->input('cep')),
-            ]);
+        $this->merge(self::normalizeValues($this->all()));
+    }
+
+    /**
+     * Normalize CEP and coordinate values.
+     *
+     * @param  array<string, mixed>  $values
+     * @return array<string, mixed>
+     */
+    public static function normalizeValues(array $values): array
+    {
+        if (filled($values['cep'] ?? null)) {
+            $values['cep'] = preg_replace('/\D/', '', (string) $values['cep']);
         }
 
         foreach (['latitude', 'longitude'] as $coordinate) {
-            if (! $this->filled($coordinate)) {
+            if (! filled($values[$coordinate] ?? null)) {
                 continue;
             }
 
-            $decimal = CoordinateParser::toDecimal((string) $this->input($coordinate));
+            $decimal = CoordinateParser::toDecimal((string) $values[$coordinate]);
 
             if ($decimal !== null) {
-                $this->merge([
-                    $coordinate => number_format($decimal, 6, '.', ''),
-                ]);
+                $values[$coordinate] = number_format($decimal, 6, '.', '');
             }
         }
+
+        return $values;
     }
 
     /**
@@ -47,6 +56,16 @@ class StoreStationRequest extends FormRequest
      * @return array<string, mixed>
      */
     public function rules(): array
+    {
+        return self::fieldRules();
+    }
+
+    /**
+     * The validation rules shared with the bulk import.
+     *
+     * @return array<string, mixed>
+     */
+    public static function fieldRules(): array
     {
         return [
             'site_id' => ['required', 'string', 'max:100'],
@@ -81,6 +100,16 @@ class StoreStationRequest extends FormRequest
      * @return array<string, string>
      */
     public function messages(): array
+    {
+        return self::fieldMessages();
+    }
+
+    /**
+     * The custom validation messages shared with the bulk import.
+     *
+     * @return array<string, string>
+     */
+    public static function fieldMessages(): array
     {
         return [
             'latitude.numeric' => 'A latitude deve estar em graus. Use graus decimais (ex.: -23.665278) ou graus, minutos e segundos (ex.: 23°39\'55"S).',

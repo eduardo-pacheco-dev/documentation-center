@@ -35,6 +35,14 @@
         icon="signal"
     >
         <x-ui.action
+            :href="route('admin.stations.import')"
+            icon="arrow-up-tray"
+            variant="secondary"
+        >
+            Importar
+        </x-ui.action>
+
+        <x-ui.action
             :href="route('admin.stations.create')"
             icon="plus"
             x-on:click.prevent="$dispatch('open-station-modal')"

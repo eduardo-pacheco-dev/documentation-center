@@ -15,6 +15,7 @@ use Plugins\Stations\Models\StationAttachment;
 use Plugins\Stations\Models\StationComment;
 use Plugins\Stations\Providers\StationsServiceProvider;
 use Plugins\Stations\Support\CoordinateParser;
+use Plugins\Stations\Support\StationImporter;
 
 uses(RefreshDatabase::class);
 
@@ -510,4 +511,135 @@ test('deleting a station removes its stored attachments', function () {
 
     Storage::disk('local')->assertMissing($attachment->path);
     expect(StationAttachment::query()->count())->toBe(0);
+});
+
+test('the station import page renders the instructions and limit', function () {
+    $this->actingAs(User::factory()->create())
+        ->get(route('admin.stations.import'))
+        ->assertOk()
+        ->assertSee('Importar estações')
+        ->assertSee('Baixar modelo CSV')
+        ->assertSee('100 estações')
+        ->assertSee('site_id');
+});
+
+test('stations can be imported from a csv file', function () {
+    $csv = "\xEF\xBB\xBF".implode("\n", [
+        'site_id;station_id;logradouro;numero;bairro;municipio;estado;cep;latitude;longitude;status;tecnologia',
+        'SPIMP001;SPIMP001;Rua das Palmas;213;Jabaquara;São Paulo;SP;04339-000;-23.665278;-46.641111;Aquisitado;LTE',
+        'SPIMP002;SPIMP002;Avenida Paulista;1000;Bela Vista;São Paulo;SP;01310-100;-23.561414;-46.655881;Planejado;5G',
+    ]);
+
+    $this->actingAs(User::factory()->create())
+        ->post(route('admin.stations.import.store'), [
+            'file' => UploadedFile::fake()->createWithContent('estacoes.csv', $csv),
+        ])
+        ->assertRedirect(route('admin.stations.index'))
+        ->assertSessionHas('status');
+
+    expect(Station::query()->count())->toBe(2);
+
+    $first = Station::query()->where('site_id', 'SPIMP001')->sole();
+
+    expect($first)
+        ->station_id->toBe('SPIMP001')
+        ->cep->toBe('04339000')
+        ->latitude->toBe('-23.665278')
+        ->longitude->toBe('-46.641111')
+        ->tecnologia->toBe('LTE');
+});
+
+test('station imports accept header labels and comma delimiters', function () {
+    $csv = implode("\n", [
+        'ID do site,ID da estação,Município,Estado (UF)',
+        'SPLABEL1,SPLABEL1,São Paulo,SP',
+    ]);
+
+    $this->actingAs(User::factory()->create())
+        ->post(route('admin.stations.import.store'), [
+            'file' => UploadedFile::fake()->createWithContent('estacoes.csv', $csv),
+        ])
+        ->assertRedirect(route('admin.stations.index'));
+
+    $station = Station::query()->sole();
+
+    expect($station)
+        ->site_id->toBe('SPLABEL1')
+        ->station_id->toBe('SPLABEL1')
+        ->municipio->toBe('São Paulo')
+        ->estado->toBe('SP');
+});
+
+test('station imports are limited to one hundred rows', function () {
+    $rows = ['site_id'];
+
+    for ($index = 1; $index <= StationImporter::MAX_STATIONS + 1; $index++) {
+        $rows[] = 'SPLIMIT'.$index;
+    }
+
+    $this->actingAs(User::factory()->create())
+        ->post(route('admin.stations.import.store'), [
+            'file' => UploadedFile::fake()->createWithContent('estacoes.csv', implode("\n", $rows)),
+        ])
+        ->assertSessionHasErrors('file');
+
+    expect(Station::query()->count())->toBe(0);
+});
+
+test('an invalid row prevents the whole import', function () {
+    $csv = implode("\n", [
+        'site_id;logradouro',
+        'SPVALID1;Rua Válida',
+        ';Rua sem site',
+    ]);
+
+    $this->actingAs(User::factory()->create())
+        ->post(route('admin.stations.import.store'), [
+            'file' => UploadedFile::fake()->createWithContent('estacoes.csv', $csv),
+        ])
+        ->assertSessionHasErrors('file');
+
+    expect(Station::query()->count())->toBe(0);
+});
+
+test('the import template can be downloaded', function () {
+    $response = $this->actingAs(User::factory()->create())
+        ->get(route('admin.stations.import.template'))
+        ->assertOk()
+        ->assertDownload('modelo-importacao-estacoes.csv');
+
+    expect($response->streamedContent())
+        ->toContain('site_id')
+        ->toContain('station_id')
+        ->toContain('latitude');
+});
+
+test('the sites widget lists sites and searches by site id', function () {
+    Station::factory()->create(['site_id' => 'SPALPHA1', 'municipio' => 'São Paulo', 'estado' => 'SP']);
+    Station::factory()->create(['site_id' => 'SPBETA2', 'municipio' => 'Campinas', 'estado' => 'SP']);
+
+    $user = User::factory()->create();
+
+    $this->actingAs($user)
+        ->get('/admin')
+        ->assertOk()
+        ->assertSee('Sites')
+        ->assertSee('SPALPHA1')
+        ->assertSee('SPBETA2');
+
+    $this->actingAs($user)
+        ->get('/admin?site_search=SPALPHA')
+        ->assertOk()
+        ->assertSee('SPALPHA1')
+        ->assertDontSee('SPBETA2');
+});
+
+test('the sites widget groups stations by site and counts them', function () {
+    Station::factory()->count(2)->create(['site_id' => 'SPGROUP1']);
+
+    $this->actingAs(User::factory()->create())
+        ->get('/admin')
+        ->assertOk()
+        ->assertSee('SPGROUP1')
+        ->assertSee('2 estações');
 });
