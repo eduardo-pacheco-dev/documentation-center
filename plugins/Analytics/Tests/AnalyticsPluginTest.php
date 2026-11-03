@@ -52,6 +52,7 @@ it('renders the dashboard with charts and indicators', function () {
         ->assertSee('Status FAMs')
         ->assertSee('Etapas do processo FAMs')
         ->assertSee('Status geral AFL')
+        ->assertSee('analytics-overview-records-status', false)
         ->assertSee('analytics-series', false)
         ->assertSee('apexcharts', false)
         ->assertSee('chart.js', false)

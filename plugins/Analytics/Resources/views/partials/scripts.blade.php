@@ -6,7 +6,11 @@
         const series = @json($series);
         const snapshotSeries = @json($snapshotSeries);
         const recordsByStage = @json($recordsByStage);
+        const recordsByStatus = @json($recordsByStatus);
+        const recordsBySupplier = @json($recordsBySupplier);
         const aflByStatus = @json($aflByStatus);
+        const aflByBillingStatus = @json($aflByBillingStatus);
+        const aflByProject = @json($aflByProject);
 
         const isDark = document.documentElement.classList.contains('dark');
         const labelColor = isDark ? '#d1d5db' : '#6b7280';
@@ -60,6 +64,36 @@
             new Chart(element, config);
         };
 
+        const chartPalette = ['#6366f1', '#f59e0b', '#0ea5e9', '#10b981', '#f43f5e', '#8b5cf6', '#14b8a6', '#eab308', '#64748b', '#ec4899'];
+        const chartColors = (count) => Array.from({ length: count }, (_, index) => chartPalette[index % chartPalette.length]);
+
+        const doughnutOptions = () => ({
+            responsive: true,
+            maintainAspectRatio: false,
+            cutout: '64%',
+            plugins: { legend: { position: 'bottom', labels: { boxWidth: 8, padding: 10 } } },
+        });
+
+        const horizontalBarOptions = (maxLabel = 24) => ({
+            indexAxis: 'y',
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+                x: { beginAtZero: true, ticks: { precision: 0 } },
+                y: {
+                    ticks: {
+                        autoSkip: false,
+                        callback(value) {
+                            const label = this.getLabelForValue(value);
+
+                            return label.length > maxLabel ? label.slice(0, maxLabel) + '…' : label;
+                        },
+                    },
+                },
+            },
+        });
+
         const renderers = {
             overview() {
                 if (typeof ApexCharts !== 'undefined') {
@@ -76,6 +110,68 @@
                 Chart.defaults.color = labelColor;
                 Chart.defaults.borderColor = gridColor;
                 Chart.defaults.font.family = 'inherit';
+
+                chartJs('analytics-overview-records-status', {
+                    type: 'doughnut',
+                    data: {
+                        labels: recordsByStatus.labels.length ? recordsByStatus.labels : ['Sem dados'],
+                        datasets: [{
+                            data: recordsByStatus.values.length ? recordsByStatus.values : [1],
+                            backgroundColor: recordsByStatus.values.length ? chartColors(recordsByStatus.values.length) : ['#e5e7eb'],
+                            borderWidth: 0,
+                        }],
+                    },
+                    options: doughnutOptions(),
+                });
+
+                chartJs('analytics-overview-records-stages', {
+                    type: 'bar',
+                    data: {
+                        labels: recordsByStage.labels,
+                        datasets: [{ data: recordsByStage.values, backgroundColor: '#6366f1', borderRadius: 6, maxBarThickness: 28 }],
+                    },
+                    options: horizontalBarOptions(24),
+                });
+
+                chartJs('analytics-overview-afl-status', {
+                    type: 'bar',
+                    data: {
+                        labels: aflByStatus.labels,
+                        datasets: [{ data: aflByStatus.values, backgroundColor: '#f43f5e', borderRadius: 6, maxBarThickness: 28 }],
+                    },
+                    options: horizontalBarOptions(26),
+                });
+
+                chartJs('analytics-overview-afl-billing', {
+                    type: 'doughnut',
+                    data: {
+                        labels: aflByBillingStatus.labels.length ? aflByBillingStatus.labels : ['Sem dados'],
+                        datasets: [{
+                            data: aflByBillingStatus.values.length ? aflByBillingStatus.values : [1],
+                            backgroundColor: aflByBillingStatus.values.length ? chartColors(aflByBillingStatus.values.length) : ['#e5e7eb'],
+                            borderWidth: 0,
+                        }],
+                    },
+                    options: doughnutOptions(),
+                });
+
+                chartJs('analytics-overview-records-suppliers', {
+                    type: 'bar',
+                    data: {
+                        labels: recordsBySupplier.labels,
+                        datasets: [{ data: recordsBySupplier.values, backgroundColor: '#6366f1', borderRadius: 6, maxBarThickness: 28 }],
+                    },
+                    options: horizontalBarOptions(24),
+                });
+
+                chartJs('analytics-overview-afl-projects', {
+                    type: 'bar',
+                    data: {
+                        labels: aflByProject.labels,
+                        datasets: [{ data: aflByProject.values, backgroundColor: '#f43f5e', borderRadius: 6, maxBarThickness: 28 }],
+                    },
+                    options: horizontalBarOptions(24),
+                });
             },
 
             fams() {

@@ -23,69 +23,55 @@
         </x-analytics::panel>
 
         <x-analytics::panel title="Status FAMs" :description="number_format($recordsTotal, 0, ',', '.').' registros no total'">
-            <x-analytics::status-list
-                :labels="$recordsByStatus['labels']"
-                :values="$recordsByStatus['values']"
-                empty="Nenhum status registrado."
-                truncate
-                class="mt-4"
-            />
-        </x-analytics::panel>
-
-        <x-analytics::panel title="Etapas do processo FAMs">
-            <x-analytics::status-list
-                :labels="$recordsByStage['labels']"
-                :values="$recordsByStage['values']"
-                empty="Nenhuma etapa registrada."
-                truncate
-                class="mt-4"
-            />
-        </x-analytics::panel>
-
-        <x-analytics::panel title="Status geral AFL" :description="number_format($aflTotal, 0, ',', '.').' registros no total'">
-            <x-analytics::status-list
-                :labels="$aflByStatus['labels']"
-                :values="$aflByStatus['values']"
-                empty="Nenhum status registrado."
-                truncate
-                class="mt-4"
-            />
-        </x-analytics::panel>
-
-        <x-analytics::panel title="Faturamento AFL">
-            <x-analytics::status-list
-                :labels="$aflByBillingStatus['labels']"
-                :values="$aflByBillingStatus['values']"
-                empty="Nenhum status de faturamento registrado."
-                truncate
-                class="mt-4"
-            />
+            @if ($recordsByStatus['labels'] === [])
+                <p class="mt-4 text-sm text-gray-500 dark:text-gray-400">Nenhum status registrado.</p>
+            @else
+                <x-analytics::chart-canvas id="analytics-overview-records-status" height="h-56" class="mt-3" />
+            @endif
         </x-analytics::panel>
     </div>
 
-    @if ($recordsBySupplier['labels'] !== [] || $aflByProject['labels'] !== [])
-        <div class="grid grid-cols-1 gap-4 xl:grid-cols-2">
-            @if ($recordsBySupplier['labels'] !== [])
-                <x-analytics::panel title="Fornecedores FAMs">
-                    <x-analytics::status-list
-                        :labels="$recordsBySupplier['labels']"
-                        :values="$recordsBySupplier['values']"
-                        truncate
-                        class="mt-4"
-                    />
-                </x-analytics::panel>
+    <div class="grid grid-cols-1 gap-4 xl:grid-cols-2">
+        <x-analytics::panel title="Etapas do processo FAMs">
+            @if ($recordsByStage['labels'] === [])
+                <p class="mt-4 text-sm text-gray-500 dark:text-gray-400">Nenhuma etapa registrada.</p>
+            @else
+                <x-analytics::chart-canvas id="analytics-overview-records-stages" height="h-64" class="mt-4" />
             @endif
+        </x-analytics::panel>
 
-            @if ($aflByProject['labels'] !== [])
-                <x-analytics::panel title="Projetos AFL">
-                    <x-analytics::status-list
-                        :labels="$aflByProject['labels']"
-                        :values="$aflByProject['values']"
-                        truncate
-                        class="mt-4"
-                    />
-                </x-analytics::panel>
+        <x-analytics::panel title="Status geral AFL" :description="number_format($aflTotal, 0, ',', '.').' registros no total'">
+            @if ($aflByStatus['labels'] === [])
+                <p class="mt-4 text-sm text-gray-500 dark:text-gray-400">Nenhum status registrado.</p>
+            @else
+                <x-analytics::chart-canvas id="analytics-overview-afl-status" height="h-64" class="mt-4" />
             @endif
-        </div>
-    @endif
+        </x-analytics::panel>
+    </div>
+
+    <div class="grid grid-cols-1 gap-4 xl:grid-cols-3">
+        <x-analytics::panel title="Faturamento AFL">
+            @if ($aflByBillingStatus['labels'] === [])
+                <p class="mt-4 text-sm text-gray-500 dark:text-gray-400">Nenhum status de faturamento registrado.</p>
+            @else
+                <x-analytics::chart-canvas id="analytics-overview-afl-billing" height="h-56" class="mt-3" />
+            @endif
+        </x-analytics::panel>
+
+        <x-analytics::panel title="Fornecedores FAMs">
+            @if ($recordsBySupplier['labels'] === [])
+                <p class="mt-4 text-sm text-gray-500 dark:text-gray-400">Nenhum fornecedor registrado.</p>
+            @else
+                <x-analytics::chart-canvas id="analytics-overview-records-suppliers" height="h-56" class="mt-3" />
+            @endif
+        </x-analytics::panel>
+
+        <x-analytics::panel title="Projetos AFL">
+            @if ($aflByProject['labels'] === [])
+                <p class="mt-4 text-sm text-gray-500 dark:text-gray-400">Nenhum projeto registrado.</p>
+            @else
+                <x-analytics::chart-canvas id="analytics-overview-afl-projects" height="h-56" class="mt-3" />
+            @endif
+        </x-analytics::panel>
+    </div>
 </div>
