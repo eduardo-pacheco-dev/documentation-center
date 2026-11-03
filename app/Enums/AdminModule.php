@@ -7,21 +7,6 @@ use App\Models\User;
 enum AdminModule: string
 {
     case Dashboard = 'dashboard';
-    case Projects = 'projects';
-    case WorkOrders = 'work-orders';
-    case Clients = 'clients';
-    case Files = 'files';
-    case Agenda = 'agenda';
-    case Tasks = 'tasks';
-    case Forms = 'forms';
-    case Erbs = 'erbs';
-    case RadioLinks = 'radio-links';
-    case Catalog = 'catalog';
-    case Equipments = 'equipments';
-    case Links = 'links';
-    case Colaboradores = 'colaboradores';
-    case FormTemplates = 'form-templates';
-    case Backups = 'backups';
     case Users = 'users';
 
     /**
@@ -31,21 +16,6 @@ enum AdminModule: string
     {
         return match ($this) {
             self::Dashboard => 'Início',
-            self::Projects => 'Projetos',
-            self::WorkOrders => 'Ordens de serviço',
-            self::Clients => 'Clientes',
-            self::Files => 'Arquivos',
-            self::Agenda => 'Agenda',
-            self::Tasks => 'Tarefas',
-            self::Forms => 'Formulários',
-            self::Erbs => 'ERBs',
-            self::RadioLinks => 'Radio links',
-            self::Catalog => 'Catálogo',
-            self::Equipments => 'Equipamentos',
-            self::Links => 'Links',
-            self::Colaboradores => 'Colaboradores',
-            self::FormTemplates => 'Templates',
-            self::Backups => 'Backups',
             self::Users => 'Usuários',
         };
     }
@@ -57,21 +27,6 @@ enum AdminModule: string
     {
         return match ($this) {
             self::Dashboard => 'home',
-            self::Projects => 'briefcase',
-            self::WorkOrders => 'clipboard-document-list',
-            self::Clients => 'building-office',
-            self::Files => 'document-text',
-            self::Agenda => 'calendar-days',
-            self::Tasks => 'check-circle',
-            self::Forms => 'document-check',
-            self::Erbs => 'signal',
-            self::RadioLinks => 'arrows-right-left',
-            self::Catalog => 'cube',
-            self::Equipments => 'wrench-screwdriver',
-            self::Links => 'link',
-            self::Colaboradores => 'user',
-            self::FormTemplates => 'document-duplicate',
-            self::Backups => 'rectangle-stack',
             self::Users => 'users',
         };
     }
@@ -83,21 +38,6 @@ enum AdminModule: string
     {
         return match ($this) {
             self::Dashboard => 'admin.dashboard',
-            self::Projects => 'admin.projects.index',
-            self::WorkOrders => 'admin.work-orders.index',
-            self::Clients => 'admin.clients.index',
-            self::Files => 'admin.files.index',
-            self::Agenda => 'admin.agenda.index',
-            self::Tasks => 'admin.tasks.index',
-            self::Forms => 'admin.forms.index',
-            self::Erbs => 'admin.erbs.index',
-            self::RadioLinks => 'admin.radio-links.index',
-            self::Catalog => 'admin.catalog.index',
-            self::Equipments => 'admin.equipments.index',
-            self::Links => 'admin.links.index',
-            self::Colaboradores => 'admin.colaboradores.index',
-            self::FormTemplates => 'admin.form-templates.index',
-            self::Backups => 'admin.backups.index',
             self::Users => 'admin.users.index',
         };
     }
@@ -117,17 +57,7 @@ enum AdminModule: string
      */
     public function isPrimary(): bool
     {
-        return match ($this) {
-            self::Dashboard,
-            self::Projects,
-            self::WorkOrders,
-            self::Clients,
-            self::Files,
-            self::Agenda,
-            self::Tasks,
-            self::Forms => true,
-            default => false,
-        };
+        return $this === self::Dashboard;
     }
 
     /**
@@ -135,10 +65,7 @@ enum AdminModule: string
      */
     public function isAdminOnly(): bool
     {
-        return match ($this) {
-            self::Backups, self::Users => true,
-            default => false,
-        };
+        return $this === self::Users;
     }
 
     /**

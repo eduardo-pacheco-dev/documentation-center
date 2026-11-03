@@ -46,7 +46,6 @@
 >
     <x-dashboard.brand />
     <x-dashboard.sidebar-toggle />
-    <x-dashboard.quick-action />
 
     <nav class="flex w-full flex-1 flex-col gap-1 overflow-y-auto pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         @foreach ($primaryNav as $module)

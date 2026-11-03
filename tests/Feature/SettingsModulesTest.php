@@ -13,53 +13,40 @@ test('the settings page lists the modules the user can toggle', function () {
         ->get('/settings')
         ->assertOk()
         ->assertSee('Módulos')
-        ->assertSee('Clientes')
-        ->assertSee('Projetos')
         ->assertDontSee('Usuários');
 
     $this->actingAs($admin)
         ->get('/settings')
         ->assertOk()
-        ->assertSee('Usuários')
-        ->assertSee('Backups');
+        ->assertSee('Usuários');
 });
 
-test('a user can disable modules and hide them from the navigation', function () {
-    $user = User::factory()->create();
+test('administrators can enable and disable the users module', function () {
+    $admin = User::factory()->create(['is_admin' => true]);
 
-    $this->actingAs($user)
-        ->put('/settings/modules', [
-            'modules' => ['clients', 'projects'],
-        ])
+    $this->actingAs($admin)
+        ->put('/settings/modules', ['modules' => ['users']])
         ->assertRedirect()
         ->assertSessionHas('status', 'Módulos atualizados com sucesso.');
 
-    expect($user->fresh()->enabled_modules)->toBe(['clients', 'projects']);
+    expect($admin->fresh()->enabled_modules)->toBe(['users']);
 
-    $this->actingAs($user->fresh())
+    $this->actingAs($admin->fresh())
         ->get('/admin')
         ->assertOk()
-        ->assertSee('data-module="clientes"', false)
-        ->assertSee('data-module="projetos"', false)
-        ->assertDontSee('data-module="ordens-de-servico"', false)
-        ->assertDontSee('data-stat="os-abertas"', false);
-});
+        ->assertSee('data-module="usuarios"', false);
 
-test('disabling every module keeps only the dashboard enabled', function () {
-    $user = User::factory()->create();
-
-    $this->actingAs($user)
+    $this->actingAs($admin->fresh())
         ->put('/settings/modules', [])
         ->assertRedirect();
 
-    expect($user->fresh()->enabled_modules)->toBe([]);
+    expect($admin->fresh()->enabled_modules)->toBe([]);
 
-    $this->actingAs($user->fresh())
+    $this->actingAs($admin->fresh())
         ->get('/admin')
         ->assertOk()
         ->assertSee('data-module="inicio"', false)
-        ->assertDontSee('data-module="clientes"', false)
-        ->assertDontSee('data-stat="clientes"', false);
+        ->assertDontSee('data-module="usuarios"', false);
 });
 
 test('regular users cannot enable administrator modules', function () {
@@ -72,16 +59,4 @@ test('regular users cannot enable administrator modules', function () {
         ->assertSessionHasErrors('modules.0');
 
     expect($user->fresh()->enabled_modules)->toBeNull();
-});
-
-test('administrators can enable administrator modules', function () {
-    $admin = User::factory()->create(['is_admin' => true]);
-
-    $this->actingAs($admin)
-        ->put('/settings/modules', [
-            'modules' => ['users', 'backups'],
-        ])
-        ->assertRedirect();
-
-    expect($admin->fresh()->enabled_modules)->toBe(['users', 'backups']);
 });

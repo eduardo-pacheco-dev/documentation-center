@@ -76,6 +76,5 @@
 
         <x-toasts />
         <x-confirm-modal />
-        <x-document-preview-modal />
     </body>
 </html>

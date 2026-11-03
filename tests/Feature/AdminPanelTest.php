@@ -3,9 +3,6 @@
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
-use Plugins\Erbs\Models\Erb;
-use Plugins\WorkOrders\Enums\WorkOrderStatus;
-use Plugins\WorkOrders\Models\WorkOrder;
 
 uses(RefreshDatabase::class);
 
@@ -311,82 +308,47 @@ test('deactivated sessions are terminated by the active middleware', function ()
     $this->assertGuest();
 });
 
-test('the dashboard shows the signed in user summaries', function () {
+test('the dashboard shows the signed in user greeting', function () {
+    $user = User::factory()->create(['name' => 'Maria Silva']);
+
+    $this->actingAs($user)
+        ->get('/admin')
+        ->assertOk()
+        ->assertSee('Maria')
+        ->assertSee('Plugins instalados');
+});
+
+test('the dashboard shows the installed plugin totals', function () {
     $this->actingAs(User::factory()->create())
         ->get('/admin')
         ->assertOk()
-        ->assertSee('Clientes')
-        ->assertSee('Ordens de serviço')
-        ->assertSee('Módulos')
-        ->assertSee('Arquivos recentes');
+        ->assertViewHas('counts', fn (array $counts): bool => $counts['plugins'] >= 1
+            && $counts['enabledPlugins'] >= 0);
 });
 
-test('the dashboard surfaces every system module', function () {
+test('the dashboard only lists users for administrators', function () {
+    $admin = User::factory()->create(['is_admin' => true]);
+    User::factory()->create(['name' => 'Regular Member']);
+
+    $this->actingAs($admin)
+        ->get('/admin')
+        ->assertOk()
+        ->assertSee('Usuários recentes')
+        ->assertSee('Regular Member');
+
     $this->actingAs(User::factory()->create())
         ->get('/admin')
         ->assertOk()
-        ->assertSee('data-module="erbs"', false)
-        ->assertSee('data-module="radio-links"', false)
-        ->assertSee('data-module="catalogo"', false)
-        ->assertSee('data-module="formularios"', false)
-        ->assertSee('data-module="colaboradores"', false);
+        ->assertDontSee('Usuários recentes')
+        ->assertDontSee('Regular Member');
 });
 
-test('the dashboard only counts the signed in user records', function () {
-    $user = User::factory()->create();
+test('the dashboard counts every user account', function () {
+    $admin = User::factory()->create(['is_admin' => true]);
+    User::factory()->count(3)->create();
 
-    Erb::factory()->count(3)->for($user)->create();
-    Erb::factory()->count(2)->create();
-
-    $this->actingAs($user)
+    $this->actingAs($admin)
         ->get('/admin')
         ->assertOk()
-        ->assertViewHas('counts', fn (array $counts): bool => $counts['erbs'] === 3);
-});
-
-test('the dashboard only surfaces the signed in user work orders', function () {
-    $user = User::factory()->create();
-
-    WorkOrder::factory()->for($user)->create([
-        'number' => 'OS-8001',
-        'status' => WorkOrderStatus::Open,
-    ]);
-    WorkOrder::factory()->for($user)->completed()->create(['number' => 'OS-8002']);
-
-    WorkOrder::factory()->create([
-        'number' => 'OS-8003',
-        'status' => WorkOrderStatus::Open,
-    ]);
-
-    $this->actingAs($user)
-        ->get('/admin')
-        ->assertOk()
-        ->assertSee('OS-8001')
-        ->assertSee('OS-8002')
-        ->assertDontSee('OS-8003');
-});
-
-test('the dashboard monthly series only counts the user work orders from the last six months', function () {
-    $user = User::factory()->create();
-
-    WorkOrder::factory()->for($user)->create([
-        'created_at' => now()->startOfMonth()->addDay(),
-    ]);
-    WorkOrder::factory()->for($user)->create([
-        'created_at' => now()->startOfMonth()->subMonths(2)->addDay(),
-    ]);
-    WorkOrder::factory()->for($user)->create([
-        'created_at' => now()->startOfMonth()->subMonths(6)->addDay(),
-    ]);
-    WorkOrder::factory()->create([
-        'created_at' => now()->startOfMonth()->addDay(),
-    ]);
-
-    $this->actingAs($user)
-        ->get('/admin')
-        ->assertOk()
-        ->assertViewHas('monthlyWorkOrders', function (array $series): bool {
-            return count($series) === 6
-                && collect($series)->sum('count') === 2;
-        });
+        ->assertViewHas('counts', fn (array $counts): bool => $counts['users'] === 4);
 });

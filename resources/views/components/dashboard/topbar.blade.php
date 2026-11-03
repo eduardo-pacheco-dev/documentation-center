@@ -19,18 +19,6 @@
             <x-ui.search-input class="hidden w-full max-w-xs items-center md:flex lg:w-80" />
 
             <x-ui.icon-button icon="magnifying-glass" label="Pesquisar" class="md:hidden" />
-
-            <x-dashboard.notifications-menu />
-
-            @if (auth()->user()->hasModule(\App\Enums\AdminModule::WorkOrders->value) && \Illuminate\Support\Facades\Route::has('admin.work-orders.create'))
-                <a
-                    href="{{ route('admin.work-orders.create') }}"
-                    class="hidden h-9 items-center gap-1.5 rounded-xl bg-gray-900 px-3.5 text-sm font-semibold text-white shadow-sm transition hover:bg-gray-800 sm:inline-flex dark:bg-white dark:text-gray-900 dark:hover:bg-gray-200"
-                >
-                    <x-icon name="plus" class="h-4 w-4" />
-                    Nova OS
-                </a>
-            @endif
         </div>
     </div>
 </header>
