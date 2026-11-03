@@ -12,9 +12,11 @@ use PhpOffice\PhpSpreadsheet\IOFactory;
 use Plugins\Analytics\Enums\AnalyticsImportStatus;
 use Plugins\Analytics\Exceptions\AnalyticsImportCanceledException;
 use Plugins\Analytics\Imports\AnalyticsAflChunkImport;
+use Plugins\Analytics\Imports\AnalyticsNokiaChunkImport;
 use Plugins\Analytics\Imports\AnalyticsRecordsChunkImport;
 use Plugins\Analytics\Models\AnalyticsImport;
 use Plugins\Analytics\Services\AnalyticsAflImporter;
+use Plugins\Analytics\Services\AnalyticsNokiaImporter;
 use Plugins\Analytics\Services\AnalyticsRecordImporter;
 use Plugins\Analytics\Support\AnalyticsDatabase;
 use Plugins\Analytics\Support\AnalyticsImportProgress;
@@ -50,7 +52,7 @@ class ProcessAnalyticsImportJob implements ShouldQueue
     /**
      * Execute the job.
      */
-    public function handle(AnalyticsRecordImporter $records, AnalyticsAflImporter $afl): void
+    public function handle(AnalyticsRecordImporter $records, AnalyticsAflImporter $afl, AnalyticsNokiaImporter $nokia): void
     {
         $this->raiseMemoryLimit();
 
@@ -127,6 +129,18 @@ class ProcessAnalyticsImportJob implements ShouldQueue
                     Excel::import($chunkImport, $path);
 
                     return $afl->finishImport($state);
+                });
+            } elseif ($this->import->type === AnalyticsImport::TYPE_NOKIA) {
+                $result = AnalyticsDatabase::transaction(function () use ($path, $user, $totalRows, $nokia, $reportProgress, $shouldCancel): array {
+                    $state = $nokia->beginImport($totalRows);
+
+                    $chunkImport = new AnalyticsNokiaChunkImport(function (array $rows) use ($nokia, $user, &$state, $reportProgress, $shouldCancel): void {
+                        $nokia->importChunk($user, $rows, $state, $reportProgress, $shouldCancel);
+                    });
+
+                    Excel::import($chunkImport, $path);
+
+                    return $nokia->finishImport($state);
                 });
             } else {
                 $result = AnalyticsDatabase::transaction(function () use ($path, $user, $totalRows, $records, $reportProgress, $shouldCancel): array {
