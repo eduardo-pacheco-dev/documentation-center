@@ -258,7 +258,9 @@ it('queues spreadsheet imports and exposes their progress', function () {
         ->assertSee('Importando FAMs')
         ->assertSee('2 de 5 linhas processadas')
         ->assertSee('data-import-toast', false)
-        ->assertSee('data-import-cancel', false);
+        ->assertSee('data-import-cancel', false)
+        ->assertSee('data-import-file-preview', false)
+        ->assertSee('data-import-file-clear', false);
 
     AnalyticsImportProgress::forget($import->getKey());
 

@@ -318,6 +318,114 @@
 
         document.querySelectorAll('[role="dialog"][data-open]').forEach(openImportModal);
 
+        const formatFileSize = (bytes) => {
+            if (!Number.isFinite(bytes) || bytes <= 0) {
+                return '0 KB';
+            }
+
+            if (bytes < 1024) {
+                return `${bytes} B`;
+            }
+
+            if (bytes < 1024 * 1024) {
+                return `${(bytes / 1024).toFixed(1)} KB`;
+            }
+
+            return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+        };
+
+        document.querySelectorAll('[data-import-file]').forEach((input) => {
+            const form = input.closest('form');
+
+            if (!form) {
+                return;
+            }
+
+            const dropzone = form.querySelector('[data-import-dropzone]');
+            const preview = form.querySelector('[data-import-file-preview]');
+            const fileName = form.querySelector('[data-import-file-name]');
+            const fileSize = form.querySelector('[data-import-file-size]');
+            const fileTitle = form.querySelector('[data-import-file-title]');
+            const fileHint = form.querySelector('[data-import-file-hint]');
+            const clear = form.querySelector('[data-import-file-clear]');
+
+            const render = () => {
+                const file = input.files?.[0] ?? null;
+
+                if (!file) {
+                    preview?.classList.add('hidden');
+                    preview?.classList.remove('flex');
+
+                    if (fileTitle) {
+                        fileTitle.textContent = 'Selecionar planilha';
+                    }
+
+                    if (fileHint) {
+                        fileHint.textContent = fileHint.dataset.defaultHint ?? fileHint.textContent;
+                    }
+
+                    return;
+                }
+
+                if (fileName) {
+                    fileName.textContent = file.name;
+                }
+
+                if (fileSize) {
+                    fileSize.textContent = formatFileSize(file.size);
+                }
+
+                preview?.classList.remove('hidden');
+                preview?.classList.add('flex');
+
+                if (fileTitle) {
+                    fileTitle.textContent = 'Trocar planilha';
+                }
+
+                if (fileHint) {
+                    fileHint.textContent = 'Clique para escolher outro arquivo.';
+                }
+            };
+
+            if (fileHint) {
+                fileHint.dataset.defaultHint = fileHint.textContent;
+            }
+
+            input.addEventListener('change', render);
+
+            clear?.addEventListener('click', () => {
+                input.value = '';
+                render();
+            });
+
+            dropzone?.addEventListener('dragover', (event) => {
+                event.preventDefault();
+                dropzone.classList.add('ring-2', 'ring-gray-400/50');
+            });
+
+            dropzone?.addEventListener('dragleave', () => {
+                dropzone.classList.remove('ring-2', 'ring-gray-400/50');
+            });
+
+            dropzone?.addEventListener('drop', (event) => {
+                event.preventDefault();
+                dropzone.classList.remove('ring-2', 'ring-gray-400/50');
+
+                const file = event.dataTransfer?.files?.[0];
+
+                if (!file) {
+                    return;
+                }
+
+                const transfer = new DataTransfer();
+                transfer.items.add(file);
+                input.files = transfer.files;
+                render();
+            });
+
+            render();
+        });
+
         const importHistory = document.querySelector('[data-import-history]');
         const importToastRoot = document.querySelector('[data-import-toast-root]');
         const importToastBody = document.querySelector('[data-import-toast-body]');

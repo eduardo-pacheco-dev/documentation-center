@@ -64,12 +64,28 @@
             </span>
 
             <span class="min-w-0">
-                <span class="block text-sm font-medium text-gray-700 dark:text-gray-200">Selecionar planilha</span>
-                <span class="block text-xs text-gray-400 dark:text-gray-500">.xlsx, .xls ou .csv (até {{ $maxSize }})</span>
+                <span data-import-file-title class="block text-sm font-medium text-gray-700 dark:text-gray-200">Selecionar planilha</span>
+                <span data-import-file-hint class="block text-xs text-gray-400 dark:text-gray-500">.xlsx, .xls ou .csv (até {{ $maxSize }})</span>
             </span>
 
             <input id="{{ $fileId }}" name="file" type="file" accept=".xlsx,.xls,.csv" required data-import-file @disabled($disabled) class="sr-only">
         </label>
+
+        <div data-import-file-preview class="hidden items-center gap-3 rounded-xl border border-gray-200 bg-gray-50/70 px-3 py-2 dark:border-white/10 dark:bg-white/[0.03]">
+            <span class="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white shadow-sm {{ $palette['icon'] }} dark:bg-white/10">
+                <x-icon name="document-text" class="h-4 w-4" />
+            </span>
+
+            <div class="min-w-0 flex-1">
+                <p data-import-file-name class="truncate text-xs font-semibold text-gray-800 dark:text-gray-100"></p>
+                <p data-import-file-size class="text-[11px] text-gray-500 dark:text-gray-400"></p>
+            </div>
+
+            <button type="button" data-import-file-clear class="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-gray-400 transition hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-white/10 dark:hover:text-gray-200">
+                <x-icon name="x-mark" class="h-4 w-4" />
+                <span class="sr-only">Remover arquivo</span>
+            </button>
+        </div>
 
         <div class="flex flex-wrap items-center justify-between gap-3">
             @if ($summary !== [])
