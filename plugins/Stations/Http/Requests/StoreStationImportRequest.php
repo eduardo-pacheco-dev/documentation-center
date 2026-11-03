@@ -22,7 +22,7 @@ class StoreStationImportRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'file' => ['required', 'file', 'extensions:csv,txt', 'max:2048'],
+            'file' => ['required', 'file', 'extensions:csv,txt,xlsx,xls', 'max:5120'],
         ];
     }
 
@@ -34,9 +34,9 @@ class StoreStationImportRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'file.required' => 'Selecione o arquivo CSV com as estações.',
-            'file.extensions' => 'Envie um arquivo CSV ou TXT.',
-            'file.max' => 'O arquivo deve ter no máximo 2 MB.',
+            'file.required' => 'Selecione a planilha com as estações.',
+            'file.extensions' => 'Envie uma planilha CSV, XLSX ou XLS.',
+            'file.max' => 'O arquivo deve ter no máximo 5 MB.',
         ];
     }
 }

@@ -46,18 +46,18 @@ class StationImportController extends Controller
     }
 
     /**
-     * Download the CSV template shipped with the plugin.
+     * Download the Excel template shipped with the plugin.
      */
     public function template(): StreamedResponse
     {
-        $path = dirname(__DIR__, 2).'/Resources/templates/stations-import.csv';
+        $path = dirname(__DIR__, 2).'/Resources/templates/stations-import.xlsx';
 
         abort_unless(is_file($path), 404);
 
         return response()->streamDownload(function () use ($path): void {
             readfile($path);
-        }, 'modelo-importacao-estacoes.csv', [
-            'Content-Type' => 'text/csv; charset=UTF-8',
+        }, 'modelo-importacao-estacoes.xlsx', [
+            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
         ]);
     }
 }

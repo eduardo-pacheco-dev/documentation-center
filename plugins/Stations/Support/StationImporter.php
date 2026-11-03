@@ -6,6 +6,7 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
+use PhpOffice\PhpSpreadsheet\IOFactory;
 use Plugins\Stations\Http\Requests\StoreStationRequest;
 use Plugins\Stations\Models\Station;
 
@@ -67,13 +68,27 @@ final class StationImporter
     }
 
     /**
-     * Parse the uploaded CSV into associative rows.
+     * Parse the uploaded file into associative rows.
      *
      * @return list<array<string, string>>
      *
      * @throws StationImportException
      */
     private function rows(UploadedFile $file): array
+    {
+        return in_array(strtolower($file->getClientOriginalExtension()), ['xlsx', 'xls'], true)
+            ? $this->rowsFromSpreadsheet($file)
+            : $this->rowsFromCsv($file);
+    }
+
+    /**
+     * Parse the uploaded CSV into associative rows.
+     *
+     * @return list<array<string, string>>
+     *
+     * @throws StationImportException
+     */
+    private function rowsFromCsv(UploadedFile $file): array
     {
         $content = file_get_contents($file->getRealPath());
 
@@ -109,13 +124,7 @@ final class StationImporter
                 throw new StationImportException(['Não foi possível ler o cabeçalho do arquivo.']);
             }
 
-            $aliases = $this->headerAliases();
-
-            $header = array_map(function (mixed $value) use ($aliases): string {
-                $key = $this->normalizeHeader((string) $value);
-
-                return $aliases[$key] ?? $key;
-            }, $header);
+            $header = $this->mapHeader($header);
 
             if (! in_array('site_id', $header, true)) {
                 throw new StationImportException([
@@ -151,6 +160,95 @@ final class StationImporter
         }
 
         return $rows;
+    }
+
+    /**
+     * Parse the first sheet of an Excel file into associative rows.
+     *
+     * @return list<array<string, string>>
+     *
+     * @throws StationImportException
+     */
+    private function rowsFromSpreadsheet(UploadedFile $file): array
+    {
+        try {
+            $spreadsheet = IOFactory::load($file->getRealPath());
+        } catch (\Throwable) {
+            throw new StationImportException(['Não foi possível ler a planilha enviada.']);
+        }
+
+        try {
+            $sheet = $spreadsheet->getSheet(0);
+            $highestRow = $sheet->getHighestDataRow();
+            $highestColumn = $sheet->getHighestDataColumn();
+
+            if ($highestRow < 2) {
+                throw new StationImportException(['A planilha não possui nenhuma estação para importar.']);
+            }
+
+            $header = $this->mapHeader(
+                $sheet->rangeToArray('A1:'.$highestColumn.'1', null, true, false, false)[0] ?? [],
+            );
+
+            if (! in_array('site_id', $header, true)) {
+                throw new StationImportException([
+                    'A planilha precisa conter a coluna ID do site (ou site_id).',
+                ]);
+            }
+
+            $rows = [];
+
+            for ($rowNumber = 2; $rowNumber <= $highestRow; $rowNumber++) {
+                $values = $sheet->rangeToArray(
+                    'A'.$rowNumber.':'.$highestColumn.$rowNumber,
+                    null,
+                    true,
+                    false,
+                    false,
+                )[0] ?? [];
+
+                if ($this->isEmptyRow($values)) {
+                    continue;
+                }
+
+                $row = [];
+
+                foreach ($header as $index => $key) {
+                    if ($key === '') {
+                        continue;
+                    }
+
+                    $row[$key] = trim((string) ($values[$index] ?? ''));
+                }
+
+                $rows[] = $row;
+            }
+        } finally {
+            $spreadsheet->disconnectWorksheets();
+        }
+
+        if ($rows === []) {
+            throw new StationImportException(['A planilha não possui nenhuma estação para importar.']);
+        }
+
+        return $rows;
+    }
+
+    /**
+     * Map the header values to the station fields.
+     *
+     * @param  array<int, mixed>  $values
+     * @return list<string>
+     */
+    private function mapHeader(array $values): array
+    {
+        $aliases = $this->headerAliases();
+
+        return array_map(function (mixed $value) use ($aliases): string {
+            $key = $this->normalizeHeader((string) $value);
+
+            return $aliases[$key] ?? $key;
+        }, array_values($values));
     }
 
     /**
@@ -232,7 +330,7 @@ final class StationImporter
     /**
      * Check if the row has no filled cells.
      *
-     * @param  list<string|null>  $values
+     * @param  array<int, mixed>  $values
      */
     private function isEmptyRow(array $values): bool
     {
