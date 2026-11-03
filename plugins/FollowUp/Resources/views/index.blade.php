@@ -1,6 +1,12 @@
 <x-layouts.admin title="Follow-ups">
     @php
         $hasFilters = $search !== '' || $status !== '' || $priority !== '' || $assigned !== '';
+
+        $viewQuery = request()->query();
+        unset($viewQuery['page']);
+
+        $visibleFollowUps = $view === 'kanban' ? $kanban->flatten() : $followUps;
+        $totalFollowUps = $visibleFollowUps->count();
     @endphp
 
     <x-ui.page-header
@@ -52,7 +58,7 @@
 
     <section class="mt-4 rounded-2xl border border-gray-200/80 bg-white p-4 dark:border-white/10 dark:bg-[#171716]">
         <form method="GET" action="{{ route('admin.follow-ups.index') }}" class="flex flex-wrap items-center gap-2">
-            @foreach (['sort', 'direction'] as $param)
+            @foreach (['view', 'sort', 'direction'] as $param)
                 @if (request($param))
                     <input type="hidden" name="{{ $param }}" value="{{ request($param) }}">
                 @endif
@@ -104,7 +110,103 @@
         </form>
     </section>
 
-    @if ($followUps->isEmpty())
+    <div class="mt-4 flex flex-wrap items-center justify-between gap-3">
+        <p class="text-sm text-gray-500 dark:text-gray-400">
+            @if ($view === 'kanban')
+                Exibindo
+                <span class="font-medium text-gray-900 dark:text-white">{{ $visibleFollowUps->count() }}</span>
+                follow-ups
+            @else
+                Exibindo
+                <span class="font-medium text-gray-900 dark:text-white">{{ $visibleFollowUps->count() }}</span>
+                de
+                <span class="font-medium text-gray-900 dark:text-white">{{ $visibleFollowUps->total() }}</span>
+                follow-ups
+            @endif
+        </p>
+
+        <div class="inline-flex rounded-2xl border border-gray-200 bg-white p-1 dark:border-white/10 dark:bg-[#171716]" role="group" aria-label="Modo de visualização">
+            @foreach (['table' => 'Tabela', 'cards' => 'Cartões', 'compact' => 'Lista', 'kanban' => 'Quadro'] as $mode => $label)
+                <a
+                    href="{{ route('admin.follow-ups.index', array_merge($viewQuery, ['view' => $mode])) }}"
+                    data-view-toggle="{{ $mode }}"
+                    @if ($view === $mode) aria-current="true" @endif
+                    class="inline-flex items-center gap-1.5 rounded-xl px-2.5 py-1.5 text-sm font-medium transition {{ $view === $mode ? 'bg-indigo-600 text-white shadow-sm' : 'text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-white/10' }}"
+                >
+                    <x-icon :name="$mode === 'table' ? 'table-cells' : ($mode === 'cards' ? 'squares-2x2' : ($mode === 'compact' ? 'bars-3' : 'view-columns'))" class="h-4 w-4" />
+                    {{ $label }}
+                </a>
+            @endforeach
+        </div>
+    </div>
+
+    @if ($view === 'kanban')
+        <div class="mt-4 grid gap-4 lg:grid-cols-2 xl:grid-cols-4">
+            @foreach ($statuses as $value => $label)
+                @php
+                    $column = $kanban->get($value) ?? collect();
+
+                    $dotClass = match ($value) {
+                        'pendente' => 'bg-amber-500',
+                        'em_andamento' => 'bg-indigo-500',
+                        'concluido' => 'bg-emerald-500',
+                        'cancelado' => 'bg-red-500',
+                        default => 'bg-gray-400',
+                    };
+                @endphp
+
+                <section class="flex flex-col rounded-3xl border border-gray-200/80 bg-white dark:border-white/10 dark:bg-[#171716]">
+                    <header class="flex items-center justify-between gap-2 border-b border-gray-100 px-4 py-3 dark:border-white/10">
+                        <span class="inline-flex items-center gap-2 text-sm font-semibold text-gray-900 dark:text-white">
+                            <span class="h-2 w-2 rounded-full {{ $dotClass }}" aria-hidden="true"></span>
+                            {{ $label }}
+                        </span>
+
+                        <span class="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-semibold text-gray-600 dark:bg-white/10 dark:text-gray-300">
+                            {{ $column->count() }}
+                        </span>
+                    </header>
+
+                    <div class="flex flex-1 flex-col gap-2 p-3">
+                        @forelse ($column as $followUp)
+                            <article class="rounded-2xl border border-gray-200/80 bg-gray-50/60 p-3 transition hover:border-indigo-200 dark:border-white/10 dark:bg-white/[0.03] dark:hover:border-indigo-500/40">
+                                <div class="flex items-start justify-between gap-2">
+                                    <a href="{{ route('admin.follow-ups.show', $followUp) }}" class="min-w-0 flex-1 text-sm font-semibold text-gray-900 transition hover:text-indigo-600 dark:text-white dark:hover:text-indigo-400">
+                                        {{ $followUp->title }}
+                                    </a>
+
+                                    <x-follow-up::partials.actions-menu :follow-up="$followUp" />
+                                </div>
+
+                                <div class="mt-2 flex flex-wrap items-center gap-1.5">
+                                    <x-ui.badge :tone="$followUp->priority->tone()">{{ $followUp->priority->label() }}</x-ui.badge>
+
+                                    @if ($followUp->isOverdue())
+                                        <x-ui.badge tone="red">Atrasado</x-ui.badge>
+                                    @endif
+                                </div>
+
+                                <div class="mt-2 flex items-center justify-between gap-2 text-[11px] text-gray-500 dark:text-gray-400">
+                                    <span class="truncate">{{ $followUp->assignee?->full_name ?? 'Não atribuído' }}</span>
+
+                                    <span @class([
+                                        'shrink-0 font-medium',
+                                        'text-red-600 dark:text-red-400' => $followUp->isOverdue(),
+                                        'text-amber-600 dark:text-amber-400' => ! $followUp->isOverdue() && $followUp->isDueSoon(),
+                                        'text-gray-600 dark:text-gray-300' => ! $followUp->isOverdue() && ! $followUp->isDueSoon(),
+                                    ])>
+                                        {{ $followUp->due_date?->format('d/m/Y') ?? 'Sem prazo' }}
+                                    </span>
+                                </div>
+                            </article>
+                        @empty
+                            <p class="px-2 py-6 text-center text-xs text-gray-400 dark:text-gray-500">Nenhum follow-up</p>
+                        @endforelse
+                    </div>
+                </section>
+            @endforeach
+        </div>
+    @elseif ($visibleFollowUps->isEmpty())
         <div class="mt-4 rounded-3xl border border-dashed border-gray-200 bg-white dark:border-white/10 dark:bg-[#171716]">
             <x-ui.empty-state
                 icon="clipboard-document-list"
@@ -120,7 +222,7 @@
                 @endunless
             </x-ui.empty-state>
         </div>
-    @else
+    @elseif ($view === 'table')
         <div class="mt-4 overflow-hidden rounded-3xl border border-gray-200/80 bg-white dark:border-white/10 dark:bg-[#171716]">
             <div class="overflow-x-auto">
                 <table class="min-w-full divide-y divide-gray-100 text-sm dark:divide-white/10">
@@ -190,6 +292,45 @@
             <div class="border-t border-gray-100 px-5 py-4 dark:border-white/10">
                 <x-pagination :paginator="$followUps" />
             </div>
+        </div>
+    @elseif ($view === 'cards')
+        <div class="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+            @foreach ($followUps as $followUp)
+                <x-follow-up::partials.card :follow-up="$followUp" />
+            @endforeach
+        </div>
+
+        <div class="mt-4">
+            <x-pagination :paginator="$followUps" />
+        </div>
+    @else
+        <ul class="mt-4 divide-y divide-gray-100 overflow-hidden rounded-3xl border border-gray-200/80 bg-white dark:divide-white/10 dark:border-white/10 dark:bg-[#171716]">
+            @foreach ($followUps as $followUp)
+                <li class="flex items-center gap-3 px-4 py-3 transition hover:bg-gray-50/70 dark:hover:bg-white/[0.03]">
+                    <div class="min-w-0 flex-1">
+                        <a href="{{ route('admin.follow-ups.show', $followUp) }}" class="block truncate text-sm font-semibold text-gray-900 transition hover:text-indigo-600 dark:text-white dark:hover:text-indigo-400">
+                            {{ $followUp->title }}
+                        </a>
+
+                        <p class="mt-0.5 truncate text-xs text-gray-500 dark:text-gray-400">
+                            {{ $followUp->assignee?->full_name ?? 'Não atribuído' }}
+                            <span aria-hidden="true">·</span>
+                            {{ $followUp->due_date?->format('d/m/Y') ?? 'Sem prazo' }}
+                        </p>
+                    </div>
+
+                    <div class="hidden shrink-0 items-center gap-1.5 sm:flex">
+                        <x-ui.badge :tone="$followUp->status->tone()">{{ $followUp->status->label() }}</x-ui.badge>
+                        <x-ui.badge :tone="$followUp->priority->tone()">{{ $followUp->priority->label() }}</x-ui.badge>
+                    </div>
+
+                    <x-follow-up::partials.actions-menu :follow-up="$followUp" />
+                </li>
+            @endforeach
+        </ul>
+
+        <div class="mt-4">
+            <x-pagination :paginator="$followUps" />
         </div>
     @endif
 </x-layouts.admin>

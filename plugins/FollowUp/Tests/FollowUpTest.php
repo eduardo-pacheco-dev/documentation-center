@@ -134,6 +134,41 @@ test('follow-ups without a due date stay last when sorting by due date', functio
         ->assertSeeInOrder(['Com prazo', 'Sem prazo definido']);
 });
 
+test('follow-ups can be displayed in alternative view modes', function () {
+    FollowUp::factory()->create(['title' => 'Follow-up em outros modos']);
+
+    $user = User::factory()->create();
+
+    foreach (['cards', 'compact', 'kanban'] as $view) {
+        $this->actingAs($user)
+            ->get('/admin/follow-ups?view='.$view)
+            ->assertOk()
+            ->assertSee('Follow-up em outros modos');
+    }
+
+    $this->actingAs($user)
+        ->get('/admin/follow-ups?view=invalid')
+        ->assertOk()
+        ->assertSee('<table', false);
+});
+
+test('the kanban view groups follow-ups by status', function () {
+    FollowUp::factory()->create([
+        'title' => 'Pendente no quadro',
+        'status' => FollowUpStatus::Pending->value,
+    ]);
+
+    FollowUp::factory()->create([
+        'title' => 'Concluído no quadro',
+        'status' => FollowUpStatus::Completed->value,
+    ]);
+
+    $this->actingAs(User::factory()->create())
+        ->get('/admin/follow-ups?view=kanban')
+        ->assertOk()
+        ->assertSeeInOrder(['Pendente no quadro', 'Concluído no quadro']);
+});
+
 test('the index renders an actions menu for each follow-up', function () {
     $followUp = FollowUp::factory()->create(['title' => 'Acompanhar proposta']);
 

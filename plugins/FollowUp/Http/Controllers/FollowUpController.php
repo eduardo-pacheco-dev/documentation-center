@@ -57,12 +57,27 @@ class FollowUpController extends Controller
 
         $this->applySort($query, $sort, $direction);
 
-        $followUps = $query
-            ->paginate((int) config('follow-up.per_page', 15))
-            ->withQueryString();
+        $view = $request->string('view')->trim()->toString();
+        $view = in_array($view, ['table', 'cards', 'compact', 'kanban'], true) ? $view : 'table';
+
+        $followUps = null;
+        $kanban = collect();
+
+        if ($view === 'kanban') {
+            $kanban = collect(FollowUpStatus::cases())
+                ->mapWithKeys(fn (FollowUpStatus $case): array => [
+                    $case->value => (clone $query)->where('status', $case->value)->get(),
+                ]);
+        } else {
+            $followUps = $query
+                ->paginate((int) config('follow-up.per_page', 15))
+                ->withQueryString();
+        }
 
         return view('follow-up::index', [
             'followUps' => $followUps,
+            'kanban' => $kanban,
+            'view' => $view,
             'search' => $search,
             'status' => $status,
             'priority' => $priority,
