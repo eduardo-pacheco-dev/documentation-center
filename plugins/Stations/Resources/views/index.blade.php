@@ -160,8 +160,8 @@
                 <table class="min-w-full divide-y divide-gray-100 text-sm dark:divide-white/10">
                     <thead class="bg-gray-50/80 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:bg-white/[0.03] dark:text-gray-400">
                         <tr>
-                            <th class="px-5 py-3.5">Estação</th>
-                            <th class="px-5 py-3.5">Elemento</th>
+                            <th class="px-5 py-3.5">Site</th>
+                            <th class="px-5 py-3.5">Tecnologia</th>
                             <th class="px-5 py-3.5">Endereço</th>
                             <th class="px-5 py-3.5">Status</th>
                             <th class="px-5 py-3.5 text-right">Ações</th>
@@ -175,16 +175,16 @@
                                         href="{{ route('admin.stations.show', $station) }}"
                                         class="font-semibold text-gray-900 transition hover:text-indigo-600 dark:text-white dark:hover:text-indigo-400"
                                     >
-                                        {{ $station->station_id ?: $station->site_id }}
+                                        {{ $station->site_id }}
                                     </a>
                                     <p class="mt-0.5 font-mono text-[11px] text-gray-400 dark:text-gray-500">
-                                        SITE {{ $station->site_id }}
+                                        ESTAÇÃO {{ $station->station_id ?: '—' }}
                                     </p>
                                 </td>
 
                                 <td class="px-5 py-4">
-                                    <p class="text-gray-700 dark:text-gray-200">{{ $station->tipo_de_elemento ?: '—' }}</p>
-                                    <p class="mt-0.5 text-xs text-gray-500 dark:text-gray-400">{{ $station->tecnologia ?: 'Sem tecnologia' }}</p>
+                                    <p class="font-medium text-gray-800 dark:text-gray-100">{{ $station->tecnologia ?: 'Sem tecnologia' }}</p>
+                                    <p class="mt-0.5 font-mono text-[11px] text-gray-400 dark:text-gray-500">ELEMENTO {{ $station->tipo_de_elemento ?: '—' }}</p>
                                 </td>
 
                                 <td class="px-5 py-4">

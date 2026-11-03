@@ -90,6 +90,31 @@ test('stations can be listed', function () {
         ->assertSee('role="menu"', false);
 });
 
+test('the station list shows the site id as the primary identifier', function () {
+    Station::factory()->create([
+        'site_id' => 'SPSITE01',
+        'station_id' => 'SPSTATION01',
+    ]);
+
+    $this->actingAs(User::factory()->create())
+        ->get('/admin/stations')
+        ->assertOk()
+        ->assertSeeInOrder(['SPSITE01', 'ESTAÇÃO SPSTATION01']);
+});
+
+test('the station list shows the technology as the primary element value', function () {
+    Station::factory()->create([
+        'site_id' => 'SPTECH01',
+        'tecnologia' => 'LTE',
+        'tipo_de_elemento' => 'ENODE B',
+    ]);
+
+    $this->actingAs(User::factory()->create())
+        ->get('/admin/stations')
+        ->assertOk()
+        ->assertSeeInOrder(['LTE', 'ELEMENTO ENODE B']);
+});
+
 test('stations can be searched by site, station or address', function () {
     $user = User::factory()->create();
 
