@@ -302,6 +302,14 @@
             }
         });
 
+        document.addEventListener('submit', (event) => {
+            const form = event.target.closest('[data-import-cancel]');
+
+            if (form && !window.confirm('Cancelar esta importação? As linhas já processadas serão descartadas.')) {
+                event.preventDefault();
+            }
+        });
+
         document.addEventListener('keydown', (event) => {
             if (event.key === 'Escape') {
                 document.querySelectorAll('[role="dialog"]:not(.hidden)').forEach(closeImportModal);
@@ -311,16 +319,16 @@
         document.querySelectorAll('[role="dialog"][data-open]').forEach(openImportModal);
 
         const importHistory = document.querySelector('[data-import-history]');
-        const importProgress = document.querySelector('[data-import-progress]');
+        const importToastRoot = document.querySelector('[data-import-toast-root]');
+        const importToastBody = document.querySelector('[data-import-toast-body]');
+        const importToastToggle = document.querySelector('[data-import-toast-toggle]');
+        const importToastChevron = document.querySelector('[data-import-toast-chevron]');
         const importHeaderIndicator = document.querySelector('[data-import-header-indicator]');
         const importStatusUrl = @json(route('analytics.imports.status'));
         let importPoll = null;
+        let importToastHideTimer = null;
 
         const setImportProcessing = (processing) => {
-            if (importProgress) {
-                importProgress.classList.toggle('hidden', !processing);
-            }
-
             if (importHeaderIndicator) {
                 importHeaderIndicator.classList.toggle('hidden', !processing);
             }
@@ -335,11 +343,83 @@
             });
         };
 
-        const pollImportHistory = async () => {
-            if (!importHistory) {
+        const showImportToast = () => {
+            if (!importToastRoot) {
                 return;
             }
 
+            importToastRoot.classList.remove('hidden');
+
+            if (importToastHideTimer) {
+                clearTimeout(importToastHideTimer);
+                importToastHideTimer = null;
+            }
+        };
+
+        const hideImportToast = () => {
+            importToastRoot?.classList.add('hidden');
+        };
+
+        const toggleImportToast = () => {
+            if (!importToastRoot) {
+                return;
+            }
+
+            const collapsed = importToastRoot.classList.toggle('is-collapsed');
+
+            importToastBody?.classList.toggle('hidden', collapsed);
+            importToastChevron?.classList.toggle('rotate-180', collapsed);
+            importToastToggle?.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
+        };
+
+        const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, (char) => ({
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#39;',
+        }[char]));
+
+        const showFinishedImport = (item) => {
+            if (!importToastBody || !item) {
+                return;
+            }
+
+            const tones = {
+                completed: ['border-emerald-200 bg-emerald-50 dark:border-emerald-500/30 dark:bg-emerald-500/10', 'bg-emerald-600', 'text-emerald-900 dark:text-emerald-200', 'text-emerald-700 dark:text-emerald-300'],
+                failed: ['border-red-200 bg-red-50 dark:border-red-500/30 dark:bg-red-500/10', 'bg-red-600', 'text-red-900 dark:text-red-200', 'text-red-700 dark:text-red-300'],
+                canceled: ['border-amber-200 bg-amber-50 dark:border-amber-500/30 dark:bg-amber-500/10', 'bg-amber-600', 'text-amber-900 dark:text-amber-200', 'text-amber-700 dark:text-amber-300'],
+            };
+
+            const [card, icon, title, text] = tones[item.status] || tones.completed;
+            const iconPath = item.status === 'completed'
+                ? 'm4.5 12.75 6 6 9-13.5'
+                : item.status === 'canceled'
+                    ? 'M6 18 18 6M6 6l12 12'
+                    : 'M12 9v3.75m0 3h.008v.008H12v-.008Z';
+
+            importToastBody.innerHTML = `
+                <div class="rounded-xl border p-4 ${card}">
+                    <div class="flex items-start gap-3">
+                        <span class="mt-0.5 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-white ${icon}">
+                            <svg class="h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="${iconPath}" />
+                            </svg>
+                        </span>
+                        <div class="min-w-0 flex-1">
+                            <p class="text-sm font-semibold ${title}">${escapeHtml(item.status_label ?? 'Finalizada')}</p>
+                            <p class="mt-0.5 truncate text-xs ${text}">${escapeHtml(item.original_name ?? '')}</p>
+                            <p class="mt-1 text-xs ${text}">${escapeHtml(item.summary ?? '')}</p>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            showImportToast();
+            importToastHideTimer = setTimeout(hideImportToast, 8000);
+        };
+
+        const pollImportHistory = async () => {
             try {
                 const response = await fetch(importStatusUrl, {
                     headers: { Accept: 'application/json' },
@@ -351,29 +431,37 @@
                 }
 
                 const payload = await response.json();
+                const pending = payload.pending === true;
 
-                if (typeof payload.html === 'string') {
+                if (typeof payload.html === 'string' && importHistory) {
                     importHistory.innerHTML = payload.html;
                 }
 
-                if (importProgress && typeof payload.progress_html === 'string') {
-                    importProgress.innerHTML = payload.progress_html;
-                }
+                if (pending) {
+                    if (importToastBody && typeof payload.toast_html === 'string') {
+                        importToastBody.innerHTML = payload.toast_html;
+                    }
 
-                setImportProcessing(payload.pending === true);
+                    showImportToast();
+                } else if (importPoll) {
+                    showFinishedImport(Array.isArray(payload.imports) ? payload.imports[0] : null);
 
-                if (!payload.pending && importPoll) {
                     clearInterval(importPoll);
                     importPoll = null;
                 }
+
+                setImportProcessing(pending);
             } catch (error) {
                 console.error('Analytics: falha ao atualizar as importações', error);
             }
         };
 
+        importToastToggle?.addEventListener('click', toggleImportToast);
+
         setImportProcessing(@json($hasPendingImports));
 
-        if (importHistory && @json($hasPendingImports)) {
+        if (@json($hasPendingImports)) {
+            showImportToast();
             pollImportHistory();
             importPoll = setInterval(pollImportHistory, 2000);
         }

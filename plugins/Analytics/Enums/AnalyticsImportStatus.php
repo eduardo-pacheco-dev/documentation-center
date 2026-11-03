@@ -8,13 +8,14 @@ enum AnalyticsImportStatus: string
     case Processing = 'processing';
     case Completed = 'completed';
     case Failed = 'failed';
+    case Canceled = 'canceled';
 
     /**
      * Whether the import has already stopped running.
      */
     public function isFinished(): bool
     {
-        return $this === self::Completed || $this === self::Failed;
+        return $this === self::Completed || $this === self::Failed || $this === self::Canceled;
     }
 
     /**
@@ -27,6 +28,7 @@ enum AnalyticsImportStatus: string
             self::Processing => 'Importando…',
             self::Completed => 'Concluída',
             self::Failed => 'Falhou',
+            self::Canceled => 'Cancelada',
         };
     }
 
@@ -40,6 +42,7 @@ enum AnalyticsImportStatus: string
             self::Processing => 'indigo',
             self::Completed => 'green',
             self::Failed => 'red',
+            self::Canceled => 'amber',
         };
     }
 }

@@ -10,6 +10,7 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
 use PhpOffice\PhpSpreadsheet\Shared\Date as ExcelDate;
+use Plugins\Analytics\Exceptions\AnalyticsImportCanceledException;
 use Plugins\Analytics\Models\AnalyticsRecord;
 use Plugins\Analytics\Support\AnalyticsDatabase;
 use Throwable;
@@ -25,26 +26,55 @@ use Throwable;
 class AnalyticsRecordImporter
 {
     /**
-     * @param  array<int, array<string, mixed>>  $rows
-     * @param  (Closure(array{processed: int, total: int, created: int, updated: int, unchanged: int, skipped: int}): void)|null  $onProgress
-     * @return array{created: int, updated: int, unchanged: int, skipped: int}
+     * Start a chunked import and return its counters.
      *
-     * @throws ValidationException
+     * @return array{created: int, updated: int, unchanged: int, skipped: int, processed: int, total: int, line: int, errors: array<int, string>}
      */
-    public function import(User $user, array $rows, ?Closure $onProgress = null): array
+    public function beginImport(int $totalRows = 0): array
     {
+        return [
+            'created' => 0,
+            'updated' => 0,
+            'unchanged' => 0,
+            'skipped' => 0,
+            'processed' => 0,
+            'total' => max(0, $totalRows),
+            'line' => 2,
+            'errors' => [],
+        ];
+    }
+
+    /**
+     * Process one chunk of rows, keeping memory usage bounded.
+     *
+     * @param  array<int, array<string, mixed>>  $rows
+     * @param  array{created: int, updated: int, unchanged: int, skipped: int, processed: int, total: int, line: int, errors: array<int, string>}  $state
+     * @param  (Closure(array{processed: int, total: int, created: int, updated: int, unchanged: int, skipped: int}): void)|null  $onProgress
+     * @param  (Closure(): bool)|null  $shouldCancel
+     *
+     * @throws AnalyticsImportCanceledException
+     */
+    public function importChunk(
+        User $user,
+        array $rows,
+        array &$state,
+        ?Closure $onProgress = null,
+        ?Closure $shouldCancel = null,
+    ): void {
+        if ($shouldCancel !== null && $shouldCancel()) {
+            throw new AnalyticsImportCanceledException;
+        }
+
         $operations = [];
         $operationIndexByKey = [];
-        $errors = [];
-        $skipped = 0;
 
-        foreach (array_values($rows) as $index => $row) {
-            $line = $index + 2;
+        foreach (array_values($rows) as $row) {
+            $line = $state['line']++;
 
             $row = array_map(fn ($value): ?string => $this->normalize($value), $row);
 
             if ($this->isEmptyRow($row) || $this->isSummaryRow($row)) {
-                $skipped++;
+                $state['skipped']++;
 
                 continue;
             }
@@ -53,7 +83,7 @@ class AnalyticsRecordImporter
 
             if ($validator->fails()) {
                 foreach ($validator->errors()->all() as $message) {
-                    $errors[] = "Linha {$line}: {$message}";
+                    $state['errors'][] = "Linha {$line}: {$message}";
                 }
 
                 continue;
@@ -64,7 +94,7 @@ class AnalyticsRecordImporter
             $createdOn = $this->parseDate($data['data_criacao'] ?? null);
 
             if ($this->hasValue($data['data_criacao'] ?? null) && $createdOn === null) {
-                $errors[] = "Linha {$line}: data de criação inválida (use dd/mm/aaaa).";
+                $state['errors'][] = "Linha {$line}: data de criação inválida (use dd/mm/aaaa).";
 
                 continue;
             }
@@ -99,70 +129,123 @@ class AnalyticsRecordImporter
             $operationIndexByKey[$key] = array_key_last($operations);
         }
 
-        if ($errors !== []) {
-            throw ValidationException::withMessages(['import' => $errors]);
+        $state['processed'] += count($rows);
+
+        $this->insertOperations($user, $operations, $state, $shouldCancel);
+
+        $onProgress?->__invoke($this->progress($state));
+    }
+
+    /**
+     * Finish a chunked import, throwing when any row was invalid.
+     *
+     * @param  array{created: int, updated: int, unchanged: int, skipped: int, processed: int, total: int, line: int, errors: array<int, string>}  $state
+     * @return array{created: int, updated: int, unchanged: int, skipped: int, total: int}
+     *
+     * @throws ValidationException
+     */
+    public function finishImport(array $state): array
+    {
+        if ($state['errors'] !== []) {
+            throw ValidationException::withMessages(['import' => $state['errors']]);
         }
 
-        return AnalyticsDatabase::transaction(function () use ($user, $operations, $skipped, $onProgress): array {
-            $created = 0;
-            $updated = 0;
-            $unchanged = 0;
-            $inserts = [];
-            $total = count($operations) + $skipped;
+        return [
+            'created' => $state['created'],
+            'updated' => $state['updated'],
+            'unchanged' => $state['unchanged'],
+            'skipped' => $state['skipped'],
+            'total' => max($state['total'], $state['processed']),
+        ];
+    }
 
-            $report = function () use ($onProgress, &$created, &$updated, &$unchanged, $skipped, $total): void {
-                $onProgress?->__invoke([
-                    'processed' => $created + $updated + $unchanged + $skipped,
-                    'total' => $total,
-                    'created' => $created,
-                    'updated' => $updated,
-                    'unchanged' => $unchanged,
-                    'skipped' => $skipped,
-                ]);
-            };
+    /**
+     * Import a full array of rows (small imports and tests).
+     *
+     * @param  array<int, array<string, mixed>>  $rows
+     * @param  (Closure(array{processed: int, total: int, created: int, updated: int, unchanged: int, skipped: int}): void)|null  $onProgress
+     * @param  (Closure(): bool)|null  $shouldCancel
+     * @return array{created: int, updated: int, unchanged: int, skipped: int, total: int}
+     *
+     * @throws ValidationException
+     * @throws AnalyticsImportCanceledException
+     */
+    public function import(User $user, array $rows, ?Closure $onProgress = null, ?Closure $shouldCancel = null): array
+    {
+        return AnalyticsDatabase::transaction(function () use ($user, $rows, $onProgress, $shouldCancel): array {
+            $state = $this->beginImport(count($rows));
 
-            foreach (array_chunk($operations, 250) as $chunk) {
-                $latestByKey = $this->latestRecordsForChunk($user, $chunk);
+            $this->importChunk($user, $rows, $state, $onProgress, $shouldCancel);
 
-                foreach ($chunk as $attributes) {
-                    $key = mb_strtoupper($attributes['oc']).'|'.mb_strtoupper($attributes['os']);
-                    $latest = $latestByKey[$key] ?? null;
+            return $this->finishImport($state);
+        });
+    }
 
-                    if ($latest !== null && $this->isSameVersion($latest, $attributes)) {
-                        $unchanged++;
+    /**
+     * Insert the parsed operations, comparing them with the stored versions.
+     *
+     * @param  array<int, array<string, mixed>>  $operations
+     * @param  array{created: int, updated: int, unchanged: int, skipped: int, processed: int, total: int, line: int, errors: array<int, string>}  $state
+     * @param  (Closure(): bool)|null  $shouldCancel
+     *
+     * @throws AnalyticsImportCanceledException
+     */
+    private function insertOperations(User $user, array $operations, array &$state, ?Closure $shouldCancel): void
+    {
+        $inserts = [];
 
-                        continue;
-                    }
+        foreach (array_chunk($operations, 250) as $chunk) {
+            if ($shouldCancel !== null && $shouldCancel()) {
+                throw new AnalyticsImportCanceledException;
+            }
 
-                    $inserts[] = [
-                        ...$attributes,
-                        'user_id' => $user->getKey(),
-                    ];
+            $latestByKey = $this->latestRecordsForChunk($user, $chunk);
 
-                    $latest === null ? $created++ : $updated++;
+            foreach ($chunk as $attributes) {
+                $key = mb_strtoupper($attributes['oc']).'|'.mb_strtoupper($attributes['os']);
+                $latest = $latestByKey[$key] ?? null;
 
-                    if (count($inserts) >= 500) {
-                        $this->insertRecords($inserts);
-                        $inserts = [];
-                    }
+                if ($latest !== null && $this->isSameVersion($latest, $attributes)) {
+                    $state['unchanged']++;
+
+                    continue;
                 }
 
-                $report();
+                $inserts[] = [
+                    ...$attributes,
+                    'user_id' => $user->getKey(),
+                ];
+
+                $latest === null ? $state['created']++ : $state['updated']++;
+
+                if (count($inserts) >= 500) {
+                    $this->insertRecords($inserts);
+                    $inserts = [];
+                }
             }
+        }
 
-            if ($inserts !== []) {
-                $this->insertRecords($inserts);
-            }
+        if ($inserts !== []) {
+            $this->insertRecords($inserts);
+        }
+    }
 
-            $report();
-
-            return [
-                'created' => $created,
-                'updated' => $updated,
-                'unchanged' => $unchanged,
-                'skipped' => $skipped,
-            ];
-        });
+    /**
+     * Build the progress payload for the status endpoint.
+     *
+     * @param  array{created: int, updated: int, unchanged: int, skipped: int, processed: int, total: int}  $state
+     * @return array{processed: int, total: int, created: int, updated: int, unchanged: int, skipped: int}
+     */
+    private function progress(array $state): array
+    {
+        return [
+            'processed' => $state['processed'],
+            'total' => $state['total'],
+            'created' => $state['created'],
+            'updated' => $state['updated'],
+            'unchanged' => $state['unchanged'],
+            'skipped' => $state['skipped'],
+        ];
     }
 
     /**

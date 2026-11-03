@@ -86,6 +86,10 @@ class AnalyticsImport extends AnalyticsModel
             return 'Processando a planilha…';
         }
 
+        if ($this->status === AnalyticsImportStatus::Canceled) {
+            return 'Importação cancelada.';
+        }
+
         $summary = sprintf(
             '%d novo(s) · %d atualizado(s) · %d sem alteração',
             $this->created_count,
@@ -126,6 +130,10 @@ class AnalyticsImport extends AnalyticsModel
     {
         if ($this->status === AnalyticsImportStatus::Completed) {
             return 100;
+        }
+
+        if ($this->status === AnalyticsImportStatus::Canceled) {
+            return null;
         }
 
         $total = (int) ($progress['total'] ?? $this->total_rows ?? 0);
@@ -192,13 +200,25 @@ class AnalyticsImport extends AnalyticsModel
             'status' => AnalyticsImportStatus::Processing,
             'started_at' => now(),
             'errors' => null,
+            'updated_at' => now(),
         ];
 
         if ($totalRows !== null) {
             $attributes['total_rows'] = $totalRows;
         }
 
-        $this->forceFill($attributes)->save();
+        $updated = static::query()
+            ->whereKey($this->getKey())
+            ->whereIn('status', [
+                AnalyticsImportStatus::Pending->value,
+                AnalyticsImportStatus::Processing->value,
+            ])
+            ->update($attributes);
+
+        if ($updated > 0) {
+            $this->forceFill($attributes);
+            $this->syncOriginal();
+        }
     }
 
     /**
@@ -208,7 +228,7 @@ class AnalyticsImport extends AnalyticsModel
      */
     public function markCompleted(array $result): void
     {
-        $this->forceFill([
+        $attributes = [
             'status' => AnalyticsImportStatus::Completed,
             'created_count' => $result['created'],
             'updated_count' => $result['updated'],
@@ -216,7 +236,13 @@ class AnalyticsImport extends AnalyticsModel
             'skipped_count' => $result['skipped'] ?? 0,
             'errors' => null,
             'completed_at' => now(),
-        ])->save();
+        ];
+
+        if (isset($result['total'])) {
+            $attributes['total_rows'] = $result['total'];
+        }
+
+        $this->forceFill($attributes)->save();
     }
 
     /**
@@ -229,6 +255,17 @@ class AnalyticsImport extends AnalyticsModel
         $this->forceFill([
             'status' => AnalyticsImportStatus::Failed,
             'errors' => array_values(array_filter($errors, fn ($error): bool => is_string($error) && $error !== '')),
+            'completed_at' => now(),
+        ])->save();
+    }
+
+    /**
+     * Flag the import as canceled by the user.
+     */
+    public function markCanceled(): void
+    {
+        $this->forceFill([
+            'status' => AnalyticsImportStatus::Canceled,
             'completed_at' => now(),
         ])->save();
     }

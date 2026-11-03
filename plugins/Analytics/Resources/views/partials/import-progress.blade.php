@@ -32,9 +32,19 @@
                             {{ $pending ? 'Importação '.$import->typeLabel().' na fila' : 'Importando '.$import->typeLabel() }}
                         </p>
 
-                        @if ($percentage !== null)
-                            <span class="text-xs font-semibold tabular-nums text-indigo-700 dark:text-indigo-300">{{ $percentage }}%</span>
-                        @endif
+                        <div class="flex items-center gap-2">
+                            @if ($percentage !== null)
+                                <span class="text-xs font-semibold tabular-nums text-indigo-700 dark:text-indigo-300">{{ $percentage }}%</span>
+                            @endif
+
+                            <form method="POST" action="{{ route('analytics.imports.cancel', $import) }}" data-import-cancel>
+                                @csrf
+                                <button type="submit" class="inline-flex h-7 items-center gap-1 rounded-lg border border-indigo-300/70 bg-white/70 px-2.5 text-[11px] font-semibold text-indigo-700 transition hover:bg-white dark:border-indigo-400/30 dark:bg-transparent dark:text-indigo-300 dark:hover:bg-indigo-500/10">
+                                    <x-icon name="x-mark" class="h-3.5 w-3.5" />
+                                    Cancelar
+                                </button>
+                            </form>
+                        </div>
                     </div>
 
                     <p class="mt-0.5 text-xs text-indigo-700 dark:text-indigo-300">

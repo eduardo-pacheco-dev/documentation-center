@@ -11,3 +11,6 @@ Route::get('records/template', [AnalyticsController::class, 'recordsTemplate'])-
 Route::post('afl/import', [AnalyticsController::class, 'importAfl'])->name('afl.import');
 Route::get('afl/template', [AnalyticsController::class, 'aflTemplate'])->name('afl.template');
 Route::get('imports/status', [AnalyticsController::class, 'importsStatus'])->name('imports.status');
+Route::post('imports/{import}/cancel', [AnalyticsController::class, 'cancelImport'])
+    ->whereNumber('import')
+    ->name('imports.cancel');

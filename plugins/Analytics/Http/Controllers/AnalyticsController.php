@@ -202,7 +202,7 @@ class AnalyticsController extends Controller
 
         return response()->json([
             'html' => view('analytics::partials.import-history', ['imports' => $imports])->render(),
-            'progress_html' => view('analytics::partials.import-progress', [
+            'toast_html' => view('analytics::partials.import-progress', [
                 'imports' => $imports,
                 'progress' => $progress,
             ])->render(),
@@ -226,6 +226,41 @@ class AnalyticsController extends Controller
                 ];
             })->values(),
         ]);
+    }
+
+    /**
+     * Cancel a pending or running import requested by the authenticated user.
+     */
+    public function cancelImport(Request $request, int $import): RedirectResponse
+    {
+        $record = AnalyticsImport::query()
+            ->ownedBy($request->user())
+            ->whereKey($import)
+            ->first();
+
+        if ($record === null) {
+            abort(404);
+        }
+
+        $updated = AnalyticsImport::query()
+            ->whereKey($record->getKey())
+            ->whereIn('status', [
+                AnalyticsImportStatus::Pending->value,
+                AnalyticsImportStatus::Processing->value,
+            ])
+            ->update([
+                'status' => AnalyticsImportStatus::Canceled->value,
+                'completed_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+        if ($updated === 0) {
+            return back()->withErrors(['import' => 'Esta importação já foi finalizada.']);
+        }
+
+        AnalyticsImportProgress::forget($record->getKey());
+
+        return back()->with('status', 'Importação cancelada.');
     }
 
     /**

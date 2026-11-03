@@ -7,6 +7,8 @@ use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Storage;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
+use Plugins\Analytics\Enums\AnalyticsImportStatus;
+use Plugins\Analytics\Exceptions\AnalyticsImportCanceledException;
 use Plugins\Analytics\Jobs\ProcessAnalyticsImportJob;
 use Plugins\Analytics\Models\AnalyticsAflRecord;
 use Plugins\Analytics\Models\AnalyticsImport;
@@ -244,6 +246,7 @@ it('queues spreadsheet imports and exposes their progress', function () {
         ->get('/admin/analytics/imports/status')
         ->assertOk()
         ->assertJson(['pending' => true])
+        ->assertJsonStructure(['html', 'toast_html', 'pending', 'imports'])
         ->assertJsonFragment(['original_name' => 'oc-os.xlsx'])
         ->assertJsonPath('imports.0.processed_rows', 2)
         ->assertJsonPath('imports.0.percentage', 40)
@@ -254,11 +257,151 @@ it('queues spreadsheet imports and exposes their progress', function () {
         ->assertOk()
         ->assertSee('Importando FAMs')
         ->assertSee('2 de 5 linhas processadas')
-        ->assertSee('data-import-progress', false);
+        ->assertSee('data-import-toast', false)
+        ->assertSee('data-import-cancel', false);
 
     AnalyticsImportProgress::forget($import->getKey());
 
     @unlink($path);
+});
+
+it('cancels a queued import', function () {
+    $user = User::factory()->create();
+
+    $import = AnalyticsImport::query()->create([
+        'user_id' => $user->getKey(),
+        'type' => AnalyticsImport::TYPE_FAMS,
+        'status' => AnalyticsImportStatus::Pending,
+        'original_name' => 'oc-os.xlsx',
+        'path' => 'analytics-imports/queued.xlsx',
+    ]);
+
+    AnalyticsImportProgress::put($import->getKey(), [
+        'processed' => 0,
+        'total' => 10,
+        'created' => 0,
+        'updated' => 0,
+        'unchanged' => 0,
+        'skipped' => 0,
+    ]);
+
+    $this->actingAs($user)
+        ->post("/admin/analytics/imports/{$import->getKey()}/cancel")
+        ->assertRedirect()
+        ->assertSessionHas('status', 'Importação cancelada.');
+
+    expect($import->fresh()->status)->toBe(AnalyticsImportStatus::Canceled)
+        ->and($import->fresh()->isFinished())->toBeTrue()
+        ->and(AnalyticsImportProgress::get($import->getKey()))->toBeNull();
+});
+
+it('does not cancel an import that already finished', function () {
+    $user = User::factory()->create();
+
+    $import = AnalyticsImport::query()->create([
+        'user_id' => $user->getKey(),
+        'type' => AnalyticsImport::TYPE_FAMS,
+        'status' => AnalyticsImportStatus::Completed,
+        'original_name' => 'oc-os.xlsx',
+        'path' => 'analytics-imports/done.xlsx',
+    ]);
+
+    $this->actingAs($user)
+        ->post("/admin/analytics/imports/{$import->getKey()}/cancel")
+        ->assertRedirect()
+        ->assertSessionHasErrors('import');
+
+    expect($import->fresh()->status)->toBe(AnalyticsImportStatus::Completed);
+});
+
+it('forbids canceling an import owned by another user', function () {
+    $import = AnalyticsImport::query()->create([
+        'user_id' => User::factory()->create()->getKey(),
+        'type' => AnalyticsImport::TYPE_FAMS,
+        'status' => AnalyticsImportStatus::Pending,
+        'original_name' => 'oc-os.xlsx',
+        'path' => 'analytics-imports/other.xlsx',
+    ]);
+
+    $this->actingAs(User::factory()->create())
+        ->post("/admin/analytics/imports/{$import->getKey()}/cancel")
+        ->assertNotFound();
+
+    expect($import->fresh()->status)->toBe(AnalyticsImportStatus::Pending);
+});
+
+it('skips an import that was canceled before the job runs', function () {
+    Storage::fake('local');
+
+    $user = User::factory()->create();
+
+    $import = AnalyticsImport::query()->create([
+        'user_id' => $user->getKey(),
+        'type' => AnalyticsImport::TYPE_FAMS,
+        'status' => AnalyticsImportStatus::Canceled,
+        'original_name' => 'oc-os.xlsx',
+        'path' => 'analytics-imports/canceled.xlsx',
+    ]);
+
+    Storage::disk('local')->put($import->path, 'data');
+
+    (new ProcessAnalyticsImportJob($import))->handle(
+        app(AnalyticsRecordImporter::class),
+        app(AnalyticsAflImporter::class),
+    );
+
+    expect(AnalyticsRecord::query()->count())->toBe(0)
+        ->and($import->fresh()->status)->toBe(AnalyticsImportStatus::Canceled)
+        ->and(Storage::disk('local')->exists($import->path))->toBeFalse();
+});
+
+it('raises the memory limit before processing an import', function () {
+    Storage::fake('local');
+
+    $original = ini_get('memory_limit');
+
+    try {
+        ini_set('memory_limit', '128M');
+        config(['analytics.import_memory_limit' => '1G']);
+
+        $user = User::factory()->create();
+
+        $import = AnalyticsImport::query()->create([
+            'user_id' => $user->getKey(),
+            'type' => AnalyticsImport::TYPE_FAMS,
+            'status' => AnalyticsImportStatus::Canceled,
+            'original_name' => 'oc-os.xlsx',
+            'path' => 'analytics-imports/memory.xlsx',
+        ]);
+
+        Storage::disk('local')->put($import->path, 'data');
+
+        (new ProcessAnalyticsImportJob($import))->handle(
+            app(AnalyticsRecordImporter::class),
+            app(AnalyticsAflImporter::class),
+        );
+
+        expect(ini_get('memory_limit'))->toBe('1G');
+    } finally {
+        ini_set('memory_limit', (string) $original);
+    }
+});
+
+it('rolls back the import when it is canceled while running', function () {
+    $user = User::factory()->create();
+    $checks = 0;
+
+    expect(function () use ($user, &$checks): void {
+        app(AnalyticsRecordImporter::class)->import($user, [
+            ['oc' => '100', 'os' => '1', 'status' => 'Aberto'],
+        ], null, function () use (&$checks): bool {
+            $checks++;
+
+            return $checks >= 2;
+        });
+    })->toThrow(AnalyticsImportCanceledException::class);
+
+    expect(AnalyticsRecord::query()->count())->toBe(0);
 });
 
 it('creates a new version when an imported row changes', function () {

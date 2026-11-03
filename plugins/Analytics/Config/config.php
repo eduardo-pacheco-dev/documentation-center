@@ -50,6 +50,19 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Imports
+    |--------------------------------------------------------------------------
+    |
+    | Large spreadsheets need much more memory than PHP's default limit.
+    | The import job raises the worker memory limit to this value before
+    | reading the file. Use "-1" to leave it unlimited.
+    |
+    */
+
+    'import_memory_limit' => env('ANALYTICS_IMPORT_MEMORY_LIMIT', '1G'),
+
+    /*
+    |--------------------------------------------------------------------------
     | Snapshots
     |--------------------------------------------------------------------------
     |

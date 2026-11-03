@@ -93,5 +93,39 @@
         @include('analytics::partials.import-modal')
     @endif
 
+    @if (is_array($recordsSummary) || is_array($aflSummary))
+        <div
+            data-import-toast-root
+            role="status"
+            aria-live="polite"
+            class="fixed bottom-4 right-4 z-50 w-[24rem] max-w-[calc(100vw-2rem)] {{ $hasPendingImports ? '' : 'hidden' }}"
+        >
+            <div class="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-2xl dark:border-white/10 dark:bg-gray-900">
+                <div class="flex items-center justify-between gap-2 border-b border-gray-100 bg-gray-50/80 px-4 py-2.5 dark:border-white/10 dark:bg-white/[0.03]">
+                    <div class="flex items-center gap-2">
+                        <span class="relative flex h-2 w-2">
+                            <span class="absolute inline-flex h-full w-full animate-ping rounded-full bg-indigo-500 opacity-60"></span>
+                            <span class="relative inline-flex h-2 w-2 rounded-full bg-indigo-600"></span>
+                        </span>
+                        <p class="text-xs font-semibold uppercase tracking-[0.12em] text-gray-500 dark:text-gray-400">Importações</p>
+                    </div>
+
+                    <button
+                        type="button"
+                        data-import-toast-toggle
+                        class="rounded-lg p-1 text-gray-400 transition hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-white/10 dark:hover:text-gray-200"
+                        aria-label="Minimizar importações"
+                    >
+                        <x-icon name="chevron-down" data-import-toast-chevron class="h-4 w-4 transition-transform" />
+                    </button>
+                </div>
+
+                <div data-import-toast-body class="max-h-[70vh] space-y-3 overflow-y-auto p-4">
+                    @include('analytics::partials.import-progress', ['imports' => $recentImports, 'progress' => $importProgress ?? []])
+                </div>
+            </div>
+        </div>
+    @endif
+
     @include('analytics::partials.scripts')
 </x-layouts.admin>

@@ -8,11 +8,15 @@ use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 use Maatwebsite\Excel\Facades\Excel;
-use Plugins\Analytics\Imports\AnalyticsAflImport;
-use Plugins\Analytics\Imports\AnalyticsRecordsImport;
+use PhpOffice\PhpSpreadsheet\IOFactory;
+use Plugins\Analytics\Enums\AnalyticsImportStatus;
+use Plugins\Analytics\Exceptions\AnalyticsImportCanceledException;
+use Plugins\Analytics\Imports\AnalyticsAflChunkImport;
+use Plugins\Analytics\Imports\AnalyticsRecordsChunkImport;
 use Plugins\Analytics\Models\AnalyticsImport;
 use Plugins\Analytics\Services\AnalyticsAflImporter;
 use Plugins\Analytics\Services\AnalyticsRecordImporter;
+use Plugins\Analytics\Support\AnalyticsDatabase;
 use Plugins\Analytics\Support\AnalyticsImportProgress;
 use Throwable;
 
@@ -48,11 +52,25 @@ class ProcessAnalyticsImportJob implements ShouldQueue
      */
     public function handle(AnalyticsRecordImporter $records, AnalyticsAflImporter $afl): void
     {
+        $this->raiseMemoryLimit();
+
+        $this->import->refresh();
+
+        $disk = Storage::disk('local');
+
+        if ($this->import->isFinished()) {
+            AnalyticsImportProgress::forget($this->import->getKey());
+
+            if ($disk->exists($this->import->path)) {
+                $disk->delete($this->import->path);
+            }
+
+            return;
+        }
+
         $this->import->markProcessing();
 
         AnalyticsImportProgress::forget($this->import->getKey());
-
-        $disk = Storage::disk('local');
 
         if (! $disk->exists($this->import->path)) {
             $this->import->markFailed(['O arquivo enviado não foi encontrado.']);
@@ -83,32 +101,72 @@ class ProcessAnalyticsImportJob implements ShouldQueue
             AnalyticsImportProgress::put($this->import->getKey(), $progress);
         };
 
+        $shouldCancel = fn (): bool => AnalyticsImport::query()
+            ->whereKey($this->import->getKey())
+            ->where('status', AnalyticsImportStatus::Canceled->value)
+            ->exists();
+
         try {
             $path = $disk->path($this->import->path);
+            $totalRows = $this->totalRows($path);
 
-            if ($this->import->type === AnalyticsImport::TYPE_AFL) {
-                $sheets = Excel::toArray(new AnalyticsAflImport, $path);
-                $rows = $sheets[0] ?? [];
+            $this->import->markProcessing($totalRows > 0 ? $totalRows : null);
 
-                $this->import->markProcessing(count($rows));
-
-                $result = $afl->import($user, $rows, $reportProgress);
-            } else {
-                $sheets = Excel::toArray(new AnalyticsRecordsImport, $path);
-                $rows = $sheets[0] ?? [];
-
-                $this->import->markProcessing(count($rows));
-
-                $result = $records->import($user, $rows, $reportProgress);
+            if ($shouldCancel()) {
+                throw new AnalyticsImportCanceledException;
             }
 
-            $this->import->markCompleted($result);
+            if ($this->import->type === AnalyticsImport::TYPE_AFL) {
+                $result = AnalyticsDatabase::transaction(function () use ($path, $user, $totalRows, $afl, $reportProgress, $shouldCancel): array {
+                    $state = $afl->beginImport($totalRows);
+
+                    $chunkImport = new AnalyticsAflChunkImport(function (array $rows) use ($afl, $user, &$state, $reportProgress, $shouldCancel): void {
+                        $afl->importChunk($user, $rows, $state, $reportProgress, $shouldCancel);
+                    });
+
+                    Excel::import($chunkImport, $path);
+
+                    return $afl->finishImport($state);
+                });
+            } else {
+                $result = AnalyticsDatabase::transaction(function () use ($path, $user, $totalRows, $records, $reportProgress, $shouldCancel): array {
+                    $state = $records->beginImport($totalRows);
+
+                    $chunkImport = new AnalyticsRecordsChunkImport(function (array $rows) use ($records, $user, &$state, $reportProgress, $shouldCancel): void {
+                        $records->importChunk($user, $rows, $state, $reportProgress, $shouldCancel);
+                    });
+
+                    Excel::import($chunkImport, $path);
+
+                    return $records->finishImport($state);
+                });
+            }
+
+            $this->import->refresh();
+
+            if ($this->import->status !== AnalyticsImportStatus::Canceled) {
+                $this->import->markCompleted($result);
+            }
+        } catch (AnalyticsImportCanceledException) {
+            $this->import->refresh();
+
+            if (! $this->import->isFinished()) {
+                $this->import->markCanceled();
+            }
         } catch (ValidationException $exception) {
-            $this->import->markFailed($exception->errors()['import'] ?? collect($exception->errors())->flatten()->all());
+            $this->import->refresh();
+
+            if (! $this->import->isFinished()) {
+                $this->import->markFailed($exception->errors()['import'] ?? collect($exception->errors())->flatten()->all());
+            }
 
             throw $exception;
         } catch (Throwable $exception) {
-            $this->import->markFailed([$exception->getMessage()]);
+            $this->import->refresh();
+
+            if (! $this->import->isFinished()) {
+                $this->import->markFailed([$exception->getMessage()]);
+            }
 
             throw $exception;
         } finally {
@@ -116,6 +174,77 @@ class ProcessAnalyticsImportJob implements ShouldQueue
 
             $disk->delete($this->import->path);
         }
+    }
+
+    /**
+     * Read the worksheet dimensions without loading the cells into memory.
+     */
+    private function totalRows(string $path): int
+    {
+        try {
+            $reader = IOFactory::createReaderForFile($path);
+            $reader->setReadDataOnly(true);
+
+            $sheets = $reader->listWorksheetInfo($path);
+
+            return (int) ($sheets[0]['totalRows'] ?? 0);
+        } catch (Throwable) {
+            return 0;
+        }
+    }
+
+    /**
+     * Raise the worker memory limit before reading a large spreadsheet.
+     */
+    private function raiseMemoryLimit(): void
+    {
+        $target = trim((string) config('analytics.import_memory_limit', '1G'));
+
+        if ($target === '' || $target === '-1') {
+            return;
+        }
+
+        $current = trim((string) ini_get('memory_limit'));
+
+        if ($current === '-1') {
+            return;
+        }
+
+        $targetBytes = $this->memoryLimitInBytes($target);
+
+        if ($targetBytes === null) {
+            return;
+        }
+
+        $currentBytes = $this->memoryLimitInBytes($current);
+
+        if ($currentBytes !== null && $currentBytes >= $targetBytes) {
+            return;
+        }
+
+        @ini_set('memory_limit', $target);
+    }
+
+    /**
+     * Convert a PHP memory limit shorthand ("128M", "1G", ...) to bytes.
+     */
+    private function memoryLimitInBytes(string $value): ?int
+    {
+        $value = trim($value);
+
+        if ($value === '' || $value === '-1') {
+            return null;
+        }
+
+        $unit = strtolower(substr($value, -1));
+        $number = (float) rtrim($value, 'gGmMkK');
+
+        return (int) match ($unit) {
+            'g' => $number * 1024 * 1024 * 1024,
+            'm' => $number * 1024 * 1024,
+            'k' => $number * 1024,
+            default => $number,
+        };
     }
 
     /**
