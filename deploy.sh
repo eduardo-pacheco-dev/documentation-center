@@ -223,11 +223,6 @@ php artisan storage:link
 log "Running database migrations"
 php artisan migrate --force
 
-if grep -qE '^ANALYTICS_DB_CONNECTION=.+' .env; then
-    log "Running analytics database migrations"
-    php artisan analytics:database
-fi
-
 log "Clearing the application cache"
 php artisan cache:clear
 
