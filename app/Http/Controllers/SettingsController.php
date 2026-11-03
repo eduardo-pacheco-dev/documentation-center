@@ -9,7 +9,9 @@ use App\Http\Requests\UpdatePasswordRequest;
 use App\Http\Requests\UpdateThemeRequest;
 use App\Plugins\Plugin;
 use App\Plugins\PluginRepository;
+use App\Settings\SettingsSectionRegistry;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\View\View;
 
 class SettingsController extends Controller
@@ -17,7 +19,7 @@ class SettingsController extends Controller
     /**
      * Show the settings page for the authenticated user.
      */
-    public function show(PluginRepository $plugins): View
+    public function show(Request $request, PluginRepository $plugins, SettingsSectionRegistry $settingsSections): View
     {
         $user = auth()->user();
 
@@ -32,6 +34,7 @@ class SettingsController extends Controller
                 AdminModule::enabledFor($user),
             ),
             'plugins' => $installedPlugins,
+            'pluginSettingsSections' => $settingsSections->forRequest($request),
             'pluginStats' => [
                 'total' => $installedPlugins->count(),
                 'enabled' => $installedPlugins->filter(fn (Plugin $plugin): bool => $plugin->enabled())->count(),

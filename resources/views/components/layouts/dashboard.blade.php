@@ -11,6 +11,7 @@
         <x-theme-script />
         @vite(['resources/css/app.css', 'resources/js/app.js'])
         <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.9/dist/cdn.min.js"></script>
+        @stack('head')
     </head>
     <body class="bg-[#f4f4f2] text-gray-900 antialiased dark:bg-[#171716] dark:text-gray-100">
         <div
@@ -67,5 +68,6 @@
 
         <x-toasts />
         <x-confirm-modal />
+        @stack('scripts')
     </body>
 </html>

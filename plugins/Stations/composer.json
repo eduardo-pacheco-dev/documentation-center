@@ -1,0 +1,20 @@
+{
+    "name": "documentation-center/plugin-stations",
+    "description": "The Stations plugin.",
+    "type": "library",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Documentation Center",
+            "email": "contato@example.com"
+        }
+    ],
+    "autoload": {
+        "psr-4": {
+            "Plugins\Stations\\": ""
+        }
+    },
+    "config": {
+        "sort-packages": true
+    }
+}

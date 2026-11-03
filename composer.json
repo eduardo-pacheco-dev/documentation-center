@@ -10,10 +10,12 @@
     "license": "MIT",
     "require": {
         "php": "^8.3",
+        "azure-oss/storage-blob-laravel": "^2.2",
         "darkaonline/l5-swagger": "^11.1",
         "laravel/framework": "^13.17",
         "laravel/sanctum": "^4.3",
         "laravel/tinker": "^3.0",
+        "league/flysystem-aws-s3-v3": "^3.28",
         "maatwebsite/excel": "4.0"
     },
     "require-dev": {
