@@ -8,11 +8,9 @@
     x-data="{
         menuId: '{{ $menuId }}',
         open: false,
-        trigger: null,
         top: 0,
         left: 0,
         toggle(button) {
-            this.trigger = button;
             this.open = ! this.open;
 
             if (! this.open) {
@@ -31,15 +29,15 @@
 
             this.left = Math.max(8, Math.min(rect.right - width, window.innerWidth - width - 8));
 
-            this.$nextTick(() => {
-                document.getElementById(this.menuId)?.querySelector('[role="menuitem"]')?.focus();
-            });
+            setTimeout(() => {
+                document.getElementById(this.menuId)?.querySelector('[role=menuitem]')?.focus();
+            }, 0);
         },
         close(refocus = false) {
             this.open = false;
 
             if (refocus) {
-                this.trigger?.focus();
+                this.$el.querySelector('[aria-haspopup=menu]')?.focus();
             }
         },
     }"

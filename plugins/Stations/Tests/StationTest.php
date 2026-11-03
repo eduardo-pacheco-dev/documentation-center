@@ -104,6 +104,27 @@ test('stations can be filtered by status and technology', function () {
         ->assertDontSee('SPFILTER2');
 });
 
+test('the row actions menu markup is well formed', function () {
+    Station::factory()->create(['site_id' => 'SPMENU001']);
+
+    $response = $this->actingAs(User::factory()->create())->get('/admin/stations');
+
+    $dom = new DOMDocument;
+
+    libxml_use_internal_errors(true);
+    $dom->loadHTML($response->getContent());
+    libxml_clear_errors();
+
+    $component = (new DOMXPath($dom))
+        ->query('//*[@x-data and contains(@x-data, "menuId")]')
+        ->item(0);
+
+    expect($component)->not->toBeNull()
+        ->and($component->getAttribute('x-data'))
+        ->toContain("querySelector('[role=menuitem]')")
+        ->toEndWith('}');
+});
+
 test('the create page renders the station form', function () {
     $this->actingAs(User::factory()->create())
         ->get('/admin/stations/create')
