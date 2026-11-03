@@ -29,46 +29,32 @@
                 </a>
             </div>
 
-            <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-                <div class="flex items-center gap-3 rounded-2xl border border-gray-200/80 bg-white p-4 dark:border-white/10 dark:bg-[#171716]">
-                    <span class="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-400">
-                        <x-icon name="document-text" class="h-5 w-5" />
-                    </span>
-                    <div>
-                        <p class="text-xl font-semibold text-gray-900 dark:text-white">{{ $stats['total'] }}</p>
-                        <p class="text-xs text-gray-500 dark:text-gray-400">Páginas</p>
-                    </div>
-                </div>
+            <div class="flex flex-wrap items-center gap-x-5 gap-y-2 rounded-2xl border border-gray-200/80 bg-white px-4 py-2.5 text-xs text-gray-500 dark:border-white/10 dark:bg-[#171716] dark:text-gray-400">
+                <span class="inline-flex items-center gap-1.5">
+                    <span class="font-semibold text-gray-900 dark:text-white">{{ $stats['total'] }}</span>
+                    páginas
+                </span>
 
-                <div class="flex items-center gap-3 rounded-2xl border border-gray-200/80 bg-white p-4 dark:border-white/10 dark:bg-[#171716]">
-                    <span class="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400">
-                        <x-icon name="check-circle" class="h-5 w-5" />
-                    </span>
-                    <div>
-                        <p class="text-xl font-semibold text-gray-900 dark:text-white">{{ $stats['published'] }}</p>
-                        <p class="text-xs text-gray-500 dark:text-gray-400">Publicadas</p>
-                    </div>
-                </div>
+                <span class="hidden h-3 w-px bg-gray-200 sm:block dark:bg-white/10"></span>
 
-                <div class="flex items-center gap-3 rounded-2xl border border-gray-200/80 bg-white p-4 dark:border-white/10 dark:bg-[#171716]">
-                    <span class="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-amber-50 text-amber-600 dark:bg-amber-500/10 dark:text-amber-400">
-                        <x-icon name="pencil-square" class="h-5 w-5" />
-                    </span>
-                    <div>
-                        <p class="text-xl font-semibold text-gray-900 dark:text-white">{{ $stats['drafts'] }}</p>
-                        <p class="text-xs text-gray-500 dark:text-gray-400">Rascunhos</p>
-                    </div>
-                </div>
+                <span class="inline-flex items-center gap-1.5">
+                    <span class="font-semibold text-emerald-600 dark:text-emerald-400">{{ $stats['published'] }}</span>
+                    publicadas
+                </span>
 
-                <div class="flex items-center gap-3 rounded-2xl border border-gray-200/80 bg-white p-4 dark:border-white/10 dark:bg-[#171716]">
-                    <span class="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-violet-50 text-violet-600 dark:bg-violet-500/10 dark:text-violet-400">
-                        <x-icon name="squares-2x2" class="h-5 w-5" />
-                    </span>
-                    <div>
-                        <p class="text-xl font-semibold text-gray-900 dark:text-white">{{ $stats['categories'] }}</p>
-                        <p class="text-xs text-gray-500 dark:text-gray-400">Categorias</p>
-                    </div>
-                </div>
+                <span class="hidden h-3 w-px bg-gray-200 sm:block dark:bg-white/10"></span>
+
+                <span class="inline-flex items-center gap-1.5">
+                    <span class="font-semibold text-amber-600 dark:text-amber-400">{{ $stats['drafts'] }}</span>
+                    rascunhos
+                </span>
+
+                <span class="hidden h-3 w-px bg-gray-200 sm:block dark:bg-white/10"></span>
+
+                <span class="inline-flex items-center gap-1.5">
+                    <span class="font-semibold text-violet-600 dark:text-violet-400">{{ $stats['categories'] }}</span>
+                    categorias
+                </span>
             </div>
 
             @unless ($hasFilters)
