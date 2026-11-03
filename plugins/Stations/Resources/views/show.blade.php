@@ -85,6 +85,84 @@
     @if ($hasCoordinates)
         @push('head')
             <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+
+            <style>
+                .station-map-marker {
+                    position: relative;
+                    width: 64px;
+                    height: 76px;
+                }
+
+                .station-map-marker__tower {
+                    position: absolute;
+                    inset-inline: 0;
+                    bottom: 0;
+                    display: flex;
+                    justify-content: center;
+                    color: #4f46e5;
+                }
+
+                .station-map-marker__tower svg {
+                    width: 44px;
+                    height: 64px;
+                }
+
+                .station-map-marker__signal {
+                    position: absolute;
+                    left: 50%;
+                    top: 16px;
+                    width: 1px;
+                    height: 1px;
+                }
+
+                .station-map-marker__signal span {
+                    position: absolute;
+                    left: 0;
+                    top: 0;
+                    width: 18px;
+                    height: 18px;
+                    margin: -9px 0 0 -9px;
+                    border: 2px solid rgb(79 70 229 / 55%);
+                    border-radius: 9999px;
+                    animation: station-signal-wave 2.4s ease-out infinite;
+                }
+
+                .station-map-marker__signal span:nth-child(2) {
+                    animation-delay: 0.8s;
+                }
+
+                .station-map-marker__signal span:nth-child(3) {
+                    animation-delay: 1.6s;
+                }
+
+                .dark .station-map-marker__tower {
+                    color: #a5b4fc;
+                }
+
+                .dark .station-map-marker__signal span {
+                    border-color: rgb(165 180 252 / 55%);
+                }
+
+                @keyframes station-signal-wave {
+                    0% {
+                        transform: scale(0.35);
+                        opacity: 0.8;
+                    }
+
+                    75%,
+                    100% {
+                        transform: scale(2.8);
+                        opacity: 0;
+                    }
+                }
+
+                @media (prefers-reduced-motion: reduce) {
+                    .station-map-marker__signal span {
+                        animation: none;
+                        opacity: 0.5;
+                    }
+                }
+            </style>
         @endpush
     @endif
 
@@ -523,12 +601,35 @@
                         popup.append(document.createElement('br'), document.createTextNode(address));
                     }
 
-                    L.circleMarker([latitude, longitude], {
-                        radius: 9,
-                        color: '#4f46e5',
-                        weight: 3,
-                        fillColor: '#6366f1',
-                        fillOpacity: 0.9,
+                    const towerIcon = L.divIcon({
+                        className: 'station-map-marker',
+                        html: `
+                            <div class="station-map-marker__signal" aria-hidden="true">
+                                <span></span>
+                                <span></span>
+                                <span></span>
+                            </div>
+
+                            <div class="station-map-marker__tower" aria-hidden="true">
+                                <svg viewBox="0 0 48 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M24 3v7" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                                    <circle cx="24" cy="3" r="2" fill="currentColor" />
+                                    <path d="M15 61 24 13l9 48" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round" />
+                                    <path d="M17.5 50h13M19.5 39h9M21 29h6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+                                    <path d="M19.5 39 30.5 50M28.5 39 17.5 50M21 29l7.5 10M27 29l-7.5 10" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" opacity=".75" />
+                                    <path d="M13 62h22" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" />
+                                </svg>
+                            </div>
+                        `,
+                        iconSize: [64, 76],
+                        iconAnchor: [32, 76],
+                        popupAnchor: [0, -72],
+                    });
+
+                    L.marker([latitude, longitude], {
+                        icon: towerIcon,
+                        alt: title,
+                        title: title,
                     }).addTo(map).bindPopup(popup).openPopup();
 
                     window.setTimeout(() => map.invalidateSize(), 200);
