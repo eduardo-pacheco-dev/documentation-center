@@ -83,6 +83,19 @@ test('follow-ups can be listed, searched and filtered', function () {
         ->assertDontSee('Relatório mensal');
 });
 
+test('the index renders an actions menu for each follow-up', function () {
+    $followUp = FollowUp::factory()->create(['title' => 'Acompanhar proposta']);
+
+    $this->actingAs(User::factory()->create())
+        ->get('/admin/follow-ups')
+        ->assertOk()
+        ->assertSee('Abrir menu de ações do follow-up Acompanhar proposta')
+        ->assertSee(route('admin.follow-ups.show', $followUp))
+        ->assertSee(route('admin.follow-ups.edit', $followUp))
+        ->assertSee(route('admin.follow-ups.export-one', $followUp))
+        ->assertSee(route('admin.follow-ups.destroy', $followUp));
+});
+
 test('the create page renders the follow-up form', function () {
     $this->actingAs(User::factory()->create())
         ->get('/admin/follow-ups/create')

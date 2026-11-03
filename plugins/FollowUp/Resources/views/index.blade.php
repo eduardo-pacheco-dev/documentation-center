@@ -171,23 +171,8 @@
                                 </td>
 
                                 <td class="px-5 py-4">
-                                    <div class="flex items-center justify-end gap-1">
-                                        <a href="{{ route('admin.follow-ups.show', $followUp) }}" class="inline-flex h-9 w-9 items-center justify-center rounded-xl text-gray-500 transition hover:bg-gray-100 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-white/10 dark:hover:text-white" aria-label="Ver {{ $followUp->title }}" title="Ver follow-up">
-                                            <x-icon name="eye" class="h-4 w-4" />
-                                        </a>
-
-                                        <a href="{{ route('admin.follow-ups.edit', $followUp) }}" class="inline-flex h-9 w-9 items-center justify-center rounded-xl text-gray-500 transition hover:bg-gray-100 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-white/10 dark:hover:text-white" aria-label="Editar {{ $followUp->title }}" title="Editar">
-                                            <x-icon name="pencil-square" class="h-4 w-4" />
-                                        </a>
-
-                                        <form method="POST" action="{{ route('admin.follow-ups.destroy', $followUp) }}" data-confirm-delete="Excluir o follow-up {{ $followUp->title }}? Essa ação não pode ser desfeita.">
-                                            @csrf
-                                            @method('DELETE')
-
-                                            <button type="submit" class="inline-flex h-9 w-9 items-center justify-center rounded-xl text-red-500 transition hover:bg-red-50 hover:text-red-600 dark:text-red-400 dark:hover:bg-red-500/15" aria-label="Excluir {{ $followUp->title }}" title="Excluir">
-                                                <x-icon name="trash" class="h-4 w-4" />
-                                            </button>
-                                        </form>
+                                    <div class="flex items-center justify-end">
+                                        <x-follow-up::partials.actions-menu :follow-up="$followUp" />
                                     </div>
                                 </td>
                             </tr>
