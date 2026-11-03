@@ -11,12 +11,16 @@ use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use PhpOffice\PhpSpreadsheet\IOFactory;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use Plugins\Stations\Models\Station;
 use Plugins\Stations\Models\StationAttachment;
 use Plugins\Stations\Models\StationComment;
 use Plugins\Stations\Models\StationStorageSetting;
 use Plugins\Stations\Providers\StationsServiceProvider;
 use Plugins\Stations\Support\CoordinateParser;
+use Plugins\Stations\Support\StationExport;
+use Plugins\Stations\Support\StationExportAll;
 use Plugins\Stations\Support\StationImporter;
 use Plugins\Stations\Support\StationStorage;
 
@@ -521,9 +525,9 @@ test('the station import page renders the instructions and limit', function () {
         ->get(route('admin.stations.import'))
         ->assertOk()
         ->assertSee('Importar estações')
-        ->assertSee('Baixar modelo CSV')
+        ->assertSee('Baixar modelo Excel')
         ->assertSee('100 estações')
-        ->assertSee('site_id');
+        ->assertSee('ID do site');
 });
 
 test('stations can be imported from a csv file', function () {
@@ -605,16 +609,86 @@ test('an invalid row prevents the whole import', function () {
     expect(Station::query()->count())->toBe(0);
 });
 
-test('the import template can be downloaded', function () {
-    $response = $this->actingAs(User::factory()->create())
+test('the import template can be downloaded as an excel file', function () {
+    $this->actingAs(User::factory()->create())
         ->get(route('admin.stations.import.template'))
         ->assertOk()
-        ->assertDownload('modelo-importacao-estacoes.csv');
+        ->assertDownload('modelo-importacao-estacoes.xlsx');
 
-    expect($response->streamedContent())
-        ->toContain('site_id')
-        ->toContain('station_id')
-        ->toContain('latitude');
+    $path = __DIR__.'/../Resources/templates/stations-import.xlsx';
+
+    expect(is_file($path))->toBeTrue();
+
+    $spreadsheet = IOFactory::load($path);
+    $sheet = $spreadsheet->getSheet(0);
+
+    expect($sheet->getTitle())->toBe('Estações')
+        ->and($sheet->getCell('A1')->getValue())->toBe('ID do site *')
+        ->and($sheet->getCell('B1')->getValue())->toBe('ID do endereço')
+        ->and($sheet->getCell('V1')->getValue())->toBe('Longitude')
+        ->and($spreadsheet->getSheetNames())->toContain('Instruções');
+
+    $spreadsheet->disconnectWorksheets();
+});
+
+test('stations can be imported from an excel file', function () {
+    $template = __DIR__.'/../Resources/templates/stations-import.xlsx';
+    $spreadsheet = IOFactory::load($template);
+    $sheet = $spreadsheet->getSheet(0);
+
+    $sheet->fromArray([
+        'SPXLSX01',
+        'SPSPO_1',
+        'ENODE B',
+        'LTE',
+        'Fibra',
+        'ACESSO',
+        'Aquisitado',
+        'SPXLSX01',
+        'ELETROPAULO',
+        'Greenfield',
+        '',
+        '',
+        'TSP',
+        '04339-000',
+        'RUA DAS PALMAS',
+        '213',
+        '',
+        'JABAQUARA',
+        'SAO PAULO',
+        'SP',
+        '-23.665278',
+        '-46.641111',
+    ], null, 'A2');
+
+    $path = sys_get_temp_dir().'/stations-import-'.Str::random(8).'.xlsx';
+    (new Xlsx($spreadsheet))->save($path);
+    $spreadsheet->disconnectWorksheets();
+
+    $this->actingAs(User::factory()->create())
+        ->post(route('admin.stations.import.store'), [
+            'file' => new UploadedFile(
+                $path,
+                'estacoes.xlsx',
+                'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                null,
+                true,
+            ),
+        ])
+        ->assertRedirect(route('admin.stations.index'))
+        ->assertSessionHasNoErrors();
+
+    @unlink($path);
+
+    $station = Station::query()->sole();
+
+    expect($station)
+        ->site_id->toBe('SPXLSX01')
+        ->station_id->toBe('SPXLSX01')
+        ->cep->toBe('04339000')
+        ->latitude->toBe('-23.665278')
+        ->longitude->toBe('-46.641111')
+        ->municipio->toBe('SAO PAULO');
 });
 
 test('the sites widget lists sites and searches by site id', function () {
@@ -826,4 +900,110 @@ test('new attachments are stored on the configured provider disk', function () {
     expect($attachment->disk)->toBe(StationStorage::DISK_AWS);
 
     Storage::disk(StationStorage::DISK_AWS)->assertExists($attachment->path);
+});
+
+test('all station data can be exported to excel', function () {
+    $user = User::factory()->create(['name' => 'Ana', 'surname' => 'Souza']);
+    $station = Station::factory()->create([
+        'site_id' => 'SPEXPORT1',
+        'station_id' => 'SPEXPORT1',
+        'logradouro' => 'RUA DA EXPORTAÇÃO',
+        'municipio' => 'SAO PAULO',
+        'estado' => 'SP',
+    ]);
+
+    StationAttachment::factory()->for($station)->ppiTssr()->create([
+        'original_name' => 'ppi-estacao.pdf',
+    ]);
+
+    StationComment::factory()->for($station)->for($user)->create([
+        'body' => 'Comentário de exportação.',
+    ]);
+
+    $fileName = app(StationExport::class)->fileName($station);
+
+    $response = $this->actingAs($user)
+        ->get(route('admin.stations.export', $station))
+        ->assertOk()
+        ->assertDownload($fileName);
+
+    $path = sys_get_temp_dir().'/station-export-'.Str::random(8).'.xlsx';
+    file_put_contents($path, $response->streamedContent());
+
+    $spreadsheet = IOFactory::load($path);
+
+    expect($spreadsheet->getSheetNames())
+        ->toBe(['Estação', 'Anexos', 'Comentários']);
+
+    $stationText = collect($spreadsheet->getSheet(0)->toArray())->flatten()->filter()->implode(' | ');
+    $attachmentsText = collect($spreadsheet->getSheetByName('Anexos')->toArray())->flatten()->filter()->implode(' | ');
+    $commentsText = collect($spreadsheet->getSheetByName('Comentários')->toArray())->flatten()->filter()->implode(' | ');
+
+    expect($stationText)
+        ->toContain('SPEXPORT1')
+        ->toContain('RUA DA EXPORTAÇÃO')
+        ->toContain('Criado em');
+
+    expect($attachmentsText)
+        ->toContain('ppi-estacao.pdf')
+        ->toContain('PPI/TSSR');
+
+    expect($commentsText)
+        ->toContain('Comentário de exportação.')
+        ->toContain('Ana Souza');
+
+    $spreadsheet->disconnectWorksheets();
+    @unlink($path);
+});
+
+test('all stations can be exported to excel with a sites summary', function () {
+    Station::factory()->create([
+        'site_id' => 'SPALL001',
+        'station_id' => 'SPALL001',
+        'logradouro' => 'RUA UM',
+        'municipio' => 'SAO PAULO',
+        'estado' => 'SP',
+    ]);
+
+    Station::factory()->create([
+        'site_id' => 'SPALL002',
+        'station_id' => 'SPALL002',
+        'logradouro' => 'RUA DOIS',
+        'municipio' => 'CAMPINAS',
+        'estado' => 'SP',
+    ]);
+
+    $fileName = app(StationExportAll::class)->fileName();
+
+    $response = $this->actingAs(User::factory()->create())
+        ->get(route('admin.stations.export-all'))
+        ->assertOk()
+        ->assertDownload($fileName);
+
+    $path = sys_get_temp_dir().'/stations-export-'.Str::random(8).'.xlsx';
+    file_put_contents($path, $response->streamedContent());
+
+    $spreadsheet = IOFactory::load($path);
+
+    expect($spreadsheet->getSheetNames())
+        ->toBe(['Estações', 'Sites']);
+
+    $stationsText = collect($spreadsheet->getSheetByName('Estações')->toArray())->flatten()->filter()->implode(' | ');
+    $sitesText = collect($spreadsheet->getSheetByName('Sites')->toArray())->flatten()->filter()->implode(' | ');
+
+    expect($stationsText)
+        ->toContain('SPALL001')
+        ->toContain('RUA UM')
+        ->toContain('SPALL002')
+        ->toContain('RUA DOIS')
+        ->toContain('Atualizado em');
+
+    expect($sitesText)
+        ->toContain('SPALL001')
+        ->toContain('SPALL002')
+        ->toContain('SAO PAULO')
+        ->toContain('CAMPINAS');
+
+    $spreadsheet->disconnectWorksheets();
+    @unlink($path);
 });

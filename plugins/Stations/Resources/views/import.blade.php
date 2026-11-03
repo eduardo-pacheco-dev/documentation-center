@@ -14,12 +14,12 @@
     <x-ui.page-header
         category="Inventário"
         title="Importar estações"
-        description="Envie um arquivo CSV para cadastrar várias estações de uma só vez."
+        description="Envie uma planilha Excel ou CSV para cadastrar várias estações de uma só vez."
         icon="arrow-up-tray"
         class="mt-4"
     >
         <x-ui.action :href="route('admin.stations.import.template')" icon="arrow-down-tray" variant="secondary">
-            Baixar modelo CSV
+            Baixar modelo Excel
         </x-ui.action>
 
         <x-ui.action :href="route('admin.stations.index')" icon="chevron-left" variant="ghost">
@@ -57,15 +57,15 @@
                         <x-icon name="arrow-up-tray" class="h-5 w-5" />
                     </span>
 
-                    <span class="mt-3 text-sm font-semibold text-gray-800 dark:text-gray-100">Selecionar arquivo CSV</span>
-                    <span class="mt-1 text-xs text-gray-500 dark:text-gray-400" x-show="! fileName">CSV ou TXT · até 2 MB · máximo de 100 estações</span>
+                    <span class="mt-3 text-sm font-semibold text-gray-800 dark:text-gray-100">Selecionar planilha</span>
+                    <span class="mt-1 text-xs text-gray-500 dark:text-gray-400" x-show="! fileName">Excel (XLSX/XLS) ou CSV · até 5 MB · máximo de 100 estações</span>
                     <span class="mt-1 max-w-full truncate text-xs font-medium text-indigo-600 dark:text-indigo-400" x-show="fileName" x-text="fileName"></span>
 
                     <input
                         id="import-file"
                         type="file"
                         name="file"
-                        accept=".csv,.txt,text/csv,text/plain"
+                        accept=".csv,.txt,.xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,text/csv,text/plain"
                         class="sr-only"
                         x-on:change="fileName = $event.target.files[0]?.name ?? ''"
                     >
@@ -97,19 +97,19 @@
                 <ul class="mt-4 space-y-3 text-sm text-gray-600 dark:text-gray-300">
                     <li class="flex gap-2">
                         <x-icon name="check" class="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" />
-                        <span>Use a primeira linha como cabeçalho, com os nomes das colunas.</span>
+                        <span>Use o modelo Excel e preencha a aba <strong class="font-semibold text-gray-900 dark:text-white">Estações</strong> a partir da linha 2.</span>
                     </li>
                     <li class="flex gap-2">
                         <x-icon name="check" class="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" />
-                        <span>A coluna <code class="rounded bg-gray-100 px-1 py-0.5 text-[11px] dark:bg-white/10">site_id</code> é obrigatória.</span>
+                        <span>A coluna <code class="rounded bg-gray-100 px-1 py-0.5 text-[11px] dark:bg-white/10">ID do site</code> é obrigatória.</span>
                     </li>
                     <li class="flex gap-2">
                         <x-icon name="check" class="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" />
-                        <span>Aceita separador por vírgula, ponto e vírgula ou tabulação.</span>
+                        <span>O modelo já inclui validação de UF e limites de latitude/longitude.</span>
                     </li>
                     <li class="flex gap-2">
                         <x-icon name="check" class="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" />
-                        <span>Arquivos salvos pelo Excel em CSV também são aceitos.</span>
+                        <span>Também aceita CSV exportado do Excel.</span>
                     </li>
                     <li class="flex gap-2">
                         <x-icon name="exclamation-triangle" class="mt-0.5 h-4 w-4 shrink-0 text-amber-500" />
@@ -124,8 +124,8 @@
 
                 <div class="mt-4 flex flex-wrap gap-1.5">
                     @foreach ($fields as $field)
-                        <span class="inline-flex items-center gap-1 rounded-lg bg-gray-50 px-2 py-1 font-mono text-[10px] text-gray-600 dark:bg-white/5 dark:text-gray-300">
-                            {{ $field['name'] }}
+                        <span class="inline-flex items-center gap-1 rounded-lg bg-gray-50 px-2 py-1 text-[10px] text-gray-600 dark:bg-white/5 dark:text-gray-300" title="{{ $field['name'] }}">
+                            {{ $field['label'] }}
 
                             @if ($field['required'] ?? false)
                                 <span class="font-sans font-semibold text-red-500" title="Obrigatório">*</span>
@@ -135,7 +135,7 @@
                 </div>
 
                 <x-ui.action :href="route('admin.stations.import.template')" icon="arrow-down-tray" variant="secondary" size="sm" class="mt-4">
-                    Baixar modelo CSV
+                    Baixar modelo Excel
                 </x-ui.action>
             </section>
         </aside>

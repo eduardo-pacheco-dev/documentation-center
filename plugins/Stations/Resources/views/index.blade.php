@@ -35,6 +35,14 @@
         icon="signal"
     >
         <x-ui.action
+            :href="route('admin.stations.export-all')"
+            icon="arrow-down-tray"
+            variant="secondary"
+        >
+            Exportar
+        </x-ui.action>
+
+        <x-ui.action
             :href="route('admin.stations.import')"
             icon="arrow-up-tray"
             variant="secondary"
