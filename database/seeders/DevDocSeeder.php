@@ -1680,6 +1680,364 @@ MARKDOWN,
                 'is_published' => true,
             ],
             [
+                'title' => 'UX Design do sistema',
+                'slug' => 'ux-design',
+                'category' => DevDocCategory::Frontend,
+                'summary' => 'Princípios de experiência, jornadas, navegação, feedback, formulários, acessibilidade e responsividade.',
+                'content' => <<<'MARKDOWN'
+# UX Design do sistema
+
+## Objetivo
+
+A experiência do Documentation Center é desenhada para **operações administrativas e técnicas de longa duração**. A prioridade é permitir que a pessoa encontre uma informação, execute uma tarefa e confirme o resultado com o menor número possível de passos e sem ambiguidade.
+
+## Princípios
+
+1. **Clareza operacional** — cada tela informa onde estamos, o que pode ser feito e o que aconteceu depois da ação.
+2. **Previsibilidade** — listagens, formulários, modais e confirmações seguem o mesmo padrão em todos os módulos.
+3. **Feedback imediato** — toda ação relevante produz resposta visual: toast, alerta, estado vazio ou atualização da lista.
+4. **Segurança de contexto** — ações destrutivas exigem confirmação explícita e nunca ficam ao lado de ações primárias sem distinção visual.
+5. **Acessibilidade por padrão** — navegação por teclado, rótulos, foco visível e contraste fazem parte do componente, não de um ajuste posterior.
+6. **Reutilização** — a experiência nasce dos componentes globais, evitando que cada módulo invente um padrão próprio.
+
+## Público e contexto de uso
+
+| Perfil | Necessidade principal |
+| --- | --- |
+| Administrador | Configurar módulos, usuários e a wiki de desenvolvimento |
+| Equipe técnica | Consultar clientes, equipamentos, ordens de serviço, projetos e formulários |
+| Uso diário | Sessões longas, muitas listagens, filtros e formulários com vários campos |
+
+O layout é otimizado para **desktop**, mas todas as telas administrativas devem continuar utilizáveis em tablet e celular.
+
+## Jornada de entrada
+
+1. A pessoa acessa `/login` e autentica com e-mail e senha.
+2. O sistema redireciona para o dashboard em `/admin`.
+3. A sidebar mostra os módulos disponíveis; o restante fica agrupado em **Módulos**.
+4. A topbar exibe o caminho atual (`Administração > Título`) e a busca global.
+5. O menu do usuário dá acesso a perfil, configurações, tema e saída.
+
+## Navegação
+
+### Sidebar
+
+- Fixa à esquerda, com largura compacta de **4,5 rem** ou expandida para **15 rem**.
+- O estado expandido/recolhido é persistido em `localStorage` (`dashboard-sidebar-expanded`).
+- No modo compacto, os itens mostram apenas o ícone e revelam o rótulo em um tooltip.
+- O item ativo recebe contraste invertido e `aria-current="page"`.
+- Em telas menores que `lg`, a sidebar vira um painel deslizante com overlay escuro.
+
+### Módulos
+
+- Módulos secundários ficam no menu **Módulos**, em grade de duas colunas.
+- O menu fecha ao clicar fora e mantém o item ativo destacado.
+- A ordem e a visibilidade dos módulos podem ser personalizadas pelo usuário nas configurações.
+
+### Busca global
+
+- Campo `x-ui.search-input` na topbar, com atalhos:
+  - `/` foca a busca.
+  - `Ctrl`/`Cmd` + `K` também foca a busca.
+- Em telas pequenas, o campo é substituído por um botão de busca para preservar espaço.
+
+## Fluxos de tarefa
+
+### Listagens
+
+Toda listagem deve oferecer, quando fizer sentido:
+
+- busca textual;
+- filtros (status, categoria, período);
+- ordenação por colunas;
+- paginação com preservação dos parâmetros da URL;
+- contagem/resumo no topo;
+- **estado vazio** com explicação e ação principal.
+
+### Criação
+
+- Formulários curtos podem abrir em **modal**.
+- Fluxos longos usam **wizard com etapas** (ex.: equipamentos e ordens de serviço), com indicador de progresso, botões **Voltar/Próximo** e etapa de **revisão**.
+- A validação acontece ao avançar e novamente no envio; se houver erro, o usuário é levado à etapa correspondente.
+- Erros do servidor reabrem o modal e exibem a lista de mensagens no topo.
+
+### Edição
+
+- Mantém o contexto da listagem ou da tela de detalhe.
+- Campos existentes são pré-preenchidos com `old()` quando há erro de validação.
+- Códigos e identificadores gerados pelo sistema são somente leitura.
+
+### Exclusão
+
+- O botão destrutivo é visualmente distinto (vermelho) e nunca é a ação padrão.
+- Formulários com `data-confirm-delete` passam pelo `x-confirm-modal`.
+- O texto de confirmação nomeia o item afetado e explica a consequência.
+
+## Feedback e estados
+
+| Situação | Resposta esperada |
+| --- | --- |
+| Ação concluída | Toast de sucesso via `session('status')` |
+| Erro de validação | Mensagem por campo + resumo no topo quando necessário |
+| Lista sem resultados | `x-ui.empty-state` com ícone, título e descrição |
+| Operação destrutiva | Modal de confirmação |
+| Processo em andamento | Botão desabilitado e/ou `x-ui.progress-bar` |
+| Conteúdo auxiliar | Tooltip, texto de ajuda ou `kbd` para atalhos |
+
+Sem JavaScript, o layout ainda exibe a mensagem de status em um bloco `<noscript>` e os formulários públicos voltam para a versão de página única.
+
+## Formulários
+
+- Todo campo tem rótulo visível; o asterisco de obrigatório é apenas reforço visual.
+- O erro é associado ao campo com `aria-invalid` e `aria-describedby`.
+- Mensagens de erro usam `role="alert"` e ícone, sem depender apenas de cor.
+- Campos de senha oferecem botão de mostrar/ocultar com `aria-pressed`.
+- Agrupamentos usam `field-label`, `field-help` e `field-error` para manter espaçamento e leitura consistentes.
+- O foco retorna ao primeiro campo inválido após uma tentativa de envio.
+
+## Acessibilidade
+
+- Diálogos usam `role="dialog"`, `aria-modal="true"` e `aria-labelledby`.
+- Botões somente com ícone têm `aria-label`.
+- Mensagens dinâmicas usam `role="status"` ou `role="alert"`.
+- O foco visível é garantido por `focus-visible` e anéis de contraste.
+- O tema escuro respeita `prefers-color-scheme` e a preferência salva do usuário.
+- Animações são desativadas com `prefers-reduced-motion: reduce`.
+- O conteúdo Markdown da wiki é renderizado com HTML escapado.
+
+## Responsividade
+
+- Breakpoint principal: `lg` (1024 px).
+- Abaixo dele, a sidebar é um drawer e a topbar ganha o botão de menu.
+- Grades de formulário passam de duas colunas para uma.
+- Ações de página quebram linha em vez de comprimir rótulos.
+- Tabelas longas devem permitir rolagem horizontal controlada.
+
+## Conteúdo e microcopy
+
+- Idioma padrão: **português do Brasil**.
+- Prefira verbos diretos: “Cadastrar equipamento”, “Salvar alterações”, “Excluir”.
+- Títulos de página no formato de frase, sem excesso de maiúsculas.
+- Mensagens explicam o que aconteceu e o próximo passo, sem culpar o usuário.
+- Datas relativas usam `x-relative-time`; datas absolutas aparecem como apoio.
+
+## Checklist de UX para novas telas
+
+- [ ] A pessoa sabe onde está e como voltar?
+- [ ] Existe ação principal única e claramente destacada?
+- [ ] Listas têm busca, filtro, ordenação e estado vazio?
+- [ ] Formulários têm rótulos, ajuda e erros acessíveis?
+- [ ] Ações destrutivas pedem confirmação?
+- [ ] O resultado da ação é comunicado?
+- [ ] A tela funciona por teclado e em tela pequena?
+- [ ] O texto está em português e segue o vocabulário do sistema?
+MARKDOWN,
+                'is_published' => true,
+            ],
+            [
+                'title' => 'UI Design do sistema',
+                'slug' => 'ui-design',
+                'category' => DevDocCategory::Frontend,
+                'summary' => 'Tokens, tipografia, cores, shell administrativo, componentes base, dark mode e padrões visuais.',
+                'content' => <<<'MARKDOWN'
+# UI Design do sistema
+
+## Fundamento
+
+A interface usa **Tailwind CSS 4** com configuração CSS-first em `resources/css/app.css`. Não existe `tailwind.config.js`: tema, fontes, cores e raios são declarados no bloco `@theme`.
+
+```css
+@import 'tailwindcss';
+
+@custom-variant dark (&:where(.dark, .dark *));
+```
+
+## Design tokens
+
+### Cores
+
+| Token | Valor | Uso |
+| --- | --- | --- |
+| `grey-15` | `#1f1f1f` | Texto principal |
+| `grey-45` | `#6b6b6b` | Texto secundário |
+| `grey-65` | `#8f8f8f` | Placeholder e apoio |
+| `grey-80` | `#d9d9d9` | Bordas e divisores |
+| `grey-90` | `#f2f2f2` | Fundos suaves |
+| `grey-100` | `#ffffff` | Superfícies |
+| `secondary-blue-400` | `#1f73e8` | Ação primária da autenticação |
+| `secondary-blue-500` | `#1557b0` | Hover da ação primária |
+| `brand-navy` | `#0a1b3d` | Marca e superfícies escuras |
+
+As telas administrativas usam a escala **indigo** do Tailwind como cor de ação, além de cinzas neutros. Estados seguem cores semânticas:
+
+- **vermelho** — erro e exclusão;
+- **âmbar** — atenção e manutenção;
+- **esmeralda** — sucesso e status ativo;
+- **cinza** — neutro e desabilitado.
+
+### Tipografia
+
+| Token | Definição |
+| --- | --- |
+| `--font-sans` | `Instrument Sans`, com fallback para fontes do sistema |
+| `--text-sb24` | `1.5rem` / linha `2rem` / peso `600` |
+| `--text-sb32` | `2rem` / linha `2.5rem` / peso `600` |
+
+Títulos de página usam `text-2xl sm:text-3xl` com `font-semibold` e `tracking-tight`. Rótulos de seção usam `text-[11px]` com caixa alta e `tracking-[0.18em]`.
+
+### Raios e espaçamento
+
+- `--radius-s`: `0.375rem`, usado em campos e botões de autenticação.
+- Cards, modais e painéis usam `rounded-xl` ou `rounded-2xl`.
+- O conteúdo principal usa `px-4 py-6 sm:px-6 sm:py-8 lg:px-8`.
+- A topbar limita o conteúdo a `max-w-[1440px]`.
+
+## Tema claro e escuro
+
+O tema é aplicado pela classe `dark` no elemento `<html>`:
+
+```js
+const theme = @json(auth()->user()?->theme ?? 'system');
+const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+
+if (theme === 'dark' || (theme === 'system' && prefersDark)) {
+    document.documentElement.classList.add('dark');
+}
+```
+
+Preferências aceitas: `system`, `light` e `dark`.
+
+| Superfície | Claro | Escuro |
+| --- | --- | --- |
+| Fundo da aplicação | `#f4f4f2` | `#171716` |
+| Conteúdo principal | `#ffffff` | `#101010` |
+| Modal | `#ffffff` | `#1c1c1b` |
+| Texto | `gray-900` | `gray-100` |
+| Bordas | `gray-200/80` | `white/10` |
+
+Todo componente novo deve declarar as duas variantes. Nunca use uma cor fixa sem equivalente escuro.
+
+## Shell administrativo
+
+```text
+┌──────────────┬────────────────────────────────────────┐
+│  Sidebar     │  Topbar: breadcrumb + busca            │
+│  marca       ├────────────────────────────────────────┤
+│  navegação   │                                        │
+│  módulos     │  main: cartão branco com padding       │
+│  usuário     │                                        │
+│              ├────────────────────────────────────────┤
+│              │  footer                                │
+└──────────────┴────────────────────────────────────────┘
+```
+
+- Sidebar compacta: **4,5 rem**; expandida: **15 rem**.
+- No mobile, a sidebar é `fixed` com overlay `bg-gray-900/40 backdrop-blur-sm`.
+- A topbar é `sticky`, com `backdrop-blur-md`.
+- O `main` é um cartão arredondado que concentra o conteúdo da página.
+- O rodapé é discreto, com texto auxiliar em `text-xs`.
+
+## Componentes
+
+### Ações
+
+| Componente | Uso |
+| --- | --- |
+| `x-ui.action` | Botão/link administrativo com variantes `primary`, `secondary`, `ghost`, `danger` e tamanhos `sm`, `md`, `lg` |
+| `x-ui.button` | Botão de autenticação, largura total, azul e com animação de entrada |
+| `x-ui.icon-button` | Ação compacta somente com ícone; exige `label` para acessibilidade |
+
+Regras:
+
+- **Uma** ação primária por área visível.
+- Ações secundárias usam borda ou estilo fantasma.
+- `danger` é reservado para exclusão e ações irreversíveis.
+- Botões desabilitados reduzem contraste e removem sombra/deslocamento.
+
+### Formulários
+
+| Componente | Uso |
+| --- | --- |
+| `x-ui.field` | Campo de autenticação com rótulo, erro e revelação de senha |
+| `x-ui.field-label` | Rótulo de campo ou de grupo |
+| `x-ui.field-help` | Texto auxiliar abaixo do campo |
+| `x-ui.field-error` | Erro com ícone e `role="alert"` |
+| `x-ui.checkbox` | Caixa de seleção com rótulo clicável |
+| `x-ui.search-input` | Busca com ícone e atalho de teclado |
+| `x-searchable-select` | Select com busca para listas longas |
+
+Campos administrativos seguem o padrão:
+
+```blade
+<div class="space-y-1.5">
+    <x-ui.field-label for="name" label="Nome" required />
+    <input id="name" name="name" class="h-10 w-full rounded-xl border border-gray-200 ..." />
+    <x-ui.field-help>Aparece nas listagens e relatórios.</x-ui.field-help>
+    @error('name')
+        <x-ui.field-error>{{ $message }}</x-ui.field-error>
+    @enderror
+</div>
+```
+
+### Feedback
+
+| Componente | Tons/variantes |
+| --- | --- |
+| `x-ui.alert` | `info`, `success`, `error`, `warning` |
+| `x-ui.badge` | `gray`, `indigo`, `green`, `amber`, `red`, `inverse` |
+| `x-toasts` | Notificações globais de sessão |
+| `x-confirm-modal` | Confirmação de ação destrutiva |
+| `x-ui.modal` | Diálogo com `max-w-lg` por padrão |
+| `x-ui.progress-bar` | Progresso com percentual entre 0 e 100 |
+| `x-ui.tooltip` | Apoio em ícones e sidebar compacta |
+| `x-ui.kbd` | Representação de atalhos |
+| `x-ui.empty-state` | Lista vazia com ícone, título e descrição |
+
+### Estrutura de página
+
+- `x-ui.page-header` concentra categoria, título, descrição e ações.
+- Listagens usam cards com cabeçalho, toolbar e tabela/lista.
+- Detalhes usam seções empilhadas com títulos curtos e metadados em `dl`.
+- Modais largos usam `max-w-2xl` ou `max-w-3xl`; formulários longos usam wizard.
+
+## Ícones
+
+- Os ícones são SVGs inline no componente `x-icon`.
+- O estilo segue contorno (Heroicons outline), com `stroke-width="1.5"`.
+- Tamanhos usuais: `h-4 w-4` em ações, `h-5 w-5` em navegação e `h-6 w-6` em cabeçalhos.
+- Para adicionar um ícone, inclua um `@case` em `resources/views/components/icon.blade.php`.
+
+## Movimento
+
+- Transições padrão: `transition` com duração de **200 ms**.
+- Hover de botões pode elevar levemente (`hover:-translate-y-0.5`) e reforçar sombra.
+- A autenticação usa animações de entrada (`auth-reveal`, `auth-logo`) com atraso configurável.
+- `prefers-reduced-motion: reduce` desativa todas as animações de autenticação.
+- Evite animações contínuas fora das telas de login.
+
+## Boas práticas de UI
+
+- Reutilize componentes `x-ui.*` antes de criar novos.
+- Use `@class([...])` para variantes condicionais.
+- Mantenha contraste mínimo de 4.5:1 para texto.
+- Não comunique estado apenas por cor: acompanhe com ícone ou texto.
+- Prefira `gap-*` a margens isoladas em listas e grades.
+- Arredondamento consistente: `rounded-lg` em itens, `rounded-xl` em controles, `rounded-2xl` em painéis.
+- Em dark mode, substitua branco por `white/10` e sombras por bordas.
+
+## Checklist de UI
+
+- [ ] Usa tokens e componentes existentes?
+- [ ] Tem variante clara e escura?
+- [ ] A ação primária é única e evidente?
+- [ ] Estados de hover, foco, ativo e desabilitado estão definidos?
+- [ ] Ícones têm rótulo acessível?
+- [ ] O layout quebra corretamente em telas pequenas?
+- [ ] O contraste e o foco visível foram verificados?
+MARKDOWN,
+                'is_published' => true,
+            ],
+            [
                 'title' => 'Testes e qualidade',
                 'slug' => 'testes-e-qualidade',
                 'category' => DevDocCategory::Testing,
