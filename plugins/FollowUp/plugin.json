@@ -1,0 +1,24 @@
+{
+    "name": "Follow Up",
+    "alias": "follow-up",
+    "description": "Gestão de follow-ups com responsáveis, prazos, prioridades e histórico de andamento.",
+    "version": "1.0.0",
+    "icon": "clipboard-document-list",
+    "active": false,
+    "priority": 30,
+    "providers": [
+        "Plugins\\FollowUp\\Providers\\FollowUpServiceProvider"
+    ],
+    "aliases": [],
+    "files": [],
+    "requires": [],
+    "navigation": [
+        {
+            "label": "Follow-ups",
+            "route": "admin.follow-ups.index",
+            "icon": "clipboard-document-list",
+            "module": null,
+            "primary": false
+        }
+    ]
+}
