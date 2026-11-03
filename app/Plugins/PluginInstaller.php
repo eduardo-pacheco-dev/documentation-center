@@ -52,7 +52,21 @@ class PluginInstaller
 
             $this->files->ensureDirectoryExists(dirname($destination));
 
-            if (! $this->files->moveDirectory($root, $destination)) {
+            $moved = $this->files->moveDirectory($root, $destination);
+
+            // Windows can briefly lock a freshly extracted directory (antivirus
+            // or the search indexer), so retry and fall back to copying.
+            for ($attempt = 0; ! $moved && $attempt < 2; $attempt++) {
+                usleep(100_000);
+                clearstatcache();
+                $moved = $this->files->moveDirectory($root, $destination);
+            }
+
+            if (! $moved) {
+                $moved = $this->files->copyDirectory($root, $destination);
+            }
+
+            if (! $moved) {
                 throw PluginInstallException::couldNotMove($destination);
             }
         } finally {

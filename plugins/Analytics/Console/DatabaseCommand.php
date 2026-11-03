@@ -6,6 +6,7 @@ use Illuminate\Console\Command;
 use Illuminate\Database\Migrations\Migrator;
 use Illuminate\Support\Facades\DB;
 use Plugins\Analytics\Models\AnalyticsAflRecord;
+use Plugins\Analytics\Models\AnalyticsImport;
 use Plugins\Analytics\Models\AnalyticsRecord;
 use Plugins\Analytics\Models\AnalyticsSnapshot;
 use Plugins\Analytics\Support\AnalyticsDatabase;
@@ -43,6 +44,7 @@ class DatabaseCommand extends Command
         'analytics_snapshots' => AnalyticsSnapshot::class,
         'analytics_records' => AnalyticsRecord::class,
         'analytics_afl_records' => AnalyticsAflRecord::class,
+        'analytics_imports' => AnalyticsImport::class,
     ];
 
     /**
@@ -90,16 +92,18 @@ class DatabaseCommand extends Command
         $tablesExist = collect(array_keys(self::TABLES))
             ->every(fn (string $table): bool => AnalyticsDatabase::schema()->hasTable($table));
 
-        if ($this->option('fresh') || ! $tablesExist) {
+        $hasMigrationHistory = DB::connection($connection)->table('migrations')->exists();
+
+        if ($this->option('fresh') || ! $tablesExist || $hasMigrationHistory) {
             $path = base_path('plugins/Analytics/Database/Migrations');
 
             $migrator->usingConnection($connection, function () use ($migrator, $path): void {
                 $migrator->run([$path], ['pretend' => false]);
             });
 
-            $this->components->info("Migrations executadas na conexão [{$connection}].");
+            $this->components->info("Migrations verificadas na conexão [{$connection}].");
         } else {
-            $this->components->info('Tabelas já existem; migrations ignoradas.');
+            $this->components->info('Tabelas já existem, mas não há histórico de migrations nesta conexão; nada foi alterado.');
         }
 
         if ($this->option('copy')) {

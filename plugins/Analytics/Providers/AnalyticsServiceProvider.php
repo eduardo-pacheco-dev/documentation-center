@@ -20,7 +20,6 @@ class AnalyticsServiceProvider extends ServiceProvider
         $this->configureDatabase();
 
         $this->loadRoutes();
-        $this->loadApiRoutes();
     }
 
     /**
@@ -79,21 +78,6 @@ class AnalyticsServiceProvider extends ServiceProvider
             'search_path' => config('analytics.database.search_path', 'public'),
             'sslmode' => config('analytics.database.sslmode', 'prefer'),
         ]]);
-    }
-
-    /**
-     * Load the plugin JSON API routes.
-     */
-    protected function loadApiRoutes(): void
-    {
-        if (app()->routesAreCached()) {
-            return;
-        }
-
-        Route::middleware(['api', 'auth:sanctum', 'throttle:120,1'])
-            ->prefix('api/v1/analytics')
-            ->name('api.v1.analytics.')
-            ->group(__DIR__.'/../Routes/api.php');
     }
 
     /**

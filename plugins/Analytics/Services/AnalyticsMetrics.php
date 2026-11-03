@@ -134,16 +134,14 @@ class AnalyticsMetrics
     /**
      * Records created per month inside the period.
      *
-     * @return array{labels: list<string>, projects: list<int>, work_orders: list<int>, documents: list<int>}
+     * @return array{labels: list<string>, records: list<int>, afl: list<int>}
      */
     public function series(): array
     {
         return [
             'labels' => array_values($this->buckets()),
-            'projects' => $this->bucketCounts(Project::class),
-            'work_orders' => $this->bucketCounts(WorkOrder::class),
-            'documents' => $this->bucketCounts(Document::class),
             'records' => $this->recordBucketCounts(),
+            'afl' => $this->aflBucketCounts(),
         ];
     }
 
@@ -306,7 +304,7 @@ class AnalyticsMetrics
     /**
      * The snapshot totals as a chart series, when snapshots exist.
      *
-     * @return array{labels: list<string>, projects: list<int>, work_orders: list<int>}|null
+     * @return array{labels: list<string>, records: list<int>, afl: list<int>}|null
      */
     public function snapshotSeries(): ?array
     {
@@ -320,8 +318,21 @@ class AnalyticsMetrics
 
         return [
             'labels' => array_column($snapshots, 'captured_on'),
-            'projects' => array_map(fn (array $snapshot): int => (int) ($snapshot['metrics']['projects']['total'] ?? 0), $snapshots),
-            'work_orders' => array_map(fn (array $snapshot): int => (int) ($snapshot['metrics']['work_orders']['total'] ?? 0), $snapshots),
+            'records' => array_map(fn (array $snapshot): int => (int) ($snapshot['metrics']['records']['total'] ?? 0), $snapshots),
+            'afl' => array_map(fn (array $snapshot): int => (int) ($snapshot['metrics']['afl']['total'] ?? 0), $snapshots),
+        ];
+    }
+
+    /**
+     * The imported FAMs and AFL indicators stored in snapshots.
+     *
+     * @return array{records: array{total: int, in_period: int, versions: int}|null, afl: array{total: int, in_period: int, versions: int}|null}
+     */
+    public function importSummary(): array
+    {
+        return [
+            'records' => $this->recordsSummary(),
+            'afl' => $this->aflSummary(),
         ];
     }
 
@@ -672,6 +683,29 @@ class AnalyticsMetrics
     }
 
     /**
+     * @return list<int>
+     */
+    private function aflBucketCounts(): array
+    {
+        if (! $this->hasAflTable()) {
+            return array_fill(0, count($this->buckets()), 0);
+        }
+
+        $format = $this->from->diffInDays($this->to) <= 31 ? 'Y-m-d' : 'Y-m';
+
+        $counts = $this->latestAflRecords()
+            ->whereBetween('created_on', [$this->from->toDateString(), $this->to->toDateString()])
+            ->pluck('created_on')
+            ->groupBy(fn ($date): string => Carbon::parse($date)->format($format))
+            ->map(fn ($group): int => $group->count());
+
+        return array_values(array_map(
+            fn (string $key): int => (int) ($counts[$key] ?? 0),
+            array_keys($this->buckets()),
+        ));
+    }
+
+    /**
      * The imported AFL indicators.
      *
      * @return array{total: int, in_period: int, versions: int}|null
@@ -942,26 +976,6 @@ class AnalyticsMetrics
         }
 
         return $this->bucketKeys = $buckets;
-    }
-
-    /**
-     * @return list<int>
-     */
-    private function bucketCounts(string $model): array
-    {
-        $buckets = $this->buckets();
-        $format = $this->from->diffInDays($this->to) <= 31 ? 'Y-m-d' : 'Y-m';
-
-        $counts = $this->query($model)
-            ->whereBetween('created_at', [$this->from, $this->to])
-            ->pluck('created_at')
-            ->groupBy(fn ($date): string => Carbon::parse($date)->format($format))
-            ->map(fn ($group): int => $group->count());
-
-        return array_values(array_map(
-            fn (string $key): int => (int) ($counts[$key] ?? 0),
-            array_keys($buckets),
-        ));
     }
 
     /**

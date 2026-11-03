@@ -99,6 +99,21 @@ return [
             'sslmode' => env('DB_SSLMODE', 'prefer'),
         ],
 
+        'postgres' => [
+            'driver' => 'pgsql',
+            'url' => env('POSTGRES_URL'),
+            'host' => env('POSTGRES_HOST', '127.0.0.1'),
+            'port' => env('POSTGRES_PORT', '5432'),
+            'database' => env('POSTGRES_DATABASE', 'documentation_center'),
+            'username' => env('POSTGRES_USERNAME', 'postgres'),
+            'password' => env('POSTGRES_PASSWORD', ''),
+            'charset' => env('POSTGRES_CHARSET', 'utf8'),
+            'prefix' => '',
+            'prefix_indexes' => true,
+            'search_path' => env('POSTGRES_SCHEMA', 'public'),
+            'sslmode' => env('POSTGRES_SSLMODE', 'prefer'),
+        ],
+
         'sqlsrv' => [
             'driver' => 'sqlsrv',
             'url' => env('DB_URL'),

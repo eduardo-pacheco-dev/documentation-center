@@ -2,6 +2,8 @@
 
 namespace App\Plugins;
 
+use App\Plugins\Contracts\PluginLifecycle;
+use App\Plugins\Exceptions\PluginLifecycleException;
 use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Filesystem\Filesystem;
 use Illuminate\Support\Str;
@@ -256,6 +258,56 @@ class Plugin
         $this->app->make(PluginActivator::class)->disable($this);
 
         $this->app['events']->dispatch($this->eventName('disabled'), [$this]);
+    }
+
+    /**
+     * The lifecycle hooks declared by the plugin, when present.
+     *
+     * @throws PluginLifecycleException
+     */
+    public function lifecycle(): ?PluginLifecycle
+    {
+        $class = $this->get('lifecycle');
+
+        if ($class === null || $class === '') {
+            return null;
+        }
+
+        if (! is_string($class)) {
+            throw PluginLifecycleException::invalidDeclaration($this->getAlias());
+        }
+
+        if (! class_exists($class)) {
+            throw PluginLifecycleException::missingClass($this->getAlias(), $class);
+        }
+
+        $lifecycle = $this->app->make($class);
+
+        if (! $lifecycle instanceof PluginLifecycle) {
+            throw PluginLifecycleException::invalidClass($this->getAlias(), $class);
+        }
+
+        return $lifecycle;
+    }
+
+    /**
+     * Run the install hook declared by the plugin, when present.
+     *
+     * @throws PluginLifecycleException
+     */
+    public function install(): void
+    {
+        $this->lifecycle()?->install();
+    }
+
+    /**
+     * Run the uninstall hook declared by the plugin, when present.
+     *
+     * @throws PluginLifecycleException
+     */
+    public function uninstall(): void
+    {
+        $this->lifecycle()?->uninstall();
     }
 
     /**

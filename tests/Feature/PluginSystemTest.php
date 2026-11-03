@@ -14,10 +14,14 @@ use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Str;
 use Plugins\Example\Providers\ExampleServiceProvider;
+use Tests\Support\MigrationProbeServiceProvider;
+use Tests\Support\PluginLifecycleSpy;
 
 uses(RefreshDatabase::class);
 
 beforeEach(function () {
+    PluginLifecycleSpy::reset();
+
     $this->statusesPath = storage_path('framework/testing/plugin_statuses_'.Str::random(8).'.json');
 
     config(['plugins.statuses' => $this->statusesPath]);
@@ -37,9 +41,9 @@ it('discovers the bundled example plugin', function () {
         ->and($plugin->getAlias())->toBe('example')
         ->and($plugin->getVersion())->toBe('1.0.0')
         ->and($plugin->getName())->toBe('Example')
-        ->and($plugin->getPath())->toBe(base_path('plugins/Example'))
+        ->and(str_replace('\\', '/', $plugin->getPath()))->toBe(str_replace('\\', '/', base_path('plugins/Example')))
         ->and($plugin->providers())->toContain(ExampleServiceProvider::class)
-        ->and($plugin->getExtraPath('Routes/web.php'))->toBe(base_path('plugins/Example/Routes/web.php'));
+        ->and(str_replace('\\', '/', $plugin->getExtraPath('Routes/web.php')))->toBe(str_replace('\\', '/', base_path('plugins/Example/Routes/web.php')));
 });
 
 it('normalizes aliases to kebab case', function () {
@@ -493,6 +497,27 @@ it('runs the plugin migrations when enabling it from the settings page', functio
     File::deleteDirectory($path);
 });
 
+it('registers the plugin providers before running its migrations', function () {
+    $path = storage_path('framework/testing/plugins_'.Str::random(8));
+
+    config([
+        'plugins.paths.plugins' => $path,
+        'plugins.provider_probe' => false,
+    ]);
+    app()->forgetInstance(PluginRepository::class);
+
+    pluginWithProviderMigration($path, 'provider-before-migration');
+
+    $this->artisan('plugin:enable', ['alias' => 'provider-before-migration'])
+        ->assertSuccessful();
+
+    expect(config('plugins.provider_probe'))->toBeTrue()
+        ->and(Schema::hasTable('provider_probe_widgets'))->toBeTrue();
+
+    Schema::dropIfExists('provider_probe_widgets');
+    File::deleteDirectory($path);
+});
+
 /**
  * Create a plugin containing a migration that creates the migrated_widgets table.
  */
@@ -529,4 +554,210 @@ return new class extends Migration
 };
 PHP,
     );
+}
+
+/**
+ * Create a plugin whose provider is required by its migration.
+ */
+function pluginWithProviderMigration(string $pluginsPath, string $alias): void
+{
+    $directory = rtrim($pluginsPath, '/').'/'.Str::studly($alias);
+
+    File::ensureDirectoryExists($directory.'/Database/Migrations');
+
+    File::put($directory.'/plugin.json', pluginManifestJson($alias, [
+        'providers' => [MigrationProbeServiceProvider::class],
+    ]));
+
+    File::put(
+        $directory.'/Database/Migrations/2026_01_01_000000_create_provider_probe_widgets_table.php',
+        <<<'PHP'
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up(): void
+    {
+        if (config('plugins.provider_probe') !== true) {
+            throw new RuntimeException('The plugin provider was not registered before migrating.');
+        }
+
+        Schema::create('provider_probe_widgets', function (Blueprint $table): void {
+            $table->id();
+        });
+    }
+
+    public function down(): void
+    {
+        Schema::dropIfExists('provider_probe_widgets');
+    }
+};
+PHP,
+    );
+}
+
+it('runs the install hook when enabling a plugin through the artisan command', function () {
+    $path = storage_path('framework/testing/plugins_'.Str::random(8));
+
+    config(['plugins.paths.plugins' => $path]);
+    app()->forgetInstance(PluginRepository::class);
+
+    pluginWithLifecycle($path, 'cli-install-hook');
+
+    $this->artisan('plugin:enable', ['alias' => 'cli-install-hook'])->assertSuccessful();
+
+    expect(PluginLifecycleSpy::$calls)->toBe(['install'])
+        ->and(app(PluginRepository::class)->findOrFail('cli-install-hook')->enabled())->toBeTrue();
+
+    File::deleteDirectory($path);
+});
+
+it('runs the install hook when enabling a plugin from the settings page', function () {
+    $path = storage_path('framework/testing/plugins_'.Str::random(8));
+
+    config(['plugins.paths.plugins' => $path]);
+    app()->forgetInstance(PluginRepository::class);
+
+    pluginWithLifecycle($path, 'settings-install-hook');
+
+    $this->actingAs(User::factory()->admin()->create())
+        ->patch('/settings/plugins/settings-install-hook', ['enabled' => 1])
+        ->assertRedirect()
+        ->assertSessionHasNoErrors();
+
+    expect(PluginLifecycleSpy::$calls)->toBe(['install']);
+
+    File::deleteDirectory($path);
+});
+
+it('disables the plugin when the install hook fails', function () {
+    $path = storage_path('framework/testing/plugins_'.Str::random(8));
+
+    config(['plugins.paths.plugins' => $path]);
+    app()->forgetInstance(PluginRepository::class);
+
+    PluginLifecycleSpy::$failInstall = true;
+
+    pluginWithLifecycle($path, 'failing-install-hook');
+
+    $this->artisan('plugin:enable', ['alias' => 'failing-install-hook'])
+        ->expectsOutputToContain('install hook failed')
+        ->assertFailed();
+
+    expect(app(PluginRepository::class)->findOrFail('failing-install-hook')->disabled())->toBeTrue()
+        ->and(json_decode(File::get($this->statusesPath), true))->toBe(['failing-install-hook' => false]);
+
+    File::deleteDirectory($path);
+});
+
+it('runs the uninstall hook before removing a plugin through the artisan command', function () {
+    $path = storage_path('framework/testing/plugins_'.Str::random(8));
+
+    config(['plugins.paths.plugins' => $path]);
+    app()->forgetInstance(PluginRepository::class);
+
+    $pluginPath = pluginWithLifecycle($path, 'cli-uninstall-hook');
+
+    $this->artisan('plugin:remove', ['alias' => 'cli-uninstall-hook', '--force' => true])
+        ->assertSuccessful();
+
+    expect(PluginLifecycleSpy::$calls)->toBe(['uninstall'])
+        ->and($pluginPath)->not->toBeDirectory();
+
+    File::deleteDirectory($path);
+});
+
+it('runs the uninstall hook when removing a plugin from the settings page', function () {
+    $path = storage_path('framework/testing/plugins_'.Str::random(8));
+
+    config(['plugins.paths.plugins' => $path]);
+    app()->forgetInstance(PluginRepository::class);
+
+    $pluginPath = pluginWithLifecycle($path, 'settings-uninstall-hook');
+
+    $this->actingAs(User::factory()->admin()->create())
+        ->delete('/settings/plugins/settings-uninstall-hook')
+        ->assertRedirect()
+        ->assertSessionHas('status');
+
+    expect(PluginLifecycleSpy::$calls)->toBe(['uninstall'])
+        ->and($pluginPath)->not->toBeDirectory();
+
+    File::deleteDirectory($path);
+});
+
+it('does not run the uninstall hook when a plugin is only disabled', function () {
+    $path = storage_path('framework/testing/plugins_'.Str::random(8));
+
+    config(['plugins.paths.plugins' => $path]);
+    app()->forgetInstance(PluginRepository::class);
+
+    pluginWithLifecycle($path, 'disabled-only');
+
+    app(PluginRepository::class)->findOrFail('disabled-only')->enable();
+
+    $this->actingAs(User::factory()->admin()->create())
+        ->patch('/settings/plugins/disabled-only', ['enabled' => 0])
+        ->assertRedirect();
+
+    expect(PluginLifecycleSpy::$calls)->toBe([]);
+
+    File::deleteDirectory($path);
+});
+
+it('keeps the plugin files when the uninstall hook fails from the settings page', function () {
+    $path = storage_path('framework/testing/plugins_'.Str::random(8));
+
+    config(['plugins.paths.plugins' => $path]);
+    app()->forgetInstance(PluginRepository::class);
+
+    PluginLifecycleSpy::$failUninstall = true;
+
+    $pluginPath = pluginWithLifecycle($path, 'failing-uninstall-hook');
+
+    $this->actingAs(User::factory()->admin()->create())
+        ->delete('/settings/plugins/failing-uninstall-hook')
+        ->assertRedirect()
+        ->assertSessionHasErrors('plugin');
+
+    expect($pluginPath)->toBeDirectory()
+        ->and(app(PluginRepository::class)->has('failing-uninstall-hook'))->toBeTrue();
+
+    File::deleteDirectory($path);
+});
+
+it('disables the plugin when the lifecycle class does not exist', function () {
+    $path = storage_path('framework/testing/plugins_'.Str::random(8));
+
+    config(['plugins.paths.plugins' => $path]);
+    app()->forgetInstance(PluginRepository::class);
+
+    pluginWithLifecycle($path, 'missing-lifecycle', 'Plugins\\Missing\\PluginLifecycle');
+
+    $this->artisan('plugin:enable', ['alias' => 'missing-lifecycle'])
+        ->expectsOutputToContain('não existe')
+        ->assertFailed();
+
+    expect(app(PluginRepository::class)->findOrFail('missing-lifecycle')->disabled())->toBeTrue();
+
+    File::deleteDirectory($path);
+});
+
+/**
+ * Create a plugin whose manifest declares the given lifecycle class.
+ */
+function pluginWithLifecycle(string $pluginsPath, string $alias, string $lifecycle = PluginLifecycleSpy::class): string
+{
+    $directory = rtrim($pluginsPath, '/').'/'.Str::studly($alias);
+
+    File::ensureDirectoryExists($directory);
+    File::put($directory.'/plugin.json', pluginManifestJson($alias, [
+        'lifecycle' => $lifecycle,
+    ]));
+
+    return $directory;
 }
