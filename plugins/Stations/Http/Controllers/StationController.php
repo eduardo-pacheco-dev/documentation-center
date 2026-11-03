@@ -41,8 +41,13 @@ class StationController extends Controller
             ->paginate(15)
             ->withQueryString();
 
+        $editStation = old('modal') === 'edit' && old('editing_id')
+            ? Station::query()->find(old('editing_id'))
+            : null;
+
         return view('stations::index', [
             'stations' => $stations,
+            'editStation' => $editStation,
             'search' => $search,
             'status' => $status,
             'tecnologia' => $tecnologia,

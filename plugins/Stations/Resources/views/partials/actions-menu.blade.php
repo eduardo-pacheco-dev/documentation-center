@@ -2,6 +2,18 @@
 
 @php
     $menuId = 'station-actions-'.$station->getKey();
+
+    $fieldNames = collect(config('stations.fields', []))
+        ->flatMap(fn (array $group): array => $group['fields'])
+        ->pluck('name');
+
+    $editPayload = [
+        'id' => $station->getKey(),
+        'action' => route('admin.stations.update', $station),
+        'fields' => collect($fieldNames)
+            ->mapWithKeys(fn (string $name): array => [$name => $station->{$name}])
+            ->all(),
+    ];
 @endphp
 
 <div
@@ -82,6 +94,7 @@
             <a
                 href="{{ route('admin.stations.edit', $station) }}"
                 role="menuitem"
+                x-on:click.prevent="$dispatch('open-edit-station-modal', @js($editPayload)); close()"
                 class="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-gray-700 transition hover:bg-gray-50 dark:text-gray-200 dark:hover:bg-white/5"
             >
                 <x-icon name="pencil-square" class="h-4 w-4 text-gray-400 dark:text-gray-500" />

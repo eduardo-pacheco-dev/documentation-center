@@ -2,13 +2,20 @@
     'group',
     'prefix' => '',
     'station' => null,
+    'mode' => null,
     'inputClass' => '',
     'labelClass' => '',
 ])
 
 @php
     $inputId = fn (string $name): string => $prefix !== '' ? "{$prefix}-{$name}" : $name;
-    $value = fn (string $name): ?string => old($name, $station?->{$name});
+    $value = function (string $name) use ($mode, $station): ?string {
+        if (($mode === null || old('modal') === $mode) && old($name) !== null) {
+            return old($name);
+        }
+
+        return $station?->{$name};
+    };
     $estadoAtual = mb_strtoupper((string) $value('estado'));
 
     $fieldMeta = collect($group['fields'])->keyBy('name');
@@ -154,7 +161,7 @@
             </div>
 
             @error('cep')
-                <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
+                <p data-field-error class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
             @enderror
         </div>
 
@@ -189,7 +196,7 @@
             >
 
             @error('logradouro')
-                <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
+                <p data-field-error class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
             @enderror
         </div>
     </div>
@@ -208,7 +215,7 @@
             >
 
             @error('numero')
-                <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
+                <p data-field-error class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
             @enderror
         </div>
 
@@ -227,7 +234,7 @@
             >
 
             @error('complemento')
-                <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
+                <p data-field-error class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
             @enderror
         </div>
     </div>
@@ -247,7 +254,7 @@
             >
 
             @error('bairro')
-                <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
+                <p data-field-error class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
             @enderror
         </div>
 
@@ -266,7 +273,7 @@
             >
 
             @error('municipio')
-                <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
+                <p data-field-error class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
             @enderror
         </div>
 
@@ -287,7 +294,7 @@
             </select>
 
             @error('estado')
-                <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
+                <p data-field-error class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
             @enderror
         </div>
     </div>

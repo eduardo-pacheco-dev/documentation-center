@@ -1,14 +1,28 @@
 @props([
+    'mode' => 'create',
+    'station' => null,
     'hasErrors' => false,
     'initialStep' => 0,
 ])
 
 @php
+    $isEdit = $mode === 'edit';
+    $modalId = $isEdit ? 'edit-station-modal' : 'create-station-modal';
+    $fieldPrefix = $isEdit ? 'edit' : 'modal';
+
     $groups = config('stations.fields', []);
     $titles = array_column($groups, 'title');
 
     $inputClass = 'mt-1.5 h-10 w-full rounded-xl border border-gray-300 bg-white px-3 text-sm text-gray-900 transition focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100';
     $labelClass = 'block text-sm font-medium text-gray-700 dark:text-gray-200';
+
+    $value = function (string $name) use ($mode, $station): ?string {
+        if (old('modal') === $mode && old($name) !== null) {
+            return old($name);
+        }
+
+        return $station?->{$name};
+    };
 
     $errorSummary = [];
 
@@ -25,195 +39,253 @@
     }
 @endphp
 
-<style>
-    .station-modal::backdrop {
-        background-color: rgb(17 24 39 / 0.65);
-        backdrop-filter: blur(2px);
-    }
-
-    .station-modal[open] {
-        animation: station-modal-in 160ms ease-out;
-    }
-
-    @keyframes station-modal-in {
-        from {
-            opacity: 0;
-            transform: translateY(10px) scale(0.985);
+@once
+    <style>
+        .station-modal::backdrop {
+            background-color: rgb(17 24 39 / 0.65);
+            backdrop-filter: blur(2px);
         }
 
-        to {
-            opacity: 1;
-            transform: none;
-        }
-    }
-
-    @media (prefers-reduced-motion: reduce) {
         .station-modal[open] {
-            animation: none;
-        }
-    }
-</style>
-
-<script>
-    document.addEventListener('alpine:init', () => {
-        if (window.__stationCreateModalRegistered) {
-            return;
+            animation: station-modal-in 160ms ease-out;
         }
 
-        window.__stationCreateModalRegistered = true;
+        @keyframes station-modal-in {
+            from {
+                opacity: 0;
+                transform: translateY(10px) scale(0.985);
+            }
 
-        Alpine.data('stationCreateModal', ({ open, initialStep, titles }) => ({
-            open,
-            step: initialStep,
-            total: titles.length,
-            titles,
+            to {
+                opacity: 1;
+                transform: none;
+            }
+        }
 
-            init() {
-                if (! this.open) {
-                    return;
-                }
+        @media (prefers-reduced-motion: reduce) {
+            .station-modal[open] {
+                animation: none;
+            }
+        }
+    </style>
 
-                this.$nextTick(() => {
+    <script>
+        document.addEventListener('alpine:init', () => {
+            if (window.__stationFormModalRegistered) {
+                return;
+            }
+
+            window.__stationFormModalRegistered = true;
+
+            Alpine.data('stationFormModal', ({ mode, fieldPrefix, open, initialStep, titles }) => ({
+                mode,
+                fieldPrefix,
+                open,
+                step: initialStep,
+                total: titles.length,
+                titles,
+
+                init() {
+                    if (! this.open) {
+                        return;
+                    }
+
+                    setTimeout(() => {
+                        this.$refs.dialog.showModal();
+                        document.body.classList.add('overflow-hidden');
+
+                        setTimeout(() => {
+                            const target = this.$refs.dialog.querySelector('[aria-invalid=true]')
+                                ?? this.$refs.dialog.querySelector('[data-autofocus]');
+
+                            target?.focus();
+                        }, 0);
+                    }, 0);
+                },
+
+                show() {
+                    this.step = 0;
+                    this.clearErrors();
+
+                    if (this.$refs.dialog.open) {
+                        return;
+                    }
+
                     this.$refs.dialog.showModal();
                     document.body.classList.add('overflow-hidden');
 
-                    this.$nextTick(() => {
-                        const target = this.$refs.dialog.querySelector('[aria-invalid="true"]')
-                            ?? this.$refs.dialog.querySelector('[data-autofocus]');
+                    setTimeout(() => {
+                        this.$refs.dialog.querySelector('[data-autofocus]')?.focus();
+                    }, 0);
+                },
 
-                        target?.focus();
+                openForEdit(detail) {
+                    const form = this.$refs.form;
+
+                    this.mode = 'edit';
+                    form.action = detail.action;
+
+                    const editingId = form.elements.namedItem('editing_id');
+
+                    if (editingId) {
+                        editingId.value = detail.id;
+                    }
+
+                    Object.entries(detail.fields ?? {}).forEach(([name, value]) => {
+                        const field = form.elements.namedItem(name);
+
+                        if (! field) {
+                            return;
+                        }
+
+                        field.value = value ?? '';
                     });
-                });
-            },
 
-            show() {
-                this.step = 0;
+                    const cep = form.elements.namedItem('cep');
 
-                if (this.$refs.dialog.open) {
-                    return;
-                }
+                    if (cep && /^\d{8}$/.test(cep.value)) {
+                        cep.value = `${cep.value.slice(0, 5)}-${cep.value.slice(5)}`;
+                    }
 
-                this.$refs.dialog.showModal();
-                document.body.classList.add('overflow-hidden');
+                    this.show();
+                },
 
-                this.$nextTick(() => {
-                    this.$refs.dialog.querySelector('[data-autofocus]')?.focus();
-                });
-            },
+                close() {
+                    this.$refs.dialog.close();
+                },
 
-            close() {
-                this.$refs.dialog.close();
-            },
+                onClose() {
+                    this.open = false;
+                    document.body.classList.remove('overflow-hidden');
+                },
 
-            onClose() {
-                this.open = false;
-                document.body.classList.remove('overflow-hidden');
-            },
+                onBackdropClick(event) {
+                    if (event.target === this.$refs.dialog) {
+                        this.close();
+                    }
+                },
 
-            onBackdropClick(event) {
-                if (event.target === this.$refs.dialog) {
-                    this.close();
-                }
-            },
+                go(step, field = null) {
+                    this.step = Math.min(Math.max(step, 0), this.total - 1);
+                    this.focusStep(field);
+                },
 
-            go(step, field = null) {
-                this.step = Math.min(Math.max(step, 0), this.total - 1);
-                this.focusStep(field);
-            },
+                next() {
+                    if (! this.validateStep()) {
+                        return;
+                    }
 
-            next() {
-                if (! this.validateStep()) {
-                    return;
-                }
+                    this.step = Math.min(this.step + 1, this.total - 1);
+                    this.focusStep();
+                },
 
-                this.step = Math.min(this.step + 1, this.total - 1);
-                this.focusStep();
-            },
+                back() {
+                    this.step = Math.max(this.step - 1, 0);
+                    this.focusStep();
+                },
 
-            back() {
-                this.step = Math.max(this.step - 1, 0);
-                this.focusStep();
-            },
+                onEnter(event) {
+                    if (event.defaultPrevented || event.target.closest('button, textarea')) {
+                        return;
+                    }
 
-            onEnter(event) {
-                if (event.defaultPrevented || event.target.closest('button, textarea')) {
-                    return;
-                }
+                    event.preventDefault();
 
-                event.preventDefault();
-
-                if (this.step < this.total - 1) {
-                    this.next();
-
-                    return;
-                }
-
-                this.$refs.dialog.querySelector('form')?.requestSubmit();
-            },
-
-            focusStep(field = null) {
-                this.$nextTick(() => {
-                    const dialog = this.$refs.dialog;
-
-                    if (field) {
-                        dialog.querySelector(`#modal-${field}`)?.focus();
+                    if (this.step < this.total - 1) {
+                        this.next();
 
                         return;
                     }
 
-                    dialog
-                        .querySelector(`[data-step="${this.step}"] input, [data-step="${this.step}"] select`)
-                        ?.focus();
-                });
-            },
+                    this.$refs.form.requestSubmit();
+                },
 
-            validateStep() {
-                const root = this.$refs.dialog.querySelector(`[data-step="${this.step}"]`);
-                const invalid = root
-                    ? Array.from(root.querySelectorAll('[required]')).find((field) => ! field.value.trim())
-                    : null;
+                focusStep(field = null) {
+                    setTimeout(() => {
+                        const dialog = this.$refs.dialog;
 
-                if (! invalid) {
-                    return true;
-                }
+                        if (field) {
+                            dialog.querySelector(`#${this.fieldPrefix}-${field}`)?.focus();
 
-                invalid.setCustomValidity('Preencha este campo para continuar.');
-                invalid.reportValidity();
-                invalid.setCustomValidity('');
-                invalid.focus();
+                            return;
+                        }
 
-                return false;
-            },
-        }));
-    });
-</script>
+                        dialog
+                            .querySelector(`[data-step="${this.step}"] input, [data-step="${this.step}"] select`)
+                            ?.focus();
+                    }, 0);
+                },
+
+                validateStep() {
+                    const root = this.$refs.dialog.querySelector(`[data-step="${this.step}"]`);
+                    const invalid = root
+                        ? Array.from(root.querySelectorAll('[required]')).find((field) => ! field.value.trim())
+                        : null;
+
+                    if (! invalid) {
+                        return true;
+                    }
+
+                    invalid.setCustomValidity('Preencha este campo para continuar.');
+                    invalid.reportValidity();
+                    invalid.setCustomValidity('');
+                    invalid.focus();
+
+                    return false;
+                },
+
+                clearErrors() {
+                    const form = this.$refs.form;
+
+                    if (! form) {
+                        return;
+                    }
+
+                    form.querySelectorAll('[data-field-error], [data-error-summary]').forEach((element) => element.remove());
+                    form.querySelectorAll('[aria-invalid=true]').forEach((element) => element.removeAttribute('aria-invalid'));
+                },
+            }));
+        });
+    </script>
+@endonce
 
 <div
-    x-data="stationCreateModal({
+    x-data="stationFormModal({
+        mode: @js($mode),
+        fieldPrefix: @js($fieldPrefix),
         open: @js((bool) $hasErrors),
         initialStep: {{ (int) $initialStep }},
         titles: @js($titles),
     })"
-    x-on:open-station-modal.window="show()"
+    @if ($isEdit)
+        x-on:open-edit-station-modal.window="openForEdit($event.detail)"
+    @else
+        x-on:open-station-modal.window="show()"
+    @endif
 >
     <dialog
+        id="{{ $modalId }}"
         x-ref="dialog"
         x-on:close="onClose()"
         x-on:click="onBackdropClick($event)"
         class="station-modal m-auto max-h-[calc(100dvh-1.5rem)] w-[calc(100%-1.5rem)] max-w-3xl overflow-hidden rounded-2xl bg-white p-0 text-gray-900 shadow-2xl dark:bg-[#1c1c1b] dark:text-gray-100"
-        aria-labelledby="create-station-modal-title"
+        aria-labelledby="{{ $modalId }}-title"
     >
         <div class="flex max-h-[calc(100dvh-1.5rem)] flex-col">
             <header class="flex shrink-0 items-start justify-between gap-3 border-b border-gray-100 px-4 py-3.5 sm:px-6 sm:py-4 dark:border-white/10">
                 <div class="flex min-w-0 items-start gap-3">
                     <span class="mt-0.5 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-400">
-                        <x-icon name="signal" class="h-5 w-5" />
+                        <x-icon :name="$isEdit ? 'pencil-square' : 'signal'" class="h-5 w-5" />
                     </span>
 
                     <div class="min-w-0">
-                        <h2 id="create-station-modal-title" class="truncate text-base font-semibold sm:text-lg">Nova estação</h2>
+                        <h2 id="{{ $modalId }}-title" class="truncate text-base font-semibold sm:text-lg">
+                            {{ $isEdit ? 'Editar estação' : 'Nova estação' }}
+                        </h2>
                         <p class="mt-0.5 hidden text-xs text-gray-500 sm:block dark:text-gray-400">
-                            Preencha as {{ count($groups) }} etapas para cadastrar o elemento de rede.
+                            {{ $isEdit
+                                ? 'Atualize os dados do elemento de rede nas etapas abaixo.'
+                                : 'Preencha as '.count($groups).' etapas para cadastrar o elemento de rede.' }}
                         </p>
                     </div>
                 </div>
@@ -235,9 +307,21 @@
                 ></div>
             </div>
 
-            <form method="POST" action="{{ route('admin.stations.store') }}" novalidate class="flex min-h-0 flex-1 flex-col" x-on:keydown.enter="onEnter($event)">
+            <form
+                method="POST"
+                action="{{ $isEdit && $station ? route('admin.stations.update', $station) : ($isEdit ? '#' : route('admin.stations.store')) }}"
+                novalidate
+                class="flex min-h-0 flex-1 flex-col"
+                x-ref="form"
+                x-on:keydown.enter="onEnter($event)"
+            >
                 @csrf
-                <input type="hidden" name="modal" value="create">
+                <input type="hidden" name="modal" value="{{ $mode }}">
+
+                @if ($isEdit)
+                    @method('PUT')
+                    <input type="hidden" name="editing_id" value="{{ $station?->getKey() }}">
+                @endif
 
                 <ol class="flex shrink-0 items-stretch gap-1 border-b border-gray-100 px-3 py-2 sm:gap-1.5 sm:px-5 dark:border-white/10">
                     @foreach ($groups as $index => $group)
@@ -275,10 +359,10 @@
 
                 <div class="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4 sm:px-6 sm:py-5">
                     @if ($errorSummary !== [])
-                        <div class="mb-4 rounded-xl border border-red-200 bg-red-50 p-3 dark:border-red-900/60 dark:bg-red-950/40">
+                        <div data-error-summary class="mb-4 rounded-xl border border-red-200 bg-red-50 p-3 dark:border-red-900/60 dark:bg-red-950/40">
                             <p class="flex items-center gap-2 text-sm font-semibold text-red-700 dark:text-red-300">
                                 <x-icon name="exclamation-triangle" class="h-4 w-4 shrink-0" />
-                                Não foi possível cadastrar a estação
+                                Não foi possível salvar a estação
                             </p>
 
                             <ul class="mt-1.5 space-y-1 pl-6 text-sm text-red-700 dark:text-red-300">
@@ -310,7 +394,9 @@
                             @if (($group['component'] ?? null) === 'address')
                                 <x-stations::partials.address-fields
                                     :group="$group"
-                                    prefix="modal"
+                                    :prefix="$fieldPrefix"
+                                    :station="$station"
+                                    :mode="$mode"
                                     :input-class="$inputClass"
                                     :label-class="$labelClass"
                                 />
@@ -318,12 +404,12 @@
                                 <div class="mt-3 grid gap-4 sm:grid-cols-2">
                                     @foreach ($group['fields'] as $field)
                                         <div @class(['sm:col-span-2' => ($field['span'] ?? 1) === 2])>
-                                            <label for="modal-{{ $field['name'] }}" class="{{ $labelClass }}">{{ $field['label'] }}@if ($field['required'] ?? false)<span class="ml-0.5 text-red-500" aria-hidden="true">*</span>@endif</label>
+                                            <label for="{{ $fieldPrefix }}-{{ $field['name'] }}" class="{{ $labelClass }}">{{ $field['label'] }}@if ($field['required'] ?? false)<span class="ml-0.5 text-red-500" aria-hidden="true">*</span>@endif</label>
                                             <input
-                                                id="modal-{{ $field['name'] }}"
+                                                id="{{ $fieldPrefix }}-{{ $field['name'] }}"
                                                 name="{{ $field['name'] }}"
                                                 type="text"
-                                                value="{{ old($field['name']) }}"
+                                                value="{{ $value($field['name']) }}"
                                                 @if ($field['required'] ?? false) required @endif
                                                 @if (isset($field['placeholder'])) placeholder="{{ $field['placeholder'] }}" @endif
                                                 @if (isset($field['maxlength'])) maxlength="{{ $field['maxlength'] }}" @endif
@@ -336,7 +422,7 @@
                                                 <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">{{ $field['hint'] }}</p>
                                             @endif
                                             @error($field['name'])
-                                                <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
+                                                <p data-field-error class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
                                             @enderror
                                         </div>
                                     @endforeach
@@ -382,7 +468,7 @@
                                 class="flex-1 justify-center sm:flex-none"
                                 x-show="step === total - 1"
                             >
-                                Cadastrar estação
+                                {{ $isEdit ? 'Salvar alterações' : 'Cadastrar estação' }}
                             </x-ui.action>
                         </div>
                     </div>

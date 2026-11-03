@@ -151,7 +151,7 @@ test('the stations index renders the create modal with steps', function () {
         ->assertSee('Próximo')
         ->assertSee('Cadastrar estação')
         ->assertSee('<dialog', false)
-        ->assertSee('stationCreateModal', false)
+        ->assertSee('stationFormModal', false)
         ->assertSee('viacep.com.br', false)
         ->assertSee('id="modal-cep"', false)
         ->assertSee('id="modal-logradouro"', false)
@@ -163,6 +163,35 @@ test('the stations index renders the create modal with steps', function () {
         ->assertDontSee('SITE_ID', false)
         ->assertDontSee('STATION_ID', false)
         ->assertSeeInOrder(['id="modal-status"', 'id="modal-station_id"', 'id="modal-detentor_area"'], false);
+});
+
+test('the stations index renders the edit modal', function () {
+    $station = Station::factory()->create(['site_id' => 'SPEDIT01']);
+
+    $this->actingAs(User::factory()->create())
+        ->get('/admin/stations')
+        ->assertOk()
+        ->assertSee('edit-station-modal-title', false)
+        ->assertSee('name="modal" value="edit"', false)
+        ->assertSee('name="editing_id"', false)
+        ->assertSee('open-edit-station-modal', false)
+        ->assertSee(route('admin.stations.update', $station), false);
+});
+
+test('the edit modal reopens when validation fails', function () {
+    $station = Station::factory()->create(['site_id' => 'SPEDIT02']);
+
+    $this->actingAs(User::factory()->create())
+        ->from('/admin/stations')
+        ->followingRedirects()
+        ->put(route('admin.stations.update', $station), [
+            'modal' => 'edit',
+            'editing_id' => $station->id,
+            'site_id' => '',
+        ])
+        ->assertOk()
+        ->assertSee('edit-station-modal-title', false)
+        ->assertSee('Não foi possível salvar a estação');
 });
 
 test('the create modal reopens when validation fails', function () {

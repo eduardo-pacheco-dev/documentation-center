@@ -3,19 +3,22 @@
         $hasFilters = $search !== '' || $status !== '' || $tecnologia !== '';
 
         $fieldGroups = config('stations.fields', []);
-        $createHasErrors = old('modal') === 'create' && $errors->any();
 
-        $initialStep = 0;
-
-        if ($createHasErrors) {
+        $firstErrorStep = function () use ($fieldGroups, $errors): int {
             foreach ($fieldGroups as $index => $group) {
                 if ($errors->hasAny(array_column($group['fields'], 'name'))) {
-                    $initialStep = $index;
-
-                    break;
+                    return $index;
                 }
             }
-        }
+
+            return 0;
+        };
+
+        $createHasErrors = old('modal') === 'create' && $errors->any();
+        $editHasErrors = old('modal') === 'edit' && $errors->any();
+
+        $createInitialStep = $createHasErrors ? $firstErrorStep() : 0;
+        $editInitialStep = $editHasErrors ? $firstErrorStep() : 0;
 
         $statusTone = fn (?string $value): string => match (mb_strtolower((string) $value)) {
             'aquisitado', 'ativo', 'ativa' => 'green',
@@ -194,5 +197,16 @@
         </div>
     @endif
 
-    <x-stations::partials.create-modal :has-errors="$createHasErrors" :initial-step="$initialStep" />
+    <x-stations::partials.station-modal
+        mode="create"
+        :has-errors="$createHasErrors"
+        :initial-step="$createInitialStep"
+    />
+
+    <x-stations::partials.station-modal
+        mode="edit"
+        :station="$editStation ?? null"
+        :has-errors="$editHasErrors"
+        :initial-step="$editInitialStep"
+    />
 </x-layouts.admin>
