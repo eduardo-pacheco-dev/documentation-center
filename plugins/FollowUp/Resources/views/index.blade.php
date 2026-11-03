@@ -52,6 +52,12 @@
 
     <section class="mt-4 rounded-2xl border border-gray-200/80 bg-white p-4 dark:border-white/10 dark:bg-[#171716]">
         <form method="GET" action="{{ route('admin.follow-ups.index') }}" class="flex flex-wrap items-center gap-2">
+            @foreach (['sort', 'direction'] as $param)
+                @if (request($param))
+                    <input type="hidden" name="{{ $param }}" value="{{ request($param) }}">
+                @endif
+            @endforeach
+
             <div class="relative w-full max-w-sm sm:w-80 sm:max-w-none">
                 <x-icon name="magnifying-glass" class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400 dark:text-gray-500" />
                 <input
@@ -120,11 +126,11 @@
                 <table class="min-w-full divide-y divide-gray-100 text-sm dark:divide-white/10">
                     <thead class="bg-gray-50/80 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:bg-white/[0.03] dark:text-gray-400">
                         <tr>
-                            <th class="px-5 py-3.5">Follow-up</th>
-                            <th class="px-5 py-3.5">Status</th>
-                            <th class="px-5 py-3.5">Prioridade</th>
-                            <th class="px-5 py-3.5">Responsável</th>
-                            <th class="px-5 py-3.5">Prazo</th>
+                            <x-sort-header column="title" label="Follow-up" default="due_date" default-direction="asc" class="px-5 py-3.5" />
+                            <x-sort-header column="status" label="Status" default="due_date" default-direction="asc" class="px-5 py-3.5" />
+                            <x-sort-header column="priority" label="Prioridade" default="due_date" default-direction="asc" class="px-5 py-3.5" />
+                            <x-sort-header column="assignee" label="Responsável" default="due_date" default-direction="asc" class="px-5 py-3.5" />
+                            <x-sort-header column="due_date" label="Prazo" default="due_date" default-direction="asc" class="px-5 py-3.5" />
                             <th class="px-5 py-3.5 text-right">Ações</th>
                         </tr>
                     </thead>

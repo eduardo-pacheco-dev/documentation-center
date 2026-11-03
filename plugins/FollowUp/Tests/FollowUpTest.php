@@ -83,6 +83,57 @@ test('follow-ups can be listed, searched and filtered', function () {
         ->assertDontSee('Relatório mensal');
 });
 
+test('follow-ups can be sorted by the table columns', function () {
+    FollowUp::factory()->create(['title' => 'Alfa acompanhamento']);
+    FollowUp::factory()->create(['title' => 'Beta acompanhamento']);
+
+    $user = User::factory()->create();
+
+    $this->actingAs($user)
+        ->get('/admin/follow-ups?sort=title&direction=asc')
+        ->assertOk()
+        ->assertSeeInOrder(['Alfa acompanhamento', 'Beta acompanhamento']);
+
+    $this->actingAs($user)
+        ->get('/admin/follow-ups?sort=title&direction=desc')
+        ->assertOk()
+        ->assertSeeInOrder(['Beta acompanhamento', 'Alfa acompanhamento']);
+});
+
+test('priority sorting follows the declared priority order', function () {
+    FollowUp::factory()->create([
+        'title' => 'Prioridade alta',
+        'priority' => FollowUpPriority::High->value,
+    ]);
+
+    FollowUp::factory()->create([
+        'title' => 'Prioridade baixa',
+        'priority' => FollowUpPriority::Low->value,
+    ]);
+
+    $this->actingAs(User::factory()->create())
+        ->get('/admin/follow-ups?sort=priority&direction=asc')
+        ->assertOk()
+        ->assertSeeInOrder(['Prioridade baixa', 'Prioridade alta']);
+});
+
+test('follow-ups without a due date stay last when sorting by due date', function () {
+    FollowUp::factory()->create([
+        'title' => 'Com prazo',
+        'due_date' => now()->addDay(),
+    ]);
+
+    FollowUp::factory()->create([
+        'title' => 'Sem prazo definido',
+        'due_date' => null,
+    ]);
+
+    $this->actingAs(User::factory()->create())
+        ->get('/admin/follow-ups?sort=due_date&direction=desc')
+        ->assertOk()
+        ->assertSeeInOrder(['Com prazo', 'Sem prazo definido']);
+});
+
 test('the index renders an actions menu for each follow-up', function () {
     $followUp = FollowUp::factory()->create(['title' => 'Acompanhar proposta']);
 

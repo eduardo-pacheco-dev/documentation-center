@@ -4,6 +4,7 @@ namespace Plugins\FollowUp\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -46,10 +47,17 @@ class FollowUpController extends Controller
             $query->where('assigned_to', (int) $assigned);
         }
 
+        $sort = $request->string('sort')->trim()->toString();
+        $sort = in_array($sort, ['title', 'status', 'priority', 'assignee', 'due_date'], true)
+            ? $sort
+            : 'due_date';
+
+        $direction = $request->string('direction')->trim()->toString();
+        $direction = in_array($direction, ['asc', 'desc'], true) ? $direction : 'asc';
+
+        $this->applySort($query, $sort, $direction);
+
         $followUps = $query
-            ->orderByRaw('due_date IS NULL')
-            ->orderBy('due_date')
-            ->latest('id')
             ->paginate((int) config('follow-up.per_page', 15))
             ->withQueryString();
 
@@ -173,6 +181,47 @@ class FollowUpController extends Controller
         return redirect()
             ->route('admin.follow-ups.index')
             ->with('status', 'Follow-up excluído com sucesso.');
+    }
+
+    /**
+     * Apply the requested column ordering, keeping follow-ups without a due date last.
+     */
+    private function applySort(Builder $query, string $sort, string $direction): void
+    {
+        match ($sort) {
+            'status' => $query->orderByRaw(
+                $this->enumOrder('status', FollowUpStatus::values()).' '.strtoupper($direction),
+                FollowUpStatus::values(),
+            ),
+            'priority' => $query->orderByRaw(
+                $this->enumOrder('priority', FollowUpPriority::values()).' '.strtoupper($direction),
+                FollowUpPriority::values(),
+            ),
+            'assignee' => $query->orderBy(
+                User::query()->select('name')->whereColumn('users.id', 'follow_ups.assigned_to'),
+                $direction,
+            ),
+            'due_date' => $query
+                ->orderByRaw('due_date IS NULL')
+                ->orderBy('due_date', $direction),
+            default => $query->orderBy($sort, $direction),
+        };
+
+        $query->orderBy('id', $direction);
+    }
+
+    /**
+     * Build a CASE expression that orders an enum column by its declared order.
+     *
+     * @param  list<string>  $values
+     */
+    private function enumOrder(string $column, array $values): string
+    {
+        $cases = collect($values)
+            ->map(fn (string $value, int $index): string => 'WHEN ? THEN '.$index)
+            ->implode(' ');
+
+        return "CASE {$column} {$cases} ELSE ".count($values).' END';
     }
 
     /**
