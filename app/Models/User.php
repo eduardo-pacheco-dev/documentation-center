@@ -13,7 +13,7 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 
-#[Fillable(['name', 'surname', 'email', 'password', 'theme', 'enabled_modules', 'module_order', 'module_sections'])]
+#[Fillable(['name', 'surname', 'email', 'password', 'theme', 'enabled_modules', 'module_order', 'module_sections', 'dashboard_hidden_widgets'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable
 {
@@ -61,6 +61,33 @@ class User extends Authenticatable
     }
 
     /**
+     * The identifiers of the dashboard widgets hidden by the user.
+     *
+     * @return list<string>
+     */
+    public function hiddenDashboardWidgets(): array
+    {
+        $hidden = $this->dashboard_hidden_widgets;
+
+        if (! is_array($hidden)) {
+            return [];
+        }
+
+        return array_values(array_filter(
+            $hidden,
+            fn (mixed $widget): bool => is_string($widget) && $widget !== '',
+        ));
+    }
+
+    /**
+     * Whether the given dashboard widget is hidden by the user.
+     */
+    public function hasHiddenDashboardWidget(string $widget): bool
+    {
+        return in_array($widget, $this->hiddenDashboardWidgets(), true);
+    }
+
+    /**
      * Get the attributes that should be cast.
      *
      * @return array<string, string>
@@ -75,6 +102,7 @@ class User extends Authenticatable
             'enabled_modules' => 'array',
             'module_order' => 'array',
             'module_sections' => 'array',
+            'dashboard_hidden_widgets' => 'array',
         ];
     }
 }

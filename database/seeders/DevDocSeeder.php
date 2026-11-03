@@ -52,7 +52,7 @@ O **Documentation Center** é uma aplicação Laravel usada como base administra
 ## Principais recursos
 
 - **Autenticação web** com login, registro, sessão e controle de conta ativa.
-- **Dashboard administrativo** com resumo de usuários e plugins.
+- **Dashboard administrativo** com widgets de resumo de usuários e plugins.
 - **Gestão de usuários** com busca, filtros, ordenação, paginação e modos de visualização.
 - **Configurações do usuário**: tema, módulos, senha e exclusão da conta.
 - **Navegação configurável**: os módulos podem ser habilitados, desordenados e movidos entre a sidebar e o menu Módulos.
@@ -805,6 +805,8 @@ plugins/Example/
   Routes/web.php
   Resources/lang/en/general.php
   Resources/views/index.blade.php
+  Widgets/ExampleWidget.php  (opcional)
+  Resources/views/widgets/status.blade.php
   Database/Migrations/       (opcional)
   Tests/                     (opcional)
 ```
@@ -902,6 +904,18 @@ Não é permitido sobrescrever um plugin já instalado.
 ## Navegação de plugins
 
 Um plugin pode declarar itens de menu. A sidebar só exibe itens cujo `route` exista e cujo `module` esteja habilitado para o usuário.
+
+## Widgets do dashboard
+
+Plugins habilitados podem contribuir com blocos para a página inicial administrativa. Registre o widget no `boot()` do provider, depois de carregar as views e traduções do plugin:
+
+```php
+$this->app->make(WidgetRegistry::class)->register(new ExampleWidget);
+```
+
+O widget estende `App\Dashboard\Widget` e declara identificador, título, view, dados, ordem, largura e visibilidade. Como o provider só é inicializado quando o plugin está habilitado, desabilitar o plugin remove o widget automaticamente.
+
+Consulte **Widgets do dashboard** para o contrato completo e um exemplo.
 
 ## Helpers
 
@@ -1658,6 +1672,9 @@ Reutilize esses componentes antes de criar novos.
 - `x-dashboard.modules-menu`
 - `x-dashboard.topbar`
 - `x-dashboard.user-menu`
+- `x-admin.stat-card` — cartão de métrica usado pelos widgets.
+
+Os blocos do conteúdo principal são widgets registrados em `App\Dashboard\WidgetRegistry`. Consulte **Widgets do dashboard** para o contrato e a expansão por plugins.
 
 ## Wiki
 
@@ -1676,6 +1693,322 @@ Reutilize esses componentes antes de criar novos.
 ## Ícones
 
 Os ícones são declarados em `resources/views/components/icon.blade.php`. Para um novo ícone, adicione um `@case` com o SVG correspondente.
+MARKDOWN,
+                'is_published' => true,
+            ],
+            [
+                'title' => 'Widgets do dashboard',
+                'slug' => 'widgets-do-dashboard',
+                'category' => DevDocCategory::Frontend,
+                'summary' => 'Contrato, registro, ordem, visibilidade e expansão por plugins dos widgets da página inicial administrativa.',
+                'content' => <<<'MARKDOWN'
+# Widgets do dashboard
+
+## Objetivo
+
+A página inicial administrativa (`/admin`) é montada por **widgets**. Cada widget é um bloco independente com identificador, view, dados, posição e regra de visibilidade. O núcleo registra os widgets padrão e qualquer plugin habilitado pode adicionar os seus, sem alterar o controller nem a view do dashboard.
+
+## Arquitetura
+
+| Arquivo | Responsabilidade |
+| --- | --- |
+| `app/Dashboard/Widget.php` | Classe base que define o contrato de um widget. |
+| `app/Dashboard/WidgetRegistry.php` | Registro em memória, ordenação, substituição por identificador e filtro de visibilidade. |
+| `app/Providers/DashboardServiceProvider.php` | Cria o singleton do registro e registra os widgets do núcleo. |
+| `app/Dashboard/Widgets/*` | Widgets do núcleo. |
+| `resources/views/admin/widgets/*` | Views dos widgets do núcleo. |
+| `resources/views/admin/dashboard.blade.php` | Cabeçalho e grid que itera os widgets visíveis. |
+| `resources/views/components/admin/stat-card.blade.php` | Cartão de métrica reutilizável pelos widgets de estatística. |
+
+O `DashboardController` apenas monta a saudação e entrega os widgets visíveis para a view:
+
+```php
+public function index(Request $request, WidgetRegistry $widgets): View
+{
+    return view('admin.dashboard', [
+        'greeting' => $this->greeting($request->user()),
+        'widgets' => $widgets->forRequest($request),
+    ]);
+}
+```
+
+## Contrato
+
+Todo widget estende `App\Dashboard\Widget`:
+
+```php
+abstract class Widget
+{
+    abstract public function id(): string;
+    abstract public function title(): string;
+    abstract public function view(): string;
+
+    public function data(Request $request): array;
+    public function order(): int;
+    public function columnSpan(): int;
+    public function visible(Request $request): bool;
+}
+```
+
+| Método | Finalidade | Padrão |
+| --- | --- | --- |
+| `id()` | Identificador estável e prefixado pelo contribuidor. Também vira `data-widget` no HTML. | Obrigatório |
+| `title()` | Título legível, usado pelo shell e por depuração. | Obrigatório |
+| `view()` | View Blade renderizada. Aceita namespace de plugin, como `example::widgets.status`. | Obrigatório |
+| `data()` | Dados enviados para a view. Faça consultas e cálculos aqui, nunca na view. | `[]` |
+| `order()` | Posição no grid; valores menores aparecem primeiro. | `0` |
+| `columnSpan()` | Quantidade de colunas no grid, de `1` a `3`. | `1` |
+| `visible()` | Filtra o widget por perfil, permissão ou módulo. | `true` |
+
+O registro usa `id()` como chave. Registrar novamente o mesmo identificador **substitui** o widget anterior, o que permite que um plugin sobrescreva um bloco do núcleo de forma explícita.
+
+## Widgets do núcleo
+
+| Identificador | Conteúdo | Ordem | Colunas | Visibilidade |
+| --- | --- | --- | --- | --- |
+| `core.users` | Total de contas cadastradas | 10 | 1 | Administradores |
+| `core.plugins.installed` | Plugins descobertos no disco | 20 | 1 | Todos |
+| `core.plugins.active` | Plugins habilitados | 30 | 1 | Todos |
+| `core.users.recent` | Últimas cinco contas criadas | 40 | 3 | Administradores |
+
+## Renderização
+
+O grid do dashboard usa uma coluna no celular, duas em `sm` e três em `xl`:
+
+```blade
+<div class="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+    @foreach ($widgets as $widget)
+        @php
+            $spanClass = match ($widget->columnSpan()) {
+                2 => 'sm:col-span-2',
+                3 => 'sm:col-span-2 xl:col-span-3',
+                default => '',
+            };
+        @endphp
+
+        <div @class([$spanClass]) data-widget="{{ $widget->id() }}">
+            @include($widget->view(), ['widget' => $widget] + $widget->data(request()))
+        </div>
+    @endforeach
+</div>
+```
+
+Cada view recebe o widget em `$widget` e o array retornado por `data()`. O cabeçalho da página não é um widget.
+
+## Criando um widget do núcleo
+
+1. Crie a classe em `app/Dashboard/Widgets`.
+2. Crie a view em `resources/views/admin/widgets`.
+3. Registre a instância em `DashboardServiceProvider::boot()`.
+
+```php
+namespace App\Dashboard\Widgets;
+
+use App\Dashboard\Widget;
+use Illuminate\Http\Request;
+
+class OpenTicketsWidget extends Widget
+{
+    public function id(): string
+    {
+        return 'core.tickets.open';
+    }
+
+    public function title(): string
+    {
+        return 'Chamados abertos';
+    }
+
+    public function view(): string
+    {
+        return 'admin.widgets.open-tickets';
+    }
+
+    public function order(): int
+    {
+        return 50;
+    }
+
+    public function data(Request $request): array
+    {
+        return [
+            'count' => Ticket::query()->where('status', 'open')->count(),
+        ];
+    }
+}
+```
+
+```php
+$this->app->make(WidgetRegistry::class)->register(
+    $this->app->make(OpenTicketsWidget::class),
+);
+```
+
+## Contribuindo com um plugin
+
+O `PluginServiceProvider` só registra e inicializa os providers dos plugins **habilitados**. Por isso, o lugar correto para registrar um widget é o `boot()` do provider do plugin:
+
+```php
+namespace Plugins\Example\Providers;
+
+use App\Dashboard\WidgetRegistry;
+use Illuminate\Support\ServiceProvider;
+use Plugins\Example\Widgets\ExampleWidget;
+
+class ExampleServiceProvider extends ServiceProvider
+{
+    public function boot(): void
+    {
+        $this->loadViewsFrom(__DIR__.'/../Resources/views', 'example');
+        $this->loadTranslationsFrom(__DIR__.'/../Resources/lang', 'example');
+
+        $this->app->make(WidgetRegistry::class)->register(new ExampleWidget);
+    }
+}
+```
+
+O widget do plugin segue o mesmo contrato:
+
+```php
+namespace Plugins\Example\Widgets;
+
+use App\Dashboard\Widget;
+use Illuminate\Http\Request;
+
+class ExampleWidget extends Widget
+{
+    public function id(): string
+    {
+        return 'example.status';
+    }
+
+    public function title(): string
+    {
+        return trans('example::general.widget_title');
+    }
+
+    public function view(): string
+    {
+        return 'example::widgets.status';
+    }
+
+    public function order(): int
+    {
+        return 50;
+    }
+
+    public function data(Request $request): array
+    {
+        return [
+            'message' => trans('example::general.widget_message'),
+        ];
+    }
+}
+```
+
+O plugin de exemplo em `plugins/Example` já registra `ExampleWidget` em `boot()` e serve como referência completa de classe, view e tradução.
+
+### Estado habilitado
+
+- Plugin desabilitado: o provider não é registrado, então o widget não entra no dashboard.
+- Plugin habilitado: o provider roda no próximo boot da aplicação e registra o widget.
+- Não é necessário alterar `plugin.json` para contribuir com widgets; o provider é o ponto de extensão.
+- Carregue views e traduções do plugin **antes** de registrar o widget.
+
+## Ordem, largura e visibilidade
+
+A ordenação é feita por `order()` crescente e, em caso de empate, por `id()`:
+
+```php
+$registry->register(new ProbeWidget('core.later', 30));
+$registry->register(new ProbeWidget('core.first', 10));
+
+// core.first, core.later
+```
+
+`columnSpan()` aceita `1`, `2` ou `3`:
+
+| Valor | Largura |
+| --- | --- |
+| `1` | Uma coluna |
+| `2` | Duas colunas a partir de `sm` |
+| `3` | Largura total a partir de `xl` |
+
+Em telas pequenas todos os widgets ocupam uma coluna.
+
+Use `visible()` para restringir o bloco:
+
+```php
+public function visible(Request $request): bool
+{
+    return (bool) $request->user()?->is_admin;
+}
+```
+
+Para permissões mais específicas, use a mesma policy ou gate da tela de destino. A visibilidade é avaliada a cada requisição por `WidgetRegistry::forRequest()`.
+
+## Modo de edição
+
+No `/admin`, o botão **Editar widgets** abre o modo de edição (`?edit=1`). Nele:
+
+- cada widget visível recebe uma barra com o botão **Remover**;
+- a seção **Widgets ocultos** lista os blocos disponíveis que o usuário removeu, com o botão **Adicionar**;
+- **Concluir edição** ou **Concluir** volta ao painel normal.
+
+As ações enviam `PUT /admin/widgets/{widget}` com `hidden=1` para remover ou `hidden=0` para adicionar, e redirecionam de volta para `?edit=1`.
+
+### Persistência
+
+A preferência fica em `users.dashboard_hidden_widgets`, uma coluna JSON nullable que guarda **apenas os identificadores ocultos**.
+
+- O padrão é exibir todos os widgets disponíveis.
+- Widgets novos, incluindo os de plugins recém-habilitados, aparecem por padrão.
+- Se um plugin for desabilitado, o identificador pode continuar salvo; o widget simplesmente não é registrado nem renderizado.
+- A lista do que pode ser adicionado vem de `WidgetRegistry::forRequest()`, portanto widgets restritos a administradores nunca ficam disponíveis para usuários comuns.
+- Identificadores desconhecidos ou indisponíveis retornam `404`.
+- A preferência é individual: cada usuário edita apenas o próprio painel.
+
+A migration correspondente é `add_dashboard_hidden_widgets_to_users_table`.
+
+## Boas práticas
+
+- Prefixe o identificador com o contribuidor: `core.`, `example.`, `equipment.`.
+- Mantenha consultas e regras de negócio em `data()` ou em services; a view só apresenta dados.
+- Use `visible()` em vez de `@if` no dashboard para esconder um widget inteiro.
+- Traduza títulos e mensagens de plugins.
+- Não altere dados em `data()`; o método deve ser somente leitura.
+- Prefira reaproveitar `x-admin.stat-card` para métricas simples.
+- Ao substituir um widget existente, use o mesmo `id()` de forma intencional e documente o motivo.
+- Cubra o widget com teste de renderização, ordem, visibilidade e estado do plugin.
+
+## Testes
+
+`tests/Feature/DashboardWidgetTest.php` cobre:
+
+- renderização dos widgets do núcleo;
+- ordenação e substituição no registro;
+- filtro de visibilidade;
+- widget de plugin habilitado;
+- ausência do widget de plugin desabilitado;
+- modo de edição, remoção, adição e persistência por usuário;
+- bloqueio de widgets administrativos para usuários comuns.
+
+`tests/Support/ProbeWidget.php` é um widget configurável usado nesses testes.
+
+```bash
+php artisan test --compact tests/Feature/DashboardWidgetTest.php
+php artisan test --compact tests/Feature/AdminPanelTest.php
+```
+
+## Checklist para um novo widget
+
+- [ ] O identificador é único e prefixado?
+- [ ] A view recebe apenas os dados necessários?
+- [ ] A ordem e a largura foram definidas?
+- [ ] A visibilidade respeita perfil e permissões?
+- [ ] Textos estão traduzidos quando vierem de um plugin?
+- [ ] O widget aparece com o plugin habilitado e desaparece ao desabilitar?
+- [ ] Há teste para o comportamento e para a ausência?
 MARKDOWN,
                 'is_published' => true,
             ],

@@ -1,7 +1,9 @@
 <?php
 
+use App\Dashboard\Widget;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Hash;
 
 uses(RefreshDatabase::class);
@@ -322,8 +324,11 @@ test('the dashboard shows the installed plugin totals', function () {
     $this->actingAs(User::factory()->create())
         ->get('/admin')
         ->assertOk()
-        ->assertViewHas('counts', fn (array $counts): bool => $counts['plugins'] >= 1
-            && $counts['enabledPlugins'] >= 0);
+        ->assertViewHas('widgets', fn (Collection $widgets): bool => $widgets->contains(
+            fn (Widget $widget): bool => $widget->id() === 'core.plugins.installed'
+        ) && $widgets->contains(
+            fn (Widget $widget): bool => $widget->id() === 'core.plugins.active'
+        ));
 });
 
 test('the dashboard only lists users for administrators', function () {
@@ -350,5 +355,8 @@ test('the dashboard counts every user account', function () {
     $this->actingAs($admin)
         ->get('/admin')
         ->assertOk()
-        ->assertViewHas('counts', fn (array $counts): bool => $counts['users'] === 4);
+        ->assertViewHas('widgets', fn (Collection $widgets): bool => $widgets->contains(
+            fn (Widget $widget): bool => $widget->id() === 'core.users'
+                && $widget->data(request())['count'] === 4
+        ));
 });

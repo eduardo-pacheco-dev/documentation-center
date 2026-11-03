@@ -13,106 +13,143 @@
                 <x-icon name="home" class="h-4 w-4" />
                 {{ now()->locale('pt_BR')->translatedFormat('d \d\e M, Y') }}
             </span>
-            <a
-                href="{{ route('settings') }}"
-                class="inline-flex h-9 items-center gap-1.5 rounded-xl bg-gray-900 px-4 text-sm font-semibold text-white transition hover:bg-gray-700 dark:bg-white dark:text-gray-900 dark:hover:bg-gray-200"
-            >
-                <x-icon name="cog-6-tooth" class="h-4 w-4" />
-                Configurações
-            </a>
+
+            @if ($editing)
+                <a
+                    href="{{ route('admin.dashboard') }}"
+                    class="inline-flex h-9 items-center gap-1.5 rounded-xl bg-indigo-600 px-4 text-sm font-semibold text-white transition hover:bg-indigo-500"
+                >
+                    <x-icon name="check" class="h-4 w-4" />
+                    Concluir edição
+                </a>
+            @else
+                <a
+                    href="{{ route('admin.dashboard', ['edit' => 1]) }}"
+                    class="inline-flex h-9 items-center gap-1.5 rounded-xl border border-gray-200 bg-white px-4 text-sm font-semibold text-gray-600 transition hover:border-indigo-200 hover:text-indigo-600 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 dark:hover:border-indigo-500/40 dark:hover:text-indigo-300"
+                >
+                    <x-icon name="pencil-square" class="h-4 w-4" />
+                    Editar widgets
+                </a>
+            @endif
         </div>
     </div>
 
-    <div class="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-        @if ($counts['users'] !== null)
-            <a
-                href="{{ route('admin.users.index') }}"
-                data-stat="usuarios"
-                class="group relative rounded-3xl border border-gray-200/80 bg-white p-5 transition hover:border-indigo-200 dark:border-white/10 dark:bg-[#171716] dark:hover:border-indigo-500/40"
+    @if ($editing)
+        <div class="mt-4 flex items-start gap-3 rounded-2xl border border-dashed border-indigo-300 bg-indigo-50/60 p-4 dark:border-indigo-500/40 dark:bg-indigo-500/10">
+            <span class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-indigo-100 text-indigo-600 dark:bg-indigo-500/20 dark:text-indigo-300">
+                <x-icon name="pencil-square" class="h-4 w-4" />
+            </span>
+
+            <div class="min-w-0">
+                <p class="text-sm font-semibold text-gray-900 dark:text-white">Modo edição</p>
+                <p class="mt-0.5 text-xs text-gray-600 dark:text-gray-400">
+                    Remova widgets do painel ou adicione de volta os que estão ocultos.
+                </p>
+            </div>
+        </div>
+    @endif
+
+    @if ($widgets->isEmpty())
+        <div class="mt-6 rounded-3xl border border-dashed border-gray-200 bg-white dark:border-white/10 dark:bg-[#171716]">
+            <x-ui.empty-state
+                icon="squares-2x2"
+                title="Nenhum widget visível"
+                :description="$editing
+                    ? 'Adicione um widget da lista abaixo para voltar a exibir conteúdo.'
+                    : 'Use o modo de edição para adicionar widgets ao painel.'"
+                tone="indigo"
+                shape="square"
             >
-                <div class="flex items-start justify-between">
-                    <span class="inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-400">
-                        <x-icon name="users" class="h-5 w-5" />
-                    </span>
-                    <x-icon name="arrow-top-right-on-square" class="h-4 w-4 text-gray-300 transition group-hover:text-gray-600 dark:text-gray-600 dark:group-hover:text-gray-300" />
+                @unless ($editing)
+                    <x-ui.action :href="route('admin.dashboard', ['edit' => 1])" size="sm" icon="pencil-square" class="mt-4">
+                        Editar widgets
+                    </x-ui.action>
+                @endunless
+            </x-ui.empty-state>
+        </div>
+    @else
+        <div class="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+            @foreach ($widgets as $widget)
+                @php
+                    $spanClass = match ($widget->columnSpan()) {
+                        2 => 'sm:col-span-2',
+                        3 => 'sm:col-span-2 xl:col-span-3',
+                        default => '',
+                    };
+                @endphp
+
+                <div @class([$spanClass, 'flex flex-col']) data-widget="{{ $widget->id() }}">
+                    @if ($editing)
+                        <div class="mb-2 flex items-center justify-between gap-2 rounded-xl border border-dashed border-gray-300 bg-white/80 px-3 py-2 dark:border-white/15 dark:bg-white/[0.03]">
+                            <span class="min-w-0 truncate text-xs font-semibold text-gray-600 dark:text-gray-300">{{ $widget->title() }}</span>
+
+                            <form method="POST" action="{{ route('admin.widgets.update', ['widget' => $widget->id()]) }}">
+                                @csrf
+                                @method('PUT')
+                                <input type="hidden" name="hidden" value="1">
+
+                                <button
+                                    type="submit"
+                                    class="inline-flex h-7 items-center gap-1 rounded-md px-2 text-[11px] font-semibold text-red-600 transition hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-500/10"
+                                >
+                                    <x-icon name="minus-circle" class="h-3.5 w-3.5" />
+                                    Remover
+                                </button>
+                            </form>
+                        </div>
+                    @endif
+
+                    <div class="min-w-0 flex-1">
+                        @include($widget->view(), ['widget' => $widget] + $widget->data(request()))
+                    </div>
                 </div>
-                <p class="mt-4 text-3xl font-semibold tracking-tight text-gray-900 dark:text-white">{{ number_format($counts['users'], 0, ',', '.') }}</p>
-                <p class="mt-1 text-sm font-medium text-gray-700 dark:text-gray-200">Usuários</p>
-                <p class="mt-0.5 text-xs text-gray-400 dark:text-gray-500">Contas cadastradas</p>
-            </a>
-        @endif
+            @endforeach
+        </div>
+    @endif
 
-        <a
-            href="{{ route('settings') }}#plugins"
-            data-stat="plugins-instalados"
-            class="group relative rounded-3xl border border-gray-200/80 bg-white p-5 transition hover:border-indigo-200 dark:border-white/10 dark:bg-[#171716] dark:hover:border-indigo-500/40"
-        >
-            <div class="flex items-start justify-between">
-                <span class="inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-400">
-                    <x-icon name="squares-2x2" class="h-5 w-5" />
-                </span>
-                <x-icon name="arrow-top-right-on-square" class="h-4 w-4 text-gray-300 transition group-hover:text-gray-600 dark:text-gray-600 dark:group-hover:text-gray-300" />
-            </div>
-            <p class="mt-4 text-3xl font-semibold tracking-tight text-gray-900 dark:text-white">{{ number_format($counts['plugins'], 0, ',', '.') }}</p>
-            <p class="mt-1 text-sm font-medium text-gray-700 dark:text-gray-200">Plugins instalados</p>
-            <p class="mt-0.5 text-xs text-gray-400 dark:text-gray-500">Extensões disponíveis</p>
-        </a>
-
-        <a
-            href="{{ route('settings') }}#plugins"
-            data-stat="plugins-ativos"
-            class="group relative rounded-3xl border border-gray-200/80 bg-white p-5 transition hover:border-indigo-200 dark:border-white/10 dark:bg-[#171716] dark:hover:border-indigo-500/40"
-        >
-            <div class="flex items-start justify-between">
-                <span class="inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400">
-                    <x-icon name="cog-6-tooth" class="h-5 w-5" />
-                </span>
-                <x-icon name="arrow-top-right-on-square" class="h-4 w-4 text-gray-300 transition group-hover:text-gray-600 dark:text-gray-600 dark:group-hover:text-gray-300" />
-            </div>
-            <p class="mt-4 text-3xl font-semibold tracking-tight text-gray-900 dark:text-white">{{ number_format($counts['enabledPlugins'], 0, ',', '.') }}</p>
-            <p class="mt-1 text-sm font-medium text-gray-700 dark:text-gray-200">Plugins ativos</p>
-            <p class="mt-0.5 text-xs text-gray-400 dark:text-gray-500">Carregados na aplicação</p>
-        </a>
-    </div>
-
-    @if ($recentUsers->isNotEmpty())
-        <section class="mt-4 rounded-3xl border border-gray-200/80 bg-white dark:border-white/10 dark:bg-[#171716]">
+    @if ($editing)
+        <section class="mt-6 overflow-hidden rounded-3xl border border-gray-200/80 bg-white dark:border-white/10 dark:bg-[#171716]">
             <div class="flex items-center justify-between gap-3 border-b border-gray-100 px-5 py-4 dark:border-white/10">
                 <div>
-                    <h2 class="text-base font-semibold text-gray-900 dark:text-white">Usuários recentes</h2>
-                    <p class="mt-0.5 text-xs text-gray-500 dark:text-gray-400">Últimas contas criadas</p>
+                    <div class="flex flex-wrap items-center gap-2">
+                        <h2 class="text-base font-semibold text-gray-900 dark:text-white">Widgets ocultos</h2>
+                        <x-ui.badge tone="gray">{{ $hiddenWidgets->count() }}</x-ui.badge>
+                    </div>
+                    <p class="mt-0.5 text-xs text-gray-500 dark:text-gray-400">Adicione um widget oculto de volta ao painel.</p>
                 </div>
-                <a href="{{ route('admin.users.index') }}" class="inline-flex items-center gap-1 text-xs font-medium text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">
-                    Ver todos
-                    <x-icon name="chevron-right" class="h-3.5 w-3.5" />
-                </a>
             </div>
 
-            <div class="overflow-x-auto">
-                <table class="min-w-full text-left">
-                    <thead>
-                        <tr class="border-b border-gray-100 bg-gray-50/60 text-[10px] font-semibold uppercase tracking-wider text-gray-400 dark:border-white/10 dark:bg-white/[0.02] dark:text-gray-500">
-                            <th scope="col" class="px-5 py-2.5 font-semibold">Nome</th>
-                            <th scope="col" class="px-3 py-2.5 font-semibold">E-mail</th>
-                            <th scope="col" class="hidden px-3 py-2.5 font-semibold sm:table-cell">Perfil</th>
-                            <th scope="col" class="hidden px-5 py-2.5 text-right font-semibold md:table-cell">Criado em</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-gray-100 dark:divide-white/10">
-                        @foreach ($recentUsers as $recentUser)
-                            <tr class="transition hover:bg-gray-50/70 dark:hover:bg-white/[0.03]">
-                                <td class="px-5 py-3 text-sm font-medium text-gray-900 dark:text-white">{{ $recentUser->full_name }}</td>
-                                <td class="px-3 py-3 text-sm text-gray-500 dark:text-gray-400">{{ $recentUser->email }}</td>
-                                <td class="hidden px-3 py-3 text-sm text-gray-500 sm:table-cell dark:text-gray-400">
-                                    {{ $recentUser->is_admin ? 'Administrador' : 'Usuário' }}
-                                </td>
-                                <td class="hidden whitespace-nowrap px-5 py-3 text-right text-xs text-gray-400 md:table-cell dark:text-gray-500">
-                                    {{ $recentUser->created_at?->translatedFormat('d M Y') }}
-                                </td>
-                            </tr>
+            <div class="p-4">
+                @if ($hiddenWidgets->isEmpty())
+                    <p class="rounded-xl border border-dashed border-gray-200 px-4 py-3 text-sm text-gray-500 dark:border-white/10 dark:text-gray-400">
+                        Todos os widgets disponíveis já estão visíveis.
+                    </p>
+                @else
+                    <ul class="grid gap-2 sm:grid-cols-2">
+                        @foreach ($hiddenWidgets as $hiddenWidget)
+                            <li class="flex items-center justify-between gap-3 rounded-xl border border-gray-200/80 px-3 py-2.5 dark:border-white/10">
+                                <div class="min-w-0">
+                                    <p class="truncate text-sm font-medium text-gray-800 dark:text-gray-100">{{ $hiddenWidget->title() }}</p>
+                                    <p class="truncate font-mono text-[11px] text-gray-400 dark:text-gray-500">{{ $hiddenWidget->id() }}</p>
+                                </div>
+
+                                <form method="POST" action="{{ route('admin.widgets.update', ['widget' => $hiddenWidget->id()]) }}">
+                                    @csrf
+                                    @method('PUT')
+                                    <input type="hidden" name="hidden" value="0">
+
+                                    <button
+                                        type="submit"
+                                        class="inline-flex h-8 shrink-0 items-center gap-1 rounded-lg border border-gray-200 px-2.5 text-xs font-semibold text-gray-600 transition hover:border-indigo-200 hover:text-indigo-600 dark:border-white/10 dark:text-gray-300 dark:hover:border-indigo-500/40 dark:hover:text-indigo-300"
+                                    >
+                                        <x-icon name="plus" class="h-3.5 w-3.5" />
+                                        Adicionar
+                                    </button>
+                                </form>
+                            </li>
                         @endforeach
-                    </tbody>
-                </table>
+                    </ul>
+                @endif
             </div>
         </section>
     @endif

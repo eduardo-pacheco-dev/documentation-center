@@ -2,8 +2,10 @@
 
 namespace Plugins\Example\Providers;
 
+use App\Dashboard\WidgetRegistry;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
+use Plugins\Example\Widgets\ExampleWidget;
 
 class ExampleServiceProvider extends ServiceProvider
 {
@@ -24,6 +26,8 @@ class ExampleServiceProvider extends ServiceProvider
     {
         $this->loadViewsFrom(__DIR__.'/../Resources/views', 'example');
         $this->loadTranslationsFrom(__DIR__.'/../Resources/lang', 'example');
+
+        $this->app->make(WidgetRegistry::class)->register(new ExampleWidget);
     }
 
     /**
