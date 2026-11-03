@@ -6,12 +6,20 @@
 
     $pluginModules = app(PluginRepository::class)->modules();
 
+    $user = auth()->user();
+
     $enabledModules = array_filter(
-        AdminModule::enabledFor(auth()->user()),
+        AdminModule::enabledFor($user),
         fn (AdminModule $module): bool => ! in_array($module->value, $pluginModules, true),
     );
-    $primaryNav = array_filter($enabledModules, fn (AdminModule $module): bool => $module->isPrimary());
-    $moduleNav = array_filter($enabledModules, fn (AdminModule $module): bool => ! $module->isPrimary());
+    $primaryNav = array_filter(
+        $enabledModules,
+        fn (AdminModule $module): bool => AdminModule::sectionFor($user, $module) === AdminModule::SECTION_SIDEBAR,
+    );
+    $moduleNav = array_filter(
+        $enabledModules,
+        fn (AdminModule $module): bool => AdminModule::sectionFor($user, $module) === AdminModule::SECTION_MODULES,
+    );
 
     $pluginNav = collect(app(PluginRepository::class)->navigation())
         ->filter(fn (array $item): bool => Route::has($item['route']))

@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\AdminModule;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
@@ -59,4 +60,84 @@ test('regular users cannot enable administrator modules', function () {
         ->assertSessionHasErrors('modules.0');
 
     expect($user->fresh()->enabled_modules)->toBeNull();
+});
+
+test('administrators can save the module order', function () {
+    $admin = User::factory()->create(['is_admin' => true]);
+
+    $this->actingAs($admin)
+        ->put('/settings/modules', [
+            'modules' => ['users'],
+            'order' => ['users', 'dashboard'],
+        ])
+        ->assertRedirect()
+        ->assertSessionHas('status', 'Módulos atualizados com sucesso.');
+
+    expect($admin->fresh()->module_order)->toBe(['users', 'dashboard']);
+});
+
+test('the module order only accepts available modules', function () {
+    $admin = User::factory()->create(['is_admin' => true]);
+
+    $this->actingAs($admin)
+        ->put('/settings/modules', [
+            'modules' => ['users'],
+            'order' => ['missing-module'],
+        ])
+        ->assertSessionHasErrors('order.0');
+
+    expect($admin->fresh()->module_order)->toBeNull();
+});
+
+test('the enabled modules follow the saved order', function () {
+    $admin = User::factory()->create([
+        'is_admin' => true,
+        'module_order' => ['users', 'dashboard'],
+    ]);
+
+    $values = array_map(
+        fn (AdminModule $module): string => $module->value,
+        AdminModule::enabledFor($admin),
+    );
+
+    expect($values)->toBe(['users', 'dashboard']);
+});
+
+test('administrators can move modules between the sidebar and the modules menu', function () {
+    $admin = User::factory()->create(['is_admin' => true]);
+
+    $this->actingAs($admin)
+        ->put('/settings/modules', [
+            'modules' => ['users'],
+            'order' => ['dashboard', 'users'],
+            'sections' => [
+                'dashboard' => AdminModule::SECTION_MODULES,
+                'users' => AdminModule::SECTION_SIDEBAR,
+            ],
+        ])
+        ->assertRedirect()
+        ->assertSessionHas('status', 'Módulos atualizados com sucesso.');
+
+    $admin = $admin->fresh();
+
+    expect($admin->module_sections)->toBe([
+        'dashboard' => AdminModule::SECTION_MODULES,
+        'users' => AdminModule::SECTION_SIDEBAR,
+    ])->and(AdminModule::sectionFor($admin, AdminModule::Dashboard))->toBe(AdminModule::SECTION_MODULES)
+        ->and(AdminModule::sectionFor($admin, AdminModule::Users))->toBe(AdminModule::SECTION_SIDEBAR);
+});
+
+test('the module section only accepts the available groups', function () {
+    $admin = User::factory()->create(['is_admin' => true]);
+
+    $this->actingAs($admin)
+        ->put('/settings/modules', [
+            'modules' => ['users'],
+            'sections' => [
+                'users' => 'floating',
+            ],
+        ])
+        ->assertSessionHasErrors('sections.users');
+
+    expect($admin->fresh()->module_sections)->toBeNull();
 });

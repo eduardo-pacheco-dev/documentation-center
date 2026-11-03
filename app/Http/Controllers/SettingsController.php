@@ -26,6 +26,7 @@ class SettingsController extends Controller
         return view('settings.show', [
             'user' => $user,
             'modules' => AdminModule::toggleableFor($user),
+            'orderModules' => AdminModule::sortForUser($user, AdminModule::availableFor($user)),
             'enabledModules' => array_map(
                 fn (AdminModule $module): string => $module->value,
                 AdminModule::enabledFor($user),
@@ -44,9 +45,28 @@ class SettingsController extends Controller
      */
     public function updateModules(UpdateModulesRequest $request): RedirectResponse
     {
-        $request->user()->update([
+        $data = [
             'enabled_modules' => array_values($request->validated('modules') ?? []),
-        ]);
+        ];
+
+        $order = array_values($request->validated('order') ?? []);
+
+        if ($order !== []) {
+            $data['module_order'] = $order;
+        }
+
+        $sections = collect($request->validated('sections') ?? [])
+            ->only(array_map(
+                fn (AdminModule $module): string => $module->value,
+                AdminModule::availableFor($request->user()),
+            ))
+            ->all();
+
+        if ($sections !== []) {
+            $data['module_sections'] = $sections;
+        }
+
+        $request->user()->update($data);
 
         return back()->with('status', 'Módulos atualizados com sucesso.');
     }

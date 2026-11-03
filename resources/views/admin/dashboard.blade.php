@@ -1,4 +1,4 @@
-<x-layouts.dashboard title="Dashboard" :flat="true">
+<x-layouts.dashboard title="Dashboard">
     <div class="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
         <div>
             <p class="text-[11px] font-semibold uppercase tracking-[0.18em] text-gray-400 dark:text-gray-500">Visão geral</p>
@@ -9,13 +9,13 @@
         </div>
 
         <div class="flex flex-wrap items-center gap-2">
-            <span class="inline-flex h-9 items-center gap-1.5 border border-gray-300 bg-white px-3 text-xs font-medium text-gray-500 dark:border-white/15 dark:bg-transparent dark:text-gray-400">
+            <span class="inline-flex h-9 items-center gap-1.5 rounded-xl border border-gray-200 bg-white px-3 text-xs font-medium text-gray-500 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-400">
                 <x-icon name="home" class="h-4 w-4" />
                 {{ now()->locale('pt_BR')->translatedFormat('d \d\e M, Y') }}
             </span>
             <a
                 href="{{ route('settings') }}"
-                class="inline-flex h-9 items-center gap-1.5 bg-gray-900 px-4 text-sm font-semibold text-white transition hover:bg-gray-700 dark:bg-white dark:text-gray-900 dark:hover:bg-gray-200"
+                class="inline-flex h-9 items-center gap-1.5 rounded-xl bg-gray-900 px-4 text-sm font-semibold text-white transition hover:bg-gray-700 dark:bg-white dark:text-gray-900 dark:hover:bg-gray-200"
             >
                 <x-icon name="cog-6-tooth" class="h-4 w-4" />
                 Configurações
@@ -28,10 +28,10 @@
             <a
                 href="{{ route('admin.users.index') }}"
                 data-stat="usuarios"
-                class="group relative border border-gray-300 bg-white p-5 transition hover:border-gray-500 dark:border-white/15 dark:bg-[#171716] dark:hover:border-white/40"
+                class="group relative rounded-3xl border border-gray-200/80 bg-white p-5 transition hover:border-indigo-200 dark:border-white/10 dark:bg-[#171716] dark:hover:border-indigo-500/40"
             >
                 <div class="flex items-start justify-between">
-                    <span class="inline-flex h-10 w-10 items-center justify-center border border-gray-200 text-gray-600 dark:border-white/10 dark:text-gray-300">
+                    <span class="inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-400">
                         <x-icon name="users" class="h-5 w-5" />
                     </span>
                     <x-icon name="arrow-top-right-on-square" class="h-4 w-4 text-gray-300 transition group-hover:text-gray-600 dark:text-gray-600 dark:group-hover:text-gray-300" />
@@ -45,10 +45,10 @@
         <a
             href="{{ route('settings') }}#plugins"
             data-stat="plugins-instalados"
-            class="group relative border border-gray-300 bg-white p-5 transition hover:border-gray-500 dark:border-white/15 dark:bg-[#171716] dark:hover:border-white/40"
+            class="group relative rounded-3xl border border-gray-200/80 bg-white p-5 transition hover:border-indigo-200 dark:border-white/10 dark:bg-[#171716] dark:hover:border-indigo-500/40"
         >
             <div class="flex items-start justify-between">
-                <span class="inline-flex h-10 w-10 items-center justify-center border border-gray-200 text-gray-600 dark:border-white/10 dark:text-gray-300">
+                <span class="inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-400">
                     <x-icon name="squares-2x2" class="h-5 w-5" />
                 </span>
                 <x-icon name="arrow-top-right-on-square" class="h-4 w-4 text-gray-300 transition group-hover:text-gray-600 dark:text-gray-600 dark:group-hover:text-gray-300" />
@@ -61,10 +61,10 @@
         <a
             href="{{ route('settings') }}#plugins"
             data-stat="plugins-ativos"
-            class="group relative border border-gray-300 bg-white p-5 transition hover:border-gray-500 dark:border-white/15 dark:bg-[#171716] dark:hover:border-white/40"
+            class="group relative rounded-3xl border border-gray-200/80 bg-white p-5 transition hover:border-indigo-200 dark:border-white/10 dark:bg-[#171716] dark:hover:border-indigo-500/40"
         >
             <div class="flex items-start justify-between">
-                <span class="inline-flex h-10 w-10 items-center justify-center border border-gray-200 text-emerald-600 dark:border-white/10 dark:text-emerald-400">
+                <span class="inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400">
                     <x-icon name="cog-6-tooth" class="h-5 w-5" />
                 </span>
                 <x-icon name="arrow-top-right-on-square" class="h-4 w-4 text-gray-300 transition group-hover:text-gray-600 dark:text-gray-600 dark:group-hover:text-gray-300" />
@@ -76,8 +76,8 @@
     </div>
 
     @if ($recentUsers->isNotEmpty())
-        <section class="mt-4 border border-gray-300 bg-white dark:border-white/15 dark:bg-[#171716]">
-            <div class="flex items-center justify-between gap-3 border-b border-gray-200 px-5 py-4 dark:border-white/10">
+        <section class="mt-4 rounded-3xl border border-gray-200/80 bg-white dark:border-white/10 dark:bg-[#171716]">
+            <div class="flex items-center justify-between gap-3 border-b border-gray-100 px-5 py-4 dark:border-white/10">
                 <div>
                     <h2 class="text-base font-semibold text-gray-900 dark:text-white">Usuários recentes</h2>
                     <p class="mt-0.5 text-xs text-gray-500 dark:text-gray-400">Últimas contas criadas</p>
@@ -91,16 +91,16 @@
             <div class="overflow-x-auto">
                 <table class="min-w-full text-left">
                     <thead>
-                        <tr class="border-b border-gray-200 text-[10px] font-semibold uppercase tracking-wider text-gray-400 dark:border-white/10 dark:text-gray-500">
+                        <tr class="border-b border-gray-100 bg-gray-50/60 text-[10px] font-semibold uppercase tracking-wider text-gray-400 dark:border-white/10 dark:bg-white/[0.02] dark:text-gray-500">
                             <th scope="col" class="px-5 py-2.5 font-semibold">Nome</th>
                             <th scope="col" class="px-3 py-2.5 font-semibold">E-mail</th>
                             <th scope="col" class="hidden px-3 py-2.5 font-semibold sm:table-cell">Perfil</th>
                             <th scope="col" class="hidden px-5 py-2.5 text-right font-semibold md:table-cell">Criado em</th>
                         </tr>
                     </thead>
-                    <tbody class="divide-y divide-gray-200 dark:divide-white/10">
+                    <tbody class="divide-y divide-gray-100 dark:divide-white/10">
                         @foreach ($recentUsers as $recentUser)
-                            <tr class="transition hover:bg-gray-50 dark:hover:bg-white/[0.03]">
+                            <tr class="transition hover:bg-gray-50/70 dark:hover:bg-white/[0.03]">
                                 <td class="px-5 py-3 text-sm font-medium text-gray-900 dark:text-white">{{ $recentUser->full_name }}</td>
                                 <td class="px-3 py-3 text-sm text-gray-500 dark:text-gray-400">{{ $recentUser->email }}</td>
                                 <td class="hidden px-3 py-3 text-sm text-gray-500 sm:table-cell dark:text-gray-400">

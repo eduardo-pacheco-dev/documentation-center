@@ -6,6 +6,10 @@ use App\Models\User;
 
 enum AdminModule: string
 {
+    public const SECTION_SIDEBAR = 'sidebar';
+
+    public const SECTION_MODULES = 'modules';
+
     case Dashboard = 'dashboard';
     case Users = 'users';
 
@@ -93,12 +97,14 @@ enum AdminModule: string
     {
         $stored = $user->enabled_modules;
 
-        return array_values(array_filter(
+        $modules = array_values(array_filter(
             self::availableFor($user),
             fn (self $module): bool => $module === self::Dashboard
                 || ! is_array($stored)
                 || in_array($module->value, $stored, true),
         ));
+
+        return self::sortForUser($user, $modules);
     }
 
     /**
@@ -108,9 +114,53 @@ enum AdminModule: string
      */
     public static function toggleableFor(User $user): array
     {
-        return array_values(array_filter(
+        $modules = array_values(array_filter(
             self::availableFor($user),
             fn (self $module): bool => $module !== self::Dashboard,
         ));
+
+        return self::sortForUser($user, $modules);
+    }
+
+    /**
+     * The navigation section chosen by the user for the given module.
+     *
+     * @return self::SECTION_*
+     */
+    public static function sectionFor(User $user, self $module): string
+    {
+        $sections = $user->module_sections;
+        $section = is_array($sections) ? ($sections[$module->value] ?? null) : null;
+
+        if (in_array($section, [self::SECTION_SIDEBAR, self::SECTION_MODULES], true)) {
+            return $section;
+        }
+
+        return $module->isPrimary() ? self::SECTION_SIDEBAR : self::SECTION_MODULES;
+    }
+
+    /**
+     * Sort the modules using the order chosen by the user.
+     *
+     * @param  list<self>  $modules
+     * @return list<self>
+     */
+    public static function sortForUser(User $user, array $modules): array
+    {
+        $order = $user->module_order;
+
+        if (! is_array($order) || $order === []) {
+            return array_values($modules);
+        }
+
+        $positions = array_flip($order);
+
+        usort(
+            $modules,
+            fn (self $left, self $right): int => ($positions[$left->value] ?? PHP_INT_MAX)
+                <=> ($positions[$right->value] ?? PHP_INT_MAX),
+        );
+
+        return array_values($modules);
     }
 }
