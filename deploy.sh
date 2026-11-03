@@ -207,9 +207,15 @@ npm ci
 npm run build
 
 log "Caching configuration, routes and views"
-php artisan config:cache
-php artisan route:cache
-php artisan view:cache
+php -d memory_limit=1G artisan config:cache
+php -d memory_limit=1G artisan route:cache
+
+# Compiling every Blade view can exceed the default CLI memory limit on
+# servers with several plugins enabled. Fail with the real output instead of
+# aborting silently.
+if ! php -d memory_limit=1G artisan view:cache 2>&1; then
+    fail "Could not compile the Blade views (view:cache)"
+fi
 
 log "Linking storage"
 php artisan storage:link
