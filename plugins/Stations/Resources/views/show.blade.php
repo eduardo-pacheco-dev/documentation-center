@@ -11,43 +11,43 @@
             [
                 'title' => 'Identificação',
                 'fields' => [
-                    'SITE_ID' => $station->site_id,
-                    'STATION_ID' => $station->station_id,
-                    'ENDERECO_ID' => $station->endereco_id,
-                    'TIPO_DE_ELEMENTO' => $station->tipo_de_elemento,
-                    'TECNOLOGIA' => $station->tecnologia,
-                    'TIPO_DE_CONEXAO' => $station->tipo_de_conexao,
-                    'CLASSIFICACAO' => $station->classificacao,
+                    'ID do site' => $station->site_id,
+                    'ID da estação' => $station->station_id,
+                    'ID do endereço' => $station->endereco_id,
+                    'Tipo de elemento' => $station->tipo_de_elemento,
+                    'Tecnologia' => $station->tecnologia,
+                    'Tipo de conexão' => $station->tipo_de_conexao,
+                    'Classificação' => $station->classificacao,
                 ],
             ],
             [
                 'title' => 'Infraestrutura',
                 'fields' => [
-                    'DETENTOR_AREA' => $station->detentor_area,
-                    'TIPO_DE_INFRA' => $station->tipo_de_infra,
-                    'TIPO_DE_EV' => $station->tipo_de_ev,
-                    'TIPO_DA_TORRE' => $station->tipo_da_torre,
-                    'REGIONAL' => $station->regional,
+                    'Detentor da área' => $station->detentor_area,
+                    'Tipo de infraestrutura' => $station->tipo_de_infra,
+                    'Tipo de EV' => $station->tipo_de_ev,
+                    'Tipo da torre' => $station->tipo_da_torre,
+                    'Regional' => $station->regional,
                 ],
             ],
             [
                 'title' => 'Endereço',
                 'fields' => [
-                    'TIPO_DE_LOGRADOURO' => $station->tipo_de_logradouro,
-                    'LOGRADOURO' => $station->logradouro,
-                    'NUMERO' => $station->numero,
-                    'COMPLEMENTO' => $station->complemento,
-                    'BAIRRO' => $station->bairro,
-                    'MUNICIPIO' => $station->municipio,
-                    'ESTADO' => $station->estado,
+                    'Tipo de logradouro' => $station->tipo_de_logradouro,
+                    'Logradouro' => $station->logradouro,
+                    'Número' => $station->numero,
+                    'Complemento' => $station->complemento,
+                    'Bairro' => $station->bairro,
+                    'Município' => $station->municipio,
+                    'Estado (UF)' => $station->estado,
                     'CEP' => $station->cep,
                 ],
             ],
             [
                 'title' => 'Localização',
                 'fields' => [
-                    'LATITUDE' => $station->latitude,
-                    'LONGITUDE' => $station->longitude,
+                    'Latitude' => $station->latitude,
+                    'Longitude' => $station->longitude,
                 ],
             ],
         ];
@@ -108,7 +108,7 @@
                 <dl class="mt-4 divide-y divide-gray-100 dark:divide-white/10">
                     @foreach ($group['fields'] as $label => $value)
                         <div class="grid grid-cols-[10rem_minmax(0,1fr)] gap-3 py-2.5 text-sm">
-                            <dt class="font-mono text-[11px] font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500">{{ $label }}</dt>
+                            <dt class="text-xs font-medium text-gray-500 dark:text-gray-400">{{ $label }}</dt>
                             <dd class="min-w-0 break-words text-gray-700 dark:text-gray-200">{{ filled($value) ? $value : '—' }}</dd>
                         </div>
                     @endforeach

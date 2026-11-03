@@ -69,7 +69,7 @@
                     type="search"
                     name="search"
                     value="{{ $search }}"
-                    placeholder="Buscar por SITE_ID, STATION_ID, endereço..."
+                    placeholder="Buscar por ID do site, ID da estação, endereço..."
                     class="h-10 w-full rounded-xl border border-gray-300 bg-white pl-9 pr-3 text-sm text-gray-900 transition focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
                 >
             </div>

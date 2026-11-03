@@ -11,13 +11,16 @@
     $value = fn (string $name): ?string => old($name, $station?->{$name});
     $estadoAtual = mb_strtoupper((string) $value('estado'));
 
+    $fieldMeta = collect($group['fields'])->keyBy('name');
+    $labelFor = fn (string $name): string => $fieldMeta[$name]['label'] ?? $name;
+    $placeholderFor = fn (string $name): ?string => $fieldMeta[$name]['placeholder'] ?? null;
+
     $cepDigits = preg_replace('/\D/', '', (string) $value('cep'));
     $cepExibicao = strlen($cepDigits) === 8
         ? substr($cepDigits, 0, 5).'-'.substr($cepDigits, 5)
         : (string) $value('cep');
 
     $estados = config('stations.estados', []);
-    $tiposDeLogradouro = ['RUA', 'AVENIDA', 'ALAMEDA', 'ESTRADA', 'RODOVIA', 'TRAVESSIA', 'TRAVESSA', 'VIELA', 'PRAÇA'];
 @endphp
 
 <div
@@ -109,7 +112,7 @@
 >
     <div class="grid gap-4 sm:grid-cols-6">
         <div class="sm:col-span-3">
-            <label for="{{ $inputId('cep') }}" class="{{ $labelClass }}">CEP</label>
+            <label for="{{ $inputId('cep') }}" class="{{ $labelClass }}">{{ $labelFor('cep') }}</label>
 
             <div class="flex items-start gap-2">
                 <div class="relative min-w-0 flex-1">
@@ -121,7 +124,7 @@
                         value="{{ $cepExibicao }}"
                         inputmode="numeric"
                         maxlength="9"
-                        placeholder="00000-000"
+                        placeholder="{{ $placeholderFor('cep') }}"
                         autocomplete="postal-code"
                         x-on:input="mask($event)"
                         x-on:keydown.enter.prevent="lookup()"
@@ -171,38 +174,15 @@
     </div>
 
     <div class="grid gap-4 sm:grid-cols-6">
-        <div class="sm:col-span-2">
-            <label for="{{ $inputId('tipo_de_logradouro') }}" class="{{ $labelClass }}">TIPO_DE_LOGRADOURO</label>
-            <input
-                id="{{ $inputId('tipo_de_logradouro') }}"
-                name="tipo_de_logradouro"
-                type="text"
-                value="{{ $value('tipo_de_logradouro') }}"
-                list="{{ $inputId('tipo_de_logradouro') }}-suggestions"
-                placeholder="RUA"
-                @error('tipo_de_logradouro') aria-invalid="true" @enderror
-                class="{{ $inputClass }}"
-            >
-            <datalist id="{{ $inputId('tipo_de_logradouro') }}-suggestions">
-                @foreach ($tiposDeLogradouro as $tipo)
-                    <option value="{{ $tipo }}"></option>
-                @endforeach
-            </datalist>
-
-            @error('tipo_de_logradouro')
-                <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
-            @enderror
-        </div>
-
-        <div class="sm:col-span-4">
-            <label for="{{ $inputId('logradouro') }}" class="{{ $labelClass }}">LOGRADOURO</label>
+        <div class="sm:col-span-6">
+            <label for="{{ $inputId('logradouro') }}" class="{{ $labelClass }}">{{ $labelFor('logradouro') }}</label>
             <input
                 id="{{ $inputId('logradouro') }}"
                 name="logradouro"
                 type="text"
                 x-ref="logradouro"
                 value="{{ $value('logradouro') }}"
-                placeholder="LAS PALMAS"
+                placeholder="{{ $placeholderFor('logradouro') }}"
                 autocomplete="address-line1"
                 @error('logradouro') aria-invalid="true" @enderror
                 class="{{ $inputClass }}"
@@ -216,13 +196,13 @@
 
     <div class="grid gap-4 sm:grid-cols-6">
         <div class="sm:col-span-2">
-            <label for="{{ $inputId('numero') }}" class="{{ $labelClass }}">NUMERO</label>
+            <label for="{{ $inputId('numero') }}" class="{{ $labelClass }}">{{ $labelFor('numero') }}</label>
             <input
                 id="{{ $inputId('numero') }}"
                 name="numero"
                 type="text"
                 value="{{ $value('numero') }}"
-                placeholder="213"
+                placeholder="{{ $placeholderFor('numero') }}"
                 @error('numero') aria-invalid="true" @enderror
                 class="{{ $inputClass }}"
             >
@@ -233,14 +213,14 @@
         </div>
 
         <div class="sm:col-span-4">
-            <label for="{{ $inputId('complemento') }}" class="{{ $labelClass }}">COMPLEMENTO</label>
+            <label for="{{ $inputId('complemento') }}" class="{{ $labelClass }}">{{ $labelFor('complemento') }}</label>
             <input
                 id="{{ $inputId('complemento') }}"
                 name="complemento"
                 type="text"
                 x-ref="complemento"
                 value="{{ $value('complemento') }}"
-                placeholder="Bloco, sala, referência..."
+                placeholder="{{ $placeholderFor('complemento') }}"
                 autocomplete="address-line2"
                 @error('complemento') aria-invalid="true" @enderror
                 class="{{ $inputClass }}"
@@ -254,14 +234,14 @@
 
     <div class="grid gap-4 sm:grid-cols-6">
         <div class="sm:col-span-2">
-            <label for="{{ $inputId('bairro') }}" class="{{ $labelClass }}">BAIRRO</label>
+            <label for="{{ $inputId('bairro') }}" class="{{ $labelClass }}">{{ $labelFor('bairro') }}</label>
             <input
                 id="{{ $inputId('bairro') }}"
                 name="bairro"
                 type="text"
                 x-ref="bairro"
                 value="{{ $value('bairro') }}"
-                placeholder="JABAQUARA"
+                placeholder="{{ $placeholderFor('bairro') }}"
                 @error('bairro') aria-invalid="true" @enderror
                 class="{{ $inputClass }}"
             >
@@ -272,14 +252,14 @@
         </div>
 
         <div class="sm:col-span-2">
-            <label for="{{ $inputId('municipio') }}" class="{{ $labelClass }}">MUNICIPIO</label>
+            <label for="{{ $inputId('municipio') }}" class="{{ $labelClass }}">{{ $labelFor('municipio') }}</label>
             <input
                 id="{{ $inputId('municipio') }}"
                 name="municipio"
                 type="text"
                 x-ref="municipio"
                 value="{{ $value('municipio') }}"
-                placeholder="SAO PAULO"
+                placeholder="{{ $placeholderFor('municipio') }}"
                 autocomplete="address-level2"
                 @error('municipio') aria-invalid="true" @enderror
                 class="{{ $inputClass }}"
@@ -291,7 +271,7 @@
         </div>
 
         <div class="sm:col-span-2">
-            <label for="{{ $inputId('estado') }}" class="{{ $labelClass }}">ESTADO</label>
+            <label for="{{ $inputId('estado') }}" class="{{ $labelClass }}">{{ $labelFor('estado') }}</label>
             <select
                 id="{{ $inputId('estado') }}"
                 name="estado"

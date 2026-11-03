@@ -3,6 +3,7 @@
 namespace Plugins\Stations\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Plugins\Stations\Support\CoordinateParser;
 
 class StoreStationRequest extends FormRequest
 {
@@ -15,7 +16,7 @@ class StoreStationRequest extends FormRequest
     }
 
     /**
-     * Normalize the CEP before validation so the database always stores digits.
+     * Normalize the CEP and coordinates before validation.
      */
     protected function prepareForValidation(): void
     {
@@ -23,6 +24,20 @@ class StoreStationRequest extends FormRequest
             $this->merge([
                 'cep' => preg_replace('/\D/', '', (string) $this->input('cep')),
             ]);
+        }
+
+        foreach (['latitude', 'longitude'] as $coordinate) {
+            if (! $this->filled($coordinate)) {
+                continue;
+            }
+
+            $decimal = CoordinateParser::toDecimal((string) $this->input($coordinate));
+
+            if ($decimal !== null) {
+                $this->merge([
+                    $coordinate => number_format($decimal, 6, '.', ''),
+                ]);
+            }
         }
     }
 
@@ -52,11 +67,26 @@ class StoreStationRequest extends FormRequest
             'estado' => ['nullable', 'string', 'size:2'],
             'cep' => ['nullable', 'string', 'max:20'],
             'regional' => ['nullable', 'string', 'max:100'],
-            'latitude' => ['nullable', 'string', 'max:30'],
-            'longitude' => ['nullable', 'string', 'max:30'],
+            'latitude' => ['nullable', 'numeric', 'between:-90,90'],
+            'longitude' => ['nullable', 'numeric', 'between:-180,180'],
             'status' => ['nullable', 'string', 'max:50'],
             'tipo_da_torre' => ['nullable', 'string', 'max:100'],
             'station_id' => ['nullable', 'string', 'max:100'],
+        ];
+    }
+
+    /**
+     * Get custom validation messages for coordinates.
+     *
+     * @return array<string, string>
+     */
+    public function messages(): array
+    {
+        return [
+            'latitude.numeric' => 'A latitude deve estar em graus. Use graus decimais (ex.: -23.665278) ou graus, minutos e segundos (ex.: 23°39\'55"S).',
+            'latitude.between' => 'A latitude deve estar entre -90 e 90 graus.',
+            'longitude.numeric' => 'A longitude deve estar em graus. Use graus decimais (ex.: -46.641111) ou graus, minutos e segundos (ex.: 46°38\'28"W).',
+            'longitude.between' => 'A longitude deve estar entre -180 e 180 graus.',
         ];
     }
 }

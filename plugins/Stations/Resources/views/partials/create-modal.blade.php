@@ -318,7 +318,7 @@
                                 <div class="mt-3 grid gap-4 sm:grid-cols-2">
                                     @foreach ($group['fields'] as $field)
                                         <div @class(['sm:col-span-2' => ($field['span'] ?? 1) === 2])>
-                                            <label for="modal-{{ $field['name'] }}" class="{{ $labelClass }}">{{ $field['label'] }}</label>
+                                            <label for="modal-{{ $field['name'] }}" class="{{ $labelClass }}">{{ $field['label'] }}@if ($field['required'] ?? false)<span class="ml-0.5 text-red-500" aria-hidden="true">*</span>@endif</label>
                                             <input
                                                 id="modal-{{ $field['name'] }}"
                                                 name="{{ $field['name'] }}"
@@ -332,6 +332,9 @@
                                                 @error($field['name']) aria-invalid="true" @enderror
                                                 class="{{ $inputClass }}"
                                             >
+                                            @if (isset($field['hint']))
+                                                <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">{{ $field['hint'] }}</p>
+                                            @endif
                                             @error($field['name'])
                                                 <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
                                             @enderror

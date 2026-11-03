@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Str;
 use Plugins\Stations\Models\Station;
 use Plugins\Stations\Providers\StationsServiceProvider;
+use Plugins\Stations\Support\CoordinateParser;
 
 uses(RefreshDatabase::class);
 
@@ -105,9 +106,11 @@ test('the create page renders the station form', function () {
         ->get('/admin/stations/create')
         ->assertOk()
         ->assertSee('Nova estação')
-        ->assertSee('SITE_ID')
+        ->assertSee('ID do site')
         ->assertSee('viacep.com.br', false)
         ->assertSee('name="cep"', false)
+        ->assertSee('name="logradouro"', false)
+        ->assertDontSee('name="tipo_de_logradouro"', false)
         ->assertSee('name="estado"', false);
 });
 
@@ -127,8 +130,14 @@ test('the stations index renders the create modal with steps', function () {
         ->assertSee('stationCreateModal', false)
         ->assertSee('viacep.com.br', false)
         ->assertSee('id="modal-cep"', false)
+        ->assertSee('id="modal-logradouro"', false)
+        ->assertDontSee('id="modal-tipo_de_logradouro"', false)
         ->assertSee('id="modal-estado"', false)
         ->assertSee('Digite o CEP para preencher o endereço automaticamente.')
+        ->assertSee('ID do site')
+        ->assertSee('ID da estação')
+        ->assertDontSee('SITE_ID', false)
+        ->assertDontSee('STATION_ID', false)
         ->assertSeeInOrder(['id="modal-status"', 'id="modal-station_id"', 'id="modal-detentor_area"'], false);
 });
 
@@ -179,6 +188,56 @@ test('a station can be created', function () {
         ->latitude->toBe('-23.665278')
         ->longitude->toBe('-46.641111');
 });
+
+test('a station accepts coordinates in degrees minutes and seconds', function () {
+    $this->actingAs(User::factory()->create())->post('/admin/stations', [
+        'site_id' => 'SPDMS001',
+        'latitude' => '23°39\'55"S',
+        'longitude' => '46°38\'28"W',
+    ]);
+
+    $station = Station::query()->sole();
+
+    expect($station)
+        ->latitude->toBe('-23.665278')
+        ->longitude->toBe('-46.641111');
+});
+
+test('coordinates outside the valid range are rejected', function () {
+    $this->actingAs(User::factory()->create())
+        ->from('/admin/stations')
+        ->post('/admin/stations', [
+            'modal' => 'create',
+            'site_id' => 'SPLAT001',
+            'latitude' => '95',
+        ])
+        ->assertRedirect('/admin/stations')
+        ->assertSessionHasErrors('latitude');
+
+    expect(Station::query()->count())->toBe(0);
+});
+
+test('the coordinate parser handles decimal and dms formats', function (string $input, ?float $expected) {
+    $result = CoordinateParser::toDecimal($input);
+
+    if ($expected === null) {
+        expect($result)->toBeNull();
+
+        return;
+    }
+
+    expect($result)->not->toBeNull()->toEqualWithDelta($expected, 0.000001);
+})->with([
+    'decimal point' => ['-23.665278', -23.665278],
+    'decimal comma' => ['-23,665278', -23.665278],
+    'dms with symbols' => ['23°39\'55"S', -23.665278],
+    'dms with spaces' => ['23 39 55 S', -23.665278],
+    'dms with prime symbols' => ['23° 39′ 55″ S', -23.665278],
+    'longitude west' => ['46°38\'28"W', -46.641111],
+    'hemisphere first' => ['S 23 39 55', -23.665278],
+    'text is invalid' => ['abc', null],
+    'minutes out of range' => ['23 75 00', null],
+]);
 
 test('the site id is required to create a station', function () {
     $this->actingAs(User::factory()->create())
