@@ -6,16 +6,7 @@
 
         <title>{{ $title ?? config('app.name') }}</title>
 
-        <script>
-            (function () {
-                const theme = @json(auth()->user()?->theme ?? 'system');
-                const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-
-                if (theme === 'dark' || (theme === 'system' && prefersDark)) {
-                    document.documentElement.classList.add('dark');
-                }
-            })();
-        </script>
+        <x-theme-script />
         @vite(['resources/css/app.css', 'resources/js/app.js'])
     </head>
     <body class="flex min-h-screen flex-col bg-gray-50 text-gray-900 antialiased dark:bg-gray-950 dark:text-gray-100">

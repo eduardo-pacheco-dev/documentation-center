@@ -76,7 +76,11 @@ class SettingsController extends Controller
      */
     public function updateTheme(UpdateThemeRequest $request): RedirectResponse
     {
-        $request->user()->update(['theme' => $request->validated('theme')]);
+        $theme = $request->validated('theme');
+
+        $request->user()->update(['theme' => $theme]);
+
+        cookie()->queue('theme', $theme, 60 * 24 * 365);
 
         return back()->with('status', 'Preferência de tema salva com sucesso.');
     }

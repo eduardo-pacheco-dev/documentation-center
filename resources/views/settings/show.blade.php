@@ -163,7 +163,7 @@
                         class="relative mt-1.5 w-full max-w-xs"
                         x-data="{
                             open: false,
-                            value: @json(old('theme', $user->theme)),
+                            value: @js(old('theme', $user->theme)),
                             options: {
                                 system: { label: 'Sistema', description: 'Segue as preferências do seu dispositivo' },
                                 light: { label: 'Claro', description: 'Sempre com fundo claro' },
@@ -180,6 +180,7 @@
                             select(key) {
                                 this.value = key;
                                 this.open = false;
+                                window.setTheme?.(key);
                             },
                         }"
                         @keydown.escape.window="open = false"

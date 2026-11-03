@@ -37,10 +37,52 @@ test('users can save the theme preference', function () {
 
     $response->assertRedirect('/settings');
     $response->assertSessionHas('status', 'Preferência de tema salva com sucesso.');
+    $response->assertCookie('theme', 'dark');
     $this->assertDatabaseHas('users', [
         'id' => $user->id,
         'theme' => 'dark',
     ]);
+});
+
+test('the saved theme is applied to authenticated pages', function () {
+    $user = User::factory()->create(['theme' => 'dark']);
+
+    $this->actingAs($user)
+        ->get('/settings')
+        ->assertOk()
+        ->assertSee('let currentTheme = "dark";', false)
+        ->assertSee("root.classList.toggle('dark', isDark);", false);
+});
+
+test('the theme selector renders its preference as a javascript string', function () {
+    $user = User::factory()->create(['theme' => 'dark']);
+
+    $this->actingAs($user)
+        ->get('/settings')
+        ->assertOk()
+        ->assertSee("value: 'dark',", false)
+        ->assertDontSee('value: "dark",', false);
+});
+
+test('the theme cookie is applied to guest pages', function () {
+    $this->withCookie('theme', 'dark')
+        ->get('/login')
+        ->assertOk()
+        ->assertSee('let currentTheme = "dark";', false)
+        ->assertSee("root.classList.toggle('dark', isDark);", false);
+});
+
+test('the theme bootstrap is rendered on the admin and authentication layouts', function () {
+    $this->actingAs(User::factory()->admin()->create())
+        ->get('/admin')
+        ->assertOk()
+        ->assertSee('root.classList.toggle(\'dark\', isDark);', false);
+
+    auth()->guard('web')->logout();
+
+    $this->get('/login')
+        ->assertOk()
+        ->assertSee('root.classList.toggle(\'dark\', isDark);', false);
 });
 
 test('theme preference rejects invalid values', function (array $payload) {
