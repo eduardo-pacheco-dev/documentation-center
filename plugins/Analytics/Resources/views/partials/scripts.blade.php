@@ -4,9 +4,6 @@
 <script>
     (function () {
         const series = @json($series);
-        const workOrderStatuses = @json($workOrderStatuses);
-        const tasksByList = @json($tasksByList);
-        const formStatuses = @json($formStatuses);
         const snapshotSeries = @json($snapshotSeries);
         const recordsByStage = @json($recordsByStage);
         const aflByStatus = @json($aflByStatus);
@@ -67,10 +64,9 @@
             overview() {
                 if (typeof ApexCharts !== 'undefined') {
                     apexArea('analytics-series', [
-                        { name: 'Projetos', data: series.projects },
-                        { name: 'Ordens de serviço', data: series.work_orders },
-                        { name: 'Documentos', data: series.documents },
-                    ], series.labels, ['#6366f1', '#0ea5e9', '#10b981']);
+                        { name: 'FAMs', data: series.records },
+                        { name: 'AFL', data: series.afl },
+                    ], series.labels, ['#6366f1', '#f43f5e']);
                 }
 
                 if (typeof Chart === 'undefined') {
@@ -80,59 +76,6 @@
                 Chart.defaults.color = labelColor;
                 Chart.defaults.borderColor = gridColor;
                 Chart.defaults.font.family = 'inherit';
-
-                chartJs('analytics-work-orders', {
-                    type: 'doughnut',
-                    data: {
-                        labels: workOrderStatuses.length ? workOrderStatuses.map((row) => row.label) : ['Sem dados'],
-                        datasets: [{
-                            data: workOrderStatuses.length ? workOrderStatuses.map((row) => row.value) : [1],
-                            backgroundColor: workOrderStatuses.length ? workOrderStatuses.map((row) => row.color) : ['#e5e7eb'],
-                            borderWidth: 0,
-                        }],
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        cutout: '64%',
-                        plugins: { legend: { display: false } },
-                    },
-                });
-
-                chartJs('analytics-tasks-by-list', {
-                    type: 'bar',
-                    data: {
-                        labels: tasksByList.labels,
-                        datasets: [{ data: tasksByList.values, backgroundColor: '#6366f1', borderRadius: 6, maxBarThickness: 34 }],
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: { legend: { display: false } },
-                        scales: {
-                            y: { beginAtZero: true, ticks: { precision: 0 } },
-                            x: { grid: { display: false }, ticks: { maxRotation: 0, autoSkip: true } },
-                        },
-                    },
-                });
-
-                chartJs('analytics-forms', {
-                    type: 'doughnut',
-                    data: {
-                        labels: formStatuses.length ? formStatuses.map((row) => row.label) : ['Sem dados'],
-                        datasets: [{
-                            data: formStatuses.length ? formStatuses.map((row) => row.value) : [1],
-                            backgroundColor: formStatuses.length ? formStatuses.map((row) => row.color) : ['#e5e7eb'],
-                            borderWidth: 0,
-                        }],
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        cutout: '64%',
-                        plugins: { legend: { position: 'bottom', labels: { boxWidth: 8, padding: 12 } } },
-                    },
-                });
             },
 
             fams() {
@@ -205,9 +148,9 @@
                 }
 
                 apexArea('analytics-snapshots', [
-                    { name: 'Projetos', data: snapshotSeries.projects },
-                    { name: 'Ordens de serviço', data: snapshotSeries.work_orders },
-                ], snapshotSeries.labels, ['#6366f1', '#0ea5e9']);
+                    { name: 'Registros FAMs', data: snapshotSeries.records },
+                    { name: 'Registros AFL', data: snapshotSeries.afl },
+                ], snapshotSeries.labels, ['#6366f1', '#f43f5e']);
             },
         };
 

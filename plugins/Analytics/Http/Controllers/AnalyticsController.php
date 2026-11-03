@@ -38,15 +38,7 @@ class AnalyticsController extends Controller
         $recentImports = $this->recentImports($request);
 
         return view('analytics::index', [
-            'summary' => $metrics->summary(),
             'series' => $metrics->series(),
-            'workOrderStatuses' => $metrics->workOrderStatuses(),
-            'projectStatuses' => $metrics->projectStatuses(),
-            'agendaStatuses' => $metrics->agendaStatuses(),
-            'formStatuses' => $metrics->formStatuses(),
-            'taskSplit' => $metrics->taskSplit(),
-            'tasksByList' => $metrics->tasksByList(),
-            'topProjects' => $metrics->topProjects(),
             'snapshots' => $metrics->snapshots(),
             'snapshotSeries' => $metrics->snapshotSeries(),
             'recordsSummary' => $metrics->recordsSummary(),

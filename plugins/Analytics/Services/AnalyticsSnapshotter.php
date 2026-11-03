@@ -26,7 +26,7 @@ class AnalyticsSnapshotter
             ->first();
 
         if ($snapshot !== null) {
-            $snapshot->update(['metrics' => $metrics->summary()]);
+            $snapshot->update(['metrics' => $metrics->importSummary()]);
 
             return $snapshot;
         }
@@ -34,7 +34,7 @@ class AnalyticsSnapshotter
         return AnalyticsSnapshot::query()->create([
             'user_id' => $user?->getKey(),
             'captured_on' => $capturedOn,
-            'metrics' => $metrics->summary(),
+            'metrics' => $metrics->importSummary(),
         ]);
     }
 }

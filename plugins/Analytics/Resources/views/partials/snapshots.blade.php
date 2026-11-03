@@ -1,6 +1,6 @@
 {{-- Snapshots --}}
 <div id="panel-snapshots" data-panel="snapshots" role="tabpanel" aria-labelledby="tab-snapshots" class="hidden space-y-4">
-    <x-analytics::panel title="Histórico de snapshots" description="Evolução dos totais registrados dia a dia.">
+    <x-analytics::panel title="Histórico de snapshots" description="Evolução dos totais de FAMs e AFL registrados dia a dia.">
         @if ($hasSnapshotSeries)
             <x-slot:actions>
                 <x-ui.badge tone="gray">{{ count($snapshotSeries['labels']) }} dias</x-ui.badge>
@@ -28,15 +28,12 @@
 
     @if ($snapshots !== [])
         <x-analytics::table-card title="Últimos snapshots">
-            <x-analytics::data-table :columns="['Data', 'Projetos', 'OS', 'Tarefas', 'Documentos', 'Formulários']">
+            <x-analytics::data-table :columns="['Data', 'Registros FAMs', 'Registros AFL']">
                 @foreach ($snapshots as $snapshot)
                     <tr class="transition hover:bg-gray-50/70 dark:hover:bg-white/[0.03]">
                         <td class="whitespace-nowrap px-5 py-3 font-medium text-gray-900 dark:text-gray-100">{{ $snapshot['captured_on'] }}</td>
-                        <td class="px-5 py-3 text-gray-600 dark:text-gray-300">{{ $snapshot['metrics']['projects']['total'] ?? 0 }}</td>
-                        <td class="px-5 py-3 text-gray-600 dark:text-gray-300">{{ $snapshot['metrics']['work_orders']['total'] ?? 0 }}</td>
-                        <td class="px-5 py-3 text-gray-600 dark:text-gray-300">{{ $snapshot['metrics']['tasks']['total'] ?? 0 }}</td>
-                        <td class="px-5 py-3 text-gray-600 dark:text-gray-300">{{ $snapshot['metrics']['documents']['total'] ?? 0 }}</td>
-                        <td class="px-5 py-3 text-gray-600 dark:text-gray-300">{{ $snapshot['metrics']['forms']['total'] ?? 0 }}</td>
+                        <td class="px-5 py-3 text-gray-600 dark:text-gray-300">{{ $snapshot['metrics']['records']['total'] ?? 0 }}</td>
+                        <td class="px-5 py-3 text-gray-600 dark:text-gray-300">{{ $snapshot['metrics']['afl']['total'] ?? 0 }}</td>
                     </tr>
                 @endforeach
             </x-analytics::data-table>

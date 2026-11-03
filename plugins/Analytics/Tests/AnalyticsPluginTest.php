@@ -17,7 +17,6 @@ use Plugins\Analytics\Models\AnalyticsSnapshot;
 use Plugins\Analytics\Services\AnalyticsAflImporter;
 use Plugins\Analytics\Services\AnalyticsRecordImporter;
 use Plugins\Analytics\Support\AnalyticsImportProgress;
-use Plugins\Files\Models\Document;
 use Plugins\Projects\Models\Project;
 
 uses(RefreshDatabase::class);
@@ -35,7 +34,13 @@ it('shows analytics alongside the other modules in the sidebar', function () {
 
 it('renders the dashboard with charts and indicators', function () {
     $user = User::factory()->create();
-    Project::factory()->count(2)->create(['user_id' => $user->getKey()]);
+
+    AnalyticsRecord::query()->create([
+        'user_id' => $user->getKey(),
+        'oc' => '364007',
+        'os' => '417',
+        'status' => 'Aberto',
+    ]);
 
     $this->actingAs($user)
         ->get('/admin/analytics')
@@ -43,45 +48,82 @@ it('renders the dashboard with charts and indicators', function () {
         ->assertSee('Registros FAMs')
         ->assertSee('Registros AFL')
         ->assertDontSee('Projetos ativos')
-        ->assertSee('Criações no período')
-        ->assertSee('Ordens por status')
-        ->assertSee('Tarefas por lista')
-        ->assertSee('Formulários por status')
+        ->assertSee('Registros no período')
+        ->assertSee('Status FAMs')
+        ->assertSee('Etapas do processo FAMs')
+        ->assertSee('Status geral AFL')
         ->assertSee('analytics-series', false)
         ->assertSee('apexcharts', false)
         ->assertSee('chart.js', false)
-        ->assertViewHas('summary', fn (array $summary): bool => $summary['projects']['total'] === 2);
+        ->assertViewHas('series', fn (array $series): bool => array_key_exists('records', $series)
+            && array_key_exists('afl', $series)
+            && ! array_key_exists('projects', $series));
 });
 
 it('scopes the indicators to the authenticated user', function () {
     $user = User::factory()->create();
     $other = User::factory()->create();
 
-    Project::factory()->count(2)->create(['user_id' => $user->getKey()]);
-    Project::factory()->count(5)->create(['user_id' => $other->getKey()]);
+    foreach (range(1, 2) as $index) {
+        AnalyticsRecord::query()->create([
+            'user_id' => $user->getKey(),
+            'oc' => 'USER-'.$index,
+            'os' => '1',
+            'status' => 'Aberto',
+        ]);
 
-    Document::factory()->count(3)->create(['user_id' => $user->getKey()]);
-    Document::factory()->count(7)->create(['user_id' => $other->getKey()]);
+        AnalyticsAflRecord::query()->create([
+            'user_id' => $user->getKey(),
+            'code' => 'AFL-USER-'.$index,
+        ]);
+    }
+
+    foreach (range(1, 5) as $index) {
+        AnalyticsRecord::query()->create([
+            'user_id' => $other->getKey(),
+            'oc' => 'OTHER-'.$index,
+            'os' => '1',
+            'status' => 'Aberto',
+        ]);
+
+        AnalyticsAflRecord::query()->create([
+            'user_id' => $other->getKey(),
+            'code' => 'AFL-OTHER-'.$index,
+        ]);
+    }
 
     $this->actingAs($user)
         ->get('/admin/analytics')
         ->assertOk()
-        ->assertViewHas('summary', fn (array $summary): bool => $summary['projects']['total'] === 2
-            && $summary['documents']['total'] === 3);
+        ->assertViewHas('recordsSummary', fn (array $summary): bool => $summary['total'] === 2)
+        ->assertViewHas('aflSummary', fn (array $summary): bool => $summary['total'] === 2);
 });
 
 it('lets administrators switch to the global scope', function () {
     $admin = User::factory()->admin()->create();
     $other = User::factory()->create();
 
-    Project::factory()->create(['user_id' => $admin->getKey()]);
-    Project::factory()->count(3)->create(['user_id' => $other->getKey()]);
+    AnalyticsRecord::query()->create([
+        'user_id' => $admin->getKey(),
+        'oc' => 'ADMIN-1',
+        'os' => '1',
+        'status' => 'Aberto',
+    ]);
+
+    foreach (range(1, 3) as $index) {
+        AnalyticsRecord::query()->create([
+            'user_id' => $other->getKey(),
+            'oc' => 'OTHER-'.$index,
+            'os' => '1',
+            'status' => 'Aberto',
+        ]);
+    }
 
     $this->actingAs($admin)
         ->get('/admin/analytics?scope=global')
         ->assertOk()
         ->assertViewHas('isGlobal', true)
-        ->assertViewHas('summary', fn (array $summary): bool => $summary['projects']['total'] === 4);
+        ->assertViewHas('recordsSummary', fn (array $summary): bool => $summary['total'] === 4);
 });
 
 it('forbids regular users from using the global scope', function () {
@@ -93,20 +135,26 @@ it('forbids regular users from using the global scope', function () {
 it('applies the selected period to the indicators', function () {
     $user = User::factory()->create();
 
-    Project::factory()->create([
+    AnalyticsRecord::query()->create([
         'user_id' => $user->getKey(),
-        'created_at' => now()->subDays(40),
+        'oc' => 'OLD',
+        'os' => '1',
+        'created_on' => now()->subDays(40)->toDateString(),
+        'status' => 'Aberto',
     ]);
 
-    Project::factory()->create([
+    AnalyticsRecord::query()->create([
         'user_id' => $user->getKey(),
-        'created_at' => now()->subDay(),
+        'oc' => 'NEW',
+        'os' => '1',
+        'created_on' => now()->subDay()->toDateString(),
+        'status' => 'Aberto',
     ]);
 
     $this->actingAs($user)
         ->get('/admin/analytics?period=7')
         ->assertOk()
-        ->assertViewHas('summary', fn (array $summary): bool => $summary['projects']['created'] === 1);
+        ->assertViewHas('recordsSummary', fn (array $summary): bool => $summary['in_period'] === 1);
 });
 
 it('validates custom period dates', function () {
@@ -132,7 +180,18 @@ it('exports the indicators as csv', function () {
 
 it('stores a snapshot for the authenticated user', function () {
     $user = User::factory()->create();
-    Project::factory()->create(['user_id' => $user->getKey()]);
+
+    AnalyticsRecord::query()->create([
+        'user_id' => $user->getKey(),
+        'oc' => '364007',
+        'os' => '417',
+        'status' => 'Aberto',
+    ]);
+
+    AnalyticsAflRecord::query()->create([
+        'user_id' => $user->getKey(),
+        'code' => 'AFL-SNAPSHOT',
+    ]);
 
     $this->actingAs($user)
         ->post('/admin/analytics/snapshot', ['period' => 30])
@@ -140,7 +199,9 @@ it('stores a snapshot for the authenticated user', function () {
 
     $snapshot = AnalyticsSnapshot::query()->where('user_id', $user->getKey())->firstOrFail();
 
-    expect($snapshot->metrics['projects']['total'])->toBe(1)
+    expect($snapshot->metrics['records']['total'])->toBe(1)
+        ->and($snapshot->metrics['afl']['total'])->toBe(1)
+        ->and(array_key_exists('projects', $snapshot->metrics))->toBeFalse()
         ->and($snapshot->captured_on)->toBe(now()->toDateString());
 });
 
