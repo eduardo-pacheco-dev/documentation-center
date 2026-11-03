@@ -1,19 +1,22 @@
 @php
-    $cards = [
-        ['label' => 'Projetos ativos', 'value' => $summary['projects']['active'], 'hint' => $summary['projects']['total'].' no total', 'icon' => 'briefcase', 'tone' => 'indigo'],
-        ['label' => 'OS em aberto', 'value' => $summary['work_orders']['open'], 'hint' => $summary['work_orders']['total'].' no total', 'icon' => 'clipboard-document-list', 'tone' => 'sky'],
-        ['label' => 'Tarefas pendentes', 'value' => $summary['tasks']['pending'], 'hint' => $summary['tasks']['completed'].' concluídas', 'icon' => 'check-circle', 'tone' => 'emerald'],
-        ['label' => 'Documentos no período', 'value' => $summary['documents']['in_period'], 'hint' => \Illuminate\Support\Number::fileSize($summary['documents']['size']).' armazenados', 'icon' => 'document-text', 'tone' => 'violet'],
-        ['label' => 'Formulários pendentes', 'value' => $summary['forms']['pending'], 'hint' => $summary['forms']['total'].' no total', 'icon' => 'document-check', 'tone' => 'amber'],
-        ['label' => 'Eventos no período', 'value' => $summary['agenda']['in_period'], 'hint' => $summary['agenda']['total'].' na agenda', 'icon' => 'calendar-days', 'tone' => 'rose'],
-    ];
+    $stats = [];
 
     if (is_array($recordsSummary)) {
-        $cards[] = ['label' => 'Registros FAMs', 'value' => $recordsSummary['total'], 'hint' => $recordsSummary['versions'].' versões no histórico', 'icon' => 'table-cells', 'tone' => 'indigo'];
+        $stats[] = [
+            'label' => 'Registros FAMs',
+            'value' => $recordsSummary['total'],
+            'icon' => 'table-cells',
+            'color' => 'text-indigo-600 dark:text-indigo-400',
+        ];
     }
 
     if (is_array($aflSummary)) {
-        $cards[] = ['label' => 'Registros AFL', 'value' => $aflSummary['total'], 'hint' => $aflSummary['versions'].' versões no histórico', 'icon' => 'flag', 'tone' => 'rose'];
+        $stats[] = [
+            'label' => 'Registros AFL',
+            'value' => $aflSummary['total'],
+            'icon' => 'flag',
+            'color' => 'text-rose-600 dark:text-rose-400',
+        ];
     }
 
     $hasSnapshotSeries = is_array($snapshotSeries) && count($snapshotSeries['labels']) >= 2;
@@ -70,6 +73,10 @@
         </form>
     </x-ui.page-header>
 
+    @if ($stats !== [])
+        <x-analytics::stat-strip :items="$stats" class="mt-4" />
+    @endif
+
     <x-analytics::toolbar
         :periods="$periods"
         :days="$days"
@@ -77,8 +84,6 @@
         :scope-query="$scopeQuery"
         :is-admin="auth()->user()?->is_admin"
     />
-
-    <x-analytics::metric-grid :cards="$cards" class="mt-4" />
 
     <x-analytics::tabs :tabs="$tabs" class="mt-6" />
 
