@@ -1,0 +1,24 @@
+{
+    "name": "Stations",
+    "alias": "stations",
+    "description": "Cadastro de estações e elementos de rede.",
+    "version": "1.0.0",
+    "icon": "signal",
+    "active": false,
+    "priority": 20,
+    "providers": [
+        "Plugins\\Stations\\Providers\\StationsServiceProvider"
+    ],
+    "aliases": [],
+    "files": [],
+    "requires": [],
+    "navigation": [
+        {
+            "label": "Estações",
+            "route": "admin.stations.index",
+            "icon": "signal",
+            "module": null,
+            "primary": false
+        }
+    ]
+}
