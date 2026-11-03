@@ -5,6 +5,7 @@ use Plugins\Stations\Http\Controllers\StationAttachmentController;
 use Plugins\Stations\Http\Controllers\StationCommentController;
 use Plugins\Stations\Http\Controllers\StationController;
 use Plugins\Stations\Http\Controllers\StationImportController;
+use Plugins\Stations\Http\Controllers\StationStorageSettingsController;
 
 Route::middleware('auth')
     ->prefix('admin/stations')
@@ -29,4 +30,11 @@ Route::middleware('auth')
             Route::post('{station}/comentarios', [StationCommentController::class, 'store'])->name('comments.store');
             Route::delete('{station}/comentarios/{comment}', [StationCommentController::class, 'destroy'])->name('comments.destroy');
         });
+    });
+
+Route::middleware(['auth', 'admin'])
+    ->prefix('settings/stations')
+    ->name('settings.stations.')
+    ->group(function (): void {
+        Route::put('storage', [StationStorageSettingsController::class, 'update'])->name('storage.update');
     });

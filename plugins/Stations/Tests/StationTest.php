@@ -6,6 +6,7 @@ use App\Plugins\PluginMigrator;
 use App\Plugins\PluginRepository;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Storage;
@@ -13,9 +14,11 @@ use Illuminate\Support\Str;
 use Plugins\Stations\Models\Station;
 use Plugins\Stations\Models\StationAttachment;
 use Plugins\Stations\Models\StationComment;
+use Plugins\Stations\Models\StationStorageSetting;
 use Plugins\Stations\Providers\StationsServiceProvider;
 use Plugins\Stations\Support\CoordinateParser;
 use Plugins\Stations\Support\StationImporter;
+use Plugins\Stations\Support\StationStorage;
 
 uses(RefreshDatabase::class);
 
@@ -642,4 +645,185 @@ test('the sites widget groups stations by site and counts them', function () {
         ->assertOk()
         ->assertSee('SPGROUP1')
         ->assertSee('2 estações');
+});
+
+test('the storage settings section is only available to administrators', function () {
+    $this->actingAs(User::factory()->create())
+        ->get(route('settings'))
+        ->assertOk()
+        ->assertDontSee('Armazenamento');
+
+    $this->actingAs(User::factory()->create(['is_admin' => true]))
+        ->get(route('settings'))
+        ->assertOk()
+        ->assertSee('Armazenamento')
+        ->assertSee('AWS S3')
+        ->assertSee('Azure Blob')
+        ->assertSee('Cloudflare R2');
+});
+
+test('the storage provider can be changed to local', function () {
+    $this->actingAs(User::factory()->create(['is_admin' => true]))
+        ->put(route('settings.stations.storage.update'), [
+            'storage_provider' => StationStorageSetting::PROVIDER_LOCAL,
+        ])
+        ->assertRedirect(route('settings').'#stations-storage')
+        ->assertSessionHas('status');
+
+    expect(StationStorageSetting::current()->storage_provider)->toBe(StationStorageSetting::PROVIDER_LOCAL);
+});
+
+test('aws storage settings are saved encrypted and configured', function () {
+    $this->actingAs(User::factory()->create(['is_admin' => true]))
+        ->put(route('settings.stations.storage.update'), [
+            'storage_provider' => StationStorageSetting::PROVIDER_AWS,
+            'aws_key' => 'AKIAEXAMPLE',
+            'aws_secret' => 'super-secret',
+            'aws_region' => 'sa-east-1',
+            'aws_bucket' => 'stations-bucket',
+        ])
+        ->assertRedirect(route('settings').'#stations-storage');
+
+    $settings = StationStorageSetting::current();
+
+    expect($settings)
+        ->storage_provider->toBe(StationStorageSetting::PROVIDER_AWS)
+        ->aws_key->toBe('AKIAEXAMPLE')
+        ->aws_secret->toBe('super-secret')
+        ->aws_region->toBe('sa-east-1')
+        ->aws_bucket->toBe('stations-bucket');
+
+    expect(DB::table('station_storage_settings')->value('aws_secret'))
+        ->not->toBe('super-secret');
+
+    $raw = DB::table('station_storage_settings')->first();
+
+    expect($raw)
+        ->aws_key->not->toBe('AKIAEXAMPLE')
+        ->aws_region->not->toBe('sa-east-1')
+        ->aws_bucket->not->toBe('stations-bucket')
+        ->storage_provider->not->toBe(StationStorageSetting::PROVIDER_AWS);
+
+    $storage = app(StationStorage::class);
+
+    expect($storage->name())->toBe(StationStorage::DISK_AWS);
+
+    $storage->disk();
+
+    expect(config('filesystems.disks.'.StationStorage::DISK_AWS))
+        ->bucket->toBe('stations-bucket')
+        ->region->toBe('sa-east-1');
+});
+
+test('azure and cloudflare storage settings resolve their disks', function () {
+    $admin = User::factory()->create(['is_admin' => true]);
+
+    $this->actingAs($admin)
+        ->put(route('settings.stations.storage.update'), [
+            'storage_provider' => StationStorageSetting::PROVIDER_AZURE,
+            'azure_account_name' => 'stationsaccount',
+            'azure_account_key' => base64_encode(str_repeat('a', 64)),
+            'azure_container' => 'stations',
+            'azure_endpoint_suffix' => 'core.windows.net',
+        ])
+        ->assertRedirect(route('settings').'#stations-storage')
+        ->assertSessionHasNoErrors();
+
+    $storage = app(StationStorage::class);
+
+    expect($storage->name())->toBe(StationStorage::DISK_AZURE);
+
+    $storage->disk();
+
+    expect(config('filesystems.disks.'.StationStorage::DISK_AZURE))
+        ->driver->toBe('azure-storage-blob')
+        ->container->toBe('stations');
+
+    $this->actingAs($admin)
+        ->put(route('settings.stations.storage.update'), [
+            'storage_provider' => StationStorageSetting::PROVIDER_CLOUDFLARE,
+            'cloudflare_account_id' => 'account-id',
+            'cloudflare_access_key_id' => 'access-key',
+            'cloudflare_secret_access_key' => 'secret-key',
+            'cloudflare_bucket' => 'stations-bucket',
+        ])
+        ->assertRedirect(route('settings').'#stations-storage')
+        ->assertSessionHasNoErrors();
+
+    expect($storage->name())->toBe(StationStorage::DISK_CLOUDFLARE);
+
+    $storage->disk();
+
+    expect(config('filesystems.disks.'.StationStorage::DISK_CLOUDFLARE))
+        ->driver->toBe('s3')
+        ->bucket->toBe('stations-bucket')
+        ->endpoint->toBe('https://account-id.r2.cloudflarestorage.com');
+});
+
+test('leaving a secret blank keeps the stored secret', function () {
+    StationStorageSetting::current()->update([
+        'storage_provider' => StationStorageSetting::PROVIDER_AWS,
+        'aws_key' => 'AKIAEXAMPLE',
+        'aws_secret' => 'super-secret',
+        'aws_region' => 'sa-east-1',
+        'aws_bucket' => 'old-bucket',
+    ]);
+
+    $this->actingAs(User::factory()->create(['is_admin' => true]))
+        ->put(route('settings.stations.storage.update'), [
+            'storage_provider' => StationStorageSetting::PROVIDER_AWS,
+            'aws_key' => 'AKIAEXAMPLE',
+            'aws_secret' => '',
+            'aws_region' => 'sa-east-1',
+            'aws_bucket' => 'new-bucket',
+        ])
+        ->assertRedirect(route('settings').'#stations-storage');
+
+    expect(StationStorageSetting::current())
+        ->aws_secret->toBe('super-secret')
+        ->aws_bucket->toBe('new-bucket');
+});
+
+test('aws storage requires its credentials', function () {
+    $this->actingAs(User::factory()->create(['is_admin' => true]))
+        ->from(route('settings'))
+        ->put(route('settings.stations.storage.update'), [
+            'storage_provider' => StationStorageSetting::PROVIDER_AWS,
+        ])
+        ->assertSessionHasErrors(['aws_key', 'aws_secret', 'aws_region', 'aws_bucket']);
+});
+
+test('non administrators cannot update storage settings', function () {
+    $this->actingAs(User::factory()->create())
+        ->put(route('settings.stations.storage.update'), [
+            'storage_provider' => StationStorageSetting::PROVIDER_LOCAL,
+        ])
+        ->assertForbidden();
+});
+
+test('new attachments are stored on the configured provider disk', function () {
+    Storage::fake(StationStorage::DISK_AWS);
+
+    StationStorageSetting::current()->update([
+        'storage_provider' => StationStorageSetting::PROVIDER_AWS,
+        'aws_key' => 'AKIAEXAMPLE',
+        'aws_secret' => 'super-secret',
+        'aws_region' => 'sa-east-1',
+        'aws_bucket' => 'stations-bucket',
+    ]);
+
+    $station = Station::factory()->create();
+
+    $this->actingAs(User::factory()->create())
+        ->post(route('admin.stations.attachments.store', $station), [
+            'category' => StationAttachment::CATEGORY_ATTACHMENT,
+            'files' => [UploadedFile::fake()->create('planta.pdf', 120, 'application/pdf')],
+        ])
+        ->assertRedirect();
+
+    $attachment = $station->attachments()->sole();
+
+    expect($attachment->disk)->toBe(StationStorage::DISK_AWS);
+
+    Storage::disk(StationStorage::DISK_AWS)->assertExists($attachment->path);
 });

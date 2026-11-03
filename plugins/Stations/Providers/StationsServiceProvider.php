@@ -3,9 +3,11 @@
 namespace Plugins\Stations\Providers;
 
 use App\Dashboard\WidgetRegistry;
+use App\Settings\SettingsSectionRegistry;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
+use Plugins\Stations\Settings\StationStorageSettingsSection;
 use Plugins\Stations\Widgets\StationSitesWidget;
 
 class StationsServiceProvider extends ServiceProvider
@@ -33,6 +35,8 @@ class StationsServiceProvider extends ServiceProvider
         }
 
         $this->app->make(WidgetRegistry::class)->register(new StationSitesWidget);
+
+        $this->app->make(SettingsSectionRegistry::class)->register(new StationStorageSettingsSection);
     }
 
     /**

@@ -6,6 +6,7 @@ use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Plugins\Stations\Models\Station;
 use Plugins\Stations\Models\StationAttachment;
+use Plugins\Stations\Support\StationStorage;
 
 /**
  * @extends Factory<StationAttachment>
@@ -32,6 +33,7 @@ class StationAttachmentFactory extends Factory
             'category' => StationAttachment::CATEGORY_ATTACHMENT,
             'original_name' => $name,
             'path' => 'stations/attachments/'.fake()->uuid().'.pdf',
+            'disk' => StationStorage::DISK_LOCAL,
             'mime_type' => 'application/pdf',
             'size' => fake()->numberBetween(1024, 5 * 1024 * 1024),
         ];

@@ -6,7 +6,12 @@
             $sections[] = 'plugins';
         }
 
-        $sections = [...$sections, 'senha', 'conta'];
+        $sections = [
+            ...$sections,
+            ...$pluginSettingsSections->map(fn ($section): string => $section->id())->all(),
+            'senha',
+            'conta',
+        ];
 
         $cardClass = 'rounded-3xl border border-gray-200/80 bg-white dark:border-white/10 dark:bg-[#171716]';
         $headerClass = 'flex items-start gap-3 p-5 sm:p-6';
@@ -111,6 +116,18 @@
                             @endif
                         </a>
                     @endif
+
+                    @foreach ($pluginSettingsSections as $pluginSection)
+                        <a
+                            href="#{{ $pluginSection->id() }}"
+                            @click="active = '{{ $pluginSection->id() }}'"
+                            x-bind:class="active === '{{ $pluginSection->id() }}' ? '{{ $navActive }}' : '{{ $navIdle }}'"
+                            class="group flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm font-medium transition"
+                        >
+                            <x-icon :name="$pluginSection->icon()" class="h-4 w-4 shrink-0" x-bind:class="active === '{{ $pluginSection->id() }}' ? 'text-white' : 'text-gray-400'" />
+                            <span class="flex-1 truncate">{{ $pluginSection->title() }}</span>
+                        </a>
+                    @endforeach
 
                     <a
                         href="#senha"
@@ -438,6 +455,10 @@
                     'inputClass' => $inputClass,
                 ])
             @endif
+
+            @foreach ($pluginSettingsSections as $pluginSection)
+                @include($pluginSection->view(), ['section' => $pluginSection] + $pluginSection->data(request()))
+            @endforeach
 
             <form
                 id="senha"

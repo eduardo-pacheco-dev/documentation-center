@@ -7,8 +7,8 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Support\Facades\Storage;
 use Plugins\Stations\Database\Factories\StationAttachmentFactory;
+use Plugins\Stations\Support\StationStorage;
 
 #[Fillable([
     'station_id',
@@ -16,6 +16,7 @@ use Plugins\Stations\Database\Factories\StationAttachmentFactory;
     'category',
     'original_name',
     'path',
+    'disk',
     'mime_type',
     'size',
 ])]
@@ -47,7 +48,9 @@ class StationAttachment extends Model
     protected static function booted(): void
     {
         static::deleting(function (StationAttachment $attachment): void {
-            Storage::disk('local')->delete($attachment->path);
+            app(StationStorage::class)
+                ->disk($attachment->disk ?: StationStorage::DISK_LOCAL)
+                ->delete($attachment->path);
         });
     }
 
