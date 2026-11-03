@@ -14,6 +14,7 @@ use Illuminate\Support\Facades\Schema;
 use Plugins\Agenda\Enums\AgendaEventStatus;
 use Plugins\Agenda\Models\AgendaEvent;
 use Plugins\Analytics\Models\AnalyticsAflRecord;
+use Plugins\Analytics\Models\AnalyticsNokiaRecord;
 use Plugins\Analytics\Models\AnalyticsRecord;
 use Plugins\Analytics\Models\AnalyticsSnapshot;
 use Plugins\Analytics\Support\AnalyticsDatabase;
@@ -63,6 +64,8 @@ class AnalyticsMetrics
     private ?bool $hasRecordsTable = null;
 
     private ?bool $hasAflTable = null;
+
+    private ?bool $hasNokiaTable = null;
 
     public function __construct(
         public readonly CarbonImmutable $from,
@@ -304,7 +307,7 @@ class AnalyticsMetrics
     /**
      * The snapshot totals as a chart series, when snapshots exist.
      *
-     * @return array{labels: list<string>, records: list<int>, afl: list<int>}|null
+     * @return array{labels: list<string>, records: list<int>, afl: list<int>, nokia: list<int>}|null
      */
     public function snapshotSeries(): ?array
     {
@@ -320,19 +323,21 @@ class AnalyticsMetrics
             'labels' => array_column($snapshots, 'captured_on'),
             'records' => array_map(fn (array $snapshot): int => (int) ($snapshot['metrics']['records']['total'] ?? 0), $snapshots),
             'afl' => array_map(fn (array $snapshot): int => (int) ($snapshot['metrics']['afl']['total'] ?? 0), $snapshots),
+            'nokia' => array_map(fn (array $snapshot): int => (int) ($snapshot['metrics']['nokia']['total'] ?? 0), $snapshots),
         ];
     }
 
     /**
-     * The imported FAMs and AFL indicators stored in snapshots.
+     * The imported FAMs, AFL and Nokia indicators stored in snapshots.
      *
-     * @return array{records: array{total: int, in_period: int, versions: int}|null, afl: array{total: int, in_period: int, versions: int}|null}
+     * @return array{records: array{total: int, in_period: int, versions: int}|null, afl: array{total: int, in_period: int, versions: int}|null, nokia: array{total: int, in_period: int, versions: int}|null}
      */
     public function importSummary(): array
     {
         return [
             'records' => $this->recordsSummary(),
             'afl' => $this->aflSummary(),
+            'nokia' => $this->nokiaSummary(),
         ];
     }
 
@@ -888,6 +893,183 @@ class AnalyticsMetrics
     private function hasSnapshotsTable(): bool
     {
         return AnalyticsDatabase::schema()->hasTable('analytics_snapshots');
+    }
+
+    /**
+     * The imported Nokia indicators.
+     *
+     * @return array{total: int, in_period: int, versions: int}|null
+     */
+    public function nokiaSummary(): ?array
+    {
+        if (! $this->hasNokiaTable()) {
+            return null;
+        }
+
+        $query = $this->latestNokiaRecords();
+
+        return [
+            'total' => (clone $query)->count(),
+            'in_period' => (clone $query)
+                ->whereBetween('created_at', [$this->from, $this->to])
+                ->count(),
+            'versions' => AnalyticsNokiaRecord::query()
+                ->when($this->user !== null, fn (Builder $inner) => $inner->where('user_id', $this->user->getKey()))
+                ->count(),
+        ];
+    }
+
+    /**
+     * The Nokia records grouped by general status.
+     *
+     * @return array{labels: list<string>, values: list<int>}
+     */
+    public function nokiaByStatus(): array
+    {
+        return $this->nokiaBreakdown('status_geral');
+    }
+
+    /**
+     * The Nokia records grouped by regional.
+     *
+     * @return array{labels: list<string>, values: list<int>}
+     */
+    public function nokiaByRegional(): array
+    {
+        return $this->nokiaBreakdown('regional');
+    }
+
+    /**
+     * The latest Nokia records for the current scope.
+     *
+     * @return list<array<string, mixed>>
+     */
+    public function recentNokiaRecords(int $limit = 8): array
+    {
+        if (! $this->hasNokiaTable()) {
+            return [];
+        }
+
+        $records = $this->latestNokiaRecords()
+            ->orderByDesc('created_at')
+            ->orderByDesc('id')
+            ->limit($limit)
+            ->get();
+
+        $counts = $this->nokiaVersionCounts($records);
+
+        return $records
+            ->map(fn (AnalyticsNokiaRecord $record): array => [
+                'oc' => $record->oc,
+                'site_id' => $record->site_id,
+                'city' => $record->city,
+                'uf' => $record->uf,
+                'regional' => $record->regional,
+                'project' => $record->project,
+                'gap_status' => $record->gap_status,
+                'macro_status' => $record->macro_status,
+                'status_geral' => $record->status_geral,
+                'imported_at' => $record->created_at?->format('d/m/Y H:i'),
+                'versions' => $counts[$record->oc] ?? 1,
+            ])
+            ->all();
+    }
+
+    /**
+     * The latest Nokia changes, newest first.
+     *
+     * @return list<array<string, mixed>>
+     */
+    public function recentNokiaChanges(int $limit = 8): array
+    {
+        if (! $this->hasNokiaTable()) {
+            return [];
+        }
+
+        $firstIds = AnalyticsNokiaRecord::query()
+            ->selectRaw('MIN(id)')
+            ->when($this->user !== null, fn (Builder $query) => $query->where('user_id', $this->user->getKey()))
+            ->groupBy('oc');
+
+        return AnalyticsNokiaRecord::query()
+            ->whereNotIn('id', $firstIds)
+            ->when($this->user !== null, fn (Builder $query) => $query->where('user_id', $this->user->getKey()))
+            ->orderByDesc('id')
+            ->limit($limit)
+            ->get()
+            ->map(fn (AnalyticsNokiaRecord $record): array => [
+                'oc' => $record->oc,
+                'site_id' => $record->site_id,
+                'status_geral' => $record->status_geral,
+                'imported_at' => $record->created_at?->format('d/m/Y H:i'),
+            ])
+            ->all();
+    }
+
+    /**
+     * The latest recorded version of every Nokia OC.
+     *
+     * @return Builder<AnalyticsNokiaRecord>
+     */
+    private function latestNokiaRecords(): Builder
+    {
+        $latestIds = AnalyticsNokiaRecord::query()
+            ->selectRaw('MAX(id)')
+            ->when($this->user !== null, fn (Builder $query) => $query->where('user_id', $this->user->getKey()))
+            ->groupBy('oc');
+
+        return AnalyticsNokiaRecord::query()->whereIn('id', $latestIds);
+    }
+
+    /**
+     * @return array{labels: list<string>, values: list<int>}
+     */
+    private function nokiaBreakdown(string $column): array
+    {
+        if (! $this->hasNokiaTable()) {
+            return ['labels' => [], 'values' => []];
+        }
+
+        $rows = $this->latestNokiaRecords()
+            ->whereNotNull($column)
+            ->where($column, '!=', '')
+            ->selectRaw("{$column} as label, count(*) as total")
+            ->groupBy($column)
+            ->orderByDesc('total')
+            ->limit((int) config('analytics.ranking_limit', 6))
+            ->get();
+
+        return [
+            'labels' => $rows->pluck('label')->map(fn ($label): string => (string) $label)->all(),
+            'values' => $rows->pluck('total')->map(fn ($total): int => (int) $total)->all(),
+        ];
+    }
+
+    /**
+     * @param  Collection<int, AnalyticsNokiaRecord>  $records
+     * @return array<string, int>
+     */
+    private function nokiaVersionCounts($records): array
+    {
+        if ($records->isEmpty()) {
+            return [];
+        }
+
+        $counts = AnalyticsNokiaRecord::query()
+            ->when($this->user !== null, fn (Builder $query) => $query->where('user_id', $this->user->getKey()))
+            ->whereIn('oc', $records->pluck('oc')->all())
+            ->selectRaw('oc, count(*) as total')
+            ->groupBy('oc')
+            ->get();
+
+        return $counts
+            ->mapWithKeys(fn ($row): array => [(string) $row->oc => (int) $row->total])
+            ->all();
+    }
+
+    private function hasNokiaTable(): bool
+    {
+        return $this->hasNokiaTable ??= AnalyticsDatabase::schema()->hasTable('analytics_nokia_records');
     }
 
     private function hasAflTable(): bool

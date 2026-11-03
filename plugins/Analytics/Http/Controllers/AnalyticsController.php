@@ -12,8 +12,10 @@ use Illuminate\View\View;
 use Maatwebsite\Excel\Facades\Excel;
 use Plugins\Analytics\Enums\AnalyticsImportStatus;
 use Plugins\Analytics\Exports\AnalyticsAflTemplateExport;
+use Plugins\Analytics\Exports\AnalyticsNokiaTemplateExport;
 use Plugins\Analytics\Exports\AnalyticsRecordsTemplateExport;
 use Plugins\Analytics\Http\Requests\ImportAnalyticsAflRequest;
+use Plugins\Analytics\Http\Requests\ImportAnalyticsNokiaRequest;
 use Plugins\Analytics\Http\Requests\ImportAnalyticsRecordsRequest;
 use Plugins\Analytics\Jobs\ProcessAnalyticsImportJob;
 use Plugins\Analytics\Models\AnalyticsImport;
@@ -53,6 +55,11 @@ class AnalyticsController extends Controller
             'aflByProject' => $metrics->aflByProject(),
             'recentAflRecords' => $metrics->recentAflRecords(),
             'aflChanges' => $metrics->recentAflChanges(),
+            'nokiaSummary' => $metrics->nokiaSummary(),
+            'nokiaByStatus' => $metrics->nokiaByStatus(),
+            'nokiaByRegional' => $metrics->nokiaByRegional(),
+            'recentNokiaRecords' => $metrics->recentNokiaRecords(),
+            'nokiaChanges' => $metrics->recentNokiaChanges(),
             'from' => $period['from'],
             'to' => $period['to'],
             'days' => $period['days'],
@@ -182,6 +189,14 @@ class AnalyticsController extends Controller
     public function importAfl(ImportAnalyticsAflRequest $request): RedirectResponse
     {
         return $this->queueImport($request, AnalyticsImport::TYPE_AFL, 'Importação AFL');
+    }
+
+    /**
+     * Queue the Nokia spreadsheet import.
+     */
+    public function importNokia(ImportAnalyticsNokiaRequest $request): RedirectResponse
+    {
+        return $this->queueImport($request, AnalyticsImport::TYPE_NOKIA, 'Importação Nokia');
     }
 
     /**
@@ -363,6 +378,14 @@ class AnalyticsController extends Controller
     public function aflTemplate(): BinaryFileResponse
     {
         return Excel::download(new AnalyticsAflTemplateExport, 'modelo-analytics-afl.xlsx');
+    }
+
+    /**
+     * Download the Nokia import template.
+     */
+    public function nokiaTemplate(): BinaryFileResponse
+    {
+        return Excel::download(new AnalyticsNokiaTemplateExport, 'modelo-analytics-nokia.xlsx');
     }
 
     /**

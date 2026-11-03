@@ -19,6 +19,15 @@
         ];
     }
 
+    if (is_array($nokiaSummary)) {
+        $stats[] = [
+            'label' => 'Registros Nokia',
+            'value' => $nokiaSummary['total'],
+            'icon' => 'signal',
+            'color' => 'text-sky-600 dark:text-sky-400',
+        ];
+    }
+
     $hasSnapshotSeries = is_array($snapshotSeries) && count($snapshotSeries['labels']) >= 2;
     $scopeQuery = $scope === 'global' ? 'global' : null;
 
@@ -26,6 +35,7 @@
         'overview' => ['label' => 'Visão geral', 'count' => null],
         'fams' => ['label' => 'FAMs', 'count' => $recordsSummary['total'] ?? null],
         'afl' => ['label' => 'AFL', 'count' => $aflSummary['total'] ?? null],
+        'nokia' => ['label' => 'Nokia', 'count' => $nokiaSummary['total'] ?? null],
         'snapshots' => ['label' => 'Snapshots', 'count' => $snapshots === [] ? null : count($snapshots)],
     ];
 @endphp
@@ -91,6 +101,7 @@
         @include('analytics::partials.overview')
         @include('analytics::partials.fams')
         @include('analytics::partials.afl')
+        @include('analytics::partials.nokia')
         @include('analytics::partials.snapshots')
     </div>
 

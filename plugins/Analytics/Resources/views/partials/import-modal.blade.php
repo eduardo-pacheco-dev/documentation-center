@@ -1,6 +1,6 @@
 @php
     $importModalOpen = session('import_started') === true
-        || ($errors->any() && in_array(old('modal'), ['import-fams', 'import-afl'], true));
+        || ($errors->any() && in_array(old('modal'), ['import-fams', 'import-afl', 'import-nokia'], true));
 @endphp
 
 <x-ui.modal
@@ -63,6 +63,28 @@
                     $aflSummary['total'].' registros',
                     $aflSummary['versions'].' versões',
                     $aflSummary['in_period'].' no período',
+                ]"
+                :days="$days"
+                :scope="$scope"
+            />
+        @endif
+
+        @if (is_array($nokiaSummary))
+            <x-analytics::import-form
+                title="Importar dados Nokia"
+                description="Planilha Nokia completa: OC, SITE ID, status, projetos, prazos e faturamento."
+                action="analytics.nokia.import"
+                template-route="analytics.nokia.template"
+                submit-label="Importar Nokia"
+                file-id="nokia-file"
+                tone="sky"
+                max-size="20 MB"
+                modal-target="import-nokia"
+                :disabled="$hasPendingImports"
+                :summary="[
+                    $nokiaSummary['total'].' registros',
+                    $nokiaSummary['versions'].' versões',
+                    $nokiaSummary['in_period'].' no período',
                 ]"
                 :days="$days"
                 :scope="$scope"

@@ -2,7 +2,7 @@
     'title',
     'description',
     'action',
-    'templateRoute',
+    'templateRoute' => null,
     'templateLabel' => 'Baixar modelo (.xlsx)',
     'submitLabel' => 'Importar',
     'fileId',
@@ -29,6 +29,12 @@
             'icon' => 'text-rose-600 dark:text-rose-300',
             'button' => 'bg-rose-600 hover:bg-rose-500',
         ],
+        'sky' => [
+            'link' => 'text-sky-600 hover:text-sky-500 dark:text-sky-400',
+            'dropzone' => 'hover:border-sky-300 hover:bg-sky-50/40 dark:hover:border-sky-500/40',
+            'icon' => 'text-sky-600 dark:text-sky-300',
+            'button' => 'bg-sky-600 hover:bg-sky-500',
+        ],
     ];
 
     $palette = $tones[$tone] ?? $tones['indigo'];
@@ -41,10 +47,12 @@
             <p class="mt-1 text-xs leading-relaxed text-gray-500 dark:text-gray-400">{{ $description }}</p>
         </div>
 
-        <a href="{{ route($templateRoute) }}" class="inline-flex shrink-0 items-center gap-1.5 text-xs font-semibold {{ $palette['link'] }}">
-            <x-icon name="arrow-down-tray" class="h-4 w-4" />
-            {{ $templateLabel }}
-        </a>
+        @if ($templateRoute)
+            <a href="{{ route($templateRoute) }}" class="inline-flex shrink-0 items-center gap-1.5 text-xs font-semibold {{ $palette['link'] }}">
+                <x-icon name="arrow-down-tray" class="h-4 w-4" />
+                {{ $templateLabel }}
+            </a>
+        @endif
     </div>
 
     <form method="POST" action="{{ route($action) }}" enctype="multipart/form-data" class="mt-3 space-y-3">

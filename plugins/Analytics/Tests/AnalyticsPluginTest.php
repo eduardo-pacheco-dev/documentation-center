@@ -15,9 +15,11 @@ use Plugins\Analytics\Exceptions\AnalyticsImportCanceledException;
 use Plugins\Analytics\Jobs\ProcessAnalyticsImportJob;
 use Plugins\Analytics\Models\AnalyticsAflRecord;
 use Plugins\Analytics\Models\AnalyticsImport;
+use Plugins\Analytics\Models\AnalyticsNokiaRecord;
 use Plugins\Analytics\Models\AnalyticsRecord;
 use Plugins\Analytics\Models\AnalyticsSnapshot;
 use Plugins\Analytics\Services\AnalyticsAflImporter;
+use Plugins\Analytics\Services\AnalyticsNokiaImporter;
 use Plugins\Analytics\Services\AnalyticsRecordImporter;
 use Plugins\Analytics\Support\AnalyticsImportProgress;
 use Plugins\Projects\Models\Project;
@@ -197,6 +199,12 @@ it('stores a snapshot for the authenticated user', function () {
         'code' => 'AFL-SNAPSHOT',
     ]);
 
+    AnalyticsNokiaRecord::query()->create([
+        'user_id' => $user->getKey(),
+        'oc' => '1361273',
+        'data' => ['oc' => '1361273'],
+    ]);
+
     $this->actingAs($user)
         ->post('/admin/analytics/snapshot', ['period' => 30])
         ->assertRedirect();
@@ -205,6 +213,7 @@ it('stores a snapshot for the authenticated user', function () {
 
     expect($snapshot->metrics['records']['total'])->toBe(1)
         ->and($snapshot->metrics['afl']['total'])->toBe(1)
+        ->and($snapshot->metrics['nokia']['total'])->toBe(1)
         ->and(array_key_exists('projects', $snapshot->metrics))->toBeFalse()
         ->and($snapshot->captured_on)->toBe(now()->toDateString());
 });
@@ -418,6 +427,7 @@ it('skips an import that was canceled before the job runs', function () {
     (new ProcessAnalyticsImportJob($import))->handle(
         app(AnalyticsRecordImporter::class),
         app(AnalyticsAflImporter::class),
+        app(AnalyticsNokiaImporter::class),
     );
 
     expect(AnalyticsRecord::query()->count())->toBe(0)
@@ -449,6 +459,7 @@ it('raises the memory limit before processing an import', function () {
         (new ProcessAnalyticsImportJob($import))->handle(
             app(AnalyticsRecordImporter::class),
             app(AnalyticsAflImporter::class),
+            app(AnalyticsNokiaImporter::class),
         );
 
         expect(ini_get('memory_limit'))->toBe('1G');
@@ -882,6 +893,149 @@ it('exports the afl breakdowns as csv', function () {
         ->toContain('Status de faturamento AFL');
 });
 
+it('imports nokia records from a spreadsheet', function () {
+    $user = User::factory()->create();
+
+    $path = analyticsNokiaSheet([
+        [
+            'OC' => '1361273',
+            'SITE ID' => 'SN-VPIOB4',
+            'Cidade' => 'VALPARAISO DE GOIAS',
+            'UF' => 'GO',
+            'Regional' => 'TCO',
+            'Projeto' => 'Swap - G3',
+            'GAP STATUS (Automático)' => 'OK',
+            'MACRO STATUS' => 'Greenfield',
+            'STATUS GERAL' => 'EM ANDAMENTO',
+        ],
+    ]);
+
+    $this->actingAs($user)
+        ->post('/admin/analytics/nokia/import', [
+            'file' => new UploadedFile($path, 'nokia.xlsx', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', null, true),
+        ])
+        ->assertRedirect()
+        ->assertSessionHasNoErrors();
+
+    $record = AnalyticsNokiaRecord::query()->firstOrFail();
+
+    expect($record->oc)->toBe('1361273')
+        ->and($record->site_id)->toBe('SN-VPIOB4')
+        ->and($record->city)->toBe('VALPARAISO DE GOIAS')
+        ->and($record->uf)->toBe('GO')
+        ->and($record->regional)->toBe('TCO')
+        ->and($record->project)->toBe('Swap - G3')
+        ->and($record->gap_status)->toBe('OK')
+        ->and($record->macro_status)->toBe('Greenfield')
+        ->and($record->status_geral)->toBe('EM ANDAMENTO')
+        ->and($record->data['site_id'])->toBe('SN-VPIOB4');
+
+    @unlink($path);
+});
+
+it('creates a new nokia version when the row changes', function () {
+    $user = User::factory()->create();
+
+    $row = [
+        'OC' => '1361273',
+        'SITE ID' => 'SN-VPIOB4',
+        'Cidade' => 'VALPARAISO DE GOIAS',
+        'UF' => 'GO',
+        'STATUS GERAL' => 'EM ANDAMENTO',
+    ];
+
+    $first = analyticsNokiaSheet([$row]);
+    $changed = analyticsNokiaSheet([[...$row, 'STATUS GERAL' => 'CONCLUÍDO']]);
+
+    $this->actingAs($user)
+        ->post('/admin/analytics/nokia/import', [
+            'file' => new UploadedFile($first, 'nokia.xlsx', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', null, true),
+        ])
+        ->assertSessionHasNoErrors();
+
+    $this->actingAs($user)
+        ->post('/admin/analytics/nokia/import', [
+            'file' => new UploadedFile($first, 'nokia.xlsx', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', null, true),
+        ])
+        ->assertSessionHas('status', 'Importação Nokia concluída: 0 novo(s), 0 atualizado(s) e 1 sem alteração.');
+
+    $this->actingAs($user)
+        ->post('/admin/analytics/nokia/import', [
+            'file' => new UploadedFile($changed, 'nokia.xlsx', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', null, true),
+        ])
+        ->assertSessionHas('status', 'Importação Nokia concluída: 0 novo(s), 1 atualizado(s) e 0 sem alteração.');
+
+    expect(AnalyticsNokiaRecord::query()->count())->toBe(2)
+        ->and(AnalyticsNokiaRecord::query()->where('status_geral', 'CONCLUÍDO')->exists())->toBeTrue();
+
+    @unlink($first);
+    @unlink($changed);
+});
+
+it('requires the nokia oc to import a row', function () {
+    $user = User::factory()->create();
+
+    $path = analyticsNokiaSheet([['SITE ID' => 'SN-VPIOB4']]);
+
+    $this->actingAs($user)
+        ->post('/admin/analytics/nokia/import', [
+            'file' => new UploadedFile($path, 'nokia.xlsx', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', null, true),
+        ])
+        ->assertSessionHasErrors('import');
+
+    expect(AnalyticsNokiaRecord::query()->count())->toBe(0);
+
+    @unlink($path);
+});
+
+it('downloads the nokia import template', function () {
+    $this->actingAs(User::factory()->create())
+        ->get('/admin/analytics/nokia/template')
+        ->assertOk()
+        ->assertHeader('content-type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+});
+
+it('shows the nokia indicators and history in the dashboard', function () {
+    $user = User::factory()->create();
+    $other = User::factory()->create();
+
+    AnalyticsNokiaRecord::query()->create([
+        'user_id' => $user->getKey(),
+        'oc' => '1361273',
+        'site_id' => 'SN-VPIOB4',
+        'regional' => 'TCO',
+        'status_geral' => 'EM ANDAMENTO',
+        'data' => ['oc' => '1361273'],
+    ]);
+
+    AnalyticsNokiaRecord::query()->create([
+        'user_id' => $user->getKey(),
+        'oc' => '1361273',
+        'site_id' => 'SN-VPIOB4',
+        'regional' => 'TCO',
+        'status_geral' => 'CONCLUÍDO',
+        'data' => ['oc' => '1361273'],
+    ]);
+
+    AnalyticsNokiaRecord::query()->create([
+        'user_id' => $other->getKey(),
+        'oc' => 'NOKIA-OTHER',
+        'status_geral' => 'EM ANDAMENTO',
+        'data' => ['oc' => 'NOKIA-OTHER'],
+    ]);
+
+    $this->actingAs($user)
+        ->get('/admin/analytics')
+        ->assertOk()
+        ->assertSee('Importar dados Nokia')
+        ->assertSee('Histórico de alterações Nokia')
+        ->assertDontSee('NOKIA-OTHER')
+        ->assertViewHas('nokiaSummary', fn (array $summary): bool => $summary['total'] === 1 && $summary['versions'] === 2)
+        ->assertViewHas('nokiaByStatus', fn (array $breakdown): bool => $breakdown['labels'] === ['CONCLUÍDO'])
+        ->assertViewHas('recentNokiaRecords', fn (array $records): bool => count($records) === 1 && $records[0]['versions'] === 2)
+        ->assertViewHas('nokiaChanges', fn (array $changes): bool => count($changes) === 1);
+});
+
 it('reports progress while importing fams records', function () {
     $user = User::factory()->create();
     $reports = [];
@@ -920,6 +1074,50 @@ it('reports progress while importing afl records', function () {
         ->and($last['processed'])->toBe(1)
         ->and($last['total'])->toBe(1);
 });
+
+/**
+ * Build an XLSX spreadsheet with the Nokia heading row.
+ *
+ * @param  array<int, array<string, string>>  $rows
+ */
+function analyticsNokiaSheet(array $rows): string
+{
+    $headers = [
+        'OC',
+        'SITE ID',
+        'Cidade',
+        'UF',
+        'Regional',
+        'Projeto',
+        'GAP STATUS (Automático)',
+        'MACRO STATUS',
+        'STATUS GERAL',
+    ];
+
+    $spreadsheet = new Spreadsheet;
+    $sheet = $spreadsheet->getActiveSheet();
+    $sheet->fromArray([$headers], null, 'A1');
+
+    $line = 2;
+
+    foreach ($rows as $row) {
+        $cells = [];
+
+        foreach ($headers as $header) {
+            $cells[] = $row[$header] ?? null;
+        }
+
+        $sheet->fromArray([$cells], null, 'A'.$line);
+
+        $line++;
+    }
+
+    $path = tempnam(sys_get_temp_dir(), 'nokia_').'.xlsx';
+
+    (new Xlsx($spreadsheet))->save($path);
+
+    return $path;
+}
 
 /**
  * Build an XLSX spreadsheet with the AFL layout.

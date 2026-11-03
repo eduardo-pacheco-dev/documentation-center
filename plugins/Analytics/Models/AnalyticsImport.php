@@ -29,6 +29,8 @@ class AnalyticsImport extends AnalyticsModel
 
     public const TYPE_AFL = 'afl';
 
+    public const TYPE_NOKIA = 'nokia';
+
     /**
      * The user that requested the import.
      */
@@ -66,7 +68,11 @@ class AnalyticsImport extends AnalyticsModel
      */
     public function typeLabel(): string
     {
-        return $this->type === self::TYPE_AFL ? 'AFL' : 'FAMs';
+        return match ($this->type) {
+            self::TYPE_AFL => 'AFL',
+            self::TYPE_NOKIA => 'Nokia',
+            default => 'FAMs',
+        };
     }
 
     /**

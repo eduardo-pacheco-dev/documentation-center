@@ -11,6 +11,7 @@
         const aflByStatus = @json($aflByStatus);
         const aflByBillingStatus = @json($aflByBillingStatus);
         const aflByProject = @json($aflByProject);
+        const nokiaByStatus = @json($nokiaByStatus);
 
         const isDark = document.documentElement.classList.contains('dark');
         const labelColor = isDark ? '#d1d5db' : '#6b7280';
@@ -238,6 +239,21 @@
                 });
             },
 
+            nokia() {
+                if (typeof Chart === 'undefined') {
+                    return;
+                }
+
+                chartJs('analytics-nokia-status', {
+                    type: 'bar',
+                    data: {
+                        labels: nokiaByStatus.labels,
+                        datasets: [{ data: nokiaByStatus.values, backgroundColor: '#0ea5e9', borderRadius: 6, maxBarThickness: 30 }],
+                    },
+                    options: horizontalBarOptions(26),
+                });
+            },
+
             snapshots() {
                 if (typeof ApexCharts === 'undefined' || !snapshotSeries || snapshotSeries.labels.length < 2) {
                     return;
@@ -246,7 +262,8 @@
                 apexArea('analytics-snapshots', [
                     { name: 'Registros FAMs', data: snapshotSeries.records },
                     { name: 'Registros AFL', data: snapshotSeries.afl },
-                ], snapshotSeries.labels, ['#6366f1', '#f43f5e']);
+                    { name: 'Registros Nokia', data: snapshotSeries.nokia },
+                ], snapshotSeries.labels, ['#6366f1', '#f43f5e', '#0ea5e9']);
             },
         };
 
