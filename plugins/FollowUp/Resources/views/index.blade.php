@@ -9,6 +9,14 @@
         description="Acompanhe pendências, prazos e responsáveis em um só lugar."
         icon="clipboard-document-list"
     >
+        <x-ui.action
+            :href="route('admin.follow-ups.export', request()->only(['search', 'status', 'priority', 'assigned']))"
+            icon="arrow-down-tray"
+            variant="secondary"
+        >
+            Exportar
+        </x-ui.action>
+
         <x-ui.action :href="route('admin.follow-ups.create')" icon="plus">
             Novo follow-up
         </x-ui.action>

@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use Plugins\FollowUp\Http\Controllers\FollowUpController;
+use Plugins\FollowUp\Http\Controllers\FollowUpExportController;
 use Plugins\FollowUp\Http\Controllers\FollowUpUpdateController;
 
 Route::middleware('auth')
@@ -11,7 +12,9 @@ Route::middleware('auth')
         Route::get('/', [FollowUpController::class, 'index'])->name('index');
         Route::get('create', [FollowUpController::class, 'create'])->name('create');
         Route::post('/', [FollowUpController::class, 'store'])->name('store');
+        Route::get('export', [FollowUpExportController::class, 'export'])->name('export');
         Route::get('{followUp}', [FollowUpController::class, 'show'])->name('show');
+        Route::get('{followUp}/export', [FollowUpExportController::class, 'exportOne'])->name('export-one');
         Route::get('{followUp}/edit', [FollowUpController::class, 'edit'])->name('edit');
         Route::put('{followUp}', [FollowUpController::class, 'update'])->name('update');
         Route::delete('{followUp}', [FollowUpController::class, 'destroy'])->name('destroy');

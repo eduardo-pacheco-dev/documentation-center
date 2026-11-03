@@ -7,12 +7,14 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Str;
+use PhpOffice\PhpSpreadsheet\IOFactory;
 use Plugins\FollowUp\Database\Seeders\FollowUpSeeder;
 use Plugins\FollowUp\Enums\FollowUpPriority;
 use Plugins\FollowUp\Enums\FollowUpStatus;
 use Plugins\FollowUp\Models\FollowUp;
 use Plugins\FollowUp\Models\FollowUpUpdate;
 use Plugins\FollowUp\Providers\FollowUpServiceProvider;
+use Plugins\FollowUp\Support\FollowUpExport;
 
 uses(RefreshDatabase::class);
 
@@ -253,4 +255,81 @@ test('the seeder creates sample follow-ups once', function () {
 
     expect(FollowUp::query()->where('status', FollowUpStatus::Completed->value)->count())->toBe(2)
         ->and(FollowUp::query()->where('status', FollowUpStatus::Cancelled->value)->count())->toBe(1);
+});
+
+test('follow-ups can be exported to excel with the current filters', function () {
+    FollowUp::factory()->create([
+        'title' => 'Follow-up exportado pendente',
+        'status' => FollowUpStatus::Pending->value,
+        'priority' => FollowUpPriority::High->value,
+    ]);
+
+    FollowUp::factory()->create([
+        'title' => 'Follow-up exportado concluído',
+        'status' => FollowUpStatus::Completed->value,
+        'priority' => FollowUpPriority::Low->value,
+    ]);
+
+    $fileName = app(FollowUpExport::class)->allFileName();
+
+    $response = $this->actingAs(User::factory()->create())
+        ->get(route('admin.follow-ups.export', ['status' => FollowUpStatus::Pending->value]))
+        ->assertOk()
+        ->assertDownload($fileName);
+
+    $path = sys_get_temp_dir().'/follow-ups-export-'.Str::random(8).'.xlsx';
+    file_put_contents($path, $response->streamedContent());
+
+    $spreadsheet = IOFactory::load($path);
+    $text = collect($spreadsheet->getSheetByName('Follow-ups')->toArray())->flatten()->filter()->implode(' | ');
+
+    expect($spreadsheet->getSheetNames())->toBe(['Follow-ups'])
+        ->and($text)
+        ->toContain('Follow-up exportado pendente')
+        ->toContain('Alta')
+        ->not->toContain('Follow-up exportado concluído');
+
+    $spreadsheet->disconnectWorksheets();
+    @unlink($path);
+});
+
+test('a single follow-up can be exported with its history', function () {
+    $followUp = FollowUp::factory()->create([
+        'title' => 'Follow-up individual exportado',
+        'status' => FollowUpStatus::InProgress->value,
+        'priority' => FollowUpPriority::Urgent->value,
+    ]);
+
+    $followUp->updates()->create([
+        'user_id' => User::factory()->create()->getKey(),
+        'body' => 'Atualização exportada no histórico.',
+    ]);
+
+    $fileName = app(FollowUpExport::class)->singleFileName($followUp);
+
+    $response = $this->actingAs(User::factory()->create())
+        ->get(route('admin.follow-ups.export-one', $followUp))
+        ->assertOk()
+        ->assertDownload($fileName);
+
+    $path = sys_get_temp_dir().'/follow-up-export-'.Str::random(8).'.xlsx';
+    file_put_contents($path, $response->streamedContent());
+
+    $spreadsheet = IOFactory::load($path);
+
+    expect($spreadsheet->getSheetNames())
+        ->toBe(['Follow-up', 'Histórico']);
+
+    $followUpText = collect($spreadsheet->getSheetByName('Follow-up')->toArray())->flatten()->filter()->implode(' | ');
+    $historyText = collect($spreadsheet->getSheetByName('Histórico')->toArray())->flatten()->filter()->implode(' | ');
+
+    expect($followUpText)
+        ->toContain('Follow-up individual exportado')
+        ->toContain('Em andamento')
+        ->toContain('Urgente');
+
+    expect($historyText)->toContain('Atualização exportada no histórico.');
+
+    $spreadsheet->disconnectWorksheets();
+    @unlink($path);
 });

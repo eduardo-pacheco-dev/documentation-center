@@ -29,6 +29,10 @@
         </div>
 
         <div class="flex flex-wrap items-center gap-2">
+            <x-ui.action :href="route('admin.follow-ups.export-one', $followUp)" icon="arrow-down-tray" variant="secondary">
+                Exportar
+            </x-ui.action>
+
             <x-ui.action :href="route('admin.follow-ups.edit', $followUp)" icon="pencil-square" variant="secondary">
                 Editar
             </x-ui.action>

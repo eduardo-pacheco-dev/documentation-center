@@ -11,6 +11,7 @@ Plugin independente para gerenciar acompanhamentos internos.
 - Histórico de atualizações com registro automático de mudanças de status.
 - Busca por título/descrição e filtros por status, prioridade e responsável.
 - Widget **Meus follow-ups** no dashboard.
+- Exportação em Excel da listagem filtrada e de um follow-up individual com histórico.
 - Dados isolados em tabelas próprias: `follow_ups` e `follow_up_updates`.
 
 ## Estrutura
