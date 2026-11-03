@@ -1,6 +1,8 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use Plugins\Stations\Http\Controllers\StationAttachmentController;
+use Plugins\Stations\Http\Controllers\StationCommentController;
 use Plugins\Stations\Http\Controllers\StationController;
 
 Route::middleware('auth')
@@ -14,4 +16,13 @@ Route::middleware('auth')
         Route::get('{station}/edit', [StationController::class, 'edit'])->name('edit');
         Route::put('{station}', [StationController::class, 'update'])->name('update');
         Route::delete('{station}', [StationController::class, 'destroy'])->name('destroy');
+
+        Route::scopeBindings()->group(function (): void {
+            Route::post('{station}/anexos', [StationAttachmentController::class, 'store'])->name('attachments.store');
+            Route::get('{station}/anexos/{attachment}', [StationAttachmentController::class, 'download'])->name('attachments.download');
+            Route::delete('{station}/anexos/{attachment}', [StationAttachmentController::class, 'destroy'])->name('attachments.destroy');
+
+            Route::post('{station}/comentarios', [StationCommentController::class, 'store'])->name('comments.store');
+            Route::delete('{station}/comentarios/{comment}', [StationCommentController::class, 'destroy'])->name('comments.destroy');
+        });
     });

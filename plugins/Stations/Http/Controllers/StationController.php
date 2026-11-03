@@ -9,6 +9,7 @@ use Illuminate\View\View;
 use Plugins\Stations\Http\Requests\StoreStationRequest;
 use Plugins\Stations\Http\Requests\UpdateStationRequest;
 use Plugins\Stations\Models\Station;
+use Plugins\Stations\Models\StationAttachment;
 
 class StationController extends Controller
 {
@@ -86,8 +87,22 @@ class StationController extends Controller
      */
     public function show(Station $station): View
     {
+        $station->load([
+            'attachments.uploader',
+            'comments.user',
+        ]);
+
         return view('stations::show', [
             'station' => $station,
+            'ppiTssrFiles' => $station->attachments
+                ->where('category', StationAttachment::CATEGORY_PPI_TSSR)
+                ->values(),
+            'attachmentFiles' => $station->attachments
+                ->where('category', StationAttachment::CATEGORY_ATTACHMENT)
+                ->values(),
+            'comments' => $station->comments,
+            'latitude' => is_numeric($station->latitude) ? (float) $station->latitude : null,
+            'longitude' => is_numeric($station->longitude) ? (float) $station->longitude : null,
         ]);
     }
 

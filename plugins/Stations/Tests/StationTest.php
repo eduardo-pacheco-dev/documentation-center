@@ -5,10 +5,14 @@ use App\Plugins\PluginActivator;
 use App\Plugins\PluginMigrator;
 use App\Plugins\PluginRepository;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Plugins\Stations\Models\Station;
+use Plugins\Stations\Models\StationAttachment;
+use Plugins\Stations\Models\StationComment;
 use Plugins\Stations\Providers\StationsServiceProvider;
 use Plugins\Stations\Support\CoordinateParser;
 
@@ -372,4 +376,138 @@ test('a station can be deleted', function () {
     $response->assertRedirect(route('admin.stations.index'));
 
     expect(Station::query()->find($station->getKey()))->toBeNull();
+});
+
+test('the station details page renders all sections and the map', function () {
+    $station = Station::factory()->create([
+        'site_id' => 'SPJAB051M',
+        'station_id' => 'SPJAB051M',
+        'latitude' => '-23.665278',
+        'longitude' => '-46.641111',
+    ]);
+
+    $this->actingAs(User::factory()->create())
+        ->get(route('admin.stations.show', $station))
+        ->assertOk()
+        ->assertSeeInOrder(['Informações', 'Localização', 'Mapa', 'PPI/TSSR', 'Anexos', 'Comentários'])
+        ->assertSee('id="station-map"', false)
+        ->assertSee('unpkg.com/leaflet', false)
+        ->assertSee('query=-23.665278,-46.641111', false);
+});
+
+test('attachments can be uploaded, downloaded and removed', function () {
+    Storage::fake('local');
+
+    $user = User::factory()->create();
+    $station = Station::factory()->create();
+
+    $this->actingAs($user)
+        ->post(route('admin.stations.attachments.store', $station), [
+            'category' => StationAttachment::CATEGORY_PPI_TSSR,
+            'files' => [
+                UploadedFile::fake()->create('ppi.pdf', 120, 'application/pdf'),
+                UploadedFile::fake()->create('tssr.pdf', 140, 'application/pdf'),
+            ],
+        ])
+        ->assertRedirect()
+        ->assertSessionHas('status');
+
+    $attachments = $station->attachments()->get();
+
+    expect($attachments)->toHaveCount(2)
+        ->and($attachments->first()->category)->toBe(StationAttachment::CATEGORY_PPI_TSSR);
+
+    $attachment = $attachments->first();
+
+    Storage::disk('local')->assertExists($attachment->path);
+
+    $this->actingAs($user)
+        ->get(route('admin.stations.attachments.download', [$station, $attachment]))
+        ->assertOk()
+        ->assertDownload($attachment->original_name);
+
+    $this->actingAs($user)
+        ->delete(route('admin.stations.attachments.destroy', [$station, $attachment]))
+        ->assertRedirect()
+        ->assertSessionHas('status');
+
+    Storage::disk('local')->assertMissing($attachment->path);
+    expect(StationAttachment::query()->find($attachment->getKey()))->toBeNull();
+});
+
+test('attachment uploads reject unsupported files', function () {
+    Storage::fake('local');
+
+    $station = Station::factory()->create();
+
+    $this->actingAs(User::factory()->create())
+        ->post(route('admin.stations.attachments.store', $station), [
+            'category' => StationAttachment::CATEGORY_ATTACHMENT,
+            'files' => [UploadedFile::fake()->create('script.exe', 10, 'application/octet-stream')],
+        ])
+        ->assertSessionHasErrors('files.0');
+
+    expect(StationAttachment::query()->count())->toBe(0);
+});
+
+test('comments can be posted and are visible on the station page', function () {
+    $user = User::factory()->create(['name' => 'Maria', 'surname' => 'Silva']);
+    $station = Station::factory()->create();
+
+    $this->actingAs($user)
+        ->post(route('admin.stations.comments.store', $station), [
+            'body' => 'A vistoria técnica foi concluída.',
+        ])
+        ->assertRedirect()
+        ->assertSessionHas('status');
+
+    $comment = StationComment::query()->sole();
+
+    expect($comment)
+        ->station_id->toBe($station->getKey())
+        ->user_id->toBe($user->getKey())
+        ->body->toBe('A vistoria técnica foi concluída.');
+
+    $this->actingAs($user)
+        ->get(route('admin.stations.show', $station))
+        ->assertOk()
+        ->assertSee('A vistoria técnica foi concluída.')
+        ->assertSee('Maria Silva');
+});
+
+test('only the author or an administrator can remove a comment', function () {
+    $author = User::factory()->create();
+    $intruder = User::factory()->create();
+    $station = Station::factory()->create();
+    $comment = StationComment::factory()->for($station)->for($author)->create();
+
+    $this->actingAs($intruder)
+        ->delete(route('admin.stations.comments.destroy', [$station, $comment]))
+        ->assertForbidden();
+
+    $this->actingAs($author)
+        ->delete(route('admin.stations.comments.destroy', [$station, $comment]))
+        ->assertRedirect()
+        ->assertSessionHas('status');
+
+    expect(StationComment::query()->find($comment->getKey()))->toBeNull();
+});
+
+test('deleting a station removes its stored attachments', function () {
+    Storage::fake('local');
+
+    $station = Station::factory()->create();
+    $attachment = StationAttachment::factory()
+        ->for($station)
+        ->ppiTssr()
+        ->create(['path' => 'stations/test/attachments/file.pdf']);
+
+    Storage::disk('local')->put($attachment->path, 'conteúdo');
+
+    $this->actingAs(User::factory()->create())
+        ->delete(route('admin.stations.destroy', $station))
+        ->assertRedirect(route('admin.stations.index'));
+
+    Storage::disk('local')->assertMissing($attachment->path);
+    expect(StationAttachment::query()->count())->toBe(0);
 });

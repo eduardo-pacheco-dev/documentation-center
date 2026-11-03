@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Plugins\Stations\Database\Factories\StationFactory;
 
 #[Fillable([
@@ -49,6 +50,32 @@ class Station extends Model
     protected static function newFactory(): StationFactory
     {
         return StationFactory::new();
+    }
+
+    /**
+     * Delete the stored attachments when the station is deleted.
+     */
+    protected static function booted(): void
+    {
+        static::deleting(function (Station $station): void {
+            $station->attachments()->get()->each->delete();
+        });
+    }
+
+    /**
+     * The files attached to the station.
+     */
+    public function attachments(): HasMany
+    {
+        return $this->hasMany(StationAttachment::class)->latest();
+    }
+
+    /**
+     * The comments written about the station.
+     */
+    public function comments(): HasMany
+    {
+        return $this->hasMany(StationComment::class)->latest();
     }
 
     /**
