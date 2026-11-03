@@ -3,7 +3,6 @@
     'for' => null,
     'group' => false,
     'required' => false,
-    'status' => null,
 ])
 
 @php
@@ -26,6 +25,4 @@
             @endif
         </label>
     @endif
-
-    <x-form-field-status :status="$status" />
 </div>

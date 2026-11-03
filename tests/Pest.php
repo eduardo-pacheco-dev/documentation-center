@@ -1,15 +1,6 @@
 <?php
 
-use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Plugins\Projects\Enums\DependencyType;
-use Plugins\Projects\Models\Project;
-use Plugins\Projects\Models\Resource;
-use Plugins\Projects\Models\ResourceAssignment;
-use Plugins\Projects\Models\Task;
-use Plugins\Projects\Models\TaskDependency;
-use Plugins\Tasks\Models\TodoList;
-use Plugins\Tasks\Models\TodoTask;
 use Tests\TestCase;
 
 /*
@@ -41,79 +32,3 @@ pest()->extend(TestCase::class)
 expect()->extend('toBeOne', function () {
     return $this->toBe(1);
 });
-
-/*
-|--------------------------------------------------------------------------
-| Functions
-|--------------------------------------------------------------------------
-|
-| While Pest is very powerful out-of-the-box, you may sometimes need some testing code specific
-| to your project that you don't want to repeat in many test files. Here you can also expose
-| helpers as global functions to help you to reduce the number of lines of code in your tests.
-|
-*/
-
-function something()
-{
-    // ..
-}
-
-/**
- * A project that starts on Monday 2026-01-05 with a standard working calendar.
- */
-function workingProject(string $startDate = '2026-01-05'): Project
-{
-    return Project::factory()->withCalendar()->create(['start_date' => $startDate]);
-}
-
-/**
- * Link two tasks with a finish to start dependency.
- */
-function finishToStart(Task $predecessor, Task $successor, int $lag = 0): TaskDependency
-{
-    return TaskDependency::query()->create([
-        'project_id' => $predecessor->project_id,
-        'predecessor_id' => $predecessor->getKey(),
-        'successor_id' => $successor->getKey(),
-        'type' => DependencyType::FinishToStart,
-        'lag_minutes' => $lag,
-    ]);
-}
-
-/**
- * Assign a resource to a task for its whole duration.
- */
-function assign(Resource $resource, Task $task, float $units = 100): ResourceAssignment
-{
-    return ResourceAssignment::query()->create([
-        'resource_id' => $resource->getKey(),
-        'task_id' => $task->getKey(),
-        'units' => $units,
-        'work_minutes' => $task->duration_minutes,
-        'cost' => 0,
-    ]);
-}
-
-/**
- * Create a to-do list owned by the given user.
- */
-function todoListFor(User $user, string $name = 'Tarefas'): TodoList
-{
-    return TodoList::factory()->create([
-        'user_id' => $user->getKey(),
-        'name' => $name,
-    ]);
-}
-
-/**
- * Create a to-do task inside the given list.
- *
- * @param  array<string, mixed>  $attributes
- */
-function todoTaskIn(TodoList $list, array $attributes = []): TodoTask
-{
-    return TodoTask::factory()->create(array_merge([
-        'user_id' => $list->user_id,
-        'todo_list_id' => $list->getKey(),
-    ], $attributes));
-}

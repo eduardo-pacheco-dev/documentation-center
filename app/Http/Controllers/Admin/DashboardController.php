@@ -2,119 +2,71 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Dashboard\Widget;
+use App\Dashboard\WidgetRegistry;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\UpdateDashboardWidgetRequest;
 use App\Models\User;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
-use Plugins\Catalog\Models\CatalogItem;
-use Plugins\Clients\Models\Client;
-use Plugins\Colaboradores\Models\Colaborador;
-use Plugins\Erbs\Models\Erb;
-use Plugins\Files\Models\Document;
-use Plugins\Forms\Models\Form;
-use Plugins\Links\Models\ShortLink;
-use Plugins\Projects\Enums\ProjectStatus;
-use Plugins\Projects\Models\Project;
-use Plugins\RadioLinks\Models\RadioLink;
-use Plugins\Templates\Models\FormTemplate;
-use Plugins\WorkOrders\Enums\WorkOrderStatus;
-use Plugins\WorkOrders\Models\WorkOrder;
 
 class DashboardController extends Controller
 {
     /**
      * Show the administration dashboard.
      */
-    public function index(Request $request): View
+    public function index(Request $request, WidgetRegistry $widgets): View
     {
         $user = $request->user();
+        $availableWidgets = $widgets->forRequest($request);
+        $hiddenWidgets = $user->hiddenDashboardWidgets();
+        $editing = $request->boolean('edit');
 
-        $statusCounts = $this->workOrderStatusCounts($user);
+        $isHidden = fn (Widget $widget): bool => in_array($widget->id(), $hiddenWidgets, true);
 
         return view('admin.dashboard', [
             'greeting' => $this->greeting($user),
-            'statusCounts' => $statusCounts,
-            'workOrdersTotal' => array_sum($statusCounts),
-            'counts' => [
-                'clients' => Client::query()->ownedBy($user)->count(),
-                'openWorkOrders' => $statusCounts[WorkOrderStatus::Open->value]
-                    + $statusCounts[WorkOrderStatus::InProgress->value],
-                'projects' => Project::query()
-                    ->accessibleBy($user)
-                    ->where('status', ProjectStatus::Active)
-                    ->count(),
-                'erbs' => Erb::query()->ownedBy($user)->count(),
-                'radioLinks' => RadioLink::query()->ownedBy($user)->count(),
-                'catalogItems' => CatalogItem::query()->ownedBy($user)->count(),
-                'forms' => Form::query()->ownedBy($user)->count(),
-                'formTemplates' => FormTemplate::query()->count(),
-                'colaboradores' => Colaborador::query()->ownedBy($user)->count(),
-                'documents' => Document::query()->whereBelongsTo($user)->count(),
-                'links' => ShortLink::query()->whereBelongsTo($user)->count(),
-                'users' => $user->is_admin ? User::query()->count() : null,
-            ],
-            'recentWorkOrders' => WorkOrder::query()
-                ->ownedBy($user)
-                ->with('client:id,name')
-                ->latest('created_at')
-                ->take(6)
-                ->get(),
-            'recentDocuments' => Document::query()
-                ->whereBelongsTo($user)
-                ->latest('created_at')
-                ->take(5)
-                ->get(),
-            'monthlyWorkOrders' => $this->monthlyWorkOrderSeries($user),
+            'widgets' => $availableWidgets->reject($isHidden)->values(),
+            'editing' => $editing,
+            'hiddenWidgets' => $editing
+                ? $availableWidgets->filter($isHidden)->values()
+                : collect(),
         ]);
     }
 
     /**
-     * Build the work order count series for the last six months.
-     *
-     * @return array<int, array{label: string, count: int}>
+     * Show or hide a dashboard widget for the authenticated user.
      */
-    private function monthlyWorkOrderSeries(User $user): array
-    {
-        $currentMonth = now()->startOfMonth();
+    public function updateWidget(
+        UpdateDashboardWidgetRequest $request,
+        WidgetRegistry $widgets,
+        string $widget,
+    ): RedirectResponse {
+        $available = $widgets->forRequest($request)
+            ->map(fn (Widget $available): string => $available->id());
 
-        $counts = WorkOrder::query()
-            ->ownedBy($user)
-            ->where('created_at', '>=', $currentMonth->copy()->subMonths(5))
-            ->get(['created_at'])
-            ->countBy(fn (WorkOrder $workOrder): string => $workOrder->created_at->format('Y-m'));
+        abort_unless($available->contains($widget), 404);
 
-        return collect(range(5, 0))
-            ->map(function (int $offset) use ($counts, $currentMonth): array {
-                $month = $currentMonth->copy()->subMonths($offset);
+        $user = $request->user();
+        $hidden = $user->hiddenDashboardWidgets();
 
-                return [
-                    'label' => $month->locale('pt_BR')->translatedFormat('M'),
-                    'count' => (int) $counts->get($month->format('Y-m'), 0),
-                ];
-            })
-            ->all();
-    }
+        $hidden = $request->boolean('hidden')
+            ? [...$hidden, $widget]
+            : array_values(array_diff($hidden, [$widget]));
 
-    /**
-     * Count the user's work orders grouped by status.
-     *
-     * @return array<string, int>
-     */
-    private function workOrderStatusCounts(User $user): array
-    {
-        $counts = WorkOrder::query()
-            ->ownedBy($user)
-            ->selectRaw('status, count(*) as aggregate')
-            ->groupBy('status')
-            ->pluck('aggregate', 'status');
+        $user->update([
+            'dashboard_hidden_widgets' => array_values(array_unique($hidden)),
+        ]);
 
-        $result = [];
-
-        foreach (WorkOrderStatus::cases() as $status) {
-            $result[$status->value] = (int) ($counts[$status->value] ?? 0);
-        }
-
-        return $result;
+        return redirect()
+            ->route('admin.dashboard', ['edit' => 1])
+            ->with(
+                'status',
+                $request->boolean('hidden')
+                    ? 'Widget removido do painel.'
+                    : 'Widget adicionado ao painel.',
+            );
     }
 
     /**

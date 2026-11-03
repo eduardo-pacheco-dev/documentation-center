@@ -8,12 +8,12 @@
     }
 @endphp
 
-<label {{ $labelAttributes->merge(['class' => 'flex w-fit cursor-pointer items-center gap-2.5 text-sm text-grey-45']) }}>
+<label {{ $labelAttributes->merge(['class' => 'flex w-fit cursor-pointer items-center gap-2.5 text-sm text-grey-45 dark:text-gray-400']) }}>
     <input
         type="checkbox"
         name="{{ $name }}"
         value="{{ $value }}"
-        class="h-4 w-4 rounded border-grey-80 accent-secondary-blue-400 focus:ring-secondary-blue-400/30"
+        class="h-4 w-4 rounded border-grey-80 accent-secondary-blue-400 focus:ring-secondary-blue-400/30 dark:border-white/20 dark:bg-white/[0.03]"
     />
     {{ $label ?? $slot }}
 </label>

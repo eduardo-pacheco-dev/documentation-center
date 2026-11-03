@@ -6,23 +6,13 @@ use App\Models\User;
 
 enum AdminModule: string
 {
+    public const SECTION_SIDEBAR = 'sidebar';
+
+    public const SECTION_MODULES = 'modules';
+
     case Dashboard = 'dashboard';
-    case Projects = 'projects';
-    case WorkOrders = 'work-orders';
-    case Clients = 'clients';
-    case Files = 'files';
-    case Agenda = 'agenda';
-    case Tasks = 'tasks';
-    case Forms = 'forms';
-    case Erbs = 'erbs';
-    case RadioLinks = 'radio-links';
-    case Catalog = 'catalog';
-    case Equipments = 'equipments';
-    case Links = 'links';
-    case Colaboradores = 'colaboradores';
-    case FormTemplates = 'form-templates';
-    case Backups = 'backups';
     case Users = 'users';
+    case DevDocs = 'dev-docs';
 
     /**
      * The label shown in the navigation and settings.
@@ -31,22 +21,8 @@ enum AdminModule: string
     {
         return match ($this) {
             self::Dashboard => 'Início',
-            self::Projects => 'Projetos',
-            self::WorkOrders => 'Ordens de serviço',
-            self::Clients => 'Clientes',
-            self::Files => 'Arquivos',
-            self::Agenda => 'Agenda',
-            self::Tasks => 'Tarefas',
-            self::Forms => 'Formulários',
-            self::Erbs => 'ERBs',
-            self::RadioLinks => 'Radio links',
-            self::Catalog => 'Catálogo',
-            self::Equipments => 'Equipamentos',
-            self::Links => 'Links',
-            self::Colaboradores => 'Colaboradores',
-            self::FormTemplates => 'Templates',
-            self::Backups => 'Backups',
             self::Users => 'Usuários',
+            self::DevDocs => 'Documentação Dev',
         };
     }
 
@@ -57,22 +33,8 @@ enum AdminModule: string
     {
         return match ($this) {
             self::Dashboard => 'home',
-            self::Projects => 'briefcase',
-            self::WorkOrders => 'clipboard-document-list',
-            self::Clients => 'building-office',
-            self::Files => 'document-text',
-            self::Agenda => 'calendar-days',
-            self::Tasks => 'check-circle',
-            self::Forms => 'document-check',
-            self::Erbs => 'signal',
-            self::RadioLinks => 'arrows-right-left',
-            self::Catalog => 'cube',
-            self::Equipments => 'wrench-screwdriver',
-            self::Links => 'link',
-            self::Colaboradores => 'user',
-            self::FormTemplates => 'document-duplicate',
-            self::Backups => 'rectangle-stack',
             self::Users => 'users',
+            self::DevDocs => 'document-text',
         };
     }
 
@@ -83,22 +45,8 @@ enum AdminModule: string
     {
         return match ($this) {
             self::Dashboard => 'admin.dashboard',
-            self::Projects => 'admin.projects.index',
-            self::WorkOrders => 'admin.work-orders.index',
-            self::Clients => 'admin.clients.index',
-            self::Files => 'admin.files.index',
-            self::Agenda => 'admin.agenda.index',
-            self::Tasks => 'admin.tasks.index',
-            self::Forms => 'admin.forms.index',
-            self::Erbs => 'admin.erbs.index',
-            self::RadioLinks => 'admin.radio-links.index',
-            self::Catalog => 'admin.catalog.index',
-            self::Equipments => 'admin.equipments.index',
-            self::Links => 'admin.links.index',
-            self::Colaboradores => 'admin.colaboradores.index',
-            self::FormTemplates => 'admin.form-templates.index',
-            self::Backups => 'admin.backups.index',
             self::Users => 'admin.users.index',
+            self::DevDocs => 'admin.dev-docs.index',
         };
     }
 
@@ -117,17 +65,7 @@ enum AdminModule: string
      */
     public function isPrimary(): bool
     {
-        return match ($this) {
-            self::Dashboard,
-            self::Projects,
-            self::WorkOrders,
-            self::Clients,
-            self::Files,
-            self::Agenda,
-            self::Tasks,
-            self::Forms => true,
-            default => false,
-        };
+        return $this === self::Dashboard;
     }
 
     /**
@@ -135,10 +73,7 @@ enum AdminModule: string
      */
     public function isAdminOnly(): bool
     {
-        return match ($this) {
-            self::Backups, self::Users => true,
-            default => false,
-        };
+        return in_array($this, [self::Users, self::DevDocs], true);
     }
 
     /**
@@ -166,12 +101,14 @@ enum AdminModule: string
     {
         $stored = $user->enabled_modules;
 
-        return array_values(array_filter(
+        $modules = array_values(array_filter(
             self::availableFor($user),
             fn (self $module): bool => $module === self::Dashboard
                 || ! is_array($stored)
                 || in_array($module->value, $stored, true),
         ));
+
+        return self::sortForUser($user, $modules);
     }
 
     /**
@@ -181,9 +118,53 @@ enum AdminModule: string
      */
     public static function toggleableFor(User $user): array
     {
-        return array_values(array_filter(
+        $modules = array_values(array_filter(
             self::availableFor($user),
             fn (self $module): bool => $module !== self::Dashboard,
         ));
+
+        return self::sortForUser($user, $modules);
+    }
+
+    /**
+     * The navigation section chosen by the user for the given module.
+     *
+     * @return self::SECTION_*
+     */
+    public static function sectionFor(User $user, self $module): string
+    {
+        $sections = $user->module_sections;
+        $section = is_array($sections) ? ($sections[$module->value] ?? null) : null;
+
+        if (in_array($section, [self::SECTION_SIDEBAR, self::SECTION_MODULES], true)) {
+            return $section;
+        }
+
+        return $module->isPrimary() ? self::SECTION_SIDEBAR : self::SECTION_MODULES;
+    }
+
+    /**
+     * Sort the modules using the order chosen by the user.
+     *
+     * @param  list<self>  $modules
+     * @return list<self>
+     */
+    public static function sortForUser(User $user, array $modules): array
+    {
+        $order = $user->module_order;
+
+        if (! is_array($order) || $order === []) {
+            return array_values($modules);
+        }
+
+        $positions = array_flip($order);
+
+        usort(
+            $modules,
+            fn (self $left, self $right): int => ($positions[$left->value] ?? PHP_INT_MAX)
+                <=> ($positions[$right->value] ?? PHP_INT_MAX),
+        );
+
+        return array_values($modules);
     }
 }

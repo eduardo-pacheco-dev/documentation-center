@@ -28,9 +28,18 @@ class UpdateModulesRequest extends FormRequest
             AdminModule::toggleableFor($this->user()),
         );
 
+        $available = array_map(
+            fn (AdminModule $module): string => $module->value,
+            AdminModule::availableFor($this->user()),
+        );
+
         return [
             'modules' => ['nullable', 'array'],
             'modules.*' => ['string', Rule::in($allowed)],
+            'order' => ['nullable', 'array'],
+            'order.*' => ['string', 'distinct', Rule::in($available)],
+            'sections' => ['nullable', 'array'],
+            'sections.*' => ['string', Rule::in([AdminModule::SECTION_SIDEBAR, AdminModule::SECTION_MODULES])],
         ];
     }
 }

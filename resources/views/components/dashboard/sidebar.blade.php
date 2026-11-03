@@ -6,12 +6,20 @@
 
     $pluginModules = app(PluginRepository::class)->modules();
 
+    $user = auth()->user();
+
     $enabledModules = array_filter(
-        AdminModule::enabledFor(auth()->user()),
+        AdminModule::enabledFor($user),
         fn (AdminModule $module): bool => ! in_array($module->value, $pluginModules, true),
     );
-    $primaryNav = array_filter($enabledModules, fn (AdminModule $module): bool => $module->isPrimary());
-    $moduleNav = array_filter($enabledModules, fn (AdminModule $module): bool => ! $module->isPrimary());
+    $primaryNav = array_filter(
+        $enabledModules,
+        fn (AdminModule $module): bool => AdminModule::sectionFor($user, $module) === AdminModule::SECTION_SIDEBAR,
+    );
+    $moduleNav = array_filter(
+        $enabledModules,
+        fn (AdminModule $module): bool => AdminModule::sectionFor($user, $module) === AdminModule::SECTION_MODULES,
+    );
 
     $pluginNav = collect(app(PluginRepository::class)->navigation())
         ->filter(fn (array $item): bool => Route::has($item['route']))
@@ -46,7 +54,6 @@
 >
     <x-dashboard.brand />
     <x-dashboard.sidebar-toggle />
-    <x-dashboard.quick-action />
 
     <nav class="flex w-full flex-1 flex-col gap-1 overflow-y-auto pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         @foreach ($primaryNav as $module)

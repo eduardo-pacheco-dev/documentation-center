@@ -17,6 +17,13 @@
         $inputClass = 'mt-1.5 h-10 w-full rounded-xl border border-gray-200 bg-gray-50 px-3 text-sm text-gray-700 outline-none transition placeholder:text-gray-400 focus:border-indigo-500 focus:bg-white focus:ring-2 focus:ring-indigo-500/15 dark:border-white/10 dark:bg-white/[0.03] dark:text-gray-200 dark:placeholder:text-gray-500 dark:focus:bg-white/5';
         $navIdle = 'text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-white/[0.04]';
         $navActive = 'bg-indigo-600 text-white';
+
+        $moduleMeta = collect($orderModules)->mapWithKeys(fn ($module): array => [
+            $module->value => [
+                'label' => $module->label(),
+                'group' => \App\Enums\AdminModule::sectionFor($user, $module),
+            ],
+        ])->all();
     @endphp
 
     <x-ui.page-header
@@ -156,7 +163,7 @@
                         class="relative mt-1.5 w-full max-w-xs"
                         x-data="{
                             open: false,
-                            value: @json(old('theme', $user->theme)),
+                            value: @js(old('theme', $user->theme)),
                             options: {
                                 system: { label: 'Sistema', description: 'Segue as preferências do seu dispositivo' },
                                 light: { label: 'Claro', description: 'Sempre com fundo claro' },
@@ -173,6 +180,7 @@
                             select(key) {
                                 this.value = key;
                                 this.open = false;
+                                window.setTheme?.(key);
                             },
                         }"
                         @keydown.escape.window="open = false"
@@ -241,6 +249,51 @@
                 method="POST"
                 action="{{ route('settings.modules.update') }}"
                 class="{{ $cardClass }} scroll-mt-6"
+                x-data="{
+                    order: @js(array_keys($moduleMeta)),
+                    meta: @js($moduleMeta),
+                    groupIndexes(group) {
+                        return this.order.reduce((indexes, key, index) => {
+                            if (this.meta[key] && this.meta[key].group === group) {
+                                indexes.push(index);
+                            }
+
+                            return indexes;
+                        }, []);
+                    },
+                    move(key, direction) {
+                        const group = this.meta[key] ? this.meta[key].group : null;
+                        const indexes = this.groupIndexes(group);
+                        const position = indexes.indexOf(this.order.indexOf(key));
+                        const target = position + direction;
+
+                        if (position < 0 || target < 0 || target >= indexes.length) {
+                            return;
+                        }
+
+                        const first = indexes[position];
+                        const second = indexes[target];
+
+                        [this.order[first], this.order[second]] = [this.order[second], this.order[first]];
+                    },
+                    isFirst(key) {
+                        const indexes = this.groupIndexes(this.meta[key] ? this.meta[key].group : null);
+
+                        return indexes.indexOf(this.order.indexOf(key)) === 0;
+                    },
+                    isLast(key) {
+                        const indexes = this.groupIndexes(this.meta[key] ? this.meta[key].group : null);
+
+                        return indexes.indexOf(this.order.indexOf(key)) === indexes.length - 1;
+                    },
+                    moveToOtherGroup(key) {
+                        if (! this.meta[key]) {
+                            return;
+                        }
+
+                        this.meta[key].group = this.meta[key].group === 'sidebar' ? 'modules' : 'sidebar';
+                    },
+                }"
             >
                 @csrf
                 @method('PUT')
@@ -256,7 +309,7 @@
                             <x-ui.badge tone="indigo">{{ count($enabledModules) }}</x-ui.badge>
                         </div>
                         <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                            Escolha quais módulos aparecem no menu lateral. O Início permanece sempre ativo.
+                            Escolha quais módulos aparecem na navegação e ajuste a ordem dos botões na sidebar e no menu Módulos.
                         </p>
                     </div>
                 </div>
@@ -269,6 +322,81 @@
                     @error('modules.*')
                         <p class="mb-3 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
                     @enderror
+
+                    @error('order')
+                        <p class="mb-3 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
+                    @enderror
+
+                    @error('order.*')
+                        <p class="mb-3 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
+                    @enderror
+
+                    <div class="mb-6">
+                        <div class="flex flex-wrap items-end justify-between gap-2">
+                            <div>
+                                <h3 class="text-sm font-semibold text-gray-900 dark:text-white">Ordem dos botões</h3>
+                                <p class="mt-0.5 text-xs text-gray-500 dark:text-gray-400">Use as setas para ordenar e o botão de mover para trocar o botão entre a sidebar e o menu Módulos.</p>
+                            </div>
+                        </div>
+
+                        <div class="mt-3 grid gap-3 sm:grid-cols-2">
+                            @foreach (['sidebar' => 'Sidebar', 'modules' => 'Menu Módulos'] as $groupKey => $groupLabel)
+                                <div class="rounded-xl border border-gray-200/80 p-3 dark:border-white/10">
+                                    <p class="text-[11px] font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">{{ $groupLabel }}</p>
+
+                                    <div class="mt-2 space-y-1">
+                                        <template x-for="key in order.filter((item) => meta[item].group === '{{ $groupKey }}')" :key="key">
+                                            <div class="flex items-center gap-2 rounded-lg border border-gray-200/80 px-3 py-2 dark:border-white/10">
+                                                <span class="min-w-0 flex-1 truncate text-sm font-medium text-gray-700 dark:text-gray-200" x-text="meta[key].label"></span>
+
+                                                <button
+                                                    type="button"
+                                                    @click="moveToOtherGroup(key)"
+                                                    class="inline-flex h-7 items-center whitespace-nowrap rounded-md border border-gray-200 px-2 text-[11px] font-medium text-gray-500 transition hover:border-indigo-200 hover:text-indigo-600 dark:border-white/10 dark:text-gray-400 dark:hover:border-indigo-500/40 dark:hover:text-indigo-400"
+                                                    x-text="meta[key].group === 'sidebar' ? 'Mover para Módulos' : 'Mover para Sidebar'"
+                                                ></button>
+
+                                                <button
+                                                    type="button"
+                                                    @click="move(key, -1)"
+                                                    :disabled="isFirst(key)"
+                                                    class="inline-flex h-7 w-7 items-center justify-center rounded-md text-gray-500 transition hover:bg-gray-100 hover:text-gray-900 disabled:cursor-not-allowed disabled:opacity-30 dark:text-gray-400 dark:hover:bg-white/10 dark:hover:text-white"
+                                                    aria-label="Mover para cima"
+                                                >
+                                                    <x-icon name="chevron-up" class="h-4 w-4" />
+                                                </button>
+
+                                                <button
+                                                    type="button"
+                                                    @click="move(key, 1)"
+                                                    :disabled="isLast(key)"
+                                                    class="inline-flex h-7 w-7 items-center justify-center rounded-md text-gray-500 transition hover:bg-gray-100 hover:text-gray-900 disabled:cursor-not-allowed disabled:opacity-30 dark:text-gray-400 dark:hover:bg-white/10 dark:hover:text-white"
+                                                    aria-label="Mover para baixo"
+                                                >
+                                                    <x-icon name="chevron-down" class="h-4 w-4" />
+                                                </button>
+                                            </div>
+                                        </template>
+
+                                        <p
+                                            x-show="order.filter((item) => meta[item].group === '{{ $groupKey }}').length === 0"
+                                            class="rounded-lg border border-dashed border-gray-200 px-3 py-2 text-xs text-gray-400 dark:border-white/10 dark:text-gray-500"
+                                        >
+                                            Nenhum botão neste grupo.
+                                        </p>
+                                    </div>
+                                </div>
+                            @endforeach
+                        </div>
+
+                        <template x-for="key in order" :key="'order-' + key">
+                            <input type="hidden" name="order[]" :value="key">
+                        </template>
+
+                        <template x-for="key in order" :key="'section-' + key">
+                            <input type="hidden" :name="'sections[' + key + ']'" :value="meta[key].group">
+                        </template>
+                    </div>
 
                     <div class="grid gap-2 sm:grid-cols-2">
                         @foreach ($modules as $module)
@@ -286,7 +414,7 @@
                                         <x-icon :name="$module->icon()" class="h-4 w-4 text-gray-400 dark:text-gray-500" />
                                         {{ $module->label() }}
                                     </span>
-                                    <span class="mt-0.5 block text-xs text-gray-500 dark:text-gray-400">Exibir no menu lateral</span>
+                                    <span class="mt-0.5 block text-xs text-gray-500 dark:text-gray-400">Exibir na navegação</span>
                                 </span>
                             </label>
                         @endforeach

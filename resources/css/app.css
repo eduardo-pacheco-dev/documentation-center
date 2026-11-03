@@ -4,6 +4,11 @@
 
 html {
     scroll-behavior: smooth;
+    color-scheme: light;
+}
+
+html.dark {
+    color-scheme: dark;
 }
 
 [x-cloak] {
@@ -157,4 +162,157 @@ html {
     .no-js [data-file-remove] {
         display: none !important;
     }
+}
+
+.dev-doc-content {
+    color: var(--color-gray-700);
+    font-size: 0.875rem;
+    line-height: 1.75;
+}
+
+.dark .dev-doc-content {
+    color: var(--color-gray-300);
+}
+
+.dev-doc-content > :first-child {
+    margin-top: 0;
+}
+
+.dev-doc-content h1,
+.dev-doc-content h2,
+.dev-doc-content h3,
+.dev-doc-content h4 {
+    color: var(--color-gray-900);
+    font-weight: 600;
+    line-height: 1.35;
+    margin: 1.75rem 0 0.75rem;
+}
+
+.dark .dev-doc-content h1,
+.dark .dev-doc-content h2,
+.dark .dev-doc-content h3,
+.dark .dev-doc-content h4 {
+    color: var(--color-white);
+}
+
+.dev-doc-content h1 {
+    font-size: 1.5rem;
+}
+
+.dev-doc-content h2 {
+    font-size: 1.25rem;
+}
+
+.dev-doc-content h3 {
+    font-size: 1.05rem;
+}
+
+.dev-doc-content p,
+.dev-doc-content ul,
+.dev-doc-content ol,
+.dev-doc-content blockquote,
+.dev-doc-content pre,
+.dev-doc-content table {
+    margin: 0.85rem 0;
+}
+
+.dev-doc-content ul,
+.dev-doc-content ol {
+    padding-left: 1.4rem;
+}
+
+.dev-doc-content ul {
+    list-style: disc;
+}
+
+.dev-doc-content ol {
+    list-style: decimal;
+}
+
+.dev-doc-content li {
+    margin: 0.25rem 0;
+}
+
+.dev-doc-content a {
+    color: var(--color-indigo-600);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+
+.dark .dev-doc-content a {
+    color: var(--color-indigo-400);
+}
+
+.dev-doc-content strong {
+    color: var(--color-gray-900);
+    font-weight: 600;
+}
+
+.dark .dev-doc-content strong {
+    color: var(--color-white);
+}
+
+.dev-doc-content code {
+    background: var(--color-gray-100);
+    border-radius: 0.35rem;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 0.85em;
+    padding: 0.15rem 0.35rem;
+}
+
+.dark .dev-doc-content code {
+    background: rgb(255 255 255 / 0.1);
+}
+
+.dev-doc-content pre {
+    background: var(--color-gray-900);
+    border-radius: 0.75rem;
+    color: var(--color-gray-100);
+    overflow-x: auto;
+    padding: 1rem;
+}
+
+.dev-doc-content pre code {
+    background: transparent;
+    color: inherit;
+    padding: 0;
+}
+
+.dev-doc-content blockquote {
+    border-left: 3px solid var(--color-indigo-300);
+    color: var(--color-gray-600);
+    padding-left: 1rem;
+}
+
+.dark .dev-doc-content blockquote {
+    border-left-color: var(--color-indigo-500);
+    color: var(--color-gray-400);
+}
+
+.dev-doc-content table {
+    border-collapse: collapse;
+    width: 100%;
+}
+
+.dev-doc-content th,
+.dev-doc-content td {
+    border: 1px solid var(--color-gray-200);
+    padding: 0.5rem 0.75rem;
+    text-align: left;
+}
+
+.dark .dev-doc-content th,
+.dark .dev-doc-content td {
+    border-color: rgb(255 255 255 / 0.1);
+}
+
+.dev-doc-content th {
+    background: var(--color-gray-50);
+    color: var(--color-gray-900);
+    font-weight: 600;
+}
+
+.dark .dev-doc-content th {
+    background: rgb(255 255 255 / 0.03);
+    color: var(--color-white);
 }

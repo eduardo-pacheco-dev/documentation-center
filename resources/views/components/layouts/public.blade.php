@@ -11,16 +11,8 @@
         <script>
             document.documentElement.classList.remove('no-js');
             document.documentElement.classList.add('js');
-
-            (function () {
-                const theme = @json(auth()->user()?->theme ?? 'system');
-                const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-
-                if (theme === 'dark' || (theme === 'system' && prefersDark)) {
-                    document.documentElement.classList.add('dark');
-                }
-            })();
         </script>
+        <x-theme-script />
         @vite(['resources/css/app.css', 'resources/js/app.js'])
     </head>
     <body class="flex min-h-svh flex-col bg-[#f4f4f2] text-gray-900 antialiased dark:bg-[#171716] dark:text-gray-100">

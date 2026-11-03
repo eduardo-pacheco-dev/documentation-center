@@ -8,16 +8,7 @@
 
         <title>{{ $title }} · {{ config('app.name') }}</title>
 
-        <script>
-            (function () {
-                const theme = @json(auth()->user()?->theme ?? 'system');
-                const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-
-                if (theme === 'dark' || (theme === 'system' && prefersDark)) {
-                    document.documentElement.classList.add('dark');
-                }
-            })();
-        </script>
+        <x-theme-script />
         @vite(['resources/css/app.css', 'resources/js/app.js'])
         <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.9/dist/cdn.min.js"></script>
     </head>
@@ -76,6 +67,5 @@
 
         <x-toasts />
         <x-confirm-modal />
-        <x-document-preview-modal />
     </body>
 </html>

@@ -14,7 +14,7 @@
 
         @if (session('status'))
             <noscript>
-                <div class="mt-7 rounded-s border border-brand-navy/20 bg-brand-navy/5 px-4 py-3 text-sm text-brand-navy">
+                <div class="mt-7 rounded-s border border-brand-navy/20 bg-brand-navy/5 px-4 py-3 text-sm text-brand-navy dark:border-blue-400/30 dark:bg-blue-400/10 dark:text-blue-200">
                     {{ session('status') }}
                 </div>
             </noscript>
