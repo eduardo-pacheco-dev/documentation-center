@@ -46,25 +46,16 @@ class StationImportController extends Controller
     }
 
     /**
-     * Download the CSV template with all accepted columns.
+     * Download the CSV template shipped with the plugin.
      */
     public function template(): StreamedResponse
     {
-        $fields = collect(config('stations.fields', []))
-            ->flatMap(fn (array $group): array => $group['fields'])
-            ->pluck('name')
-            ->all();
+        $path = dirname(__DIR__, 2).'/Resources/templates/stations-import.csv';
 
-        return response()->streamDownload(function () use ($fields): void {
-            $output = fopen('php://output', 'w');
+        abort_unless(is_file($path), 404);
 
-            if ($output === false) {
-                return;
-            }
-
-            fwrite($output, "\xEF\xBB\xBF");
-            fputcsv($output, $fields, ';');
-            fclose($output);
+        return response()->streamDownload(function () use ($path): void {
+            readfile($path);
         }, 'modelo-importacao-estacoes.csv', [
             'Content-Type' => 'text/csv; charset=UTF-8',
         ]);
