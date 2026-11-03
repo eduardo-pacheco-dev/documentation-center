@@ -98,6 +98,8 @@ class DatabaseCommand extends Command
             $path = base_path('plugins/Analytics/Database/Migrations');
 
             $migrator->usingConnection($connection, function () use ($migrator, $path): void {
+                $this->baselineExistingTables($migrator, $path);
+
                 $migrator->run([$path], ['pretend' => false]);
             });
 
@@ -111,6 +113,40 @@ class DatabaseCommand extends Command
         }
 
         return self::SUCCESS;
+    }
+
+    /**
+     * Record migrations whose table already exists but that are missing from
+     * the analytics migration history.
+     *
+     * Tables can be created by plugin migrations tracked in the application
+     * database, so the dedicated connection may not know about them yet.
+     */
+    private function baselineExistingTables(Migrator $migrator, string $path): void
+    {
+        if (! $migrator->repositoryExists()) {
+            return;
+        }
+
+        $repository = $migrator->getRepository();
+        $ran = $repository->getRan();
+        $batch = $repository->getNextBatchNumber();
+
+        foreach (array_keys($migrator->getMigrationFiles([$path])) as $migration) {
+            if (in_array($migration, $ran, true)) {
+                continue;
+            }
+
+            if (preg_match('/^\d{4}_\d{2}_\d{2}_\d{6}_create_(.+)_table$/', $migration, $matches) !== 1) {
+                continue;
+            }
+
+            $table = $matches[1];
+
+            if (AnalyticsDatabase::schema()->hasTable($table)) {
+                $repository->log($migration, $batch);
+            }
+        }
     }
 
     /**

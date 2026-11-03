@@ -1,9 +1,12 @@
 <?php
 
 use App\Models\User;
+use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Queue;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
@@ -972,6 +975,41 @@ it('routes analytics models to the dedicated connection while core models stay o
         ->and((new AnalyticsAflRecord)->getConnectionName())->toBe('analytics')
         ->and((new AnalyticsRecord)->getConnection()->getName())->toBe('analytics')
         ->and((new Project)->getConnection()->getName())->toBe('sqlite');
+});
+
+it('baselines analytics tables that already exist without migration history', function () {
+    $path = storage_path('framework/testing/analytics_'.Str::random(8).'.sqlite');
+    touch($path);
+
+    config([
+        'database.connections.analytics' => [
+            'driver' => 'sqlite',
+            'database' => $path,
+            'prefix' => '',
+            'foreign_key_constraints' => true,
+        ],
+        'analytics.database.connection' => 'analytics',
+    ]);
+
+    DB::purge('analytics');
+
+    Schema::connection('analytics')->create('analytics_imports', function (Blueprint $table): void {
+        $table->id();
+        $table->unsignedBigInteger('user_id');
+    });
+
+    $this->artisan('analytics:database')->assertSuccessful();
+
+    expect(Schema::connection('analytics')->hasTable('analytics_records'))->toBeTrue()
+        ->and(Schema::connection('analytics')->hasTable('analytics_afl_records'))->toBeTrue()
+        ->and(Schema::connection('analytics')->hasTable('analytics_snapshots'))->toBeTrue()
+        ->and(DB::connection('analytics')
+            ->table('migrations')
+            ->where('migration', '2026_11_02_000013_create_analytics_imports_table')
+            ->exists())->toBeTrue();
+
+    DB::purge('analytics');
+    @unlink($path);
 });
 
 it('migrates and copies the analytics rows to the dedicated connection', function () {
