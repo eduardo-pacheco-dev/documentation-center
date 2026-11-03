@@ -8,6 +8,31 @@
 
     $display = fn (mixed $value): string => filled($value) ? (string) $value : '—';
 
+    $configGroups = config('stations.fields', []);
+
+    $editHasErrors = old('modal') === 'edit' && $errors->any();
+    $editInitialStep = 0;
+
+    foreach ($configGroups as $index => $group) {
+        if ($errors->hasAny(array_column($group['fields'], 'name'))) {
+            $editInitialStep = $index;
+
+            break;
+        }
+    }
+
+    $editPayload = [
+        'id' => $station->getKey(),
+        'action' => route('admin.stations.update', $station),
+        'fields' => collect($configGroups)
+            ->flatMap(fn (array $group): array => $group['fields'])
+            ->pluck('name')
+            ->mapWithKeys(fn (string $name): array => [$name => $station->{$name}])
+            ->all(),
+    ];
+
+    $editPayloadJson = \Illuminate\Support\Js::from($editPayload)->toHtml();
+
     $fieldGroups = [
         [
             'title' => 'Identificação',
@@ -216,7 +241,12 @@
                 Exportar
             </x-ui.action>
 
-            <x-ui.action :href="route('admin.stations.edit', $station)" icon="pencil-square" variant="secondary">
+            <x-ui.action
+                :href="route('admin.stations.edit', $station)"
+                icon="pencil-square"
+                variant="secondary"
+                x-on:click.prevent="$dispatch('open-edit-station-modal', {!! $editPayloadJson !!})"
+            >
                 Editar
             </x-ui.action>
 
@@ -641,4 +671,11 @@
             </script>
         @endpush
     @endif
+
+    <x-stations::partials.station-modal
+        mode="edit"
+        :station="$station"
+        :has-errors="$editHasErrors"
+        :initial-step="$editInitialStep"
+    />
 </x-layouts.admin>
