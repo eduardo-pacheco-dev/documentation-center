@@ -15,6 +15,18 @@ class StoreStationRequest extends FormRequest
     }
 
     /**
+     * Normalize the CEP before validation so the database always stores digits.
+     */
+    protected function prepareForValidation(): void
+    {
+        if ($this->filled('cep')) {
+            $this->merge([
+                'cep' => preg_replace('/\D/', '', (string) $this->input('cep')),
+            ]);
+        }
+    }
+
+    /**
      * Get the validation rules that apply to the request.
      *
      * @return array<string, mixed>

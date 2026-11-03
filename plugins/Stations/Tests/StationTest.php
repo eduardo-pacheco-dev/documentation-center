@@ -105,7 +105,39 @@ test('the create page renders the station form', function () {
         ->get('/admin/stations/create')
         ->assertOk()
         ->assertSee('Nova estação')
-        ->assertSee('SITE_ID');
+        ->assertSee('SITE_ID')
+        ->assertSee('viacep.com.br', false)
+        ->assertSee('name="cep"', false)
+        ->assertSee('name="estado"', false);
+});
+
+test('the stations index renders the create modal with steps', function () {
+    $this->actingAs(User::factory()->create())
+        ->get('/admin/stations')
+        ->assertOk()
+        ->assertSee('create-station-modal-title', false)
+        ->assertSee('name="modal" value="create"', false)
+        ->assertSee('Identificação')
+        ->assertSee('Infraestrutura')
+        ->assertSee('Endereço')
+        ->assertSee('Localização')
+        ->assertSee('Próximo')
+        ->assertSee('Cadastrar estação')
+        ->assertSee('<dialog', false)
+        ->assertSee('stationCreateModal', false)
+        ->assertSee('viacep.com.br', false)
+        ->assertSee('id="modal-cep"', false)
+        ->assertSee('id="modal-estado"', false)
+        ->assertSee('Digite o CEP para preencher o endereço automaticamente.')
+        ->assertSeeInOrder(['id="modal-status"', 'id="modal-station_id"', 'id="modal-detentor_area"'], false);
+});
+
+test('the create modal reopens when validation fails', function () {
+    $this->actingAs(User::factory()->create())
+        ->from('/admin/stations')
+        ->post('/admin/stations', ['modal' => 'create', 'tecnologia' => 'IP'])
+        ->assertRedirect('/admin/stations')
+        ->assertSessionHasErrors('site_id');
 });
 
 test('a station can be created', function () {
@@ -125,7 +157,7 @@ test('a station can be created', function () {
         'bairro' => 'JABAQUARA',
         'municipio' => 'SAO PAULO',
         'estado' => 'SP',
-        'cep' => '04339000',
+        'cep' => '04339-000',
         'regional' => 'TSP',
         'latitude' => '-23.665278',
         'longitude' => '-46.641111',
@@ -143,6 +175,7 @@ test('a station can be created', function () {
         ->endereco_id->toBe('SPSPO_2360')
         ->tecnologia->toBe('IP')
         ->estado->toBe('SP')
+        ->cep->toBe('04339000')
         ->latitude->toBe('-23.665278')
         ->longitude->toBe('-46.641111');
 });

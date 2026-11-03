@@ -2,6 +2,21 @@
     @php
         $hasFilters = $search !== '' || $status !== '' || $tecnologia !== '';
 
+        $fieldGroups = config('stations.fields', []);
+        $createHasErrors = old('modal') === 'create' && $errors->any();
+
+        $initialStep = 0;
+
+        if ($createHasErrors) {
+            foreach ($fieldGroups as $index => $group) {
+                if ($errors->hasAny(array_column($group['fields'], 'name'))) {
+                    $initialStep = $index;
+
+                    break;
+                }
+            }
+        }
+
         $statusTone = fn (?string $value): string => match (mb_strtolower((string) $value)) {
             'aquisitado', 'ativo', 'ativa' => 'green',
             'em análise', 'em analise', 'pendente' => 'amber',
@@ -16,7 +31,13 @@
         description="Cadastre e consulte os elementos de rede, a infraestrutura e o endereço de cada estação."
         icon="signal"
     >
-        <x-ui.action :href="route('admin.stations.create')" icon="plus">Nova estação</x-ui.action>
+        <x-ui.action
+            :href="route('admin.stations.create')"
+            icon="plus"
+            x-on:click.prevent="$dispatch('open-station-modal')"
+        >
+            Nova estação
+        </x-ui.action>
     </x-ui.page-header>
 
     <div class="mt-6 flex flex-wrap items-center gap-x-5 gap-y-2 rounded-2xl border border-gray-200/80 bg-white px-4 py-2.5 text-xs text-gray-500 dark:border-white/10 dark:bg-[#171716] dark:text-gray-400">
@@ -102,7 +123,13 @@
                 shape="square"
             >
                 @unless ($hasFilters)
-                    <x-ui.action :href="route('admin.stations.create')" size="sm" icon="plus" class="mt-4">
+                    <x-ui.action
+                        :href="route('admin.stations.create')"
+                        size="sm"
+                        icon="plus"
+                        class="mt-4"
+                        x-on:click.prevent="$dispatch('open-station-modal')"
+                    >
                         Nova estação
                     </x-ui.action>
                 @endunless
@@ -187,4 +214,6 @@
             </div>
         </div>
     @endif
+
+    <x-stations::partials.create-modal :has-errors="$createHasErrors" :initial-step="$initialStep" />
 </x-layouts.admin>
