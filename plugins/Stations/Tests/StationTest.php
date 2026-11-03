@@ -425,7 +425,27 @@ test('the station details page renders all sections and the map', function () {
         ->assertSeeInOrder(['Informações', 'Localização', 'Mapa', 'PPI/TSSR', 'Anexos', 'Comentários'])
         ->assertSee('id="station-map"', false)
         ->assertSee('unpkg.com/leaflet', false)
-        ->assertSee('query=-23.665278,-46.641111', false);
+        ->assertSee('query=-23.665278,-46.641111', false)
+        ->assertSee('open-edit-station-modal', false)
+        ->assertSee('JSON.parse', false)
+        ->assertDontSee('@js($editPayload)', false)
+        ->assertSee('edit-station-modal-title', false);
+});
+
+test('the station edit modal reopens when validation fails on the details page', function () {
+    $station = Station::factory()->create(['site_id' => 'SPDETAIL1']);
+
+    $this->actingAs(User::factory()->create())
+        ->from(route('admin.stations.show', $station))
+        ->followingRedirects()
+        ->put(route('admin.stations.update', $station), [
+            'modal' => 'edit',
+            'editing_id' => $station->id,
+            'site_id' => '',
+        ])
+        ->assertOk()
+        ->assertSee('edit-station-modal-title', false)
+        ->assertSee('Não foi possível salvar a estação');
 });
 
 test('attachments can be uploaded, downloaded and removed', function () {
