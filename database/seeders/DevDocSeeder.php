@@ -2038,6 +2038,530 @@ MARKDOWN,
                 'is_published' => true,
             ],
             [
+                'title' => 'Design System do sistema',
+                'slug' => 'design-system',
+                'category' => DevDocCategory::Frontend,
+                'summary' => 'Fundamentos, tokens, catálogo completo de componentes, padrões compostos, acessibilidade e governança do design system.',
+                'content' => <<<'MARKDOWN'
+# Design System do sistema
+
+## Visão geral
+
+O design system é a camada que garante consistência visual e comportamental entre os módulos do Documentation Center. Ele é composto por quatro níveis:
+
+| Camada | Responsabilidade | Onde vive |
+| --- | --- | --- |
+| **Fundamentos** | Cores, tipografia, espaçamento, raios, sombras, movimento e ícones | `resources/css/app.css` e utilitários Tailwind |
+| **Componentes** | Blocos reutilizáveis com API e estados definidos | `resources/views/components` |
+| **Padrões** | Composições recorrentes de componentes | Telas e parciais dos módulos |
+| **Governança** | Regras de uso, evolução e revisão | Esta página e checklists |
+
+A fonte da verdade é sempre o código: tokens no `@theme`, componentes em Blade e comportamentos globais em `resources/js/app.js`. Esta documentação descreve o contrato esperado.
+
+## Arquitetura
+
+```text
+resources/
+├── css/
+│   └── app.css                 # Tailwind 4, @theme, animações, estilos da wiki
+├── js/
+│   └── app.js                  # Toasts, ConfirmModal, PasswordVisibility, LoginForm
+└── views/
+    ├── components/
+    │   ├── ui/                 # Componentes base (x-ui.*)
+    │   ├── dashboard/          # Shell administrativo (x-dashboard.*)
+    │   ├── layouts/            # Layouts (x-layouts.*)
+    │   ├── auth/               # Blocos de autenticação
+    │   └── admin/              # Componentes específicos da wiki
+    └── admin/                  # Telas dos módulos
+```
+
+### Stack de interface
+
+- **Blade** para renderização e composição.
+- **Tailwind CSS 4** com configuração CSS-first (`@theme`), sem `tailwind.config.js`.
+- **Alpine.js 3** via CDN no layout do dashboard para interações locais.
+- **JavaScript global** para toasts, confirmação, visibilidade de senha e login.
+- **Vite** para build dos assets.
+
+## Fundamentos
+
+### Cores
+
+#### Tokens de marca
+
+| Token | Valor | Uso |
+| --- | --- | --- |
+| `--color-grey-15` | `#1f1f1f` | Texto principal |
+| `--color-grey-45` | `#6b6b6b` | Texto secundário |
+| `--color-grey-65` | `#8f8f8f` | Placeholder e apoio |
+| `--color-grey-80` | `#d9d9d9` | Bordas e divisores |
+| `--color-grey-90` | `#f2f2f2` | Fundos suaves |
+| `--color-grey-100` | `#ffffff` | Superfícies |
+| `--color-secondary-blue-400` | `#1f73e8` | Ação primária de autenticação |
+| `--color-secondary-blue-500` | `#1557b0` | Hover da ação de autenticação |
+| `--color-brand-navy` | `#0a1b3d` | Marca e superfícies escuras |
+
+#### Paleta semântica
+
+| Intenção | Cor base | Onde usar |
+| --- | --- | --- |
+| Ação primária | `indigo-600` | Botões principais, links ativos, foco |
+| Ação primária (auth) | `secondary-blue-400` | Botões de login e cadastro |
+| Neutro | `gray-*` | Texto, bordas, fundos e superfícies |
+| Sucesso | `emerald-*` | Status ativo, confirmações |
+| Atenção | `amber-*` | Manutenção, avisos |
+| Erro / destruição | `red-*` | Validação, exclusão, indisponibilidade |
+| Informação | `blue-*` | Toasts informativos |
+
+Regras:
+
+- Nunca use cor como único indicador de estado; acompanhe com ícone ou texto.
+- Em dark mode, substitua fundos brancos por `white/10` e sombras por bordas.
+- A escala indigo é a cor de ação do painel administrativo; o azul `secondary` é exclusivo da autenticação.
+
+### Tipografia
+
+| Token | Definição |
+| --- | --- |
+| `--font-sans` | `Instrument Sans`, com fallbacks do sistema |
+| `--text-sb24` | `1.5rem` / linha `2rem` / peso `600` |
+| `--text-sb32` | `2rem` / linha `2.5rem` / peso `600` |
+
+Escala usada nas telas:
+
+| Papel | Classes típicas |
+| --- | --- |
+| Título de página | `text-2xl sm:text-3xl font-semibold tracking-tight` |
+| Título de seção | `text-base font-semibold` |
+| Rótulo de categoria | `text-[11px] font-semibold uppercase tracking-[0.18em]` |
+| Corpo | `text-sm` |
+| Apoio | `text-xs text-gray-500 dark:text-gray-400` |
+| Código | `font-mono` / bloco `pre` |
+
+### Espaçamento e layout
+
+- Grid de espaçamento do Tailwind (`gap-1` a `gap-8`).
+- Conteúdo principal: `px-4 py-6 sm:px-6 sm:py-8 lg:px-8`.
+- Topbar: altura `h-16`, conteúdo em `max-w-[1440px]`.
+- Formulários: `space-y-5` entre blocos e `gap-5` em grades de duas colunas.
+- Listas e cards: `gap-3` a `gap-4`.
+- Sidebar: `4.5rem` recolhida e `15rem` expandida.
+
+### Raios
+
+| Token/classe | Uso |
+| --- | --- |
+| `--radius-s` (`0.375rem`) | Campos e botões de autenticação |
+| `rounded-lg` | Itens de menu, botões compactos |
+| `rounded-xl` | Controles, cards pequenos, botões administrativos |
+| `rounded-2xl` | Painéis, modais e superfícies principais |
+| `rounded-full` | Badges, avatares, indicadores |
+
+### Elevação
+
+- Superfícies administrativas usam `shadow-sm` e borda sutil.
+- Modais e dropdowns usam sombra mais forte (`shadow-lg`/`shadow-xl`).
+- A autenticação usa sombra colorida no botão primário.
+- Em dark mode, prefira bordas (`border-white/10`) a sombras.
+
+### Movimento
+
+- Transições padrão de **200 ms**.
+- Hover pode elevar elementos (`hover:-translate-y-0.5`) e reforçar sombra.
+- Entradas de autenticação usam `auth-reveal`, `auth-logo`, `auth-float` e `auth-glow`.
+- `prefers-reduced-motion: reduce` desativa as animações de autenticação.
+- Evite animação contínua fora das telas de login.
+
+### Ícones
+
+- SVGs inline no componente `x-icon`.
+- Estilo outline (Heroicons), `stroke-width="1.5"`.
+- Tamanhos: `h-4 w-4` em ações, `h-5 w-5` em navegação, `h-6 w-6` em cabeçalhos.
+- Ícones decorativos usam `aria-hidden="true"`; ícones interativos recebem `aria-label`.
+- Para adicionar um ícone, inclua um `@case` em `resources/views/components/icon.blade.php`.
+
+### Responsividade
+
+Breakpoints padrão do Tailwind: `sm` 640 px, `md` 768 px, `lg` 1024 px, `xl` 1280 px, `2xl` 1536 px.
+
+- `lg` é o ponto de mudança do shell administrativo.
+- Abaixo de `lg`, a sidebar vira drawer com overlay e a topbar mostra o botão de menu.
+- Grades de formulário passam de duas colunas para uma.
+- Ações de página quebram linha em vez de comprimir rótulos.
+- Tabelas longas devem ter rolagem horizontal controlada.
+
+## Temas
+
+O tema é aplicado pela classe `dark` no `<html>`, com preferência do usuário (`system`, `light`, `dark`).
+
+```js
+const theme = @json(auth()->user()?->theme ?? 'system');
+const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+
+if (theme === 'dark' || (theme === 'system' && prefersDark)) {
+    document.documentElement.classList.add('dark');
+}
+```
+
+| Superfície | Claro | Escuro |
+| --- | --- | --- |
+| Fundo da aplicação | `#f4f4f2` | `#171716` |
+| Conteúdo principal | `#ffffff` | `#101010` |
+| Modal administrativo | `#ffffff` | `#1c1c1b` |
+| Texto principal | `gray-900` | `gray-100` |
+| Texto de apoio | `gray-500` | `gray-400` |
+| Borda | `gray-200/80` | `white/10` |
+| Hover neutro | `gray-100` | `white/10` |
+
+Todo componente novo deve declarar as duas variantes.
+
+## Componentes
+
+### Ações
+
+#### `x-ui.action`
+
+Botão ou link de ação administrativa.
+
+| Prop | Valores | Padrão |
+| --- | --- | --- |
+| `href` | URL | `null` (renderiza `<button>`) |
+| `variant` | `primary`, `secondary`, `ghost`, `danger` | `primary` |
+| `icon` | nome do `x-icon` | `null` |
+| `type` | `button`, `submit` | `button` |
+| `size` | `sm`, `md`, `lg` | `md` |
+
+```blade
+<x-ui.action :href="route('admin.clients.create')" icon="plus">
+    Novo cliente
+</x-ui.action>
+
+<x-ui.action type="submit" variant="danger" icon="trash">
+    Excluir
+</x-ui.action>
+```
+
+Regras:
+
+- Uma única ação primária por área visível.
+- `danger` é exclusivo para ações irreversíveis.
+- Botões desabilitados reduzem contraste e removem sombra.
+
+#### `x-ui.button`
+
+Botão de autenticação, com largura total e animação de entrada.
+
+| Prop | Valores | Padrão |
+| --- | --- | --- |
+| `type` | `submit`, `button` | `submit` |
+| `delay` | milissegundos | `null` |
+
+#### `x-ui.icon-button`
+
+Ação compacta somente com ícone.
+
+| Prop | Obrigatório |
+| --- | --- |
+| `icon` | sim |
+| `label` | sim (vira `aria-label`) |
+| `href` | não |
+
+### Formulários
+
+#### `x-ui.field`
+
+Campo de autenticação completo, com rótulo, erro e revelação de senha opcional.
+
+| Prop | Padrão |
+| --- | --- |
+| `name`, `label` | — |
+| `type` | `text` |
+| `value`, `placeholder`, `autocomplete`, `enterkeyhint` | `null` |
+| `autofocus` | `false` |
+| `revealable` | `false` |
+| `required` | `true` |
+| `delay` | `null` |
+
+Estados:
+
+- erro: borda vermelha, `aria-invalid` e `aria-describedby`;
+- foco: borda azul e anel `focus:ring-4`;
+- senha: botão com `aria-pressed` e rótulo “Mostrar senha”.
+
+#### Campos administrativos
+
+| Componente | Uso |
+| --- | --- |
+| `x-ui.field-label` | Rótulo de campo ou grupo; `group` para `<p>` com `aria` |
+| `x-ui.field-help` | Texto auxiliar em `text-xs` |
+| `x-ui.field-error` | Erro com ícone e `role="alert"` |
+| `x-ui.checkbox` | Checkbox com rótulo clicável |
+| `x-searchable-select` | Select com busca, teclado e lista teleportada |
+
+Exemplo padrão:
+
+```blade
+<div class="space-y-1.5">
+    <x-ui.field-label for="name" label="Nome" required />
+    <input
+        id="name"
+        name="name"
+        value="{{ old('name', $model?->name) }}"
+        class="h-10 w-full rounded-xl border border-gray-200 bg-gray-50 px-3 text-sm ..."
+    >
+    <x-ui.field-help>Aparece nas listagens e relatórios.</x-ui.field-help>
+    @error('name')
+        <x-ui.field-error>{{ $message }}</x-ui.field-error>
+    @enderror
+</div>
+```
+
+Regras:
+
+- Todo campo tem rótulo visível.
+- O asterisco de obrigatório é reforço visual, não substitui `required`.
+- Erros usam `role="alert"` e não dependem apenas de cor.
+- Preserve `old()` ao reabrir formulários em modal.
+
+### Feedback
+
+| Componente | API principal | Tons/variantes |
+| --- | --- | --- |
+| `x-ui.alert` | `tone`, `icon` | `info`, `success`, `error`, `warning` |
+| `x-ui.badge` | `tone` | `gray`, `indigo`, `green`, `amber`, `red`, `inverse` |
+| `x-ui.progress-bar` | `percent`, `height`, `indicator` | percentual de 0 a 100 |
+| `x-ui.empty-state` | `icon`, `title`, `description`, `tone`, `shape` | `gray`, `indigo`; `circle`, `square` |
+| `x-ui.tooltip` | `side` | `right`, `top`, `left` |
+| `x-ui.kbd` | slot | atalhos |
+
+#### `x-toasts`
+
+- Container global com `aria-live="polite"`.
+- Tipos: `success`, `error`, `info`.
+- Duração padrão: **5 segundos**.
+- Exibe até **3** erros de validação por requisição.
+- API JavaScript:
+
+```js
+window.toasts.success('Cliente atualizado.');
+window.toasts.error('Não foi possível salvar.');
+window.toast({ type: 'info', message: 'Processando...', progress: 40 });
+```
+
+#### `x-confirm-modal`
+
+Confirmação global de ações destrutivas.
+
+| Atributo no formulário/gatilho | Efeito |
+| --- | --- |
+| `data-confirm` | Mensagem de confirmação |
+| `data-confirm-delete` | Mensagem para exclusão |
+| `data-confirm-title` | Título do modal |
+| `data-confirm-label` | Rótulo do botão de confirmação |
+
+Comportamento:
+
+- Foco inicial no botão **Cancelar**.
+- `Escape` cancela.
+- O foco retorna ao elemento anterior ao fechar.
+- Também disponível via `window.confirmAction({ title, message, confirmLabel })`.
+
+### Navegação
+
+| Componente | Uso |
+| --- | --- |
+| `x-ui.dropdown` | Painel flutuante via Alpine (`show`, `close`, `origin`) |
+| `x-ui.search-input` | Busca global com atalhos `/` e `Ctrl`/`Cmd` + `K` |
+| `x-user-actions-dropdown` | Menu de ações por registro |
+| `x-dashboard.sidebar` | Navegação principal |
+| `x-dashboard.sidebar-item` | Item com tooltip, estado ativo e `aria-current` |
+| `x-dashboard.sidebar-toggle` | Alterna largura da sidebar |
+| `x-dashboard.modules-menu` | Grade de módulos secundários |
+| `x-dashboard.topbar` | Cabeçalho fixo com breadcrumb e busca |
+| `x-dashboard.user-menu` | Perfil, configurações e saída |
+| `x-dashboard.brand` | Marca e link para o dashboard |
+
+`x-ui.dropdown` não controla estado sozinho: deve estar dentro de um escopo `x-data` com a expressão de `show` e a ação de `close`.
+
+### Dados e listas
+
+| Componente | Uso |
+| --- | --- |
+| `x-pagination` | Paginação com contagem, página atual e `aria-current` |
+| `x-sort-header` | Cabeçalho ordenável que preserva a query string |
+| `x-relative-time` | Data relativa com `datetime` e `title` completos |
+| `x-dashboard-panel` | Painel do dashboard com título e link “Ver todos” |
+| `x-ui.avatar` | Avatar com tamanho e indicador de status |
+
+### Estrutura
+
+| Componente | Uso |
+| --- | --- |
+| `x-ui.page-header` | Categoria, título, descrição, ícone e slot de ações |
+| `x-ui.modal` | Diálogo base com `role="dialog"` e fechamento por `data-modal-close` |
+| `x-layouts.admin` | Atalho para o layout administrativo |
+| `x-layouts.dashboard` | Shell com sidebar, topbar, main e footer |
+| `x-layouts.auth` | Login e cadastro |
+| `x-layouts.app` | Layout auxiliar centralizado |
+| `x-layouts.public` | Páginas públicas e plugins, com fallback `no-js` |
+
+`x-ui.modal` fornece apenas a estrutura; a abertura e o fechamento são implementados pelo script da página, normalmente com `data-modal-open` e `data-modal-close`.
+
+## Padrões compostos
+
+### Página de listagem
+
+```text
+page-header (título + ação primária)
+└── card
+    ├── toolbar (busca, filtros, contadores)
+    ├── tabela/lista (sort-header, badges, ações)
+    ├── empty-state (quando vazia)
+    └── pagination
+```
+
+Checklist:
+
+- busca, filtros e ordenação preservam a URL;
+- estado vazio tem ação principal;
+- ações por linha usam dropdown;
+- exclusão passa pelo confirm modal;
+- contadores refletem apenas a página ou o total, de forma explícita.
+
+### Página de detalhe
+
+- Cabeçalho com título, código/identificador, status e ações.
+- Metadados em `dl` com rótulos em caixa alta.
+- Seções separadas por cards ou divisores.
+- Ações destrutivas isoladas das demais.
+
+### Formulário em modal
+
+- Cabeçalho com título e descrição curta.
+- Corpo com `space-y-5`.
+- Rodapé fixo com **Cancelar** e ação primária.
+- Erros do servidor reabrem o modal e mantêm `old()`.
+- Modal maior (`max-w-2xl`/`max-w-3xl`) para formulários extensos.
+
+### Wizard
+
+- Indicador de etapas com estados pendente, atual e concluído.
+- Validação ao avançar e no envio.
+- Etapa de revisão antes de confirmar.
+- Botão **Voltar** oculto na primeira etapa.
+- Erro do servidor abre a etapa correspondente.
+
+### Empty state
+
+- Ícone em círculo ou quadrado.
+- Título curto e descrição orientada à ação.
+- Slot para botão primário.
+- Nunca use empty state para erros de carregamento.
+
+### Autenticação
+
+- Layout centralizado com largura máxima de `550px`.
+- Ilustrações e animações de entrada.
+- Campos com `x-ui.field` e botão com `x-ui.button`.
+- Erros de credenciais em `x-ui.alert` ou toasts.
+- Alternância de visibilidade de senha com `aria-pressed`.
+
+## Acessibilidade
+
+Contrato mínimo por componente:
+
+- **Diálogos**: `role="dialog"`, `aria-modal="true"`, `aria-labelledby`, foco inicial e retorno de foco.
+- **Menus**: `aria-haspopup`, `aria-expanded`, `role="menu"`/`menuitem` quando aplicável.
+- **Combobox**: `role="combobox"`, `aria-expanded`, `aria-controls`, navegação por setas e `Escape`.
+- **Formulários**: rótulo associado, `aria-invalid`, `aria-describedby` e `role="alert"`.
+- **Navegação**: `aria-current="page"` no item ativo.
+- **Ícones**: decorativos com `aria-hidden`; interativos com `aria-label`.
+- **Notificações**: `aria-live="polite"`, `role="status"`/`alert`.
+- **Foco**: sempre visível, com `focus-visible` e anel de contraste.
+- **Movimento**: respeitar `prefers-reduced-motion`.
+- **Conteúdo Markdown**: HTML escapado.
+
+## Convenções de implementação
+
+### Componentes Blade
+
+- Componentes anônimos com `@props`.
+- Use `$attributes->class([...])` e `$attributes->merge([...])` para permitir extensão.
+- Prefira `@class([...])` a concatenação de strings.
+- Não consulte banco em views; receba dados do controller.
+- Use `@vite` apenas nos layouts.
+- Em Alpine, `x-bind:class` para expressões e `:attr` para PHP.
+
+### Nomenclatura
+
+| Prefixo | Escopo |
+| --- | --- |
+| `x-ui.*` | Componentes base reutilizáveis |
+| `x-dashboard.*` | Shell administrativo |
+| `x-layouts.*` | Layouts de página |
+| `x-auth.*` | Blocos de autenticação |
+| `x-admin.*` | Componentes específicos da wiki |
+
+### Quando criar um componente
+
+Crie um novo componente quando:
+
+1. o padrão aparece em **três ou mais** lugares;
+2. há variações de estado ou tom que precisam de contrato;
+3. a acessibilidade é repetitiva e fácil de errar;
+4. o componente reduz duplicação sem esconder regra de negócio.
+
+Não crie componente para:
+
+- uso único e específico de uma tela;
+- envolver um único elemento sem variação;
+- esconder lógica de domínio ou queries.
+
+### Template de componente
+
+```blade
+@props([
+    'label',
+    'tone' => 'gray',
+])
+
+@php
+    $toneClasses = match ($tone) {
+        'indigo' => 'bg-indigo-50 text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-300',
+        default => 'bg-gray-100 text-gray-500 dark:bg-white/10 dark:text-gray-400',
+    };
+@endphp
+
+<span {{ $attributes->class(['inline-flex rounded-full px-2 py-0.5 text-xs', $toneClasses]) }}>
+    {{ $label }}
+</span>
+```
+
+## Governança
+
+### Evolução
+
+- Mudanças em tokens afetam todo o sistema: revise as telas principais.
+- Novos componentes devem incluir variantes claras e exemplo de uso.
+- Componentes obsoletos devem ser substituídos de forma incremental, sem quebrar telas.
+- Mantenha esta página e a página **UI Design do sistema** alinhadas ao código.
+
+### Checklist de revisão
+
+- [ ] O componente usa tokens existentes?
+- [ ] Tem variantes clara e escura?
+- [ ] Estados de hover, foco, ativo, erro e desabilitado estão definidos?
+- [ ] A API usa `@props` com padrões seguros?
+- [ ] Os atributos são mesclados com `$attributes`?
+- [ ] A acessibilidade foi verificada por teclado?
+- [ ] O componente funciona em telas pequenas?
+- [ ] Há duplicação que justifique extrair um novo componente?
+- [ ] A documentação foi atualizada quando o contrato mudou?
+MARKDOWN,
+                'is_published' => true,
+            ],
+            [
                 'title' => 'Testes e qualidade',
                 'slug' => 'testes-e-qualidade',
                 'category' => DevDocCategory::Testing,
