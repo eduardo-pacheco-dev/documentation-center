@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Admin\DashboardController;
+use App\Http\Controllers\Admin\DevDocController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\RegisteredUserController;
@@ -78,5 +79,8 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
     Route::middleware('admin')->group(function () {
         Route::resource('users', UserController::class)->only(['index', 'store', 'update', 'destroy']);
         Route::patch('users/{user}/toggle', [UserController::class, 'toggle'])->name('users.toggle');
+
+        Route::resource('dev-docs', DevDocController::class)
+            ->parameters(['dev-docs' => 'devDoc']);
     });
 });

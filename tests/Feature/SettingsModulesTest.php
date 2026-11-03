@@ -100,7 +100,7 @@ test('the enabled modules follow the saved order', function () {
         AdminModule::enabledFor($admin),
     );
 
-    expect($values)->toBe(['users', 'dashboard']);
+    expect($values)->toBe(['users', 'dashboard', 'dev-docs']);
 });
 
 test('administrators can move modules between the sidebar and the modules menu', function () {

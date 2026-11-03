@@ -12,6 +12,7 @@ enum AdminModule: string
 
     case Dashboard = 'dashboard';
     case Users = 'users';
+    case DevDocs = 'dev-docs';
 
     /**
      * The label shown in the navigation and settings.
@@ -21,6 +22,7 @@ enum AdminModule: string
         return match ($this) {
             self::Dashboard => 'Início',
             self::Users => 'Usuários',
+            self::DevDocs => 'Documentação Dev',
         };
     }
 
@@ -32,6 +34,7 @@ enum AdminModule: string
         return match ($this) {
             self::Dashboard => 'home',
             self::Users => 'users',
+            self::DevDocs => 'document-text',
         };
     }
 
@@ -43,6 +46,7 @@ enum AdminModule: string
         return match ($this) {
             self::Dashboard => 'admin.dashboard',
             self::Users => 'admin.users.index',
+            self::DevDocs => 'admin.dev-docs.index',
         };
     }
 
@@ -69,7 +73,7 @@ enum AdminModule: string
      */
     public function isAdminOnly(): bool
     {
-        return $this === self::Users;
+        return in_array($this, [self::Users, self::DevDocs], true);
     }
 
     /**
