@@ -1,0 +1,20 @@
+{
+    "name": "documentation-center/plugin-follow-up",
+    "description": "Gestão de follow-ups com responsáveis, prazos, prioridades e histórico de andamento.",
+    "type": "library",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Documentation Center",
+            "email": "contato@example.com"
+        }
+    ],
+    "autoload": {
+        "psr-4": {
+            "Plugins\FollowUp\\": ""
+        }
+    },
+    "config": {
+        "sort-packages": true
+    }
+}

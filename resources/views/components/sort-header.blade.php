@@ -1,10 +1,10 @@
-@props(['column', 'label', 'icon' => null, 'default' => 'created_at'])
+@props(['column', 'label', 'icon' => null, 'default' => 'created_at', 'defaultDirection' => 'desc'])
 
 @php
     $activeSort = request('sort', $default);
     $activeDirection = in_array(request('direction'), ['asc', 'desc'], true)
         ? request('direction')
-        : ($activeSort === $default ? 'desc' : 'asc');
+        : ($activeSort === $default ? $defaultDirection : 'asc');
     $isActive = $activeSort === $column;
     $nextDirection = $isActive && $activeDirection === 'asc' ? 'desc' : 'asc';
 
