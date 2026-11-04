@@ -230,17 +230,26 @@
                             O resumo periódico envia os follow-ups em aberto nos horários configurados.
                         </p>
 
-                        <label class="flex items-center gap-2">
-                            <input type="hidden" name="email_summary_enabled" value="0">
-                            <input
-                                type="checkbox"
-                                name="email_summary_enabled"
-                                value="1"
-                                @checked(old('email_summary_enabled', $schedule['enabled']))
-                                class="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500/30 dark:border-white/20 dark:bg-white/[0.03] dark:text-indigo-400"
-                            >
-                            <span class="text-sm text-gray-700 dark:text-gray-200">Enviar o resumo periódico</span>
-                        </label>
+                        <div class="flex items-center justify-between gap-3 rounded-2xl border border-gray-200/80 px-4 py-3 dark:border-white/10">
+                            <div class="min-w-0">
+                                <p class="text-sm font-medium text-gray-800 dark:text-gray-100">Agendamento ativo</p>
+                                <p class="mt-0.5 text-xs text-gray-500 dark:text-gray-400">Quando desativado, nenhum resumo periódico é enviado.</p>
+                            </div>
+
+                            <label class="relative inline-flex shrink-0 cursor-pointer items-center">
+                                <input type="hidden" name="email_summary_enabled" value="0">
+                                <input
+                                    type="checkbox"
+                                    name="email_summary_enabled"
+                                    value="1"
+                                    @checked(old('email_summary_enabled', $schedule['enabled']))
+                                    class="peer sr-only"
+                                >
+                                <span class="h-6 w-11 rounded-full bg-gray-300 transition peer-checked:bg-indigo-600 peer-focus-visible:ring-2 peer-focus-visible:ring-indigo-500/40 dark:bg-white/20 dark:peer-checked:bg-indigo-500" aria-hidden="true"></span>
+                                <span class="absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white shadow transition peer-checked:translate-x-5" aria-hidden="true"></span>
+                                <span class="sr-only">Ativar ou desabilitar o agendamento</span>
+                            </label>
+                        </div>
                         @error('email_summary_enabled')<p class="text-sm text-red-600 dark:text-red-400">{{ $message }}</p>@enderror
 
                         <div>

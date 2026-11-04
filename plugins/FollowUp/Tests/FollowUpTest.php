@@ -242,6 +242,7 @@ test('the e-mail composer offers manual and scheduled tabs', function () {
         ->assertSee('Envio manual')
         ->assertSee('Agendado')
         ->assertSee('Salvar agendamento')
+        ->assertSee('Agendamento ativo')
         ->assertSee('Destinatários (Para)')
         ->assertSee('Cópias (CC)');
 });
