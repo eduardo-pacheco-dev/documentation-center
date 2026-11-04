@@ -565,6 +565,7 @@ test('the seeder creates sample follow-ups once', function () {
 
 test('follow-ups can be exported to excel with the current filters', function () {
     FollowUp::factory()->create([
+        'code' => 'FU-EXP-001',
         'title' => 'Follow-up exportado pendente',
         'status' => FollowUpStatus::Pending->value,
         'priority' => FollowUpPriority::High->value,
@@ -590,7 +591,9 @@ test('follow-ups can be exported to excel with the current filters', function ()
     $text = collect($spreadsheet->getSheetByName('Follow-ups')->toArray())->flatten()->filter()->implode(' | ');
 
     expect($spreadsheet->getSheetNames())->toBe(['Follow-ups'])
+        ->and($spreadsheet->getSheetByName('Follow-ups')->getCell('A1')->getValue())->toBe('Código')
         ->and($text)
+        ->toContain('FU-EXP-001')
         ->toContain('Follow-up exportado pendente')
         ->toContain('Alta')
         ->not->toContain('Follow-up exportado concluído');
@@ -601,6 +604,7 @@ test('follow-ups can be exported to excel with the current filters', function ()
 
 test('a single follow-up can be exported with its history', function () {
     $followUp = FollowUp::factory()->create([
+        'code' => 'FU-IND-001',
         'title' => 'Follow-up individual exportado',
         'status' => FollowUpStatus::InProgress->value,
         'priority' => FollowUpPriority::Urgent->value,
@@ -630,6 +634,7 @@ test('a single follow-up can be exported with its history', function () {
     $historyText = collect($spreadsheet->getSheetByName('Histórico')->toArray())->flatten()->filter()->implode(' | ');
 
     expect($followUpText)
+        ->toContain('FU-IND-001')
         ->toContain('Follow-up individual exportado')
         ->toContain('Em andamento')
         ->toContain('Urgente');
