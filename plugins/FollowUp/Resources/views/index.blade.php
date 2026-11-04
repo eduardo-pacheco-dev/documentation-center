@@ -368,7 +368,7 @@
         </div>
     @endif
 
-    <x-follow-up::partials.composer-modal :follow-ups="$emailFollowUps" />
+    <x-follow-up::partials.composer-modal :follow-ups="$emailFollowUps" :schedule="$emailSchedule" />
 
     <x-follow-up::partials.create-modal
         :assignees="$assignees"

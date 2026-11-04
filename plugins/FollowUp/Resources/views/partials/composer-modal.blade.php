@@ -1,4 +1,4 @@
-@props(['followUps'])
+@props(['followUps', 'schedule'])
 
 @php
     $recipientDefaults = fn ($followUp): string => collect([$followUp->creator?->email, $followUp->assignee?->email])
@@ -9,7 +9,8 @@
 
 <div
     x-data="{
-        open: false,
+        open: {{ $errors->hasAny(['recipients', 'subject', 'summary_times', 'email_summary_enabled']) ? 'true' : 'false' }},
+        tab: {{ $errors->hasAny(['summary_times', 'email_summary_enabled']) ? "'scheduled'" : "'manual'" }},
         selected: '',
         recipients: '',
         subject: '',
@@ -70,6 +71,35 @@
                 </button>
             </div>
 
+            <div class="mt-4 inline-flex rounded-xl border border-gray-200 bg-white p-1 dark:border-white/10 dark:bg-white/[0.03]" role="tablist" aria-label="Modo de envio">
+                <button
+                    type="button"
+                    role="tab"
+                    x-bind:aria-selected="tab === 'manual' ? 'true' : 'false'"
+                    x-on:click="tab = 'manual'"
+                    x-bind:class="tab === 'manual' ? 'bg-indigo-600 text-white shadow-sm' : 'text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-white/10'"
+                    class="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition"
+                >
+                    <x-icon name="paper-airplane" class="h-4 w-4" />
+                    Envio manual
+                </button>
+
+                @if (auth()->user()?->is_admin)
+                    <button
+                        type="button"
+                        role="tab"
+                        x-bind:aria-selected="tab === 'scheduled' ? 'true' : 'false'"
+                        x-on:click="tab = 'scheduled'"
+                        x-bind:class="tab === 'scheduled' ? 'bg-indigo-600 text-white shadow-sm' : 'text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-white/10'"
+                        class="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition"
+                    >
+                        <x-icon name="clock" class="h-4 w-4" />
+                        Agendado
+                    </button>
+                @endif
+            </div>
+
+            <div x-show="tab === 'manual'">
             <form
                 method="POST"
                 x-bind:action="formAction()"
@@ -143,6 +173,71 @@
                     <x-ui.action type="button" variant="secondary" x-on:click="close()">Cancelar</x-ui.action>
                 </div>
             </form>
+            </div>
+
+            @if (auth()->user()?->is_admin)
+                <div x-show="tab === 'scheduled'" x-cloak>
+                    <form method="POST" action="{{ route('admin.follow-ups.settings.schedule') }}" class="mt-4 space-y-4">
+                        @csrf
+                        @method('PUT')
+
+                        <p class="text-sm text-gray-500 dark:text-gray-400">
+                            O resumo periódico envia os follow-ups em aberto nos horários configurados.
+                        </p>
+
+                        <label class="flex items-center gap-2">
+                            <input type="hidden" name="email_summary_enabled" value="0">
+                            <input
+                                type="checkbox"
+                                name="email_summary_enabled"
+                                value="1"
+                                @checked(old('email_summary_enabled', $schedule['enabled']))
+                                class="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500/30 dark:border-white/20 dark:bg-white/[0.03] dark:text-indigo-400"
+                            >
+                            <span class="text-sm text-gray-700 dark:text-gray-200">Enviar o resumo periódico</span>
+                        </label>
+                        @error('email_summary_enabled')<p class="text-sm text-red-600 dark:text-red-400">{{ $message }}</p>@enderror
+
+                        <div>
+                            <label for="composer-summary-recipients" class="block text-sm font-medium text-gray-700 dark:text-gray-200">Destinatários do resumo geral</label>
+                            <input
+                                id="composer-summary-recipients"
+                                name="summary_recipients"
+                                type="text"
+                                value="{{ old('summary_recipients', $schedule['recipients']) }}"
+                                placeholder="financeiro@exemplo.com, gestao@exemplo.com"
+                                class="mt-1.5 h-10 w-full rounded-xl border border-gray-300 bg-white px-3 text-sm text-gray-900 transition focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
+                            >
+                            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Se ficar vazio, cada criador recebe apenas os próprios follow-ups.</p>
+                            @error('summary_recipients')<p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>@enderror
+                        </div>
+
+                        <div>
+                            <label for="composer-summary-times" class="block text-sm font-medium text-gray-700 dark:text-gray-200">Horários</label>
+                            <input
+                                id="composer-summary-times"
+                                name="summary_times"
+                                type="text"
+                                value="{{ old('summary_times', $schedule['times']) }}"
+                                placeholder="08:00, 17:00"
+                                required
+                                class="mt-1.5 h-10 w-full rounded-xl border border-gray-300 bg-white px-3 text-sm text-gray-900 transition focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
+                            >
+                            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Separe múltiplos horários por vírgula, no formato HH:MM.</p>
+                            @error('summary_times')<p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>@enderror
+                        </div>
+
+                        <p class="rounded-xl border border-dashed border-gray-300 bg-gray-50/60 px-3 py-2 text-xs text-gray-500 dark:border-white/15 dark:bg-white/[0.03] dark:text-gray-400">
+                            Requer o scheduler ativo no servidor.
+                        </p>
+
+                        <div class="flex flex-wrap items-center gap-2 border-t border-gray-100 pt-4 dark:border-white/10">
+                            <x-ui.action type="submit" icon="check">Salvar agendamento</x-ui.action>
+                            <x-ui.action type="button" variant="secondary" x-on:click="close()">Cancelar</x-ui.action>
+                        </div>
+                    </form>
+                </div>
+            @endif
         </div>
     </div>
 </div>

@@ -4,6 +4,7 @@ namespace Plugins\FollowUp\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Validator;
+use Plugins\FollowUp\Models\FollowUpSetting;
 
 class UpdateFollowUpSettingsRequest extends FormRequest
 {
@@ -29,6 +30,7 @@ class UpdateFollowUpSettingsRequest extends FormRequest
             'email_summary_enabled' => ['required', 'boolean'],
             'email_subject_prefix' => ['required', 'string', 'max:150'],
             'summary_times' => ['required', 'string', 'max:100'],
+            'summary_recipients' => ['nullable', 'string', 'max:1000'],
             'mail_enabled' => ['required', 'boolean'],
             'mail_host' => ['nullable', 'required_if:mail_enabled,1', 'string', 'max:255'],
             'mail_port' => ['nullable', 'required_if:mail_enabled,1', 'integer', 'between:1,65535'],
@@ -49,7 +51,36 @@ class UpdateFollowUpSettingsRequest extends FormRequest
             if ($this->summaryTimes() === []) {
                 $validator->errors()->add('summary_times', 'Informe ao menos um horário no formato HH:MM.');
             }
+
+            foreach ($this->invalidRecipients() as $recipient) {
+                $validator->errors()->add('summary_recipients', "O e-mail \"{$recipient}\" não é válido.");
+            }
         });
+    }
+
+    /**
+     * The normalized list of general summary recipients.
+     *
+     * @return list<string>
+     */
+    public function summaryRecipients(): array
+    {
+        return FollowUpSetting::parseSummaryRecipients($this->string('summary_recipients')->toString());
+    }
+
+    /**
+     * The recipients that are not valid e-mail addresses.
+     *
+     * @return list<string>
+     */
+    private function invalidRecipients(): array
+    {
+        $recipients = preg_split('/[\s,;]+/', $this->string('summary_recipients')->toString()) ?: [];
+
+        return collect($recipients)
+            ->filter(fn (string $email): bool => $email !== '' && filter_var($email, FILTER_VALIDATE_EMAIL) === false)
+            ->values()
+            ->all();
     }
 
     /**

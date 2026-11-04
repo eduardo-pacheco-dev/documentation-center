@@ -261,6 +261,20 @@
                     <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Separe múltiplos horários por vírgula, no formato HH:MM.</p>
                     @error('summary_times')<p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>@enderror
                 </div>
+
+                <div class="sm:col-span-2">
+                    <label for="summary_recipients" class="{{ $labelClass }}">Destinatários do resumo geral</label>
+                    <input
+                        id="summary_recipients"
+                        name="summary_recipients"
+                        type="text"
+                        value="{{ old('summary_recipients', $settings->summary_recipients) }}"
+                        placeholder="financeiro@exemplo.com, gestao@exemplo.com"
+                        class="{{ $inputClass }}"
+                    >
+                    <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Se ficar vazio, cada criador recebe apenas os próprios follow-ups.</p>
+                    @error('summary_recipients')<p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>@enderror
+                </div>
             </div>
 
             <label class="mt-5 flex items-center gap-2">
@@ -408,6 +422,126 @@
             </form>
         </div>
     </div>
+    </div>
+
+    <div
+        x-data="{ copyRecipientOpen: @js($errors->has('summary_email') || $errors->has('summary_name')) }"
+        x-on:keydown.escape.window="copyRecipientOpen = false"
+    >
+        <section class="mt-4 rounded-3xl border border-gray-200/80 bg-white p-5 sm:p-6 dark:border-white/10 dark:bg-[#171716]">
+            <div class="flex flex-wrap items-start justify-between gap-3">
+                <div class="flex items-start gap-3">
+                    <span class="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-400">
+                        <x-icon name="envelope" class="h-5 w-5" />
+                    </span>
+
+                    <div>
+                        <h2 class="text-sm font-semibold tracking-tight text-gray-900 dark:text-white">Cópias do resumo agendado</h2>
+                        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Estes e-mails recebem uma cópia (CC) de cada envio periódico de follow-ups.</p>
+                    </div>
+                </div>
+
+                <x-ui.action type="button" icon="plus" x-on:click="copyRecipientOpen = true">
+                    Adicionar e-mail
+                </x-ui.action>
+            </div>
+
+            <ul class="mt-5 divide-y divide-gray-100 overflow-hidden rounded-2xl border border-gray-200/80 dark:divide-white/10 dark:border-white/10">
+                @forelse ($summaryRecipients as $summaryRecipient)
+                    <li class="flex items-center justify-between gap-3 px-4 py-3">
+                        <div class="min-w-0">
+                            <p class="truncate text-sm font-semibold text-gray-900 dark:text-white">{{ $summaryRecipient->name }}</p>
+                            <p class="truncate text-xs text-gray-500 dark:text-gray-400">{{ $summaryRecipient->email }}</p>
+                        </div>
+
+                        <form method="POST" action="{{ route('admin.follow-ups.settings.summary-recipients.destroy', $summaryRecipient) }}" data-confirm-delete="Remover {{ $summaryRecipient->name }} das cópias do resumo agendado?">
+                            @csrf
+                            @method('DELETE')
+
+                            <button
+                                type="submit"
+                                class="inline-flex h-9 w-9 items-center justify-center rounded-xl text-red-500 transition hover:bg-red-50 hover:text-red-600 dark:text-red-400 dark:hover:bg-red-500/15"
+                                aria-label="Remover {{ $summaryRecipient->email }}"
+                            >
+                                <x-icon name="trash" class="h-4 w-4" />
+                            </button>
+                        </form>
+                    </li>
+                @empty
+                    <li class="px-4 py-8 text-center text-sm text-gray-500 dark:text-gray-400">
+                        Nenhum e-mail cadastrado nas cópias.
+                    </li>
+                @endforelse
+            </ul>
+        </section>
+
+        <div
+            x-cloak
+            x-show="copyRecipientOpen"
+            x-transition.opacity.duration.100ms
+            class="fixed inset-0 z-[100]"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="summary-recipient-title"
+        >
+            <div class="absolute inset-0 bg-gray-900/50" x-on:click="copyRecipientOpen = false"></div>
+
+            <div class="absolute left-1/2 top-1/2 w-full max-w-md -translate-x-1/2 -translate-y-1/2 rounded-2xl bg-white p-5 shadow-xl dark:bg-[#1c1c1b]">
+                <div class="flex items-start justify-between gap-3">
+                    <div class="min-w-0">
+                        <h2 id="summary-recipient-title" class="text-base font-semibold text-gray-900 dark:text-gray-100">Adicionar cópia</h2>
+                        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">O e-mail receberá cópia de cada resumo agendado.</p>
+                    </div>
+
+                    <button
+                        type="button"
+                        x-on:click="copyRecipientOpen = false"
+                        class="rounded-lg p-1 text-gray-400 transition hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-white/10"
+                        aria-label="Fechar"
+                    >
+                        <x-icon name="x-mark" class="h-4 w-4" />
+                    </button>
+                </div>
+
+                <form method="POST" action="{{ route('admin.follow-ups.settings.summary-recipients.store') }}" class="mt-4 space-y-4">
+                    @csrf
+
+                    <div>
+                        <label for="summary_name" class="{{ $labelClass }}">Nome <span class="text-red-500">*</span></label>
+                        <input
+                            id="summary_name"
+                            name="summary_name"
+                            type="text"
+                            maxlength="150"
+                            value="{{ old('summary_name') }}"
+                            required
+                            autofocus
+                            class="{{ $inputClass }}"
+                        >
+                        @error('summary_name')<p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>@enderror
+                    </div>
+
+                    <div>
+                        <label for="summary_email" class="{{ $labelClass }}">E-mail <span class="text-red-500">*</span></label>
+                        <input
+                            id="summary_email"
+                            name="summary_email"
+                            type="email"
+                            maxlength="255"
+                            value="{{ old('summary_email') }}"
+                            required
+                            class="{{ $inputClass }}"
+                        >
+                        @error('summary_email')<p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>@enderror
+                    </div>
+
+                    <div class="flex flex-wrap items-center gap-2 border-t border-gray-100 pt-4 dark:border-white/10">
+                        <x-ui.action type="submit" icon="plus">Adicionar</x-ui.action>
+                        <x-ui.action type="button" variant="secondary" x-on:click="copyRecipientOpen = false">Cancelar</x-ui.action>
+                    </div>
+                </form>
+            </div>
+        </div>
     </div>
 
     <div

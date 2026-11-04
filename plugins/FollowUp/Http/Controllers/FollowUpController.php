@@ -14,6 +14,7 @@ use Plugins\FollowUp\Http\Requests\StoreFollowUpRequest;
 use Plugins\FollowUp\Http\Requests\UpdateFollowUpRequest;
 use Plugins\FollowUp\Models\FollowUp;
 use Plugins\FollowUp\Models\FollowUpAssignee;
+use Plugins\FollowUp\Models\FollowUpSetting;
 use Plugins\FollowUp\Support\FollowUpFilters;
 
 class FollowUpController extends Controller
@@ -65,9 +66,16 @@ class FollowUpController extends Controller
                 ->withQueryString();
         }
 
+        $emailSettings = FollowUpSetting::current();
+
         return view('follow-up::index', [
             'followUps' => $followUps,
             'emailFollowUps' => $emailFollowUps,
+            'emailSchedule' => [
+                'enabled' => $emailSettings->email_summary_enabled,
+                'times' => $emailSettings->summary_times,
+                'recipients' => $emailSettings->summary_recipients,
+            ],
             'kanban' => $kanban,
             'view' => $view,
             'search' => $search,

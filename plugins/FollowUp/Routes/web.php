@@ -6,6 +6,7 @@ use Plugins\FollowUp\Http\Controllers\FollowUpController;
 use Plugins\FollowUp\Http\Controllers\FollowUpEmailController;
 use Plugins\FollowUp\Http\Controllers\FollowUpExportController;
 use Plugins\FollowUp\Http\Controllers\FollowUpSettingsController;
+use Plugins\FollowUp\Http\Controllers\FollowUpSummaryRecipientController;
 use Plugins\FollowUp\Http\Controllers\FollowUpUpdateController;
 
 Route::middleware('auth')
@@ -22,9 +23,13 @@ Route::middleware('auth')
             Route::get('settings', [FollowUpSettingsController::class, 'edit'])->name('settings');
             Route::put('settings', [FollowUpSettingsController::class, 'update'])->name('settings.update');
             Route::post('settings/test-email', [FollowUpSettingsController::class, 'sendTestEmail'])->name('settings.test-email');
+            Route::put('settings/schedule', [FollowUpSettingsController::class, 'updateSchedule'])->name('settings.schedule');
 
             Route::post('settings/assignees', [FollowUpAssigneeController::class, 'store'])->name('settings.assignees.store');
             Route::delete('settings/assignees/{assignee}', [FollowUpAssigneeController::class, 'destroy'])->name('settings.assignees.destroy');
+
+            Route::post('settings/summary-recipients', [FollowUpSummaryRecipientController::class, 'store'])->name('settings.summary-recipients.store');
+            Route::delete('settings/summary-recipients/{summaryRecipient}', [FollowUpSummaryRecipientController::class, 'destroy'])->name('settings.summary-recipients.destroy');
         });
 
         Route::get('{followUp}', [FollowUpController::class, 'show'])->name('show');

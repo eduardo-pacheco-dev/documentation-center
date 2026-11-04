@@ -22,6 +22,7 @@ use Illuminate\Database\Eloquent\Model;
     'mail_password',
     'mail_from_address',
     'mail_from_name',
+    'summary_recipients',
 ])]
 class FollowUpSetting extends Model
 {
@@ -52,12 +53,48 @@ class FollowUpSetting extends Model
      */
     public function summaryTimes(): array
     {
-        $times = preg_split('/[\s,;]+/', (string) $this->summary_times) ?: [];
+        return self::parseSummaryTimes((string) $this->summary_times);
+    }
+
+    /**
+     * Normalize a comma separated list of HH:MM times.
+     *
+     * @return list<string>
+     */
+    public static function parseSummaryTimes(string $value): array
+    {
+        $times = preg_split('/[\s,;]+/', $value) ?: [];
 
         return collect($times)
             ->filter(fn (string $time): bool => preg_match('/^([01]\d|2[0-3]):[0-5]\d$/', $time) === 1)
             ->unique()
             ->sort()
+            ->values()
+            ->all();
+    }
+
+    /**
+     * The e-mail addresses that receive the general periodic summary.
+     *
+     * @return list<string>
+     */
+    public function summaryRecipients(): array
+    {
+        return self::parseSummaryRecipients((string) $this->summary_recipients);
+    }
+
+    /**
+     * Normalize a comma separated list of e-mail addresses.
+     *
+     * @return list<string>
+     */
+    public static function parseSummaryRecipients(string $value): array
+    {
+        $recipients = preg_split('/[\s,;]+/', $value) ?: [];
+
+        return collect($recipients)
+            ->filter(fn (string $email): bool => filter_var($email, FILTER_VALIDATE_EMAIL) !== false)
+            ->unique()
             ->values()
             ->all();
     }

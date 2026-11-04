@@ -6,7 +6,10 @@ use Illuminate\Console\Command;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Mail;
 use Plugins\FollowUp\Mail\FollowUpSummaryMail;
+use Plugins\FollowUp\Mail\FollowUpTableMail;
 use Plugins\FollowUp\Models\FollowUp;
+use Plugins\FollowUp\Models\FollowUpSetting;
+use Plugins\FollowUp\Models\FollowUpSummaryRecipient;
 
 class SendDailySummaryCommand extends Command
 {
@@ -22,27 +25,55 @@ class SendDailySummaryCommand extends Command
      *
      * @var string
      */
-    protected $description = 'Envia o resumo dos follow-ups em aberto para o criador de cada um.';
+    protected $description = 'Envia o resumo dos follow-ups em aberto para os destinatários configurados ou para o criador de cada um.';
 
     /**
      * Execute the console command.
      */
     public function handle(): int
     {
-        $queued = 0;
-
-        FollowUp::query()
+        $followUps = FollowUp::query()
             ->open()
             ->with(['assignee', 'creator'])
             ->orderByRaw('due_date IS NULL')
             ->orderBy('due_date')
-            ->get()
+            ->get();
+
+        $recipients = FollowUpSetting::current()->summaryRecipients();
+        $copyRecipients = FollowUpSummaryRecipient::query()->pluck('email')->all();
+
+        if ($recipients !== []) {
+            $mail = Mail::to($recipients);
+
+            if ($copyRecipients !== []) {
+                $mail->cc($copyRecipients);
+            }
+
+            $mail->send(new FollowUpTableMail(
+                $followUps,
+                'Resumo de follow-ups — '.now()->format('d/m/Y'),
+            ));
+
+            $this->info('Resumo geral de follow-ups enviado para '.implode(', ', $recipients).'.');
+
+            return self::SUCCESS;
+        }
+
+        $queued = 0;
+
+        $followUps
             ->filter(fn (FollowUp $followUp): bool => $followUp->creator?->email !== null)
             ->groupBy('created_by')
-            ->each(function (Collection $followUps) use (&$queued): void {
+            ->each(function (Collection $followUps) use (&$queued, $copyRecipients): void {
                 $creator = $followUps->first()->creator;
 
-                Mail::to($creator->email)->queue(new FollowUpSummaryMail($creator, $followUps->values()));
+                $mail = Mail::to($creator->email);
+
+                if ($copyRecipients !== []) {
+                    $mail->cc($copyRecipients);
+                }
+
+                $mail->queue(new FollowUpSummaryMail($creator, $followUps->values()));
 
                 $queued++;
             });

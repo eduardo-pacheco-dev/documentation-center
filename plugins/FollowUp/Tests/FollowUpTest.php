@@ -20,6 +20,7 @@ use Plugins\FollowUp\Mail\FollowUpTestMail;
 use Plugins\FollowUp\Models\FollowUp;
 use Plugins\FollowUp\Models\FollowUpAssignee;
 use Plugins\FollowUp\Models\FollowUpSetting;
+use Plugins\FollowUp\Models\FollowUpSummaryRecipient;
 use Plugins\FollowUp\Models\FollowUpUpdate;
 use Plugins\FollowUp\Providers\FollowUpServiceProvider;
 use Plugins\FollowUp\Support\FollowUpExport;
@@ -233,6 +234,114 @@ test('the index offers a manual e-mail composer', function () {
         ->assertSee('criador-composer@example.com')
         ->assertSee('Compor e-mail pela listagem')
         ->assertSee('Todos os follow-ups da listagem (1)');
+});
+
+test('the e-mail composer offers manual and scheduled tabs', function () {
+    $this->actingAs(User::factory()->admin()->create())
+        ->get('/admin/follow-ups')
+        ->assertOk()
+        ->assertSee('Envio manual')
+        ->assertSee('Agendado')
+        ->assertSee('Salvar agendamento');
+});
+
+test('the periodic schedule can be updated from the composer', function () {
+    $this->actingAs(User::factory()->admin()->create())
+        ->put('/admin/follow-ups/settings/schedule', [
+            'email_summary_enabled' => '0',
+            'summary_times' => '07:30, 19:45',
+            'summary_recipients' => 'gestao@example.com, financeiro@example.com',
+        ])
+        ->assertRedirect(route('admin.follow-ups.index'))
+        ->assertSessionHas('status');
+
+    $settings = FollowUpSetting::current();
+
+    expect($settings->email_summary_enabled)->toBeFalse()
+        ->and($settings->summaryTimes())->toBe(['07:30', '19:45'])
+        ->and($settings->summaryRecipients())->toBe(['gestao@example.com', 'financeiro@example.com']);
+});
+
+test('an admin can manage the copy recipients of the scheduled summary', function () {
+    $admin = User::factory()->admin()->create();
+
+    $this->actingAs($admin)
+        ->post('/admin/follow-ups/settings/summary-recipients', [
+            'summary_name' => 'Equipe Financeira',
+            'summary_email' => 'copia@example.com',
+        ])
+        ->assertRedirect(route('admin.follow-ups.settings'))
+        ->assertSessionHas('status');
+
+    $recipient = FollowUpSummaryRecipient::query()->sole();
+
+    expect($recipient->name)->toBe('Equipe Financeira')
+        ->and($recipient->email)->toBe('copia@example.com');
+
+    $this->actingAs($admin)
+        ->delete(route('admin.follow-ups.settings.summary-recipients.destroy', $recipient))
+        ->assertRedirect(route('admin.follow-ups.settings'))
+        ->assertSessionHas('status');
+
+    expect(FollowUpSummaryRecipient::query()->count())->toBe(0);
+});
+
+test('duplicated copy recipients are rejected', function () {
+    FollowUpSummaryRecipient::query()->create(['name' => 'Cópia', 'email' => 'copia@example.com']);
+
+    $this->actingAs(User::factory()->admin()->create())
+        ->post('/admin/follow-ups/settings/summary-recipients', [
+            'summary_name' => 'Outra cópia',
+            'summary_email' => 'copia@example.com',
+        ])
+        ->assertSessionHasErrors('summary_email');
+});
+
+test('invalid summary recipients are rejected', function () {
+    $this->actingAs(User::factory()->admin()->create())
+        ->put('/admin/follow-ups/settings/schedule', [
+            'email_summary_enabled' => '1',
+            'summary_times' => '08:00',
+            'summary_recipients' => 'nao-e-um-email',
+        ])
+        ->assertSessionHasErrors('summary_recipients');
+});
+
+test('the general summary is sent to the configured recipients', function () {
+    Mail::fake();
+
+    $creator = User::factory()->create(['email' => 'criador@example.com']);
+
+    FollowUp::factory()->create([
+        'created_by' => $creator->getKey(),
+        'status' => FollowUpStatus::Pending->value,
+    ]);
+
+    FollowUpSetting::current()->update([
+        'summary_recipients' => 'gestao@example.com, financeiro@example.com',
+    ]);
+
+    FollowUpSummaryRecipient::query()->create(['name' => 'C�pia', 'email' => 'copia@example.com']);
+
+    $this->artisan('follow-up:send-daily-summary')->assertSuccessful();
+
+    Mail::assertSent(FollowUpTableMail::class, function (FollowUpTableMail $mail): bool {
+        return $mail->hasTo('gestao@example.com')
+            && $mail->hasTo('financeiro@example.com')
+            && $mail->hasCc('copia@example.com')
+            && $mail->followUps->count() === 1;
+    });
+
+    Mail::assertNothingQueued();
+});
+
+test('regular users cannot change the periodic schedule', function () {
+    $this->actingAs(User::factory()->create())
+        ->put('/admin/follow-ups/settings/schedule', [
+            'email_summary_enabled' => '1',
+            'summary_times' => '08:00',
+        ])
+        ->assertForbidden();
 });
 
 test('the index renders an actions menu for each follow-up', function () {
@@ -678,12 +787,15 @@ test('the daily summary command queues one e-mail per creator', function () {
         'created_by' => $creator->getKey(),
     ]);
 
+    FollowUpSummaryRecipient::query()->create(['name' => 'C�pia', 'email' => 'copia@example.com']);
+
     $this->artisan('follow-up:send-daily-summary')->assertSuccessful();
 
     Mail::assertQueued(FollowUpSummaryMail::class, 2);
 
     Mail::assertQueued(FollowUpSummaryMail::class, function (FollowUpSummaryMail $mail) use ($creator): bool {
         return $mail->hasTo('criador@example.com')
+            && $mail->hasCc('copia@example.com')
             && $mail->user->is($creator)
             && $mail->followUps->count() === 2;
     });
@@ -710,7 +822,9 @@ test('an admin can view and update the follow-up settings', function () {
         ->assertSee('Servidor de e-mail (SMTP)')
         ->assertSee('Enviar e-mail de teste')
         ->assertSee('Responsáveis')
-        ->assertSee('Adicionar responsável');
+        ->assertSee('Adicionar responsável')
+        ->assertSee('Cópias do resumo agendado')
+        ->assertSee('Adicionar e-mail');
 
     $this->actingAs($admin)
         ->put('/admin/follow-ups/settings', [

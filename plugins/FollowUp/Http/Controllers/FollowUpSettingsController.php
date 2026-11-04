@@ -7,10 +7,12 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\View\View;
 use Plugins\FollowUp\Http\Requests\SendFollowUpTestEmailRequest;
+use Plugins\FollowUp\Http\Requests\UpdateFollowUpScheduleRequest;
 use Plugins\FollowUp\Http\Requests\UpdateFollowUpSettingsRequest;
 use Plugins\FollowUp\Mail\FollowUpTestMail;
 use Plugins\FollowUp\Models\FollowUpAssignee;
 use Plugins\FollowUp\Models\FollowUpSetting;
+use Plugins\FollowUp\Models\FollowUpSummaryRecipient;
 use Throwable;
 
 class FollowUpSettingsController extends Controller
@@ -23,6 +25,7 @@ class FollowUpSettingsController extends Controller
         return view('follow-up::settings', [
             'settings' => FollowUpSetting::current(),
             'assignees' => FollowUpAssignee::query()->withCount('followUps')->orderBy('name')->get(),
+            'summaryRecipients' => FollowUpSummaryRecipient::query()->orderBy('email')->get(),
         ]);
     }
 
@@ -35,6 +38,9 @@ class FollowUpSettingsController extends Controller
 
         $data = $request->validated();
         $data['summary_times'] = implode(',', $request->summaryTimes());
+        $data['summary_recipients'] = $request->summaryRecipients() !== []
+            ? implode(',', $request->summaryRecipients())
+            : null;
         $data['mail_password'] = $request->filled('mail_password')
             ? $data['mail_password']
             : $settings->mail_password;
@@ -44,6 +50,24 @@ class FollowUpSettingsController extends Controller
         return redirect()
             ->route('admin.follow-ups.settings')
             ->with('status', 'Configurações do Follow-up atualizadas com sucesso.');
+    }
+
+    /**
+     * Update the periodic summary schedule from the e-mail modal.
+     */
+    public function updateSchedule(UpdateFollowUpScheduleRequest $request): RedirectResponse
+    {
+        FollowUpSetting::current()->update([
+            'email_summary_enabled' => $request->boolean('email_summary_enabled'),
+            'summary_times' => implode(',', $request->summaryTimes()),
+            'summary_recipients' => $request->summaryRecipients() !== []
+                ? implode(',', $request->summaryRecipients())
+                : null,
+        ]);
+
+        return redirect()
+            ->route('admin.follow-ups.index')
+            ->with('status', 'Agendamento do resumo periódico atualizado com sucesso.');
     }
 
     /**
