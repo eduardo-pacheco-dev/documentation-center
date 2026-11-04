@@ -5,6 +5,7 @@ use Plugins\FollowUp\Http\Controllers\FollowUpAssigneeController;
 use Plugins\FollowUp\Http\Controllers\FollowUpController;
 use Plugins\FollowUp\Http\Controllers\FollowUpEmailController;
 use Plugins\FollowUp\Http\Controllers\FollowUpExportController;
+use Plugins\FollowUp\Http\Controllers\FollowUpImportController;
 use Plugins\FollowUp\Http\Controllers\FollowUpSettingsController;
 use Plugins\FollowUp\Http\Controllers\FollowUpUpdateController;
 
@@ -16,6 +17,9 @@ Route::middleware('auth')
         Route::get('create', [FollowUpController::class, 'create'])->name('create');
         Route::post('/', [FollowUpController::class, 'store'])->name('store');
         Route::get('export', [FollowUpExportController::class, 'export'])->name('export');
+        Route::get('import', [FollowUpImportController::class, 'create'])->name('import');
+        Route::post('import', [FollowUpImportController::class, 'store'])->name('import.store');
+        Route::get('import/template', [FollowUpImportController::class, 'template'])->name('import.template');
         Route::post('email', [FollowUpEmailController::class, 'sendTable'])->name('email.table');
 
         Route::middleware('admin')->group(function (): void {

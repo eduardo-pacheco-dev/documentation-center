@@ -5,11 +5,13 @@ use App\Plugins\PluginMigrator;
 use App\Plugins\PluginRepository;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Str;
 use PhpOffice\PhpSpreadsheet\IOFactory;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use Plugins\FollowUp\Database\Seeders\FollowUpSeeder;
 use Plugins\FollowUp\Enums\FollowUpPriority;
 use Plugins\FollowUp\Enums\FollowUpStatus;
@@ -23,6 +25,7 @@ use Plugins\FollowUp\Models\FollowUpSetting;
 use Plugins\FollowUp\Models\FollowUpUpdate;
 use Plugins\FollowUp\Providers\FollowUpServiceProvider;
 use Plugins\FollowUp\Support\FollowUpExport;
+use Plugins\FollowUp\Support\FollowUpImporter;
 
 uses(RefreshDatabase::class);
 
@@ -247,6 +250,25 @@ test('the e-mail composer offers manual and scheduled tabs', function () {
         ->assertSee('name="summary_period"', false)
         ->assertSee('Destinatários (Para)')
         ->assertSee('Cópias (CC)');
+});
+
+test('the index exposes secondary actions in the action menu', function () {
+    $this->actingAs(User::factory()->admin()->create())
+        ->get('/admin/follow-ups')
+        ->assertOk()
+        ->assertSee('Abrir menu de ações')
+        ->assertSee('follow-up-page-actions', false)
+        ->assertSee('Exportar')
+        ->assertSee('Enviar por e-mail')
+        ->assertSee('Configuração');
+
+    $this->actingAs(User::factory()->create())
+        ->get('/admin/follow-ups')
+        ->assertOk()
+        ->assertSee('Abrir menu de ações')
+        ->assertSee('Exportar')
+        ->assertSee('Enviar por e-mail')
+        ->assertDontSee('Configuração');
 });
 
 test('the periodic schedule can be updated from the composer', function () {
@@ -1053,4 +1075,149 @@ test('the daily summary is scheduled twice a day', function () {
         ->filter(fn ($event): bool => str_contains((string) $event->command, 'follow-up:send-daily-summary'));
 
     expect($events)->toHaveCount(2);
+});
+
+test('the follow-up import page renders the instructions', function () {
+    $this->actingAs(User::factory()->create())
+        ->get('/admin/follow-ups/import')
+        ->assertOk()
+        ->assertSee('Importar follow-ups')
+        ->assertSee('Baixar modelo Excel')
+        ->assertSee('500 follow-ups')
+        ->assertSee('Título');
+});
+
+test('follow-ups can be imported from csv with defaults and assignees', function () {
+    $assignee = FollowUpAssignee::factory()->create([
+        'name' => 'Ana Importação',
+        'email' => 'ana.import@example.com',
+    ]);
+
+    $user = User::factory()->create();
+
+    $csv = implode("\n", [
+        'Código;Título;Descrição;Status;Prioridade;Prazo;Concluído em;Responsável',
+        'FU-IMP-1;Follow-up importado;Descrição importada;Em andamento;Alta;03/11/2026;;ana.import@example.com',
+        implode(';', ['', 'Follow-up padrão', '', '', '', '', '', '']),
+    ]);
+
+    $this->actingAs($user)
+        ->post('/admin/follow-ups/import', [
+            'file' => UploadedFile::fake()->createWithContent('follow-ups.csv', $csv),
+        ])
+        ->assertRedirect(route('admin.follow-ups.index'))
+        ->assertSessionHasNoErrors();
+
+    $imported = FollowUp::query()->orderBy('id')->get();
+
+    expect($imported)->toHaveCount(2);
+
+    expect($imported[0])
+        ->code->toBe('FU-IMP-1')
+        ->title->toBe('Follow-up importado')
+        ->status->toBe(FollowUpStatus::InProgress)
+        ->priority->toBe(FollowUpPriority::High)
+        ->due_date->format('Y-m-d')->toBe('2026-11-03')
+        ->assignee_id->toBe($assignee->getKey())
+        ->created_by->toBe($user->getKey());
+
+    expect($imported[1])
+        ->title->toBe('Follow-up padrão')
+        ->status->toBe(FollowUpStatus::Pending)
+        ->priority->toBe(FollowUpPriority::Medium)
+        ->assignee_id->toBeNull();
+
+    expect(FollowUpUpdate::query()->where('body', 'Follow-up importado.')->count())->toBe(2);
+});
+
+test('follow-ups can be imported from an excel template', function () {
+    $template = __DIR__.'/../Resources/templates/follow-ups-import.xlsx';
+    $spreadsheet = IOFactory::load($template);
+    $sheet = $spreadsheet->getSheet(0);
+
+    $sheet->fromArray([
+        'FU-XLSX-1',
+        'Follow-up vindo do Excel',
+        'Descrição via planilha',
+        'Pendente',
+        'Urgente',
+        '10/11/2026',
+        '',
+        '',
+    ], null, 'A2');
+
+    $path = sys_get_temp_dir().'/follow-ups-import-'.Str::random(8).'.xlsx';
+    (new Xlsx($spreadsheet))->save($path);
+    $spreadsheet->disconnectWorksheets();
+
+    $this->actingAs(User::factory()->create())
+        ->post('/admin/follow-ups/import', [
+            'file' => new UploadedFile(
+                $path,
+                'follow-ups.xlsx',
+                'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                null,
+                true,
+            ),
+        ])
+        ->assertRedirect(route('admin.follow-ups.index'))
+        ->assertSessionHasNoErrors();
+
+    @unlink($path);
+
+    expect(FollowUp::query()->sole())
+        ->title->toBe('Follow-up vindo do Excel')
+        ->priority->toBe(FollowUpPriority::Urgent)
+        ->due_date->format('Y-m-d')->toBe('2026-11-10');
+});
+
+test('follow-up imports are limited to five hundred rows and are atomic', function () {
+    $rows = ['Título'];
+
+    for ($index = 1; $index <= FollowUpImporter::MAX_ROWS + 1; $index++) {
+        $rows[] = 'Follow-up '.$index;
+    }
+
+    $this->actingAs(User::factory()->create())
+        ->post('/admin/follow-ups/import', [
+            'file' => UploadedFile::fake()->createWithContent('follow-ups.csv', implode("\n", $rows)),
+        ])
+        ->assertSessionHasErrors('file');
+
+    expect(FollowUp::query()->count())->toBe(0);
+
+    $invalid = implode("\n", [
+        'Título;Código',
+        'Follow-up válido;FU-OK',
+        ';FU-SEM-TITULO',
+    ]);
+
+    $this->actingAs(User::factory()->create())
+        ->post('/admin/follow-ups/import', [
+            'file' => UploadedFile::fake()->createWithContent('follow-ups.csv', $invalid),
+        ])
+        ->assertSessionHasErrors('file');
+
+    expect(FollowUp::query()->count())->toBe(0);
+});
+
+test('the follow-up import template can be downloaded', function () {
+    $this->actingAs(User::factory()->create())
+        ->get('/admin/follow-ups/import/template')
+        ->assertOk()
+        ->assertDownload('modelo-importacao-follow-ups.xlsx');
+
+    $path = __DIR__.'/../Resources/templates/follow-ups-import.xlsx';
+
+    expect(is_file($path))->toBeTrue();
+
+    $spreadsheet = IOFactory::load($path);
+    $sheet = $spreadsheet->getSheet(0);
+
+    expect($sheet->getTitle())->toBe('Follow-ups')
+        ->and($sheet->getCell('A1')->getValue())->toBe('Código')
+        ->and($sheet->getCell('B1')->getValue())->toBe('Título *')
+        ->and($spreadsheet->getSheetNames())->toContain('Instruções');
+
+    $spreadsheet->disconnectWorksheets();
 });

@@ -24,6 +24,16 @@ class StoreFollowUpRequest extends FormRequest
      */
     public function rules(): array
     {
+        return self::fieldRules();
+    }
+
+    /**
+     * The validation rules shared with the bulk import.
+     *
+     * @return array<string, mixed>
+     */
+    public static function fieldRules(): array
+    {
         return [
             'title' => ['required', 'string', 'max:150'],
             'code' => ['nullable', 'string', 'max:50'],
@@ -42,6 +52,16 @@ class StoreFollowUpRequest extends FormRequest
      * @return array<string, string>
      */
     public function messages(): array
+    {
+        return self::fieldMessages();
+    }
+
+    /**
+     * The custom validation messages shared with the bulk import.
+     *
+     * @return array<string, string>
+     */
+    public static function fieldMessages(): array
     {
         return [
             'title.required' => 'Informe o título do follow-up.',
