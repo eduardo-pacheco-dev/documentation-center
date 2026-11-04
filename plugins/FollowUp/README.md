@@ -9,6 +9,7 @@ Plugin independente para gerenciar acompanhamentos internos.
 - Prioridades: baixa, média, alta e urgente.
 - Responsável, prazo e controle de conclusão.
 - Histórico de atualizações com registro automático de mudanças de status.
+- Resumo periódico configurável para todos os follow-ups ou apenas os últimos 30 dias por prazo.
 - Busca por título/descrição e filtros por status, prioridade e responsável.
 - Widget **Meus follow-ups** no dashboard.
 - Exportação em Excel da listagem filtrada e de um follow-up individual com histórico.

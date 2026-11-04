@@ -31,14 +31,22 @@ class SendDailySummaryCommand extends Command
      */
     public function handle(): int
     {
-        $followUps = FollowUp::query()
+        $settings = FollowUpSetting::current();
+
+        $query = FollowUp::query()
             ->open()
-            ->with(['assignee', 'creator'])
+            ->with(['assignee', 'creator']);
+
+        if ($settings->summaryLimitedToLastThirtyDays()) {
+            $query->whereNotNull('due_date')
+                ->whereDate('due_date', '>=', today()->subDays(30))
+                ->whereDate('due_date', '<=', today());
+        }
+
+        $followUps = $query
             ->orderByRaw('due_date IS NULL')
             ->orderBy('due_date')
             ->get();
-
-        $settings = FollowUpSetting::current();
 
         $recipients = $settings->summaryRecipients();
 

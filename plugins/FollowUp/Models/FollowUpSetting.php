@@ -13,6 +13,7 @@ use Illuminate\Database\Eloquent\Model;
     'widget_limit',
     'email_summary_enabled',
     'email_subject_prefix',
+    'summary_period',
     'summary_times',
     'mail_enabled',
     'mail_host',
@@ -27,6 +28,10 @@ use Illuminate\Database\Eloquent\Model;
 ])]
 class FollowUpSetting extends Model
 {
+    public const SUMMARY_PERIOD_ALL = 'all';
+
+    public const SUMMARY_PERIOD_LAST_30_DAYS = 'last_30_days';
+
     /**
      * The table associated with the model.
      */
@@ -43,8 +48,40 @@ class FollowUpSetting extends Model
             'widget_limit' => (int) config('follow-up.widget_limit', 5),
             'email_summary_enabled' => true,
             'email_subject_prefix' => (string) config('follow-up.email.subject_prefix', 'Follow-up'),
+            'summary_period' => self::SUMMARY_PERIOD_ALL,
             'summary_times' => implode(',', (array) config('follow-up.email.summary_times', ['08:00', '17:00'])),
         ]);
+    }
+
+    /**
+     * The options for the summary period select.
+     *
+     * @return array<string, string>
+     */
+    public static function summaryPeriodOptions(): array
+    {
+        return [
+            self::SUMMARY_PERIOD_ALL => 'Todos os follow-ups em aberto',
+            self::SUMMARY_PERIOD_LAST_30_DAYS => 'Somente os últimos 30 dias (por prazo)',
+        ];
+    }
+
+    /**
+     * The configured summary period.
+     */
+    public function summaryPeriod(): string
+    {
+        return array_key_exists((string) $this->summary_period, self::summaryPeriodOptions())
+            ? (string) $this->summary_period
+            : self::SUMMARY_PERIOD_ALL;
+    }
+
+    /**
+     * Whether the summary should only include follow-ups due in the last 30 days.
+     */
+    public function summaryLimitedToLastThirtyDays(): bool
+    {
+        return $this->summaryPeriod() === self::SUMMARY_PERIOD_LAST_30_DAYS;
     }
 
     /**

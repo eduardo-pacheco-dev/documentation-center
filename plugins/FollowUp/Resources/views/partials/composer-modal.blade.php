@@ -268,6 +268,21 @@
                         </div>
 
                         <div>
+                            <label for="composer-summary-period" class="block text-sm font-medium text-gray-700 dark:text-gray-200">Período do resumo</label>
+                            <select
+                                id="composer-summary-period"
+                                name="summary_period"
+                                class="mt-1.5 h-10 w-full rounded-xl border border-gray-300 bg-white px-3 text-sm text-gray-900 transition focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
+                            >
+                                @foreach ($schedule['periodOptions'] as $value => $label)
+                                    <option value="{{ $value }}" @selected(old('summary_period', $schedule['period']) === $value)>{{ $label }}</option>
+                                @endforeach
+                            </select>
+                            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">“Últimos 30 dias” considera follow-ups em aberto com prazo entre 30 dias atrás e hoje.</p>
+                            @error('summary_period')<p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>@enderror
+                        </div>
+
+                        <div>
                             <label for="composer-summary-recipients" class="block text-sm font-medium text-gray-700 dark:text-gray-200">Destinatários (Para)</label>
                             <div class="mt-1.5 flex flex-wrap items-center gap-2">
                                 <input

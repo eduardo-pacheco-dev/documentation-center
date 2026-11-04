@@ -78,6 +78,8 @@ class FollowUpController extends Controller
                 'recipientsList' => $emailSettings->summaryRecipients(),
                 'ccRecipients' => $emailSettings->summaryCcRecipients(),
                 'prefix' => $emailSettings->email_subject_prefix,
+                'period' => $emailSettings->summaryPeriod(),
+                'periodOptions' => FollowUpSetting::summaryPeriodOptions(),
             ],
             'kanban' => $kanban,
             'view' => $view,
