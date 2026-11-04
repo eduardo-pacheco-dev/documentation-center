@@ -14,6 +14,10 @@
                 @if ($followUp->isOverdue())
                     <x-ui.badge tone="red">Atrasado</x-ui.badge>
                 @endif
+
+                @if ($followUp->code)
+                    <x-ui.badge tone="gray">Código {{ $followUp->code }}</x-ui.badge>
+                @endif
             </div>
 
             <h1 class="mt-3 text-2xl font-semibold tracking-tight text-gray-900 sm:text-3xl dark:text-white">{{ $followUp->title }}</h1>

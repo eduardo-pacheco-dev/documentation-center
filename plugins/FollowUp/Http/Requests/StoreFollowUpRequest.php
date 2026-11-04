@@ -26,6 +26,7 @@ class StoreFollowUpRequest extends FormRequest
     {
         return [
             'title' => ['required', 'string', 'max:150'],
+            'code' => ['nullable', 'string', 'max:50'],
             'description' => ['nullable', 'string', 'max:5000'],
             'status' => ['required', Rule::enum(FollowUpStatus::class)],
             'priority' => ['required', Rule::enum(FollowUpPriority::class)],
@@ -44,6 +45,7 @@ class StoreFollowUpRequest extends FormRequest
         return [
             'title.required' => 'Informe o título do follow-up.',
             'title.max' => 'O título pode ter no máximo 150 caracteres.',
+            'code.max' => 'O código pode ter no máximo 50 caracteres.',
             'status.required' => 'Selecione o status.',
             'status.enum' => 'Selecione um status válido.',
             'priority.required' => 'Selecione a prioridade.',

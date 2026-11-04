@@ -15,6 +15,7 @@ use Plugins\FollowUp\Enums\FollowUpStatus;
 
 #[Fillable([
     'title',
+    'code',
     'description',
     'status',
     'priority',

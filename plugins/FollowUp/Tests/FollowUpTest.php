@@ -177,6 +177,24 @@ test('the kanban view groups follow-ups by status', function () {
         ->assertSeeInOrder(['Pendente no quadro', 'Concluído no quadro']);
 });
 
+test('the optional code is shown on the table when present', function () {
+    FollowUp::factory()->create(['title' => 'Com código', 'code' => 'FU-COD-01']);
+    FollowUp::factory()->create(['title' => 'Sem código', 'code' => null]);
+
+    $this->actingAs(User::factory()->create())
+        ->get('/admin/follow-ups')
+        ->assertOk()
+        ->assertSee('Código: FU-COD-01');
+});
+
+test('the form exposes the optional code field', function () {
+    $this->actingAs(User::factory()->create())
+        ->get('/admin/follow-ups?create=1')
+        ->assertOk()
+        ->assertSee('name="code"', false)
+        ->assertSee('(opcional)');
+});
+
 test('the table shows the completion date of finished follow-ups', function () {
     $completed = FollowUp::factory()->completed()->create([
         'title' => 'Concluído com data de conclusão',
@@ -246,6 +264,7 @@ test('a follow-up can be created with its initial timeline entry', function () {
 
     $response = $this->actingAs($user)->post('/admin/follow-ups', [
         'title' => 'Acompanhar aprovação da proposta',
+        'code' => 'FU-2026-001',
         'description' => 'Validar com o jurídico.',
         'status' => FollowUpStatus::InProgress->value,
         'priority' => FollowUpPriority::Urgent->value,
@@ -259,6 +278,7 @@ test('a follow-up can be created with its initial timeline entry', function () {
 
     expect($followUp)
         ->title->toBe('Acompanhar aprovação da proposta')
+        ->code->toBe('FU-2026-001')
         ->status->toBe(FollowUpStatus::InProgress)
         ->priority->toBe(FollowUpPriority::Urgent)
         ->assignee_id->toBe($assignee->getKey())

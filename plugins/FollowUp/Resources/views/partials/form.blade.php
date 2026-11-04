@@ -41,6 +41,20 @@
     </div>
 
     <div>
+        <label for="code" class="{{ $labelClass }}">Código <span class="font-normal text-gray-400">(opcional)</span></label>
+        <input
+            id="code"
+            name="code"
+            type="text"
+            value="{{ old('code', $followUp?->code) }}"
+            maxlength="50"
+            placeholder="Ex.: FU-2026-001"
+            class="{{ $inputClass }}"
+        >
+        @error('code')<p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>@enderror
+    </div>
+
+    <div>
         <label for="description" class="{{ $labelClass }}">Descrição</label>
         <textarea
             id="description"

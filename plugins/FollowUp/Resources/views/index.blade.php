@@ -259,6 +259,9 @@
                                     <p class="mt-0.5 max-w-sm truncate text-xs text-gray-500 dark:text-gray-400">
                                         {{ $followUp->description ? \Illuminate\Support\Str::limit($followUp->description, 90) : 'Sem descrição' }}
                                     </p>
+                                    @if ($followUp->code)
+                                        <p class="mt-1 text-[11px] font-medium text-gray-400 dark:text-gray-500">Código: {{ $followUp->code }}</p>
+                                    @endif
                                 </td>
 
                                 <td class="px-5 py-4">
