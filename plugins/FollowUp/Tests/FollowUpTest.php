@@ -249,6 +249,7 @@ test('the periodic schedule can be updated from the composer', function () {
     $this->actingAs(User::factory()->admin()->create())
         ->put('/admin/follow-ups/settings/schedule', [
             'email_summary_enabled' => '0',
+            'email_subject_prefix' => 'Acompanhamento',
             'summary_times' => '07:30, 19:45',
             'summary_recipients' => 'gestao@example.com, financeiro@example.com',
         ])
@@ -258,6 +259,7 @@ test('the periodic schedule can be updated from the composer', function () {
     $settings = FollowUpSetting::current();
 
     expect($settings->email_summary_enabled)->toBeFalse()
+        ->and($settings->email_subject_prefix)->toBe('Acompanhamento')
         ->and($settings->summaryTimes())->toBe(['07:30', '19:45'])
         ->and($settings->summaryRecipients())->toBe(['gestao@example.com', 'financeiro@example.com']);
 });
@@ -301,6 +303,7 @@ test('invalid summary recipients are rejected', function () {
     $this->actingAs(User::factory()->admin()->create())
         ->put('/admin/follow-ups/settings/schedule', [
             'email_summary_enabled' => '1',
+            'email_subject_prefix' => 'Follow-up',
             'summary_times' => '08:00',
             'summary_recipients' => 'nao-e-um-email',
         ])
@@ -321,7 +324,9 @@ test('the general summary is sent to the configured recipients', function () {
         'summary_recipients' => 'gestao@example.com, financeiro@example.com',
     ]);
 
-    FollowUpSummaryRecipient::query()->create(['name' => 'Cópia', 'email' => 'copia@example.com']);
+    FollowUpSummaryRecipient::query()->create(['name' => 'CÃ³pia', 'email' => 'copia@example.com']);
+
+    config(['follow-up.email.subject_prefix' => 'Acompanhamento']);
 
     $this->artisan('follow-up:send-daily-summary')->assertSuccessful();
 
@@ -329,7 +334,8 @@ test('the general summary is sent to the configured recipients', function () {
         return $mail->hasTo('gestao@example.com')
             && $mail->hasTo('financeiro@example.com')
             && $mail->hasCc('copia@example.com')
-            && $mail->followUps->count() === 1;
+            && $mail->followUps->count() === 1
+            && str_contains($mail->envelope()->subject, 'Acompanhamento â€” Resumo');
     });
 
     Mail::assertNothingQueued();
@@ -339,6 +345,7 @@ test('regular users cannot change the periodic schedule', function () {
     $this->actingAs(User::factory()->create())
         ->put('/admin/follow-ups/settings/schedule', [
             'email_summary_enabled' => '1',
+            'email_subject_prefix' => 'Follow-up',
             'summary_times' => '08:00',
         ])
         ->assertForbidden();
@@ -787,7 +794,7 @@ test('the daily summary command queues one e-mail per creator', function () {
         'created_by' => $creator->getKey(),
     ]);
 
-    FollowUpSummaryRecipient::query()->create(['name' => 'Cópia', 'email' => 'copia@example.com']);
+    FollowUpSummaryRecipient::query()->create(['name' => 'Cï¿½pia', 'email' => 'copia@example.com']);
 
     $this->artisan('follow-up:send-daily-summary')->assertSuccessful();
 

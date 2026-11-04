@@ -49,9 +49,11 @@ class SendDailySummaryCommand extends Command
                 $mail->cc($copyRecipients);
             }
 
+            $prefix = (string) config('follow-up.email.subject_prefix', 'Follow-up');
+
             $mail->send(new FollowUpTableMail(
                 $followUps,
-                'Resumo de follow-ups — '.now()->format('d/m/Y'),
+                $prefix.' — Resumo '.now()->format('d/m/Y'),
             ));
 
             $this->info('Resumo geral de follow-ups enviado para '.implode(', ', $recipients).'.');

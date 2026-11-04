@@ -59,6 +59,7 @@ class FollowUpSettingsController extends Controller
     {
         FollowUpSetting::current()->update([
             'email_summary_enabled' => $request->boolean('email_summary_enabled'),
+            'email_subject_prefix' => $request->validated('email_subject_prefix'),
             'summary_times' => implode(',', $request->summaryTimes()),
             'summary_recipients' => $request->summaryRecipients() !== []
                 ? implode(',', $request->summaryRecipients())

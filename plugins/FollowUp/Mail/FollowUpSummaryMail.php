@@ -34,8 +34,10 @@ class FollowUpSummaryMail extends Mailable implements ShouldQueue
      */
     public function envelope(): Envelope
     {
+        $prefix = (string) config('follow-up.email.subject_prefix', 'Follow-up');
+
         return new Envelope(
-            subject: 'Resumo de follow-ups — '.now()->format('d/m/Y'),
+            subject: $prefix.' — Resumo '.now()->format('d/m/Y'),
         );
     }
 

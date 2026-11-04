@@ -25,6 +25,7 @@ class UpdateFollowUpScheduleRequest extends FormRequest
     {
         return [
             'email_summary_enabled' => ['required', 'boolean'],
+            'email_subject_prefix' => ['required', 'string', 'max:150'],
             'summary_times' => ['required', 'string', 'max:100'],
             'summary_recipients' => ['nullable', 'string', 'max:1000'],
         ];
@@ -90,6 +91,7 @@ class UpdateFollowUpScheduleRequest extends FormRequest
     {
         return [
             'summary_times.required' => 'Informe os horários do resumo periódico.',
+            'email_subject_prefix.required' => 'Informe o prefixo do assunto dos e-mails.',
         ];
     }
 }

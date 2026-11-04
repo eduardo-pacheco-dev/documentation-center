@@ -199,6 +199,21 @@
                         @error('email_summary_enabled')<p class="text-sm text-red-600 dark:text-red-400">{{ $message }}</p>@enderror
 
                         <div>
+                            <label for="composer-subject-prefix" class="block text-sm font-medium text-gray-700 dark:text-gray-200">Prefixo do assunto</label>
+                            <input
+                                id="composer-subject-prefix"
+                                name="email_subject_prefix"
+                                type="text"
+                                value="{{ old('email_subject_prefix', $schedule['prefix']) }}"
+                                maxlength="150"
+                                required
+                                class="mt-1.5 h-10 w-full rounded-xl border border-gray-300 bg-white px-3 text-sm text-gray-900 transition focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
+                            >
+                            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Usado no assunto dos e-mails, ex.: "{{ $schedule['prefix'] }} — Resumo {{ now()->format('d/m/Y') }}".</p>
+                            @error('email_subject_prefix')<p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>@enderror
+                        </div>
+
+                        <div>
                             <label for="composer-summary-recipients" class="block text-sm font-medium text-gray-700 dark:text-gray-200">Destinatários do resumo geral</label>
                             <input
                                 id="composer-summary-recipients"
