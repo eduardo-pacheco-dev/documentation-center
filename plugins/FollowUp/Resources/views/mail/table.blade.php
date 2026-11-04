@@ -22,6 +22,7 @@
                     <th style="padding:8px;border-bottom:1px solid #e5e7eb;">Prioridade</th>
                     <th style="padding:8px;border-bottom:1px solid #e5e7eb;">Responsável</th>
                     <th style="padding:8px;border-bottom:1px solid #e5e7eb;">Prazo</th>
+                    <th style="padding:8px;border-bottom:1px solid #e5e7eb;">Concluído em</th>
                 </tr>
             </thead>
             <tbody>
@@ -37,10 +38,13 @@
                                 (atrasado)
                             @endif
                         </td>
+                        <td style="padding:8px;border-bottom:1px solid #f3f4f6;color:#6b7280;">
+                            {{ $followUp->completed_at?->format('d/m/Y') ?? '—' }}
+                        </td>
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="5" style="padding:16px;text-align:center;color:#6b7280;">Nenhum follow-up encontrado.</td>
+                        <td colspan="6" style="padding:16px;text-align:center;color:#6b7280;">Nenhum follow-up encontrado.</td>
                     </tr>
                 @endforelse
             </tbody>

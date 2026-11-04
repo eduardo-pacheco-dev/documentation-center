@@ -718,8 +718,12 @@ test('delivery failures are reported in a toast when sending the table', functio
         ->assertSessionHas('error', 'Falha ao enviar a tabela de follow-ups: SMTP indisponível');
 });
 
-test('the table e-mail includes the rows and the excel attachment', function () {
-    FollowUp::factory()->create(['title' => 'Linha enviada na tabela']);
+test('the table e-mail includes the rows, the completion date and the excel attachment', function () {
+    FollowUp::factory()->create([
+        'title' => 'Linha enviada na tabela',
+        'status' => FollowUpStatus::Completed->value,
+        'completed_at' => '2026-10-20',
+    ]);
 
     $mail = new FollowUpTableMail(
         FollowUp::query()->with(['assignee', 'creator'])->get(),
@@ -728,6 +732,8 @@ test('the table e-mail includes the rows and the excel attachment', function () 
     expect($mail->attachments())->toHaveCount(1)
         ->and($mail->render())
         ->toContain('Linha enviada na tabela')
+        ->toContain('Concluído em')
+        ->toContain('20/10/2026')
         ->toContain('1 follow-up(s)');
 });
 
