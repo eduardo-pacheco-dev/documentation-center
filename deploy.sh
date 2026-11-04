@@ -99,6 +99,67 @@ EOF
     fi
 }
 
+# Install/refresh a systemd service that keeps the Laravel scheduler alive so
+# the scheduled tasks (periodic e-mails, etc.) run without a server cron.
+configure_scheduler() {
+    local php_bin service_name service_path run_user
+
+    php_bin="$(command -v php)"
+    service_name="$(basename "$APP_DIR" | tr -c 'a-zA-Z0-9' '-')-scheduler"
+
+    log "Restarting the scheduler so it loads the new code"
+    php artisan schedule:clear-cache >/dev/null 2>&1 || true
+
+    if ! command -v systemctl >/dev/null 2>&1; then
+        log "systemctl not found; ensure 'php artisan schedule:run' runs every minute (cron)"
+        return 0
+    fi
+
+    if [ "$(id -u)" -ne 0 ]; then
+        log "Warning: not running as root; skipping systemd scheduler setup"
+        log "Ensure 'php artisan schedule:work' runs as the web user"
+        return 0
+    fi
+
+    if ! run_user="$(resolve_web_user)"; then
+        fail "Could not determine the web user for the scheduler; set the WEB_USER secret"
+    fi
+
+    service_path="/etc/systemd/system/${service_name}.service"
+
+    log "Installing scheduler service '${service_name}'"
+    cat > "$service_path" <<EOF
+[Unit]
+Description=Documentation Center scheduler
+After=network.target
+
+[Service]
+Type=simple
+User=${run_user}
+Group=${run_user}
+Restart=always
+RestartSec=5
+WorkingDirectory=${APP_DIR}
+ExecStart=${php_bin} artisan schedule:work
+StopAsGroup=true
+KillMode=mixed
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+    systemctl daemon-reload
+    systemctl enable "$service_name" >/dev/null 2>&1 || true
+    systemctl restart "$service_name"
+
+    sleep 1
+    if systemctl is-active --quiet "$service_name"; then
+        log "Scheduler is running"
+    else
+        log "Warning: scheduler is not active; check 'journalctl -u ${service_name}'"
+    fi
+}
+
 command -v git >/dev/null 2>&1 || fail "git is not installed"
 command -v php >/dev/null 2>&1 || fail "php is not installed"
 command -v composer >/dev/null 2>&1 || fail "composer is not installed"
@@ -228,5 +289,8 @@ php artisan cache:clear
 
 log "Configuring the queue worker"
 configure_queue_worker
+
+log "Configuring the scheduler"
+configure_scheduler
 
 log "Deploy completed"
