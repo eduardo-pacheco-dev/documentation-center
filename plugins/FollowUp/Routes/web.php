@@ -2,7 +2,9 @@
 
 use Illuminate\Support\Facades\Route;
 use Plugins\FollowUp\Http\Controllers\FollowUpController;
+use Plugins\FollowUp\Http\Controllers\FollowUpEmailController;
 use Plugins\FollowUp\Http\Controllers\FollowUpExportController;
+use Plugins\FollowUp\Http\Controllers\FollowUpSettingsController;
 use Plugins\FollowUp\Http\Controllers\FollowUpUpdateController;
 
 Route::middleware('auth')
@@ -13,8 +15,15 @@ Route::middleware('auth')
         Route::get('create', [FollowUpController::class, 'create'])->name('create');
         Route::post('/', [FollowUpController::class, 'store'])->name('store');
         Route::get('export', [FollowUpExportController::class, 'export'])->name('export');
+
+        Route::middleware('admin')->group(function (): void {
+            Route::get('settings', [FollowUpSettingsController::class, 'edit'])->name('settings');
+            Route::put('settings', [FollowUpSettingsController::class, 'update'])->name('settings.update');
+        });
+
         Route::get('{followUp}', [FollowUpController::class, 'show'])->name('show');
         Route::get('{followUp}/export', [FollowUpExportController::class, 'exportOne'])->name('export-one');
+        Route::post('{followUp}/email', [FollowUpEmailController::class, 'send'])->name('email.send');
         Route::get('{followUp}/edit', [FollowUpController::class, 'edit'])->name('edit');
         Route::put('{followUp}', [FollowUpController::class, 'update'])->name('update');
         Route::delete('{followUp}', [FollowUpController::class, 'destroy'])->name('destroy');

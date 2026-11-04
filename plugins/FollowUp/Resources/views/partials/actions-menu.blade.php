@@ -97,6 +97,15 @@
                 Exportar
             </a>
 
+            <a
+                href="{{ route('admin.follow-ups.show', ['followUp' => $followUp, 'email' => 1]) }}"
+                role="menuitem"
+                class="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-gray-700 transition hover:bg-gray-50 dark:text-gray-200 dark:hover:bg-white/5"
+            >
+                <x-icon name="paper-airplane" class="h-4 w-4 text-gray-400 dark:text-gray-500" />
+                Enviar por e-mail
+            </a>
+
             <div class="my-1 border-t border-gray-100 dark:border-white/10"></div>
 
             <form

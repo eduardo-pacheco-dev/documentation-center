@@ -3,15 +3,20 @@
 use App\Models\User;
 use App\Plugins\PluginMigrator;
 use App\Plugins\PluginRepository;
+use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Str;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use Plugins\FollowUp\Database\Seeders\FollowUpSeeder;
 use Plugins\FollowUp\Enums\FollowUpPriority;
 use Plugins\FollowUp\Enums\FollowUpStatus;
+use Plugins\FollowUp\Mail\FollowUpMail;
+use Plugins\FollowUp\Mail\FollowUpSummaryMail;
 use Plugins\FollowUp\Models\FollowUp;
+use Plugins\FollowUp\Models\FollowUpSetting;
 use Plugins\FollowUp\Models\FollowUpUpdate;
 use Plugins\FollowUp\Providers\FollowUpServiceProvider;
 use Plugins\FollowUp\Support\FollowUpExport;
@@ -431,4 +436,209 @@ test('a single follow-up can be exported with its history', function () {
 
     $spreadsheet->disconnectWorksheets();
     @unlink($path);
+});
+
+test('a follow-up can be queued for e-mail delivery', function () {
+    Mail::fake();
+
+    $followUp = FollowUp::factory()->create(['title' => 'Enviar por e-mail']);
+
+    $this->actingAs(User::factory()->create())
+        ->post(route('admin.follow-ups.email.send', $followUp), [
+            'recipients' => 'primeiro@example.com, segundo@example.com',
+            'subject' => 'Assunto personalizado',
+        ])
+        ->assertRedirect()
+        ->assertSessionHas('status');
+
+    Mail::assertQueued(FollowUpMail::class, function (FollowUpMail $mail): bool {
+        return $mail->hasTo('primeiro@example.com')
+            && $mail->hasTo('segundo@example.com')
+            && $mail->envelope()->subject === 'Assunto personalizado';
+    });
+});
+
+test('invalid e-mail recipients are rejected', function () {
+    Mail::fake();
+
+    $followUp = FollowUp::factory()->create();
+
+    $this->actingAs(User::factory()->create())
+        ->post(route('admin.follow-ups.email.send', $followUp), [
+            'recipients' => 'nao-e-um-email',
+        ])
+        ->assertSessionHasErrors('recipients');
+
+    Mail::assertNothingQueued();
+});
+
+test('the follow-up e-mail includes the summary, history and excel attachment', function () {
+    $followUp = FollowUp::factory()->create(['title' => 'Follow-up no corpo do e-mail']);
+
+    $followUp->updates()->create([
+        'user_id' => User::factory()->create()->getKey(),
+        'body' => 'Andamento registrado no corpo do e-mail.',
+    ]);
+
+    $mail = new FollowUpMail($followUp);
+
+    expect($mail->attachments())->toHaveCount(1)
+        ->and($mail->render())
+        ->toContain('Follow-up no corpo do e-mail')
+        ->toContain('Andamento registrado no corpo do e-mail.');
+});
+
+test('the daily summary command queues one e-mail per creator', function () {
+    Mail::fake();
+
+    $creator = User::factory()->create(['email' => 'criador@example.com']);
+    $other = User::factory()->create(['email' => 'outro@example.com']);
+
+    FollowUp::factory()->count(2)->create([
+        'created_by' => $creator->getKey(),
+        'status' => FollowUpStatus::Pending->value,
+    ]);
+
+    FollowUp::factory()->create([
+        'created_by' => $other->getKey(),
+        'status' => FollowUpStatus::InProgress->value,
+    ]);
+
+    FollowUp::factory()->completed()->create([
+        'created_by' => $creator->getKey(),
+    ]);
+
+    $this->artisan('follow-up:send-daily-summary')->assertSuccessful();
+
+    Mail::assertQueued(FollowUpSummaryMail::class, 2);
+
+    Mail::assertQueued(FollowUpSummaryMail::class, function (FollowUpSummaryMail $mail) use ($creator): bool {
+        return $mail->hasTo('criador@example.com')
+            && $mail->user->is($creator)
+            && $mail->followUps->count() === 2;
+    });
+
+    Mail::assertQueued(FollowUpSummaryMail::class, fn (FollowUpSummaryMail $mail): bool => $mail->hasTo('outro@example.com'));
+
+    $summary = Mail::queued(FollowUpSummaryMail::class)
+        ->first(fn (FollowUpSummaryMail $mail): bool => $mail->hasTo('criador@example.com'));
+
+    expect($summary->attachments())->toHaveCount(1)
+        ->and($summary->render())
+        ->toContain('Você tem 2 follow-up(s) em aberto');
+});
+
+test('an admin can view and update the follow-up settings', function () {
+    $admin = User::factory()->admin()->create();
+
+    $this->actingAs($admin)
+        ->get('/admin/follow-ups/settings')
+        ->assertOk()
+        ->assertSee('Configurações do Follow-up')
+        ->assertSee('name="per_page"', false)
+        ->assertSee('name="summary_times"', false);
+
+    $this->actingAs($admin)
+        ->put('/admin/follow-ups/settings', [
+            'per_page' => 25,
+            'due_soon_days' => 10,
+            'widget_limit' => 8,
+            'email_summary_enabled' => '1',
+            'email_subject_prefix' => 'Acompanhamento',
+            'summary_times' => '09:00, 18:30',
+            'mail_enabled' => '0',
+        ])
+        ->assertRedirect(route('admin.follow-ups.settings'))
+        ->assertSessionHas('status');
+
+    $settings = FollowUpSetting::current();
+
+    expect($settings->per_page)->toBe(25)
+        ->and($settings->due_soon_days)->toBe(10)
+        ->and($settings->widget_limit)->toBe(8)
+        ->and($settings->email_summary_enabled)->toBeTrue()
+        ->and($settings->email_subject_prefix)->toBe('Acompanhamento')
+        ->and($settings->summaryTimes())->toBe(['09:00', '18:30']);
+});
+
+test('regular users cannot access the follow-up settings', function () {
+    $this->actingAs(User::factory()->create())
+        ->get('/admin/follow-ups/settings')
+        ->assertForbidden();
+});
+
+test('invalid summary times are rejected', function () {
+    $this->actingAs(User::factory()->admin()->create())
+        ->put('/admin/follow-ups/settings', [
+            'per_page' => 15,
+            'due_soon_days' => 7,
+            'widget_limit' => 5,
+            'email_summary_enabled' => '1',
+            'email_subject_prefix' => 'Follow-up',
+            'summary_times' => '25:00',
+            'mail_enabled' => '0',
+        ])
+        ->assertSessionHasErrors('summary_times');
+});
+
+test('the smtp credentials are saved encrypted and kept when the password is blank', function () {
+    $admin = User::factory()->admin()->create();
+
+    $payload = [
+        'per_page' => 15,
+        'due_soon_days' => 7,
+        'widget_limit' => 5,
+        'email_summary_enabled' => '1',
+        'email_subject_prefix' => 'Follow-up',
+        'summary_times' => '08:00, 17:00',
+        'mail_enabled' => '1',
+        'mail_host' => 'smtp.exemplo.com',
+        'mail_port' => 587,
+        'mail_encryption' => 'tls',
+        'mail_username' => 'usuario-smtp',
+        'mail_password' => 'segredo-smtp',
+        'mail_from_address' => 'nao-responda@exemplo.com',
+        'mail_from_name' => 'Documentation Center',
+    ];
+
+    $this->actingAs($admin)->put('/admin/follow-ups/settings', $payload)->assertRedirect();
+
+    $settings = FollowUpSetting::current();
+
+    expect($settings->mail_enabled)->toBeTrue()
+        ->and($settings->mail_host)->toBe('smtp.exemplo.com')
+        ->and($settings->mail_port)->toBe(587)
+        ->and($settings->mail_username)->toBe('usuario-smtp')
+        ->and($settings->mail_password)->toBe('segredo-smtp');
+
+    $storedPassword = FollowUpSetting::query()->toBase()->value('mail_password');
+
+    expect($storedPassword)->not->toBe('segredo-smtp');
+
+    $payload['mail_password'] = '';
+
+    $this->actingAs($admin)->put('/admin/follow-ups/settings', $payload)->assertRedirect();
+
+    expect(FollowUpSetting::current()->mail_password)->toBe('segredo-smtp');
+});
+
+test('enabling smtp requires a host and port', function () {
+    $this->actingAs(User::factory()->admin()->create())
+        ->put('/admin/follow-ups/settings', [
+            'per_page' => 15,
+            'due_soon_days' => 7,
+            'widget_limit' => 5,
+            'email_summary_enabled' => '1',
+            'email_subject_prefix' => 'Follow-up',
+            'summary_times' => '08:00',
+            'mail_enabled' => '1',
+        ])
+        ->assertSessionHasErrors(['mail_host', 'mail_port']);
+});
+
+test('the daily summary is scheduled twice a day', function () {
+    $events = collect(app(Schedule::class)->events())
+        ->filter(fn ($event): bool => str_contains((string) $event->command, 'follow-up:send-daily-summary'));
+
+    expect($events)->toHaveCount(2);
 });

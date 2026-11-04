@@ -279,6 +279,12 @@
         </svg>
     @break
 
+    @case('server')
+        <svg {{ $attributes->merge(['class' => 'h-4 w-4']) }} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M5.25 14.25h13.5m-13.5 0a3 3 0 0 1-3-3v-1.5a3 3 0 0 1 3-3h13.5a3 3 0 0 1 3 3v1.5a3 3 0 0 1-3 3m-13.5 0a3 3 0 0 0-3 3v1.5a3 3 0 0 0 3 3h13.5a3 3 0 0 0 3-3v-1.5a3 3 0 0 0-3-3M6.75 9.75h.008v.008H6.75V9.75Zm0 9h.008v.008H6.75v-.008Z"/>
+        </svg>
+    @break
+
     @case('signal')
         <svg {{ $attributes->merge(['class' => 'h-4 w-4']) }} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
             <path stroke-linecap="round" stroke-linejoin="round" d="M9.348 14.652a3.75 3.75 0 0 1 0-5.304m5.304 0a3.75 3.75 0 0 1 0 5.304m-7.425 2.121a6.75 6.75 0 0 1 0-9.546m9.546 0a6.75 6.75 0 0 1 0 9.546m-11.33-3.414a9.75 9.75 0 0 1 13.796 0M12 21.75a9.75 9.75 0 0 0 9.75-9.75A9.75 9.75 0 0 0 12 2.25 9.75 9.75 0 0 0 2.25 12c0 5.385 4.365 9.75 9.75 9.75Z"/>

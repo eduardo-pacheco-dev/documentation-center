@@ -15,6 +15,12 @@
         description="Acompanhe pendências, prazos e responsáveis em um só lugar."
         icon="clipboard-document-list"
     >
+        @if (auth()->user()?->is_admin)
+            <x-ui.action :href="route('admin.follow-ups.settings')" icon="cog-6-tooth" variant="secondary">
+                Configurações
+            </x-ui.action>
+        @endif
+
         <x-ui.action
             :href="route('admin.follow-ups.export', request()->only(['search', 'status', 'priority', 'assigned']))"
             icon="arrow-down-tray"

@@ -33,6 +33,10 @@
                 Exportar
             </x-ui.action>
 
+            <x-ui.action variant="secondary" icon="paper-airplane" data-follow-up-email-open>
+                Enviar por e-mail
+            </x-ui.action>
+
             <x-ui.action :href="route('admin.follow-ups.edit', $followUp)" icon="pencil-square" variant="secondary">
                 Editar
             </x-ui.action>
@@ -184,4 +188,6 @@
             Voltar para os follow-ups
         </a>
     </div>
+
+    <x-follow-up::partials.email-modal :follow-up="$followUp" />
 </x-layouts.admin>

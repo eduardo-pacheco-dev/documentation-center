@@ -27,4 +27,24 @@ return [
 
     'widget_limit' => 5,
 
+    /*
+    |--------------------------------------------------------------------------
+    | E-mail
+    |--------------------------------------------------------------------------
+    |
+    | Assunto padrão do envio manual e horários do resumo periódico enviado
+    | para o criador de cada follow-up em aberto.
+    |
+    */
+
+    'email' => [
+
+        'subject_prefix' => 'Follow-up',
+
+        'summary_times' => ['08:00', '17:00'],
+
+        'summary_enabled' => true,
+
+    ],
+
 ];
