@@ -39,8 +39,15 @@ class SendDailySummaryCommand extends Command
             ->orderBy('due_date')
             ->get();
 
-        $recipients = FollowUpSetting::current()->summaryRecipients();
-        $copyRecipients = FollowUpSummaryRecipient::query()->pluck('email')->all();
+        $settings = FollowUpSetting::current();
+
+        $recipients = $settings->summaryRecipients();
+
+        $copyRecipients = collect(FollowUpSummaryRecipient::query()->pluck('email')->all())
+            ->merge($settings->summaryCcRecipients())
+            ->unique()
+            ->values()
+            ->all();
 
         if ($recipients !== []) {
             $mail = Mail::to($recipients);

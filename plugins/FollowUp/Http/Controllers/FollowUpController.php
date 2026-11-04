@@ -75,6 +75,8 @@ class FollowUpController extends Controller
                 'enabled' => $emailSettings->email_summary_enabled,
                 'times' => $emailSettings->summary_times,
                 'recipients' => $emailSettings->summary_recipients,
+                'recipientsList' => $emailSettings->summaryRecipients(),
+                'ccRecipients' => $emailSettings->summaryCcRecipients(),
                 'prefix' => $emailSettings->email_subject_prefix,
             ],
             'kanban' => $kanban,

@@ -64,6 +64,9 @@ class FollowUpSettingsController extends Controller
             'summary_recipients' => $request->summaryRecipients() !== []
                 ? implode(',', $request->summaryRecipients())
                 : null,
+            'summary_cc_recipients' => $request->summaryCcRecipients() !== []
+                ? implode(',', $request->summaryCcRecipients())
+                : null,
         ]);
 
         return redirect()

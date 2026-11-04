@@ -23,6 +23,7 @@ use Illuminate\Database\Eloquent\Model;
     'mail_from_address',
     'mail_from_name',
     'summary_recipients',
+    'summary_cc_recipients',
 ])]
 class FollowUpSetting extends Model
 {
@@ -81,6 +82,16 @@ class FollowUpSetting extends Model
     public function summaryRecipients(): array
     {
         return self::parseSummaryRecipients((string) $this->summary_recipients);
+    }
+
+    /**
+     * The additional copy recipients configured from the schedule composer.
+     *
+     * @return list<string>
+     */
+    public function summaryCcRecipients(): array
+    {
+        return self::parseSummaryRecipients((string) $this->summary_cc_recipients);
     }
 
     /**

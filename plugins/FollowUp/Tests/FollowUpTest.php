@@ -242,7 +242,9 @@ test('the e-mail composer offers manual and scheduled tabs', function () {
         ->assertOk()
         ->assertSee('Envio manual')
         ->assertSee('Agendado')
-        ->assertSee('Salvar agendamento');
+        ->assertSee('Salvar agendamento')
+        ->assertSee('Destinatários (Para)')
+        ->assertSee('Cópias (CC)');
 });
 
 test('the periodic schedule can be updated from the composer', function () {
@@ -252,6 +254,7 @@ test('the periodic schedule can be updated from the composer', function () {
             'email_subject_prefix' => 'Acompanhamento',
             'summary_times' => '07:30, 19:45',
             'summary_recipients' => 'gestao@example.com, financeiro@example.com',
+            'summary_cc_recipients' => 'cc@example.com',
         ])
         ->assertRedirect(route('admin.follow-ups.index'))
         ->assertSessionHas('status');
@@ -261,7 +264,8 @@ test('the periodic schedule can be updated from the composer', function () {
     expect($settings->email_summary_enabled)->toBeFalse()
         ->and($settings->email_subject_prefix)->toBe('Acompanhamento')
         ->and($settings->summaryTimes())->toBe(['07:30', '19:45'])
-        ->and($settings->summaryRecipients())->toBe(['gestao@example.com', 'financeiro@example.com']);
+        ->and($settings->summaryRecipients())->toBe(['gestao@example.com', 'financeiro@example.com'])
+        ->and($settings->summaryCcRecipients())->toBe(['cc@example.com']);
 });
 
 test('an admin can manage the copy recipients of the scheduled summary', function () {
@@ -308,6 +312,25 @@ test('invalid summary recipients are rejected', function () {
             'summary_recipients' => 'nao-e-um-email',
         ])
         ->assertSessionHasErrors('summary_recipients');
+});
+
+test('configured copy e-mails are added to the scheduled summary', function () {
+    Mail::fake();
+
+    FollowUp::factory()->create(['status' => FollowUpStatus::Pending->value]);
+
+    FollowUpSetting::current()->update([
+        'summary_recipients' => 'destino@example.com',
+        'summary_cc_recipients' => 'cc1@example.com, cc2@example.com',
+    ]);
+
+    $this->artisan('follow-up:send-daily-summary')->assertSuccessful();
+
+    Mail::assertSent(FollowUpTableMail::class, function (FollowUpTableMail $mail): bool {
+        return $mail->hasTo('destino@example.com')
+            && $mail->hasCc('cc1@example.com')
+            && $mail->hasCc('cc2@example.com');
+    });
 });
 
 test('the general summary is sent to the configured recipients', function () {

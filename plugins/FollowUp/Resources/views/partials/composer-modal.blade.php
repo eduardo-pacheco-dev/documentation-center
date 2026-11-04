@@ -5,12 +5,54 @@
         ->filter()
         ->unique()
         ->implode(', ');
+
+    $recipientChips = old('summary_recipients')
+        ? \Plugins\FollowUp\Models\FollowUpSetting::parseSummaryRecipients((string) old('summary_recipients'))
+        : $schedule['recipientsList'];
+
+    $ccChips = old('summary_cc_recipients')
+        ? \Plugins\FollowUp\Models\FollowUpSetting::parseSummaryRecipients((string) old('summary_cc_recipients'))
+        : $schedule['ccRecipients'];
 @endphp
 
 <div
     x-data="{
-        open: {{ $errors->hasAny(['recipients', 'subject', 'summary_times', 'email_summary_enabled']) ? 'true' : 'false' }},
-        tab: {{ $errors->hasAny(['summary_times', 'email_summary_enabled']) ? "'scheduled'" : "'manual'" }},
+        open: {{ $errors->hasAny(['recipients', 'subject', 'summary_times', 'email_summary_enabled', 'summary_recipients', 'summary_cc_recipients']) ? 'true' : 'false' }},
+        tab: {{ $errors->hasAny(['summary_times', 'email_summary_enabled', 'summary_recipients', 'summary_cc_recipients']) ? "'scheduled'" : "'manual'" }},
+        recipientsList: [],
+        ccList: [],
+        newRecipient: '',
+        newCc: '',
+        initScheduleLists() {
+            this.recipientsList = JSON.parse(this.$root.dataset.summaryRecipients || '[]');
+            this.ccList = JSON.parse(this.$root.dataset.summaryCcRecipients || '[]');
+        },
+        addRecipient() {
+            const email = this.newRecipient.trim();
+
+            if (! email.includes('@') || this.recipientsList.includes(email)) {
+                return;
+            }
+
+            this.recipientsList.push(email);
+            this.newRecipient = '';
+        },
+        addCc() {
+            const email = this.newCc.trim();
+
+            if (! email.includes('@') || this.ccList.includes(email)) {
+                return;
+            }
+
+            this.ccList.push(email);
+            this.newCc = '';
+        },
+        removeRecipient(email) {
+            this.recipientsList = this.recipientsList.filter((item) => item !== email);
+        },
+        removeCc(email) {
+            this.ccList = this.ccList.filter((item) => item !== email);
+        },
         selected: '',
         recipients: '',
         subject: '',
@@ -40,6 +82,9 @@
     data-user-email="{{ auth()->user()?->email }}"
     data-action-template="{{ route('admin.follow-ups.email.send', ['followUp' => '__ID__']) }}"
     data-action-table="{{ route('admin.follow-ups.email.table') }}"
+    data-summary-recipients="{{ json_encode($recipientChips, JSON_HEX_APOS | JSON_HEX_QUOT) }}"
+    data-summary-cc-recipients="{{ json_encode($ccChips, JSON_HEX_APOS | JSON_HEX_QUOT) }}"
+    x-init="initScheduleLists()"
     x-on:open-email-composer.window="openComposer()"
     x-on:keydown.escape.window="open && close()"
 >
@@ -214,17 +259,65 @@
                         </div>
 
                         <div>
-                            <label for="composer-summary-recipients" class="block text-sm font-medium text-gray-700 dark:text-gray-200">Destinatários do resumo geral</label>
-                            <input
-                                id="composer-summary-recipients"
-                                name="summary_recipients"
-                                type="text"
-                                value="{{ old('summary_recipients', $schedule['recipients']) }}"
-                                placeholder="financeiro@exemplo.com, gestao@exemplo.com"
-                                class="mt-1.5 h-10 w-full rounded-xl border border-gray-300 bg-white px-3 text-sm text-gray-900 transition focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
-                            >
-                            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Se ficar vazio, cada criador recebe apenas os próprios follow-ups.</p>
+                            <label for="composer-summary-recipients" class="block text-sm font-medium text-gray-700 dark:text-gray-200">Destinatários (Para)</label>
+                            <div class="mt-1.5 flex flex-wrap items-center gap-2">
+                                <input
+                                    id="composer-summary-recipients"
+                                    type="email"
+                                    x-model="newRecipient"
+                                    x-on:keydown.enter.prevent="addRecipient()"
+                                    placeholder="financeiro@exemplo.com"
+                                    class="h-10 min-w-0 flex-1 rounded-xl border border-gray-300 bg-white px-3 text-sm text-gray-900 transition focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
+                                >
+                                <x-ui.action type="button" variant="secondary" icon="plus" x-on:click="addRecipient()">Adicionar</x-ui.action>
+                            </div>
+
+                            <input type="hidden" name="summary_recipients" x-bind:value="recipientsList.join(', ')">
+
+                            <div class="mt-2 flex flex-wrap gap-1.5" x-show="recipientsList.length" x-cloak>
+                                <template x-for="email in recipientsList" :key="email">
+                                    <span class="inline-flex items-center gap-1 rounded-full bg-indigo-50 px-2.5 py-1 text-xs font-medium text-indigo-700 dark:bg-indigo-500/15 dark:text-indigo-300">
+                                        <span x-text="email"></span>
+                                        <button type="button" x-on:click="removeRecipient(email)" aria-label="Remover destinatário" class="rounded-full p-0.5 transition hover:bg-indigo-100 dark:hover:bg-indigo-500/25">
+                                            <x-icon name="x-mark" class="h-3 w-3" />
+                                        </button>
+                                    </span>
+                                </template>
+                            </div>
+
+                            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Todos recebem o mesmo e-mail. Se a lista ficar vazia, cada criador recebe apenas os próprios follow-ups.</p>
                             @error('summary_recipients')<p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>@enderror
+                        </div>
+
+                        <div>
+                            <label for="composer-summary-cc" class="block text-sm font-medium text-gray-700 dark:text-gray-200">Cópias (CC)</label>
+                            <div class="mt-1.5 flex flex-wrap items-center gap-2">
+                                <input
+                                    id="composer-summary-cc"
+                                    type="email"
+                                    x-model="newCc"
+                                    x-on:keydown.enter.prevent="addCc()"
+                                    placeholder="copia@exemplo.com"
+                                    class="h-10 min-w-0 flex-1 rounded-xl border border-gray-300 bg-white px-3 text-sm text-gray-900 transition focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
+                                >
+                                <x-ui.action type="button" variant="secondary" icon="plus" x-on:click="addCc()">Adicionar</x-ui.action>
+                            </div>
+
+                            <input type="hidden" name="summary_cc_recipients" x-bind:value="ccList.join(', ')">
+
+                            <div class="mt-2 flex flex-wrap gap-1.5" x-show="ccList.length" x-cloak>
+                                <template x-for="email in ccList" :key="email">
+                                    <span class="inline-flex items-center gap-1 rounded-full bg-gray-100 px-2.5 py-1 text-xs font-medium text-gray-700 dark:bg-white/10 dark:text-gray-200">
+                                        <span x-text="email"></span>
+                                        <button type="button" x-on:click="removeCc(email)" aria-label="Remover cópia" class="rounded-full p-0.5 transition hover:bg-gray-200 dark:hover:bg-white/20">
+                                            <x-icon name="x-mark" class="h-3 w-3" />
+                                        </button>
+                                    </span>
+                                </template>
+                            </div>
+
+                            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Recebem uma cópia de cada resumo agendado. E-mails cadastrados em Configurações também entram em cópia.</p>
+                            @error('summary_cc_recipients')<p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>@enderror
                         </div>
 
                         <div>

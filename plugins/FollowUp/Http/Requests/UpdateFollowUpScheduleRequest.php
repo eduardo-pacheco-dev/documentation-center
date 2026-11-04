@@ -28,6 +28,7 @@ class UpdateFollowUpScheduleRequest extends FormRequest
             'email_subject_prefix' => ['required', 'string', 'max:150'],
             'summary_times' => ['required', 'string', 'max:100'],
             'summary_recipients' => ['nullable', 'string', 'max:1000'],
+            'summary_cc_recipients' => ['nullable', 'string', 'max:1000'],
         ];
     }
 
@@ -41,8 +42,12 @@ class UpdateFollowUpScheduleRequest extends FormRequest
                 $validator->errors()->add('summary_times', 'Informe ao menos um horário no formato HH:MM.');
             }
 
-            foreach ($this->invalidRecipients() as $recipient) {
+            foreach ($this->invalidRecipients('summary_recipients') as $recipient) {
                 $validator->errors()->add('summary_recipients', "O e-mail \"{$recipient}\" não é válido.");
+            }
+
+            foreach ($this->invalidRecipients('summary_cc_recipients') as $recipient) {
+                $validator->errors()->add('summary_cc_recipients', "O e-mail \"{$recipient}\" não é válido.");
             }
         });
     }
@@ -58,13 +63,23 @@ class UpdateFollowUpScheduleRequest extends FormRequest
     }
 
     /**
+     * The normalized list of copy recipients.
+     *
+     * @return list<string>
+     */
+    public function summaryCcRecipients(): array
+    {
+        return FollowUpSetting::parseSummaryRecipients($this->string('summary_cc_recipients')->toString());
+    }
+
+    /**
      * The recipients that are not valid e-mail addresses.
      *
      * @return list<string>
      */
-    private function invalidRecipients(): array
+    private function invalidRecipients(string $field): array
     {
-        $recipients = preg_split('/[\s,;]+/', $this->string('summary_recipients')->toString()) ?: [];
+        $recipients = preg_split('/[\s,;]+/', $this->string($field)->toString()) ?: [];
 
         return collect($recipients)
             ->filter(fn (string $email): bool => $email !== '' && filter_var($email, FILTER_VALIDATE_EMAIL) === false)
