@@ -10,28 +10,39 @@ use Plugins\FollowUp\Mail\FollowUpMail;
 use Plugins\FollowUp\Mail\FollowUpTableMail;
 use Plugins\FollowUp\Models\FollowUp;
 use Plugins\FollowUp\Support\FollowUpFilters;
+use Throwable;
 
 class FollowUpEmailController extends Controller
 {
     /**
-     * Queue the given follow-up to be sent by e-mail.
+     * Send the given follow-up by e-mail.
      */
     public function send(SendFollowUpEmailRequest $request, FollowUp $followUp): RedirectResponse
     {
         $subject = $request->string('subject')->trim()->toString();
+        $recipients = $request->recipients();
 
-        Mail::to($request->recipients())
-            ->queue(new FollowUpMail($followUp, $subject !== '' ? $subject : null));
+        try {
+            Mail::to($recipients)->send(new FollowUpMail($followUp, $subject !== '' ? $subject : null));
+        } catch (Throwable $exception) {
+            return back()
+                ->withInput()
+                ->with('error', 'Falha ao enviar o e-mail: '.$exception->getMessage());
+        }
 
-        return back()->with('status', 'E-mail do follow-up enfileirado para envio.');
+        return back()->with(
+            'status',
+            'Follow-up enviado por e-mail para '.implode(', ', $recipients).'.',
+        );
     }
 
     /**
-     * Queue the follow-up table matching the current filters.
+     * Send the follow-up table matching the current filters.
      */
     public function sendTable(SendFollowUpEmailRequest $request): RedirectResponse
     {
         $subject = $request->string('subject')->trim()->toString();
+        $recipients = $request->recipients();
 
         $followUps = FollowUpFilters::apply(
             FollowUp::query()->with(['assignee', 'creator']),
@@ -42,11 +53,16 @@ class FollowUpEmailController extends Controller
             ->orderBy('id')
             ->get();
 
-        Mail::to($request->recipients())
-            ->queue(new FollowUpTableMail($followUps, $subject !== '' ? $subject : null));
+        try {
+            Mail::to($recipients)->send(new FollowUpTableMail($followUps, $subject !== '' ? $subject : null));
+        } catch (Throwable $exception) {
+            return redirect()
+                ->route('admin.follow-ups.index', $request->only(['search', 'status', 'priority', 'assigned', 'view', 'sort', 'direction']))
+                ->with('error', 'Falha ao enviar a tabela de follow-ups: '.$exception->getMessage());
+        }
 
         return redirect()
             ->route('admin.follow-ups.index', $request->only(['search', 'status', 'priority', 'assigned', 'view', 'sort', 'direction']))
-            ->with('status', 'E-mail da tabela de follow-ups enfileirado para envio.');
+            ->with('status', 'Tabela de follow-ups enviada por e-mail para '.implode(', ', $recipients).'.');
     }
 }

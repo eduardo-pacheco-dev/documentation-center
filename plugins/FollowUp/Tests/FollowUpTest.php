@@ -176,6 +176,20 @@ test('the kanban view groups follow-ups by status', function () {
         ->assertSeeInOrder(['Pendente no quadro', 'Concluído no quadro']);
 });
 
+test('the table shows the completion date of finished follow-ups', function () {
+    $completed = FollowUp::factory()->completed()->create([
+        'title' => 'Concluído com data de conclusão',
+    ]);
+
+    FollowUp::factory()->create(['title' => 'Pendente sem data de conclusão']);
+
+    $this->actingAs(User::factory()->create())
+        ->get('/admin/follow-ups')
+        ->assertOk()
+        ->assertSee('Concluído em')
+        ->assertSee($completed->completed_at->format('d/m/Y H:i'));
+});
+
 test('the index offers a manual e-mail composer', function () {
     $creator = User::factory()->create(['email' => 'criador-composer@example.com']);
 
@@ -457,7 +471,7 @@ test('a single follow-up can be exported with its history', function () {
     @unlink($path);
 });
 
-test('a follow-up can be queued for e-mail delivery', function () {
+test('a follow-up can be sent by e-mail', function () {
     Mail::fake();
 
     $followUp = FollowUp::factory()->create(['title' => 'Enviar por e-mail']);
@@ -470,14 +484,29 @@ test('a follow-up can be queued for e-mail delivery', function () {
         ->assertRedirect()
         ->assertSessionHas('status');
 
-    Mail::assertQueued(FollowUpMail::class, function (FollowUpMail $mail): bool {
+    Mail::assertSent(FollowUpMail::class, function (FollowUpMail $mail): bool {
         return $mail->hasTo('primeiro@example.com')
             && $mail->hasTo('segundo@example.com')
             && $mail->envelope()->subject === 'Assunto personalizado';
     });
 });
 
-test('the whole filtered table can be queued by e-mail', function () {
+test('delivery failures are reported in a toast when sending a follow-up', function () {
+    Mail::shouldReceive('to')
+        ->once()
+        ->andThrow(new RuntimeException('SMTP recusou a conexão'));
+
+    $followUp = FollowUp::factory()->create();
+
+    $this->actingAs(User::factory()->create())
+        ->post(route('admin.follow-ups.email.send', $followUp), [
+            'recipients' => 'destino@example.com',
+        ])
+        ->assertRedirect()
+        ->assertSessionHas('error', 'Falha ao enviar o e-mail: SMTP recusou a conexão');
+});
+
+test('the whole filtered table can be sent by e-mail', function () {
     Mail::fake();
 
     FollowUp::factory()->create([
@@ -499,12 +528,25 @@ test('the whole filtered table can be queued by e-mail', function () {
         ->assertRedirect(route('admin.follow-ups.index', ['status' => FollowUpStatus::Pending->value]))
         ->assertSessionHas('status');
 
-    Mail::assertQueued(FollowUpTableMail::class, function (FollowUpTableMail $mail): bool {
+    Mail::assertSent(FollowUpTableMail::class, function (FollowUpTableMail $mail): bool {
         return $mail->hasTo('tabela@example.com')
             && $mail->envelope()->subject === 'Tabela filtrada'
             && $mail->followUps->count() === 1
             && $mail->followUps->first()->title === 'Pendente na tabela';
     });
+});
+
+test('delivery failures are reported in a toast when sending the table', function () {
+    Mail::shouldReceive('to')
+        ->once()
+        ->andThrow(new RuntimeException('SMTP indisponível'));
+
+    $this->actingAs(User::factory()->create())
+        ->post('/admin/follow-ups/email', [
+            'recipients' => 'destino@example.com',
+        ])
+        ->assertRedirect()
+        ->assertSessionHas('error', 'Falha ao enviar a tabela de follow-ups: SMTP indisponível');
 });
 
 test('the table e-mail includes the rows and the excel attachment', function () {

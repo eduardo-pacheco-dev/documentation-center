@@ -2,22 +2,17 @@
 
 namespace Plugins\FollowUp\Mail;
 
-use Illuminate\Bus\Queueable;
-use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Attachment;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
-use Illuminate\Queue\SerializesModels;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use Plugins\FollowUp\Models\FollowUp;
 use Plugins\FollowUp\Support\FollowUpExport;
 
-class FollowUpTableMail extends Mailable implements ShouldQueue
+class FollowUpTableMail extends Mailable
 {
-    use Queueable, SerializesModels;
-
     /**
      * Create a new message instance.
      *

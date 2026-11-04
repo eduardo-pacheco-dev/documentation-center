@@ -15,7 +15,7 @@
 <x-ui.modal
     id="follow-up-email-modal"
     title="Enviar follow-up por e-mail"
-    description="O envio é processado em segundo plano e inclui o resumo, o histórico e o anexo Excel."
+    description="O e-mail inclui o resumo, o histórico e o anexo Excel. Você verá um aviso com o resultado do envio."
     :data-open="$openOnLoad"
 >
     <form method="POST" action="{{ route('admin.follow-ups.email.send', $followUp) }}" class="space-y-4">

@@ -243,6 +243,7 @@
                             <x-sort-header column="priority" label="Prioridade" default="due_date" default-direction="asc" class="px-5 py-3.5" />
                             <x-sort-header column="assignee" label="Responsável" default="due_date" default-direction="asc" class="px-5 py-3.5" />
                             <x-sort-header column="due_date" label="Prazo" default="due_date" default-direction="asc" class="px-5 py-3.5" />
+                            <x-sort-header column="completed_at" label="Concluído em" default="due_date" default-direction="asc" class="px-5 py-3.5" />
                             <th class="px-5 py-3.5 text-right">Ações</th>
                         </tr>
                     </thead>
@@ -285,6 +286,16 @@
                                         @endif
                                     @else
                                         <span class="text-gray-400 dark:text-gray-500">Sem prazo</span>
+                                    @endif
+                                </td>
+
+                                <td class="px-5 py-4">
+                                    @if ($followUp->completed_at)
+                                        <span class="font-medium text-emerald-600 dark:text-emerald-400">
+                                            {{ $followUp->completed_at->format('d/m/Y H:i') }}
+                                        </span>
+                                    @else
+                                        <span class="text-gray-400 dark:text-gray-500">—</span>
                                     @endif
                                 </td>
 

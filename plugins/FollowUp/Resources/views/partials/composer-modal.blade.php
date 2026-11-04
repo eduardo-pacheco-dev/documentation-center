@@ -57,7 +57,7 @@
             <div class="flex items-start justify-between gap-3">
                 <div class="min-w-0">
                     <h2 id="follow-up-composer-title" class="text-base font-semibold text-gray-900 dark:text-gray-100">Enviar follow-up por e-mail</h2>
-                    <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">O envio é processado em segundo plano e inclui o resumo, o histórico e o anexo Excel.</p>
+                    <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">O e-mail inclui o resumo, o histórico e o anexo Excel. Você verá um aviso com o resultado do envio.</p>
                 </div>
 
                 <button

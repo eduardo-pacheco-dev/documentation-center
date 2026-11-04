@@ -2,21 +2,16 @@
 
 namespace Plugins\FollowUp\Mail;
 
-use Illuminate\Bus\Queueable;
-use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Attachment;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
-use Illuminate\Queue\SerializesModels;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use Plugins\FollowUp\Models\FollowUp;
 use Plugins\FollowUp\Support\FollowUpExport;
 
-class FollowUpMail extends Mailable implements ShouldQueue
+class FollowUpMail extends Mailable
 {
-    use Queueable, SerializesModels;
-
     /**
      * Create a new message instance.
      */
