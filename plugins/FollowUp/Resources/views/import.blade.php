@@ -1,0 +1,154 @@
+<x-layouts.admin title="Importar follow-ups">
+    @php
+        $fields = [
+            ['label' => 'Código', 'required' => false],
+            ['label' => 'Título', 'required' => true],
+            ['label' => 'Descrição', 'required' => false],
+            ['label' => 'Status', 'required' => false],
+            ['label' => 'Prioridade', 'required' => false],
+            ['label' => 'Prazo', 'required' => false],
+            ['label' => 'Concluído em', 'required' => false],
+            ['label' => 'Responsável', 'required' => false],
+        ];
+    @endphp
+
+    <nav class="flex flex-wrap items-center gap-1.5 text-xs text-gray-400 dark:text-gray-500" aria-label="Trilha de navegação">
+        <a href="{{ route('admin.follow-ups.index') }}" class="font-medium text-gray-500 transition hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">Follow-ups</a>
+        <x-icon name="chevron-right" class="h-3 w-3" />
+        <span class="truncate text-gray-400 dark:text-gray-500">Importar follow-ups</span>
+    </nav>
+
+    <x-ui.page-header
+        category="Acompanhamento"
+        title="Importar follow-ups"
+        description="Envie uma planilha Excel ou CSV para cadastrar vários follow-ups de uma só vez."
+        icon="arrow-up-tray"
+        class="mt-4"
+    >
+        <x-ui.action :href="route('admin.follow-ups.import.template')" icon="arrow-down-tray" variant="secondary">
+            Baixar modelo Excel
+        </x-ui.action>
+
+        <x-ui.action :href="route('admin.follow-ups.index')" icon="chevron-left" variant="ghost">
+            Voltar
+        </x-ui.action>
+    </x-ui.page-header>
+
+    <div class="mt-6 grid items-start gap-4 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
+        <section class="rounded-3xl border border-gray-200/80 bg-white p-5 sm:p-6 dark:border-white/10 dark:bg-[#171716]">
+            <div class="flex items-start gap-3">
+                <span class="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-400">
+                    <x-icon name="arrow-up-tray" class="h-5 w-5" />
+                </span>
+
+                <div>
+                    <h2 class="text-sm font-semibold tracking-tight text-gray-900 dark:text-white">Enviar arquivo</h2>
+                    <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">O processamento é feito de uma vez: se alguma linha estiver inválida, nenhum follow-up é importado.</p>
+                </div>
+            </div>
+
+            <form
+                method="POST"
+                action="{{ route('admin.follow-ups.import.store') }}"
+                enctype="multipart/form-data"
+                class="mt-5"
+                x-data="{ fileName: '' }"
+            >
+                @csrf
+
+                <label
+                    for="follow-up-import-file"
+                    class="flex cursor-pointer flex-col items-center justify-center rounded-2xl border border-dashed border-gray-300 bg-white px-5 py-10 text-center transition hover:border-indigo-300 dark:border-gray-700 dark:bg-[#171716] dark:hover:border-indigo-500/40"
+                >
+                    <span class="inline-flex h-11 w-11 items-center justify-center rounded-full bg-indigo-50 text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-300">
+                        <x-icon name="arrow-up-tray" class="h-5 w-5" />
+                    </span>
+
+                    <span class="mt-3 text-sm font-semibold text-gray-800 dark:text-gray-100">Selecionar planilha</span>
+                    <span class="mt-1 text-xs text-gray-500 dark:text-gray-400" x-show="! fileName">Excel (XLSX/XLS) ou CSV · até 5 MB · máximo de 500 follow-ups</span>
+                    <span class="mt-1 max-w-full truncate text-xs font-medium text-indigo-600 dark:text-indigo-400" x-show="fileName" x-text="fileName"></span>
+
+                    <input
+                        id="follow-up-import-file"
+                        type="file"
+                        name="file"
+                        accept=".csv,.txt,.xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,text/csv,text/plain"
+                        class="sr-only"
+                        x-on:change="fileName = $event.target.files[0]?.name ?? ''"
+                    >
+                </label>
+
+                @error('file')
+                    <x-ui.field-error class="mt-3">{{ $message }}</x-ui.field-error>
+                @enderror
+
+                <div class="mt-4 flex flex-wrap items-center justify-end gap-2">
+                    <x-ui.action :href="route('admin.follow-ups.index')" variant="ghost">
+                        Cancelar
+                    </x-ui.action>
+
+                    <x-ui.action type="submit" icon="arrow-up-tray">
+                        Importar follow-ups
+                    </x-ui.action>
+                </div>
+            </form>
+        </section>
+
+        <aside class="space-y-4">
+            <section class="rounded-3xl border border-gray-200/80 bg-white p-5 dark:border-white/10 dark:bg-[#171716]">
+                <div class="flex items-center gap-2">
+                    <x-icon name="exclamation-circle" class="h-4 w-4 text-gray-400 dark:text-gray-500" />
+                    <h2 class="text-sm font-semibold text-gray-900 dark:text-white">Antes de importar</h2>
+                </div>
+
+                <ul class="mt-4 space-y-3 text-sm text-gray-600 dark:text-gray-300">
+                    <li class="flex gap-2">
+                        <x-icon name="check" class="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" />
+                        <span>Use o modelo Excel e preencha a aba <strong class="font-semibold text-gray-900 dark:text-white">Follow-ups</strong> a partir da linha 2.</span>
+                    </li>
+                    <li class="flex gap-2">
+                        <x-icon name="check" class="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" />
+                        <span>A coluna <strong class="font-semibold text-gray-900 dark:text-white">Título</strong> é obrigatória.</span>
+                    </li>
+                    <li class="flex gap-2">
+                        <x-icon name="check" class="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" />
+                        <span>Sem status/prioridade, os registros entram como <strong class="font-semibold text-gray-900 dark:text-white">Pendente</strong> e <strong class="font-semibold text-gray-900 dark:text-white">Média</strong>.</span>
+                    </li>
+                    <li class="flex gap-2">
+                        <x-icon name="check" class="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" />
+                        <span>O responsável deve estar cadastrado no plugin e pode ser informado por nome ou e-mail.</span>
+                    </li>
+                    <li class="flex gap-2">
+                        <x-icon name="check" class="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" />
+                        <span>Datas aceitam os formatos `dd/mm/aaaa` e `aaaa-mm-dd`.</span>
+                    </li>
+                    <li class="flex gap-2">
+                        <x-icon name="exclamation-triangle" class="mt-0.5 h-4 w-4 shrink-0 text-amber-500" />
+                        <span>Limite de <strong class="font-semibold text-gray-900 dark:text-white">500 follow-ups</strong> por arquivo.</span>
+                    </li>
+                </ul>
+            </section>
+
+            <section class="rounded-3xl border border-gray-200/80 bg-white p-5 dark:border-white/10 dark:bg-[#171716]">
+                <h2 class="text-sm font-semibold text-gray-900 dark:text-white">Colunas do modelo</h2>
+                <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Baixe o modelo para garantir os nomes corretos. Colunas extras são ignoradas.</p>
+
+                <div class="mt-4 flex flex-wrap gap-1.5">
+                    @foreach ($fields as $field)
+                        <span class="inline-flex items-center gap-1 rounded-lg bg-gray-50 px-2 py-1 text-[10px] text-gray-600 dark:bg-white/5 dark:text-gray-300">
+                            {{ $field['label'] }}
+
+                            @if ($field['required'])
+                                <span class="font-sans font-semibold text-red-500" title="Obrigatório">*</span>
+                            @endif
+                        </span>
+                    @endforeach
+                </div>
+
+                <x-ui.action :href="route('admin.follow-ups.import.template')" icon="arrow-down-tray" variant="secondary" size="sm" class="mt-4">
+                    Baixar modelo Excel
+                </x-ui.action>
+            </section>
+        </aside>
+    </div>
+</x-layouts.admin>

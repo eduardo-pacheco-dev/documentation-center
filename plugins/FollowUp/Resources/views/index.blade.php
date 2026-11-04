@@ -36,7 +36,7 @@
 
                     const rect = button.getBoundingClientRect();
                     const width = 208;
-                    const height = 132;
+                    const height = 176;
                     const gap = 6;
                     const below = rect.bottom + gap;
 
@@ -94,6 +94,15 @@
                     >
                         <x-icon name="arrow-down-tray" class="h-4 w-4 text-gray-400 dark:text-gray-500" />
                         Exportar
+                    </a>
+
+                    <a
+                        href="{{ route('admin.follow-ups.import') }}"
+                        role="menuitem"
+                        class="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-gray-700 transition hover:bg-gray-50 dark:text-gray-200 dark:hover:bg-white/5"
+                    >
+                        <x-icon name="arrow-up-tray" class="h-4 w-4 text-gray-400 dark:text-gray-500" />
+                        Importar
                     </a>
 
                     <button
