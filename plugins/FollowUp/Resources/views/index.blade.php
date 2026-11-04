@@ -107,8 +107,8 @@
             <select id="assigned-filter" name="assigned" onchange="this.form.submit()" class="h-10 rounded-xl border border-gray-300 bg-white pl-3 pr-8 text-sm text-gray-700 transition focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200">
                 <option value="">Todos os responsáveis</option>
                 <option value="me" @selected($assigned === 'me')>Atribuídos a mim</option>
-                @foreach ($users as $user)
-                    <option value="{{ $user->getKey() }}" @selected($assigned === (string) $user->getKey())>{{ $user->full_name }}</option>
+                @foreach ($assignees as $assignee)
+                    <option value="{{ $assignee->getKey() }}" @selected($assigned === (string) $assignee->getKey())>{{ $assignee->name }}</option>
                 @endforeach
             </select>
 
@@ -360,7 +360,7 @@
     <x-follow-up::partials.composer-modal :follow-ups="$emailFollowUps" />
 
     <x-follow-up::partials.create-modal
-        :users="$users"
+        :assignees="$assignees"
         :statuses="$statuses"
         :priorities="$priorities"
         :open-on-load="$openCreateModal"

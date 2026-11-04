@@ -18,6 +18,7 @@ use Plugins\FollowUp\Mail\FollowUpSummaryMail;
 use Plugins\FollowUp\Mail\FollowUpTableMail;
 use Plugins\FollowUp\Mail\FollowUpTestMail;
 use Plugins\FollowUp\Models\FollowUp;
+use Plugins\FollowUp\Models\FollowUpAssignee;
 use Plugins\FollowUp\Models\FollowUpSetting;
 use Plugins\FollowUp\Models\FollowUpUpdate;
 use Plugins\FollowUp\Providers\FollowUpServiceProvider;
@@ -235,12 +236,13 @@ test('the index renders the follow-up creation modal', function () {
         ->assertSee('name="status"', false)
         ->assertSee('name="priority"', false)
         ->assertSee('name="due_date"', false)
-        ->assertSee('name="assigned_to"', false)
+        ->assertSee('name="assignee_id"', false)
         ->assertSee('name="modal" value="create"', false);
 });
 
 test('a follow-up can be created with its initial timeline entry', function () {
     $user = User::factory()->create();
+    $assignee = FollowUpAssignee::factory()->create();
 
     $response = $this->actingAs($user)->post('/admin/follow-ups', [
         'title' => 'Acompanhar aprovação da proposta',
@@ -248,7 +250,7 @@ test('a follow-up can be created with its initial timeline entry', function () {
         'status' => FollowUpStatus::InProgress->value,
         'priority' => FollowUpPriority::Urgent->value,
         'due_date' => now()->addDays(3)->toDateString(),
-        'assigned_to' => $user->getKey(),
+        'assignee_id' => $assignee->getKey(),
     ]);
 
     $followUp = FollowUp::query()->sole();
@@ -259,7 +261,7 @@ test('a follow-up can be created with its initial timeline entry', function () {
         ->title->toBe('Acompanhar aprovação da proposta')
         ->status->toBe(FollowUpStatus::InProgress)
         ->priority->toBe(FollowUpPriority::Urgent)
-        ->assigned_to->toBe($user->getKey())
+        ->assignee_id->toBe($assignee->getKey())
         ->created_by->toBe($user->getKey())
         ->completed_at->toBeNull();
 
@@ -374,10 +376,11 @@ test('updates can be added and removed by their author', function () {
 
 test('the dashboard shows the signed in user follow-ups', function () {
     $user = User::factory()->create();
+    $assignee = FollowUpAssignee::factory()->create(['email' => $user->email]);
 
     FollowUp::factory()->overdue()->create([
         'title' => 'Follow-up atrasado do usuário',
-        'assigned_to' => $user->getKey(),
+        'assignee_id' => $assignee->getKey(),
     ]);
 
     $this->actingAs($user)
@@ -649,7 +652,8 @@ test('an admin can view and update the follow-up settings', function () {
         ->assertSee('name="per_page"', false)
         ->assertSee('name="summary_times"', false)
         ->assertSee('Servidor de e-mail (SMTP)')
-        ->assertSee('Enviar e-mail de teste');
+        ->assertSee('Enviar e-mail de teste')
+        ->assertSee('Responsáveis');
 
     $this->actingAs($admin)
         ->put('/admin/follow-ups/settings', [
@@ -672,6 +676,52 @@ test('an admin can view and update the follow-up settings', function () {
         ->and($settings->email_summary_enabled)->toBeTrue()
         ->and($settings->email_subject_prefix)->toBe('Acompanhamento')
         ->and($settings->summaryTimes())->toBe(['09:00', '18:30']);
+});
+
+test('an admin can register a custom assignee', function () {
+    $admin = User::factory()->admin()->create();
+
+    $this->actingAs($admin)
+        ->post('/admin/follow-ups/settings/assignees', [
+            'name' => 'Maria Externa',
+            'email' => 'maria@externo.test',
+        ])
+        ->assertRedirect(route('admin.follow-ups.settings'))
+        ->assertSessionHas('status');
+
+    $assignee = FollowUpAssignee::query()->sole();
+
+    expect($assignee->name)->toBe('Maria Externa')
+        ->and($assignee->email)->toBe('maria@externo.test');
+
+    $this->actingAs($admin)
+        ->get('/admin/follow-ups')
+        ->assertOk()
+        ->assertSee('Maria Externa');
+});
+
+test('an assignee can be removed from the settings page', function () {
+    $admin = User::factory()->admin()->create();
+    $assignee = FollowUpAssignee::factory()->create(['name' => 'Responsavel Removivel']);
+
+    $followUp = FollowUp::factory()->create(['assignee_id' => $assignee->getKey()]);
+
+    $this->actingAs($admin)
+        ->delete(route('admin.follow-ups.settings.assignees.destroy', $assignee))
+        ->assertRedirect(route('admin.follow-ups.settings'))
+        ->assertSessionHas('status');
+
+    expect(FollowUpAssignee::query()->find($assignee->getKey()))->toBeNull()
+        ->and($followUp->fresh()->assignee_id)->toBeNull();
+});
+
+test('assignee registration requires a name', function () {
+    $this->actingAs(User::factory()->admin()->create())
+        ->post('/admin/follow-ups/settings/assignees', [
+            'name' => '',
+            'email' => 'nao-e-um-email',
+        ])
+        ->assertSessionHasErrors(['name', 'email']);
 });
 
 test('regular users cannot access the follow-up settings', function () {

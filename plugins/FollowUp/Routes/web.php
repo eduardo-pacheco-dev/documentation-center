@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use Plugins\FollowUp\Http\Controllers\FollowUpAssigneeController;
 use Plugins\FollowUp\Http\Controllers\FollowUpController;
 use Plugins\FollowUp\Http\Controllers\FollowUpEmailController;
 use Plugins\FollowUp\Http\Controllers\FollowUpExportController;
@@ -21,6 +22,9 @@ Route::middleware('auth')
             Route::get('settings', [FollowUpSettingsController::class, 'edit'])->name('settings');
             Route::put('settings', [FollowUpSettingsController::class, 'update'])->name('settings.update');
             Route::post('settings/test-email', [FollowUpSettingsController::class, 'sendTestEmail'])->name('settings.test-email');
+
+            Route::post('settings/assignees', [FollowUpAssigneeController::class, 'store'])->name('settings.assignees.store');
+            Route::delete('settings/assignees/{assignee}', [FollowUpAssigneeController::class, 'destroy'])->name('settings.assignees.destroy');
         });
 
         Route::get('{followUp}', [FollowUpController::class, 'show'])->name('show');

@@ -2,7 +2,7 @@
     'action',
     'method' => 'POST',
     'followUp' => null,
-    'users',
+    'assignees',
     'statuses',
     'priorities',
     'submitLabel' => 'Salvar follow-up',
@@ -87,16 +87,16 @@
         </div>
 
         <div>
-            <label for="assigned_to" class="{{ $labelClass }}">Responsável</label>
-            <select id="assigned_to" name="assigned_to" class="{{ $inputClass }}">
+            <label for="assignee_id" class="{{ $labelClass }}">Responsável</label>
+            <select id="assignee_id" name="assignee_id" class="{{ $inputClass }}">
                 <option value="">Não atribuído</option>
-                @foreach ($users as $user)
-                    <option value="{{ $user->getKey() }}" @selected((string) old('assigned_to', $followUp?->assigned_to) === (string) $user->getKey())>
-                        {{ $user->full_name }}
+                @foreach ($assignees as $assignee)
+                    <option value="{{ $assignee->getKey() }}" @selected((string) old('assignee_id', $followUp?->assignee_id) === (string) $assignee->getKey())>
+                        {{ $assignee->name }}
                     </option>
                 @endforeach
             </select>
-            @error('assigned_to')<p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>@enderror
+            @error('assignee_id')<p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>@enderror
         </div>
     </div>
 

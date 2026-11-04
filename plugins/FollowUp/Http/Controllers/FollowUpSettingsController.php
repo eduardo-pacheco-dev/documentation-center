@@ -9,6 +9,7 @@ use Illuminate\View\View;
 use Plugins\FollowUp\Http\Requests\SendFollowUpTestEmailRequest;
 use Plugins\FollowUp\Http\Requests\UpdateFollowUpSettingsRequest;
 use Plugins\FollowUp\Mail\FollowUpTestMail;
+use Plugins\FollowUp\Models\FollowUpAssignee;
 use Plugins\FollowUp\Models\FollowUpSetting;
 use Throwable;
 
@@ -21,6 +22,7 @@ class FollowUpSettingsController extends Controller
     {
         return view('follow-up::settings', [
             'settings' => FollowUpSetting::current(),
+            'assignees' => FollowUpAssignee::query()->withCount('followUps')->orderBy('name')->get(),
         ]);
     }
 

@@ -19,7 +19,7 @@ use Plugins\FollowUp\Enums\FollowUpStatus;
     'status',
     'priority',
     'due_date',
-    'assigned_to',
+    'assignee_id',
     'created_by',
     'completed_at',
 ])]
@@ -42,11 +42,11 @@ class FollowUp extends Model
     }
 
     /**
-     * The user responsible for the follow-up.
+     * The person responsible for the follow-up.
      */
     public function assignee(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'assigned_to');
+        return $this->belongsTo(FollowUpAssignee::class, 'assignee_id');
     }
 
     /**

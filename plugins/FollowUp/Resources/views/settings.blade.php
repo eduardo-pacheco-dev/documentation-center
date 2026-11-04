@@ -287,6 +287,84 @@
         </div>
     </form>
 
+    <section class="mt-4 rounded-3xl border border-gray-200/80 bg-white p-5 sm:p-6 dark:border-white/10 dark:bg-[#171716]">
+        <div class="flex items-start gap-3">
+            <span class="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-400">
+                <x-icon name="users" class="h-5 w-5" />
+            </span>
+
+            <div>
+                <h2 class="text-sm font-semibold tracking-tight text-gray-900 dark:text-white">Responsáveis</h2>
+                <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Cadastre as pessoas que podem ser atribuídas aos follow-ups. Esta lista não depende dos usuários do sistema.</p>
+            </div>
+        </div>
+
+        <form method="POST" action="{{ route('admin.follow-ups.settings.assignees.store') }}" class="mt-5 grid gap-4 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
+            @csrf
+
+            <div>
+                <label for="assignee_name" class="{{ $labelClass }}">Nome <span class="text-red-500">*</span></label>
+                <input
+                    id="assignee_name"
+                    name="name"
+                    type="text"
+                    maxlength="150"
+                    value="{{ old('name') }}"
+                    required
+                    class="{{ $inputClass }}"
+                >
+                @error('name')<p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>@enderror
+            </div>
+
+            <div>
+                <label for="assignee_email" class="{{ $labelClass }}">E-mail <span class="font-normal text-gray-400">(opcional)</span></label>
+                <input
+                    id="assignee_email"
+                    name="email"
+                    type="email"
+                    maxlength="255"
+                    value="{{ old('email') }}"
+                    class="{{ $inputClass }}"
+                >
+                @error('email')<p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>@enderror
+            </div>
+
+            <x-ui.action type="submit" icon="plus" class="h-10">Adicionar</x-ui.action>
+        </form>
+
+        <ul class="mt-5 divide-y divide-gray-100 overflow-hidden rounded-2xl border border-gray-200/80 dark:divide-white/10 dark:border-white/10">
+            @forelse ($assignees as $assignee)
+                <li class="flex items-center justify-between gap-3 px-4 py-3">
+                    <div class="min-w-0">
+                        <p class="truncate text-sm font-semibold text-gray-900 dark:text-white">{{ $assignee->name }}</p>
+                        <p class="truncate text-xs text-gray-500 dark:text-gray-400">
+                            {{ $assignee->email ?: 'Sem e-mail' }}
+                            <span aria-hidden="true">·</span>
+                            {{ $assignee->follow_ups_count }} follow-up(s)
+                        </p>
+                    </div>
+
+                    <form method="POST" action="{{ route('admin.follow-ups.settings.assignees.destroy', $assignee) }}" data-confirm-delete="Remover o responsável {{ $assignee->name }}? Os follow-ups atribuídos a ele ficarão sem responsável.">
+                        @csrf
+                        @method('DELETE')
+
+                        <button
+                            type="submit"
+                            class="inline-flex h-9 w-9 items-center justify-center rounded-xl text-red-500 transition hover:bg-red-50 hover:text-red-600 dark:text-red-400 dark:hover:bg-red-500/15"
+                            aria-label="Remover {{ $assignee->name }}"
+                        >
+                            <x-icon name="trash" class="h-4 w-4" />
+                        </button>
+                    </form>
+                </li>
+            @empty
+                <li class="px-4 py-8 text-center text-sm text-gray-500 dark:text-gray-400">
+                    Nenhum responsável cadastrado. Adicione o primeiro acima.
+                </li>
+            @endforelse
+        </ul>
+    </section>
+
     <div
         x-cloak
         x-show="testEmailOpen"

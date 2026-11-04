@@ -32,9 +32,9 @@ final class FollowUpFilters
         }
 
         if ($assigned === 'me') {
-            $query->where('assigned_to', $request->user()->getKey());
+            $query->whereHas('assignee', fn (Builder $query) => $query->where('email', $request->user()->email));
         } elseif (ctype_digit($assigned)) {
-            $query->where('assigned_to', (int) $assigned);
+            $query->where('assignee_id', (int) $assigned);
         }
 
         return $query;

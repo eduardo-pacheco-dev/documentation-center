@@ -7,6 +7,7 @@ use Illuminate\Database\Seeder;
 use Plugins\FollowUp\Enums\FollowUpPriority;
 use Plugins\FollowUp\Enums\FollowUpStatus;
 use Plugins\FollowUp\Models\FollowUp;
+use Plugins\FollowUp\Models\FollowUpAssignee;
 
 class FollowUpSeeder extends Seeder
 {
@@ -24,6 +25,13 @@ class FollowUpSeeder extends Seeder
         if ($users->isEmpty()) {
             return;
         }
+
+        $assignees = $users->mapWithKeys(fn (User $user): array => [
+            $user->getKey() => FollowUpAssignee::query()->firstOrCreate(
+                ['email' => $user->email],
+                ['name' => $user->full_name],
+            ),
+        ]);
 
         $followUps = [
             [
@@ -98,7 +106,7 @@ class FollowUpSeeder extends Seeder
                 'status' => $data['status']->value,
                 'priority' => $data['priority']->value,
                 'due_date' => $data['due_date'],
-                'assigned_to' => $user->getKey(),
+                'assignee_id' => $assignees->get($user->getKey())?->getKey(),
                 'created_by' => $users->first()->getKey(),
                 'completed_at' => $data['completed_at'] ?? null,
             ]);

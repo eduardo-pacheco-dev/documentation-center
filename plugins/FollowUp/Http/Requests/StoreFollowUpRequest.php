@@ -30,7 +30,7 @@ class StoreFollowUpRequest extends FormRequest
             'status' => ['required', Rule::enum(FollowUpStatus::class)],
             'priority' => ['required', Rule::enum(FollowUpPriority::class)],
             'due_date' => ['nullable', 'date'],
-            'assigned_to' => ['nullable', 'integer', 'exists:users,id'],
+            'assignee_id' => ['nullable', 'integer', 'exists:follow_up_assignees,id'],
         ];
     }
 
@@ -49,7 +49,7 @@ class StoreFollowUpRequest extends FormRequest
             'priority.required' => 'Selecione a prioridade.',
             'priority.enum' => 'Selecione uma prioridade válida.',
             'due_date.date' => 'Informe uma data de prazo válida.',
-            'assigned_to.exists' => 'Selecione um responsável válido.',
+            'assignee_id.exists' => 'Selecione um responsável válido.',
         ];
     }
 }

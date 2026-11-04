@@ -3,7 +3,6 @@
 namespace Plugins\FollowUp\Http\Controllers;
 
 use App\Http\Controllers\Controller;
-use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\RedirectResponse;
@@ -14,6 +13,7 @@ use Plugins\FollowUp\Enums\FollowUpStatus;
 use Plugins\FollowUp\Http\Requests\StoreFollowUpRequest;
 use Plugins\FollowUp\Http\Requests\UpdateFollowUpRequest;
 use Plugins\FollowUp\Models\FollowUp;
+use Plugins\FollowUp\Models\FollowUpAssignee;
 use Plugins\FollowUp\Support\FollowUpFilters;
 
 class FollowUpController extends Controller
@@ -46,7 +46,7 @@ class FollowUpController extends Controller
         $emailFollowUps = (clone $query)
             ->reorder()
             ->orderBy('title')
-            ->get(['id', 'title', 'created_by', 'assigned_to']);
+            ->get(['id', 'title', 'created_by', 'assignee_id']);
 
         $view = $request->string('view')->trim()->toString();
         $view = in_array($view, ['table', 'cards', 'compact', 'kanban'], true) ? $view : 'table';
@@ -76,12 +76,15 @@ class FollowUpController extends Controller
             'assigned' => $assigned,
             'statuses' => FollowUpStatus::options(),
             'priorities' => FollowUpPriority::options(),
-            'users' => $this->users(),
+            'assignees' => $this->assignees(),
             'stats' => [
                 'open' => FollowUp::query()->open()->count(),
                 'overdue' => FollowUp::query()->overdue()->count(),
                 'completed' => FollowUp::query()->where('status', FollowUpStatus::Completed->value)->count(),
-                'mine' => FollowUp::query()->open()->where('assigned_to', $request->user()->getKey())->count(),
+                'mine' => FollowUp::query()
+                    ->open()
+                    ->whereHas('assignee', fn (Builder $query) => $query->where('email', $request->user()->email))
+                    ->count(),
             ],
         ]);
     }
@@ -139,7 +142,7 @@ class FollowUpController extends Controller
     {
         return view('follow-up::edit', [
             'followUp' => $followUp,
-            'users' => $this->users(),
+            'assignees' => $this->assignees(),
             'statuses' => FollowUpStatus::options(),
             'priorities' => FollowUpPriority::options(),
         ]);
@@ -201,7 +204,7 @@ class FollowUpController extends Controller
                 FollowUpPriority::values(),
             ),
             'assignee' => $query->orderBy(
-                User::query()->select('name')->whereColumn('users.id', 'follow_ups.assigned_to'),
+                FollowUpAssignee::query()->select('name')->whereColumn('follow_up_assignees.id', 'follow_ups.assignee_id'),
                 $direction,
             ),
             'due_date' => $query
@@ -228,15 +231,14 @@ class FollowUpController extends Controller
     }
 
     /**
-     * The users available for assignment.
+     * The people available for assignment.
      *
-     * @return Collection<int, User>
+     * @return Collection<int, FollowUpAssignee>
      */
-    private function users(): Collection
+    private function assignees(): Collection
     {
-        return User::query()
+        return FollowUpAssignee::query()
             ->orderBy('name')
-            ->orderBy('surname')
-            ->get(['id', 'name', 'surname']);
+            ->get(['id', 'name', 'email']);
     }
 }

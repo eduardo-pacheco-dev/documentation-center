@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Factories\Factory;
 use Plugins\FollowUp\Enums\FollowUpPriority;
 use Plugins\FollowUp\Enums\FollowUpStatus;
 use Plugins\FollowUp\Models\FollowUp;
+use Plugins\FollowUp\Models\FollowUpAssignee;
 
 /**
  * @extends Factory<FollowUp>
@@ -31,7 +32,7 @@ class FollowUpFactory extends Factory
             'status' => FollowUpStatus::Pending->value,
             'priority' => fake()->randomElement(FollowUpPriority::values()),
             'due_date' => fake()->dateTimeBetween('-5 days', '+20 days')->format('Y-m-d'),
-            'assigned_to' => User::factory(),
+            'assignee_id' => FollowUpAssignee::factory(),
             'created_by' => User::factory(),
             'completed_at' => null,
         ];

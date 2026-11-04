@@ -24,7 +24,7 @@
             :action="route('admin.follow-ups.update', $followUp)"
             method="PUT"
             :follow-up="$followUp"
-            :users="$users"
+            :assignees="$assignees"
             :statuses="$statuses"
             :priorities="$priorities"
             submit-label="Salvar alterações"
