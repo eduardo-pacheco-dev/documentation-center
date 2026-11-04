@@ -241,6 +241,7 @@
                     <thead class="bg-gray-50/80 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:bg-white/[0.03] dark:text-gray-400">
                         <tr>
                             <x-sort-header column="title" label="Follow-up" default="due_date" default-direction="asc" class="px-5 py-3.5" />
+                            <x-sort-header column="code" label="Código" default="due_date" default-direction="asc" class="px-5 py-3.5" />
                             <x-sort-header column="status" label="Status" default="due_date" default-direction="asc" class="px-5 py-3.5" />
                             <x-sort-header column="priority" label="Prioridade" default="due_date" default-direction="asc" class="px-5 py-3.5" />
                             <x-sort-header column="assignee" label="Responsável" default="due_date" default-direction="asc" class="px-5 py-3.5" />
@@ -259,8 +260,15 @@
                                     <p class="mt-0.5 max-w-sm truncate text-xs text-gray-500 dark:text-gray-400">
                                         {{ $followUp->description ? \Illuminate\Support\Str::limit($followUp->description, 90) : 'Sem descrição' }}
                                     </p>
+                                </td>
+
+                                <td class="px-5 py-4">
                                     @if ($followUp->code)
-                                        <p class="mt-1 text-[11px] font-medium text-gray-400 dark:text-gray-500">Código: {{ $followUp->code }}</p>
+                                        <span class="inline-flex rounded-lg bg-gray-100 px-2 py-0.5 font-mono text-xs text-gray-700 dark:bg-white/10 dark:text-gray-200">
+                                            {{ $followUp->code }}
+                                        </span>
+                                    @else
+                                        <span class="text-gray-400 dark:text-gray-500">—</span>
                                     @endif
                                 </td>
 

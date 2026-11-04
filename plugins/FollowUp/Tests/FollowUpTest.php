@@ -177,14 +177,16 @@ test('the kanban view groups follow-ups by status', function () {
         ->assertSeeInOrder(['Pendente no quadro', 'Concluído no quadro']);
 });
 
-test('the optional code is shown on the table when present', function () {
+test('the optional code has its own column on the table', function () {
     FollowUp::factory()->create(['title' => 'Com código', 'code' => 'FU-COD-01']);
     FollowUp::factory()->create(['title' => 'Sem código', 'code' => null]);
 
     $this->actingAs(User::factory()->create())
         ->get('/admin/follow-ups')
         ->assertOk()
-        ->assertSee('Código: FU-COD-01');
+        ->assertSee('sort=code', false)
+        ->assertSee('Código')
+        ->assertSee('FU-COD-01');
 });
 
 test('the form exposes the optional code field', function () {

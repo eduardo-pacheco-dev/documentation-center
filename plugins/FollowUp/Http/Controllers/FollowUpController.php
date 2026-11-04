@@ -34,7 +34,7 @@ class FollowUpController extends Controller
         );
 
         $sort = $request->string('sort')->trim()->toString();
-        $sort = in_array($sort, ['title', 'status', 'priority', 'assignee', 'due_date', 'completed_at'], true)
+        $sort = in_array($sort, ['title', 'code', 'status', 'priority', 'assignee', 'due_date', 'completed_at'], true)
             ? $sort
             : 'due_date';
 
