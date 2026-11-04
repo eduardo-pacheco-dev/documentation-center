@@ -83,7 +83,7 @@
         <div class="rounded-2xl border border-gray-200/80 bg-white px-4 py-3 dark:border-white/10 dark:bg-[#171716]">
             <p class="text-[11px] font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">Concluído em</p>
             <p class="mt-1 text-sm font-medium text-gray-800 dark:text-gray-100">
-                {{ $followUp->completed_at?->format('d/m/Y H:i') ?? '—' }}
+                {{ $followUp->completed_at?->format('d/m/Y') ?? '—' }}
             </p>
         </div>
     </div>

@@ -67,7 +67,7 @@ class FollowUp extends Model
     }
 
     /**
-     * Filter by title or description.
+     * Filter by title, code or description.
      */
     public function scopeMatching(Builder $query, string $term): void
     {
@@ -75,6 +75,7 @@ class FollowUp extends Model
 
         $query->where(function (Builder $query) use ($like): void {
             $query->where('title', 'like', $like)
+                ->orWhere('code', 'like', $like)
                 ->orWhere('description', 'like', $like);
         });
     }

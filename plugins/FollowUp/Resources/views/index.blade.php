@@ -82,7 +82,7 @@
                     type="search"
                     name="search"
                     value="{{ $search }}"
-                    placeholder="Buscar por título ou descrição..."
+                    placeholder="Buscar por título, código ou descrição..."
                     class="h-10 w-full rounded-xl border border-gray-300 bg-white pl-9 pr-3 text-sm text-gray-900 transition focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
                 >
             </div>
@@ -305,7 +305,7 @@
                                 <td class="px-5 py-4">
                                     @if ($followUp->completed_at)
                                         <span class="font-medium text-emerald-600 dark:text-emerald-400">
-                                            {{ $followUp->completed_at->format('d/m/Y H:i') }}
+                                            {{ $followUp->completed_at->format('d/m/Y') }}
                                         </span>
                                     @else
                                         <span class="text-gray-400 dark:text-gray-500">—</span>

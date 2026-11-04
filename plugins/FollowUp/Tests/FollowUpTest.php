@@ -60,7 +60,7 @@ test('the follow-ups plugin appears in the navigation', function () {
 test('follow-ups can be listed, searched and filtered', function () {
     $user = User::factory()->create();
 
-    FollowUp::factory()->create([
+    $fornecedor = FollowUp::factory()->create([
         'title' => 'Retornar contato com o fornecedor',
         'status' => FollowUpStatus::Pending->value,
         'priority' => FollowUpPriority::High->value,
@@ -68,6 +68,7 @@ test('follow-ups can be listed, searched and filtered', function () {
 
     FollowUp::factory()->create([
         'title' => 'Relatório mensal',
+        'code' => 'REL-2026-042',
         'status' => FollowUpStatus::Completed->value,
         'priority' => FollowUpPriority::Low->value,
     ]);
@@ -83,6 +84,12 @@ test('follow-ups can be listed, searched and filtered', function () {
         ->assertOk()
         ->assertSee('Retornar contato com o fornecedor')
         ->assertDontSee('Relatório mensal');
+
+    $this->actingAs($user)
+        ->get('/admin/follow-ups?search=REL-2026')
+        ->assertOk()
+        ->assertSee('Relatório mensal')
+        ->assertDontSee(route('admin.follow-ups.show', $fornecedor));
 
     $this->actingAs($user)
         ->get('/admin/follow-ups?status=pendente&priority=alta')
@@ -208,7 +215,7 @@ test('the table shows the completion date of finished follow-ups', function () {
         ->get('/admin/follow-ups')
         ->assertOk()
         ->assertSee('Concluído em')
-        ->assertSee($completed->completed_at->format('d/m/Y H:i'));
+        ->assertSee($completed->completed_at->format('d/m/Y'));
 });
 
 test('the index offers a manual e-mail composer', function () {
