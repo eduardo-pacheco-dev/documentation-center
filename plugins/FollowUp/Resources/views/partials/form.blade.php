@@ -6,6 +6,7 @@
     'statuses',
     'priorities',
     'submitLabel' => 'Salvar follow-up',
+    'modalMode' => false,
 ])
 
 @php
@@ -18,6 +19,10 @@
 
     @if ($method !== 'POST')
         @method($method)
+    @endif
+
+    @if ($modalMode)
+        <input type="hidden" name="modal" value="create">
     @endif
 
     <div>
@@ -97,6 +102,11 @@
 
     <div class="flex flex-wrap items-center gap-2 border-t border-gray-100 pt-5 dark:border-white/10">
         <x-ui.action type="submit" icon="check">{{ $submitLabel }}</x-ui.action>
-        <x-ui.action :href="$followUp ? route('admin.follow-ups.show', $followUp) : route('admin.follow-ups.index')" variant="secondary">Cancelar</x-ui.action>
+
+        @if ($modalMode)
+            <x-ui.action type="button" variant="secondary" x-on:click="$dispatch('close-follow-up-create')">Cancelar</x-ui.action>
+        @else
+            <x-ui.action :href="$followUp ? route('admin.follow-ups.show', $followUp) : route('admin.follow-ups.index')" variant="secondary">Cancelar</x-ui.action>
+        @endif
     </div>
 </form>

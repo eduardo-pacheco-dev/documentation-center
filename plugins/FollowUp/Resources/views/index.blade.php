@@ -7,6 +7,8 @@
 
         $visibleFollowUps = $view === 'kanban' ? $kanban->flatten() : $followUps;
         $totalFollowUps = $visibleFollowUps->count();
+
+        $openCreateModal = request()->boolean('create') || (old('modal') === 'create' && $errors->any());
     @endphp
 
     <x-ui.page-header
@@ -33,7 +35,7 @@
             Exportar
         </x-ui.action>
 
-        <x-ui.action :href="route('admin.follow-ups.create')" icon="plus">
+        <x-ui.action type="button" icon="plus" x-on:click="$dispatch('open-follow-up-create')">
             Novo follow-up
         </x-ui.action>
     </x-ui.page-header>
@@ -226,7 +228,7 @@
                 shape="square"
             >
                 @unless ($hasFilters)
-                    <x-ui.action :href="route('admin.follow-ups.create')" size="sm" icon="plus" class="mt-4">
+                    <x-ui.action type="button" size="sm" icon="plus" x-on:click="$dispatch('open-follow-up-create')" class="mt-4">
                         Novo follow-up
                     </x-ui.action>
                 @endunless
@@ -356,4 +358,11 @@
     @endif
 
     <x-follow-up::partials.composer-modal :follow-ups="$emailFollowUps" />
+
+    <x-follow-up::partials.create-modal
+        :users="$users"
+        :statuses="$statuses"
+        :priorities="$priorities"
+        :open-on-load="$openCreateModal"
+    />
 </x-layouts.admin>

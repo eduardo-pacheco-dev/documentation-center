@@ -87,15 +87,11 @@ class FollowUpController extends Controller
     }
 
     /**
-     * Show the form to create a follow-up.
+     * Open the creation modal on the listing page.
      */
-    public function create(): View
+    public function create(): RedirectResponse
     {
-        return view('follow-up::create', [
-            'users' => $this->users(),
-            'statuses' => FollowUpStatus::options(),
-            'priorities' => FollowUpPriority::options(),
-        ]);
+        return redirect()->route('admin.follow-ups.index', ['create' => 1]);
     }
 
     /**

@@ -220,16 +220,23 @@ test('the index renders an actions menu for each follow-up', function () {
         ->assertSee(route('admin.follow-ups.destroy', $followUp));
 });
 
-test('the create page renders the follow-up form', function () {
+test('the create page redirects to the listing with the modal open', function () {
     $this->actingAs(User::factory()->create())
         ->get('/admin/follow-ups/create')
+        ->assertRedirect(route('admin.follow-ups.index', ['create' => 1]));
+});
+
+test('the index renders the follow-up creation modal', function () {
+    $this->actingAs(User::factory()->create())
+        ->get('/admin/follow-ups?create=1')
         ->assertOk()
-        ->assertSee('Novo follow-up')
+        ->assertSee('open-follow-up-create')
         ->assertSee('name="title"', false)
         ->assertSee('name="status"', false)
         ->assertSee('name="priority"', false)
         ->assertSee('name="due_date"', false)
-        ->assertSee('name="assigned_to"', false);
+        ->assertSee('name="assigned_to"', false)
+        ->assertSee('name="modal" value="create"', false);
 });
 
 test('a follow-up can be created with its initial timeline entry', function () {
