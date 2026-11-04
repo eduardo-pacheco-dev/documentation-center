@@ -653,7 +653,8 @@ test('an admin can view and update the follow-up settings', function () {
         ->assertSee('name="summary_times"', false)
         ->assertSee('Servidor de e-mail (SMTP)')
         ->assertSee('Enviar e-mail de teste')
-        ->assertSee('Responsáveis');
+        ->assertSee('Responsáveis')
+        ->assertSee('Adicionar responsável');
 
     $this->actingAs($admin)
         ->put('/admin/follow-ups/settings', [
