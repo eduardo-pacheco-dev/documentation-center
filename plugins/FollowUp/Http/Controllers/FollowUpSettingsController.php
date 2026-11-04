@@ -4,9 +4,13 @@ namespace Plugins\FollowUp\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\View\View;
+use Plugins\FollowUp\Http\Requests\SendFollowUpTestEmailRequest;
 use Plugins\FollowUp\Http\Requests\UpdateFollowUpSettingsRequest;
+use Plugins\FollowUp\Mail\FollowUpTestMail;
 use Plugins\FollowUp\Models\FollowUpSetting;
+use Throwable;
 
 class FollowUpSettingsController extends Controller
 {
@@ -38,5 +42,25 @@ class FollowUpSettingsController extends Controller
         return redirect()
             ->route('admin.follow-ups.settings')
             ->with('status', 'Configurações do Follow-up atualizadas com sucesso.');
+    }
+
+    /**
+     * Send a test message using the currently saved mail settings.
+     */
+    public function sendTestEmail(SendFollowUpTestEmailRequest $request): RedirectResponse
+    {
+        $recipient = $request->string('recipient')->trim()->toString();
+
+        try {
+            Mail::to($recipient)->send(new FollowUpTestMail);
+        } catch (Throwable $exception) {
+            return redirect()
+                ->route('admin.follow-ups.settings')
+                ->with('error', 'Não foi possível enviar o e-mail de teste: '.$exception->getMessage());
+        }
+
+        return redirect()
+            ->route('admin.follow-ups.settings')
+            ->with('status', "E-mail de teste enviado para {$recipient}.");
     }
 }

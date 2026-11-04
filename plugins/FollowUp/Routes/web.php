@@ -19,6 +19,7 @@ Route::middleware('auth')
         Route::middleware('admin')->group(function (): void {
             Route::get('settings', [FollowUpSettingsController::class, 'edit'])->name('settings');
             Route::put('settings', [FollowUpSettingsController::class, 'update'])->name('settings.update');
+            Route::post('settings/test-email', [FollowUpSettingsController::class, 'sendTestEmail'])->name('settings.test-email');
         });
 
         Route::get('{followUp}', [FollowUpController::class, 'show'])->name('show');

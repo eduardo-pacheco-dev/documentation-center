@@ -15,6 +15,7 @@
         </x-ui.action>
     </x-ui.page-header>
 
+    <div x-data="{ testEmailOpen: false }">
     <form method="POST" action="{{ route('admin.follow-ups.settings.update') }}" class="mt-6 space-y-4">
         @csrf
         @method('PUT')
@@ -208,6 +209,14 @@
                     @error('mail_from_name')<p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>@enderror
                 </div>
             </div>
+
+            <div class="mt-5 flex flex-wrap items-center gap-2 border-t border-gray-100 pt-4 dark:border-white/10">
+                <x-ui.action type="button" variant="secondary" icon="paper-airplane" x-on:click="testEmailOpen = true">
+                    Enviar e-mail de teste
+                </x-ui.action>
+
+                <p class="text-xs text-gray-500 dark:text-gray-400">Usa as configurações de e-mail atualmente salvas.</p>
+            </div>
         </section>
 
         <section class="rounded-3xl border border-gray-200/80 bg-white p-5 sm:p-6 dark:border-white/10 dark:bg-[#171716]">
@@ -277,4 +286,58 @@
             <x-ui.action :href="route('admin.follow-ups.index')" variant="secondary">Cancelar</x-ui.action>
         </div>
     </form>
+
+    <div
+        x-cloak
+        x-show="testEmailOpen"
+        x-transition.opacity.duration.100ms
+        x-on:keydown.escape.window="testEmailOpen = false"
+        class="fixed inset-0 z-[100]"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="test-email-title"
+    >
+        <div class="absolute inset-0 bg-gray-900/50" x-on:click="testEmailOpen = false"></div>
+
+        <div class="absolute left-1/2 top-1/2 w-full max-w-md -translate-x-1/2 -translate-y-1/2 rounded-2xl bg-white p-5 shadow-xl dark:bg-[#1c1c1b]">
+            <div class="flex items-start justify-between gap-3">
+                <div class="min-w-0">
+                    <h2 id="test-email-title" class="text-base font-semibold text-gray-900 dark:text-gray-100">Enviar e-mail de teste</h2>
+                    <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Usa as configurações de e-mail já salvas. Salve antes de testar, se tiver alterado algo.</p>
+                </div>
+
+                <button
+                    type="button"
+                    x-on:click="testEmailOpen = false"
+                    class="rounded-lg p-1 text-gray-400 transition hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-white/10"
+                    aria-label="Fechar"
+                >
+                    <x-icon name="x-mark" class="h-4 w-4" />
+                </button>
+            </div>
+
+            <form method="POST" action="{{ route('admin.follow-ups.settings.test-email') }}" class="mt-4 space-y-4">
+                @csrf
+
+                <div>
+                    <label for="test_email_recipient" class="{{ $labelClass }}">Destinatário</label>
+                    <input
+                        id="test_email_recipient"
+                        name="recipient"
+                        type="email"
+                        value="{{ old('recipient', auth()->user()->email) }}"
+                        required
+                        class="{{ $inputClass }}"
+                    >
+                    @error('recipient')<p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>@enderror
+                </div>
+
+                <div class="flex flex-wrap items-center gap-2 border-t border-gray-100 pt-4 dark:border-white/10">
+                    <x-ui.action type="submit" icon="paper-airplane">Enviar teste</x-ui.action>
+                    <x-ui.action type="button" variant="secondary" x-on:click="testEmailOpen = false">Cancelar</x-ui.action>
+                </div>
+            </form>
+        </div>
+    </div>
+    </div>
 </x-layouts.admin>

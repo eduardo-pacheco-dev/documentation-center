@@ -15,6 +15,7 @@ use Plugins\FollowUp\Enums\FollowUpPriority;
 use Plugins\FollowUp\Enums\FollowUpStatus;
 use Plugins\FollowUp\Mail\FollowUpMail;
 use Plugins\FollowUp\Mail\FollowUpSummaryMail;
+use Plugins\FollowUp\Mail\FollowUpTestMail;
 use Plugins\FollowUp\Models\FollowUp;
 use Plugins\FollowUp\Models\FollowUpSetting;
 use Plugins\FollowUp\Models\FollowUpUpdate;
@@ -536,7 +537,9 @@ test('an admin can view and update the follow-up settings', function () {
         ->assertOk()
         ->assertSee('Configurações do Follow-up')
         ->assertSee('name="per_page"', false)
-        ->assertSee('name="summary_times"', false);
+        ->assertSee('name="summary_times"', false)
+        ->assertSee('Servidor de e-mail (SMTP)')
+        ->assertSee('Enviar e-mail de teste');
 
     $this->actingAs($admin)
         ->put('/admin/follow-ups/settings', [
@@ -634,6 +637,44 @@ test('enabling smtp requires a host and port', function () {
             'mail_enabled' => '1',
         ])
         ->assertSessionHasErrors(['mail_host', 'mail_port']);
+});
+
+test('an admin can send a test e-mail', function () {
+    Mail::fake();
+
+    $this->actingAs(User::factory()->admin()->create())
+        ->post('/admin/follow-ups/settings/test-email', [
+            'recipient' => 'teste@example.com',
+        ])
+        ->assertRedirect(route('admin.follow-ups.settings'))
+        ->assertSessionHas('status');
+
+    Mail::assertSent(FollowUpTestMail::class, fn (FollowUpTestMail $mail): bool => $mail->hasTo('teste@example.com'));
+});
+
+test('the test e-mail requires a valid recipient', function () {
+    Mail::fake();
+
+    $this->actingAs(User::factory()->admin()->create())
+        ->post('/admin/follow-ups/settings/test-email', [
+            'recipient' => 'nao-e-um-email',
+        ])
+        ->assertSessionHasErrors('recipient');
+
+    Mail::assertNothingSent();
+});
+
+test('failures while sending the test e-mail are reported to the user', function () {
+    Mail::shouldReceive('to')
+        ->once()
+        ->andThrow(new RuntimeException('SMTP indisponível'));
+
+    $this->actingAs(User::factory()->admin()->create())
+        ->post('/admin/follow-ups/settings/test-email', [
+            'recipient' => 'teste@example.com',
+        ])
+        ->assertRedirect(route('admin.follow-ups.settings'))
+        ->assertSessionHas('error', 'Não foi possível enviar o e-mail de teste: SMTP indisponível');
 });
 
 test('the daily summary is scheduled twice a day', function () {
