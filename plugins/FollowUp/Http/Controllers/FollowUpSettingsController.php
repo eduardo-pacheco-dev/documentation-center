@@ -12,7 +12,6 @@ use Plugins\FollowUp\Http\Requests\UpdateFollowUpSettingsRequest;
 use Plugins\FollowUp\Mail\FollowUpTestMail;
 use Plugins\FollowUp\Models\FollowUpAssignee;
 use Plugins\FollowUp\Models\FollowUpSetting;
-use Plugins\FollowUp\Models\FollowUpSummaryRecipient;
 use Throwable;
 
 class FollowUpSettingsController extends Controller
@@ -25,7 +24,6 @@ class FollowUpSettingsController extends Controller
         return view('follow-up::settings', [
             'settings' => FollowUpSetting::current(),
             'assignees' => FollowUpAssignee::query()->withCount('followUps')->orderBy('name')->get(),
-            'summaryRecipients' => FollowUpSummaryRecipient::query()->orderBy('email')->get(),
         ]);
     }
 
@@ -37,10 +35,6 @@ class FollowUpSettingsController extends Controller
         $settings = FollowUpSetting::current();
 
         $data = $request->validated();
-        $data['summary_times'] = implode(',', $request->summaryTimes());
-        $data['summary_recipients'] = $request->summaryRecipients() !== []
-            ? implode(',', $request->summaryRecipients())
-            : null;
         $data['mail_password'] = $request->filled('mail_password')
             ? $data['mail_password']
             : $settings->mail_password;

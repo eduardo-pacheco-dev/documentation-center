@@ -9,7 +9,6 @@ use Plugins\FollowUp\Mail\FollowUpSummaryMail;
 use Plugins\FollowUp\Mail\FollowUpTableMail;
 use Plugins\FollowUp\Models\FollowUp;
 use Plugins\FollowUp\Models\FollowUpSetting;
-use Plugins\FollowUp\Models\FollowUpSummaryRecipient;
 
 class SendDailySummaryCommand extends Command
 {
@@ -43,11 +42,7 @@ class SendDailySummaryCommand extends Command
 
         $recipients = $settings->summaryRecipients();
 
-        $copyRecipients = collect(FollowUpSummaryRecipient::query()->pluck('email')->all())
-            ->merge($settings->summaryCcRecipients())
-            ->unique()
-            ->values()
-            ->all();
+        $copyRecipients = $settings->summaryCcRecipients();
 
         if ($recipients !== []) {
             $mail = Mail::to($recipients);

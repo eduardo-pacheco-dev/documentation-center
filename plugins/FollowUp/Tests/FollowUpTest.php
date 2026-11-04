@@ -20,7 +20,6 @@ use Plugins\FollowUp\Mail\FollowUpTestMail;
 use Plugins\FollowUp\Models\FollowUp;
 use Plugins\FollowUp\Models\FollowUpAssignee;
 use Plugins\FollowUp\Models\FollowUpSetting;
-use Plugins\FollowUp\Models\FollowUpSummaryRecipient;
 use Plugins\FollowUp\Models\FollowUpUpdate;
 use Plugins\FollowUp\Providers\FollowUpServiceProvider;
 use Plugins\FollowUp\Support\FollowUpExport;
@@ -268,41 +267,6 @@ test('the periodic schedule can be updated from the composer', function () {
         ->and($settings->summaryCcRecipients())->toBe(['cc@example.com']);
 });
 
-test('an admin can manage the copy recipients of the scheduled summary', function () {
-    $admin = User::factory()->admin()->create();
-
-    $this->actingAs($admin)
-        ->post('/admin/follow-ups/settings/summary-recipients', [
-            'summary_name' => 'Equipe Financeira',
-            'summary_email' => 'copia@example.com',
-        ])
-        ->assertRedirect(route('admin.follow-ups.settings'))
-        ->assertSessionHas('status');
-
-    $recipient = FollowUpSummaryRecipient::query()->sole();
-
-    expect($recipient->name)->toBe('Equipe Financeira')
-        ->and($recipient->email)->toBe('copia@example.com');
-
-    $this->actingAs($admin)
-        ->delete(route('admin.follow-ups.settings.summary-recipients.destroy', $recipient))
-        ->assertRedirect(route('admin.follow-ups.settings'))
-        ->assertSessionHas('status');
-
-    expect(FollowUpSummaryRecipient::query()->count())->toBe(0);
-});
-
-test('duplicated copy recipients are rejected', function () {
-    FollowUpSummaryRecipient::query()->create(['name' => 'Cópia', 'email' => 'copia@example.com']);
-
-    $this->actingAs(User::factory()->admin()->create())
-        ->post('/admin/follow-ups/settings/summary-recipients', [
-            'summary_name' => 'Outra cópia',
-            'summary_email' => 'copia@example.com',
-        ])
-        ->assertSessionHasErrors('summary_email');
-});
-
 test('invalid summary recipients are rejected', function () {
     $this->actingAs(User::factory()->admin()->create())
         ->put('/admin/follow-ups/settings/schedule', [
@@ -345,9 +309,8 @@ test('the general summary is sent to the configured recipients', function () {
 
     FollowUpSetting::current()->update([
         'summary_recipients' => 'gestao@example.com, financeiro@example.com',
+        'summary_cc_recipients' => 'copia@example.com',
     ]);
-
-    FollowUpSummaryRecipient::query()->create(['name' => 'Cópia', 'email' => 'copia@example.com']);
 
     config(['follow-up.email.subject_prefix' => 'Acompanhamento']);
 
@@ -817,7 +780,7 @@ test('the daily summary command queues one e-mail per creator', function () {
         'created_by' => $creator->getKey(),
     ]);
 
-    FollowUpSummaryRecipient::query()->create(['name' => 'C�pia', 'email' => 'copia@example.com']);
+    FollowUpSetting::current()->update(['summary_cc_recipients' => 'copia@example.com']);
 
     $this->artisan('follow-up:send-daily-summary')->assertSuccessful();
 
@@ -848,22 +811,17 @@ test('an admin can view and update the follow-up settings', function () {
         ->assertOk()
         ->assertSee('Configurações do Follow-up')
         ->assertSee('name="per_page"', false)
-        ->assertSee('name="summary_times"', false)
+        ->assertDontSee('name="summary_times"', false)
         ->assertSee('Servidor de e-mail (SMTP)')
         ->assertSee('Enviar e-mail de teste')
         ->assertSee('Responsáveis')
-        ->assertSee('Adicionar responsável')
-        ->assertSee('Cópias do resumo agendado')
-        ->assertSee('Adicionar e-mail');
+        ->assertSee('Adicionar responsável');
 
     $this->actingAs($admin)
         ->put('/admin/follow-ups/settings', [
             'per_page' => 25,
             'due_soon_days' => 10,
             'widget_limit' => 8,
-            'email_summary_enabled' => '1',
-            'email_subject_prefix' => 'Acompanhamento',
-            'summary_times' => '09:00, 18:30',
             'mail_enabled' => '0',
         ])
         ->assertRedirect(route('admin.follow-ups.settings'))
@@ -873,10 +831,7 @@ test('an admin can view and update the follow-up settings', function () {
 
     expect($settings->per_page)->toBe(25)
         ->and($settings->due_soon_days)->toBe(10)
-        ->and($settings->widget_limit)->toBe(8)
-        ->and($settings->email_summary_enabled)->toBeTrue()
-        ->and($settings->email_subject_prefix)->toBe('Acompanhamento')
-        ->and($settings->summaryTimes())->toBe(['09:00', '18:30']);
+        ->and($settings->widget_limit)->toBe(8);
 });
 
 test('an admin can register a custom assignee', function () {
@@ -933,14 +888,10 @@ test('regular users cannot access the follow-up settings', function () {
 
 test('invalid summary times are rejected', function () {
     $this->actingAs(User::factory()->admin()->create())
-        ->put('/admin/follow-ups/settings', [
-            'per_page' => 15,
-            'due_soon_days' => 7,
-            'widget_limit' => 5,
+        ->put('/admin/follow-ups/settings/schedule', [
             'email_summary_enabled' => '1',
             'email_subject_prefix' => 'Follow-up',
             'summary_times' => '25:00',
-            'mail_enabled' => '0',
         ])
         ->assertSessionHasErrors('summary_times');
 });
@@ -952,9 +903,6 @@ test('the smtp credentials are saved encrypted and kept when the password is bla
         'per_page' => 15,
         'due_soon_days' => 7,
         'widget_limit' => 5,
-        'email_summary_enabled' => '1',
-        'email_subject_prefix' => 'Follow-up',
-        'summary_times' => '08:00, 17:00',
         'mail_enabled' => '1',
         'mail_host' => 'smtp.exemplo.com',
         'mail_port' => 587,
@@ -992,9 +940,6 @@ test('enabling smtp requires a host and port', function () {
             'per_page' => 15,
             'due_soon_days' => 7,
             'widget_limit' => 5,
-            'email_summary_enabled' => '1',
-            'email_subject_prefix' => 'Follow-up',
-            'summary_times' => '08:00',
             'mail_enabled' => '1',
         ])
         ->assertSessionHasErrors(['mail_host', 'mail_port']);
