@@ -1,0 +1,20 @@
+{
+    "name": "documentation-center/plugin-team-tracking",
+    "description": "Acompanhamento de equipes com membros, líderes, saúde e histórico de check-ins.",
+    "type": "library",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Documentation Center",
+            "email": "contato@example.com"
+        }
+    ],
+    "autoload": {
+        "psr-4": {
+            "Plugins\TeamTracking\\": ""
+        }
+    },
+    "config": {
+        "sort-packages": true
+    }
+}

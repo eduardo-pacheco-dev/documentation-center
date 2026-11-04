@@ -1,0 +1,24 @@
+{
+    "name": "Team Tracking",
+    "alias": "team-tracking",
+    "description": "Acompanhamento de equipes com membros, líderes, saúde e histórico de check-ins.",
+    "version": "1.0.0",
+    "icon": "users",
+    "active": false,
+    "priority": 25,
+    "providers": [
+        "Plugins\\TeamTracking\\Providers\\TeamTrackingServiceProvider"
+    ],
+    "aliases": [],
+    "files": [],
+    "requires": [],
+    "navigation": [
+        {
+            "label": "Equipes",
+            "route": "admin.teams.index",
+            "icon": "users",
+            "module": null,
+            "primary": false
+        }
+    ]
+}
