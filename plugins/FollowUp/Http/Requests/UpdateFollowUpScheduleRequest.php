@@ -3,6 +3,7 @@
 namespace Plugins\FollowUp\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
 use Plugins\FollowUp\Models\FollowUpSetting;
 
@@ -26,6 +27,7 @@ class UpdateFollowUpScheduleRequest extends FormRequest
         return [
             'email_summary_enabled' => ['required', 'boolean'],
             'email_subject_prefix' => ['required', 'string', 'max:150'],
+            'summary_period' => ['nullable', Rule::in(array_keys(FollowUpSetting::summaryPeriodOptions()))],
             'summary_times' => ['required', 'string', 'max:100'],
             'summary_recipients' => ['nullable', 'string', 'max:1000'],
             'summary_cc_recipients' => ['nullable', 'string', 'max:1000'],
@@ -107,6 +109,7 @@ class UpdateFollowUpScheduleRequest extends FormRequest
         return [
             'summary_times.required' => 'Informe os horários do resumo periódico.',
             'email_subject_prefix.required' => 'Informe o prefixo do assunto dos e-mails.',
+            'summary_period.in' => 'Selecione um período válido para o resumo.',
         ];
     }
 }

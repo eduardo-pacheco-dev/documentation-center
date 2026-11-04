@@ -32,6 +32,7 @@ final class FollowUpExport
         $sheet->getTabColor()->setRGB('4F46E5');
 
         $columns = [
+            ['label' => 'Código', 'width' => 16, 'value' => fn (FollowUp $followUp): string => (string) ($followUp->code ?? '')],
             ['label' => 'Título', 'width' => 34, 'value' => fn (FollowUp $followUp): string => $followUp->title],
             ['label' => 'Descrição', 'width' => 50, 'value' => fn (FollowUp $followUp): string => (string) ($followUp->description ?? '')],
             ['label' => 'Status', 'width' => 16, 'value' => fn (FollowUp $followUp): string => $followUp->status->label()],
@@ -112,6 +113,7 @@ final class FollowUpExport
         $this->styleTableHeader($sheet, 'A2:B2');
 
         $rows = [
+            ['Código', $followUp->code ?? '—'],
             ['Descrição', $followUp->description ?? '—'],
             ['Status', $followUp->status->label()],
             ['Prioridade', $followUp->priority->label()],

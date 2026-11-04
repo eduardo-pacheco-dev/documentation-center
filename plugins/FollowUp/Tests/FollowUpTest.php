@@ -243,6 +243,8 @@ test('the e-mail composer offers manual and scheduled tabs', function () {
         ->assertSee('Agendado')
         ->assertSee('Salvar agendamento')
         ->assertSee('Agendamento ativo')
+        ->assertSee('Período do resumo')
+        ->assertSee('name="summary_period"', false)
         ->assertSee('Destinatários (Para)')
         ->assertSee('Cópias (CC)');
 });
@@ -252,6 +254,7 @@ test('the periodic schedule can be updated from the composer', function () {
         ->put('/admin/follow-ups/settings/schedule', [
             'email_summary_enabled' => '0',
             'email_subject_prefix' => 'Acompanhamento',
+            'summary_period' => FollowUpSetting::SUMMARY_PERIOD_LAST_30_DAYS,
             'summary_times' => '07:30, 19:45',
             'summary_recipients' => 'gestao@example.com, financeiro@example.com',
             'summary_cc_recipients' => 'cc@example.com',
@@ -263,9 +266,48 @@ test('the periodic schedule can be updated from the composer', function () {
 
     expect($settings->email_summary_enabled)->toBeFalse()
         ->and($settings->email_subject_prefix)->toBe('Acompanhamento')
+        ->and($settings->summaryPeriod())->toBe(FollowUpSetting::SUMMARY_PERIOD_LAST_30_DAYS)
         ->and($settings->summaryTimes())->toBe(['07:30', '19:45'])
         ->and($settings->summaryRecipients())->toBe(['gestao@example.com', 'financeiro@example.com'])
         ->and($settings->summaryCcRecipients())->toBe(['cc@example.com']);
+});
+
+test('the summary can be limited to the last thirty days by due date', function () {
+    Mail::fake();
+
+    $creator = User::factory()->create(['email' => 'criador@example.com']);
+
+    FollowUp::factory()->create([
+        'title' => 'Dentro dos últimos 30 dias',
+        'status' => FollowUpStatus::Pending->value,
+        'due_date' => today()->subDays(5)->toDateString(),
+        'created_by' => $creator->getKey(),
+    ]);
+
+    FollowUp::factory()->create([
+        'title' => 'Fora dos últimos 30 dias',
+        'status' => FollowUpStatus::Pending->value,
+        'due_date' => today()->subDays(40)->toDateString(),
+        'created_by' => $creator->getKey(),
+    ]);
+
+    FollowUp::factory()->create([
+        'title' => 'Com prazo futuro',
+        'status' => FollowUpStatus::Pending->value,
+        'due_date' => today()->addDays(5)->toDateString(),
+        'created_by' => $creator->getKey(),
+    ]);
+
+    FollowUpSetting::current()->update([
+        'summary_recipients' => 'gestao@example.com',
+        'summary_period' => FollowUpSetting::SUMMARY_PERIOD_LAST_30_DAYS,
+    ]);
+
+    $this->artisan('follow-up:send-daily-summary')->assertSuccessful();
+
+    Mail::assertSent(FollowUpTableMail::class, function (FollowUpTableMail $mail): bool {
+        return $mail->followUps->pluck('title')->all() === ['Dentro dos últimos 30 dias'];
+    });
 });
 
 test('invalid summary recipients are rejected', function () {
@@ -565,6 +607,7 @@ test('the seeder creates sample follow-ups once', function () {
 
 test('follow-ups can be exported to excel with the current filters', function () {
     FollowUp::factory()->create([
+        'code' => 'FU-EXP-001',
         'title' => 'Follow-up exportado pendente',
         'status' => FollowUpStatus::Pending->value,
         'priority' => FollowUpPriority::High->value,
@@ -590,7 +633,9 @@ test('follow-ups can be exported to excel with the current filters', function ()
     $text = collect($spreadsheet->getSheetByName('Follow-ups')->toArray())->flatten()->filter()->implode(' | ');
 
     expect($spreadsheet->getSheetNames())->toBe(['Follow-ups'])
+        ->and($spreadsheet->getSheetByName('Follow-ups')->getCell('A1')->getValue())->toBe('Código')
         ->and($text)
+        ->toContain('FU-EXP-001')
         ->toContain('Follow-up exportado pendente')
         ->toContain('Alta')
         ->not->toContain('Follow-up exportado concluído');
@@ -601,6 +646,7 @@ test('follow-ups can be exported to excel with the current filters', function ()
 
 test('a single follow-up can be exported with its history', function () {
     $followUp = FollowUp::factory()->create([
+        'code' => 'FU-IND-001',
         'title' => 'Follow-up individual exportado',
         'status' => FollowUpStatus::InProgress->value,
         'priority' => FollowUpPriority::Urgent->value,
@@ -630,6 +676,7 @@ test('a single follow-up can be exported with its history', function () {
     $historyText = collect($spreadsheet->getSheetByName('Histórico')->toArray())->flatten()->filter()->implode(' | ');
 
     expect($followUpText)
+        ->toContain('FU-IND-001')
         ->toContain('Follow-up individual exportado')
         ->toContain('Em andamento')
         ->toContain('Urgente');
@@ -891,6 +938,17 @@ test('regular users cannot access the follow-up settings', function () {
     $this->actingAs(User::factory()->create())
         ->get('/admin/follow-ups/settings')
         ->assertForbidden();
+});
+
+test('invalid summary period is rejected', function () {
+    $this->actingAs(User::factory()->admin()->create())
+        ->put('/admin/follow-ups/settings/schedule', [
+            'email_summary_enabled' => '1',
+            'email_subject_prefix' => 'Follow-up',
+            'summary_period' => 'invalid-period',
+            'summary_times' => '08:00',
+        ])
+        ->assertSessionHasErrors('summary_period');
 });
 
 test('invalid summary times are rejected', function () {
