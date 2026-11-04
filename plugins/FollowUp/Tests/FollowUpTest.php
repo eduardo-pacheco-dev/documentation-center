@@ -249,6 +249,25 @@ test('the e-mail composer offers manual and scheduled tabs', function () {
         ->assertSee('Cópias (CC)');
 });
 
+test('the index exposes secondary actions in the action menu', function () {
+    $this->actingAs(User::factory()->admin()->create())
+        ->get('/admin/follow-ups')
+        ->assertOk()
+        ->assertSee('Abrir menu de ações')
+        ->assertSee('follow-up-page-actions', false)
+        ->assertSee('Exportar')
+        ->assertSee('Enviar por e-mail')
+        ->assertSee('Configuração');
+
+    $this->actingAs(User::factory()->create())
+        ->get('/admin/follow-ups')
+        ->assertOk()
+        ->assertSee('Abrir menu de ações')
+        ->assertSee('Exportar')
+        ->assertSee('Enviar por e-mail')
+        ->assertDontSee('Configuração');
+});
+
 test('the periodic schedule can be updated from the composer', function () {
     $this->actingAs(User::factory()->admin()->create())
         ->put('/admin/follow-ups/settings/schedule', [
