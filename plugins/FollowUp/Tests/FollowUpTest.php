@@ -15,6 +15,7 @@ use Plugins\FollowUp\Enums\FollowUpPriority;
 use Plugins\FollowUp\Enums\FollowUpStatus;
 use Plugins\FollowUp\Mail\FollowUpMail;
 use Plugins\FollowUp\Mail\FollowUpSummaryMail;
+use Plugins\FollowUp\Mail\FollowUpTableMail;
 use Plugins\FollowUp\Mail\FollowUpTestMail;
 use Plugins\FollowUp\Models\FollowUp;
 use Plugins\FollowUp\Models\FollowUpSetting;
@@ -173,6 +174,23 @@ test('the kanban view groups follow-ups by status', function () {
         ->get('/admin/follow-ups?view=kanban')
         ->assertOk()
         ->assertSeeInOrder(['Pendente no quadro', 'Concluído no quadro']);
+});
+
+test('the index offers a manual e-mail composer', function () {
+    $creator = User::factory()->create(['email' => 'criador-composer@example.com']);
+
+    FollowUp::factory()->create([
+        'title' => 'Compor e-mail pela listagem',
+        'created_by' => $creator->getKey(),
+    ]);
+
+    $this->actingAs(User::factory()->create())
+        ->get('/admin/follow-ups')
+        ->assertOk()
+        ->assertSee('open-email-composer')
+        ->assertSee('criador-composer@example.com')
+        ->assertSee('Compor e-mail pela listagem')
+        ->assertSee('Todos os follow-ups da listagem (1)');
 });
 
 test('the index renders an actions menu for each follow-up', function () {
@@ -457,6 +475,49 @@ test('a follow-up can be queued for e-mail delivery', function () {
             && $mail->hasTo('segundo@example.com')
             && $mail->envelope()->subject === 'Assunto personalizado';
     });
+});
+
+test('the whole filtered table can be queued by e-mail', function () {
+    Mail::fake();
+
+    FollowUp::factory()->create([
+        'title' => 'Pendente na tabela',
+        'status' => FollowUpStatus::Pending->value,
+    ]);
+
+    FollowUp::factory()->create([
+        'title' => 'Concluído na tabela',
+        'status' => FollowUpStatus::Completed->value,
+    ]);
+
+    $this->actingAs(User::factory()->create())
+        ->post('/admin/follow-ups/email', [
+            'recipients' => 'tabela@example.com',
+            'subject' => 'Tabela filtrada',
+            'status' => FollowUpStatus::Pending->value,
+        ])
+        ->assertRedirect(route('admin.follow-ups.index', ['status' => FollowUpStatus::Pending->value]))
+        ->assertSessionHas('status');
+
+    Mail::assertQueued(FollowUpTableMail::class, function (FollowUpTableMail $mail): bool {
+        return $mail->hasTo('tabela@example.com')
+            && $mail->envelope()->subject === 'Tabela filtrada'
+            && $mail->followUps->count() === 1
+            && $mail->followUps->first()->title === 'Pendente na tabela';
+    });
+});
+
+test('the table e-mail includes the rows and the excel attachment', function () {
+    FollowUp::factory()->create(['title' => 'Linha enviada na tabela']);
+
+    $mail = new FollowUpTableMail(
+        FollowUp::query()->with(['assignee', 'creator'])->get(),
+    );
+
+    expect($mail->attachments())->toHaveCount(1)
+        ->and($mail->render())
+        ->toContain('Linha enviada na tabela')
+        ->toContain('1 follow-up(s)');
 });
 
 test('invalid e-mail recipients are rejected', function () {

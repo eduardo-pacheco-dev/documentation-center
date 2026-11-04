@@ -15,6 +15,7 @@ Route::middleware('auth')
         Route::get('create', [FollowUpController::class, 'create'])->name('create');
         Route::post('/', [FollowUpController::class, 'store'])->name('store');
         Route::get('export', [FollowUpExportController::class, 'export'])->name('export');
+        Route::post('email', [FollowUpEmailController::class, 'sendTable'])->name('email.table');
 
         Route::middleware('admin')->group(function (): void {
             Route::get('settings', [FollowUpSettingsController::class, 'edit'])->name('settings');

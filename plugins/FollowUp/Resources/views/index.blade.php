@@ -21,6 +21,10 @@
             </x-ui.action>
         @endif
 
+        <x-ui.action type="button" variant="secondary" icon="paper-airplane" x-on:click="$dispatch('open-email-composer')">
+            Enviar por e-mail
+        </x-ui.action>
+
         <x-ui.action
             :href="route('admin.follow-ups.export', request()->only(['search', 'status', 'priority', 'assigned']))"
             icon="arrow-down-tray"
@@ -339,4 +343,6 @@
             <x-pagination :paginator="$followUps" />
         </div>
     @endif
+
+    <x-follow-up::partials.composer-modal :follow-ups="$emailFollowUps" />
 </x-layouts.admin>

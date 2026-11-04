@@ -14,6 +14,7 @@ use Plugins\FollowUp\Enums\FollowUpStatus;
 use Plugins\FollowUp\Http\Requests\StoreFollowUpRequest;
 use Plugins\FollowUp\Http\Requests\UpdateFollowUpRequest;
 use Plugins\FollowUp\Models\FollowUp;
+use Plugins\FollowUp\Support\FollowUpFilters;
 
 class FollowUpController extends Controller
 {
@@ -27,25 +28,10 @@ class FollowUpController extends Controller
         $priority = $request->string('priority')->trim()->toString();
         $assigned = $request->string('assigned')->trim()->toString();
 
-        $query = FollowUp::query()->with(['assignee', 'creator']);
-
-        if ($search !== '') {
-            $query->matching($search);
-        }
-
-        if (in_array($status, FollowUpStatus::values(), true)) {
-            $query->where('status', $status);
-        }
-
-        if (in_array($priority, FollowUpPriority::values(), true)) {
-            $query->where('priority', $priority);
-        }
-
-        if ($assigned === 'me') {
-            $query->where('assigned_to', $request->user()->getKey());
-        } elseif (ctype_digit($assigned)) {
-            $query->where('assigned_to', (int) $assigned);
-        }
+        $query = FollowUpFilters::apply(
+            FollowUp::query()->with(['assignee', 'creator']),
+            $request,
+        );
 
         $sort = $request->string('sort')->trim()->toString();
         $sort = in_array($sort, ['title', 'status', 'priority', 'assignee', 'due_date'], true)
@@ -56,6 +42,11 @@ class FollowUpController extends Controller
         $direction = in_array($direction, ['asc', 'desc'], true) ? $direction : 'asc';
 
         $this->applySort($query, $sort, $direction);
+
+        $emailFollowUps = (clone $query)
+            ->reorder()
+            ->orderBy('title')
+            ->get(['id', 'title', 'created_by', 'assigned_to']);
 
         $view = $request->string('view')->trim()->toString();
         $view = in_array($view, ['table', 'cards', 'compact', 'kanban'], true) ? $view : 'table';
@@ -76,6 +67,7 @@ class FollowUpController extends Controller
 
         return view('follow-up::index', [
             'followUps' => $followUps,
+            'emailFollowUps' => $emailFollowUps,
             'kanban' => $kanban,
             'view' => $view,
             'search' => $search,
