@@ -263,6 +263,7 @@ test('the index renders the follow-up creation modal', function () {
         ->assertSee('name="status"', false)
         ->assertSee('name="priority"', false)
         ->assertSee('name="due_date"', false)
+        ->assertSee('name="completed_at"', false)
         ->assertSee('name="assignee_id"', false)
         ->assertSee('name="modal" value="create"', false);
 });
@@ -301,14 +302,40 @@ test('a follow-up can be created with its initial timeline entry', function () {
         ->status_to->toBe(FollowUpStatus::InProgress);
 });
 
-test('a follow-up created as completed receives a completion date', function () {
+test('a follow-up created as completed receives the current date by default', function () {
     $this->actingAs(User::factory()->create())->post('/admin/follow-ups', [
         'title' => 'Follow-up concluído',
         'status' => FollowUpStatus::Completed->value,
         'priority' => FollowUpPriority::Medium->value,
     ]);
 
-    expect(FollowUp::query()->sole()->completed_at)->not->toBeNull();
+    expect(FollowUp::query()->sole()->completed_at->toDateString())->toBe(now()->toDateString());
+});
+
+test('the completion date can be chosen when creating a completed follow-up', function () {
+    $this->actingAs(User::factory()->create())->post('/admin/follow-ups', [
+        'title' => 'Follow-up concluído com data escolhida',
+        'status' => FollowUpStatus::Completed->value,
+        'priority' => FollowUpPriority::Medium->value,
+        'completed_at' => '2026-10-15',
+    ]);
+
+    expect(FollowUp::query()->sole()->completed_at->toDateString())->toBe('2026-10-15');
+});
+
+test('the completion date can be chosen when updating a follow-up', function () {
+    $followUp = FollowUp::factory()->create(['status' => FollowUpStatus::Pending->value]);
+
+    $this->actingAs(User::factory()->create())
+        ->put(route('admin.follow-ups.update', $followUp), [
+            'title' => $followUp->title,
+            'status' => FollowUpStatus::Completed->value,
+            'priority' => FollowUpPriority::High->value,
+            'completed_at' => '2026-09-01',
+        ])
+        ->assertRedirect(route('admin.follow-ups.show', $followUp));
+
+    expect($followUp->fresh()->completed_at->toDateString())->toBe('2026-09-01');
 });
 
 test('follow-up creation requires title, status and priority', function () {

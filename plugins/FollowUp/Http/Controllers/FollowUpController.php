@@ -104,7 +104,9 @@ class FollowUpController extends Controller
     {
         $data = $request->validated();
         $data['created_by'] = $request->user()->getKey();
-        $data['completed_at'] = $data['status'] === FollowUpStatus::Completed->value ? now() : null;
+        $data['completed_at'] = $data['status'] === FollowUpStatus::Completed->value
+            ? ($data['completed_at'] ?? now())
+            : null;
 
         $followUp = FollowUp::query()->create($data);
 
@@ -158,7 +160,7 @@ class FollowUpController extends Controller
         $status = FollowUpStatus::from($data['status']);
 
         $data['completed_at'] = $status === FollowUpStatus::Completed
-            ? ($followUp->completed_at ?? now())
+            ? ($data['completed_at'] ?? $followUp->completed_at ?? now())
             : null;
 
         $followUp->update($data);

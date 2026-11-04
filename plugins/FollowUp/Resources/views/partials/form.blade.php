@@ -14,7 +14,12 @@
     $labelClass = 'block text-sm font-medium text-gray-700 dark:text-gray-200';
 @endphp
 
-<form method="POST" action="{{ $action }}" class="space-y-5">
+<form
+    method="POST"
+    action="{{ $action }}"
+    class="space-y-5"
+    x-data="{ status: @js(old('status', $followUp?->status?->value ?? 'pendente')) }"
+>
     @csrf
 
     @if ($method !== 'POST')
@@ -70,7 +75,7 @@
     <div class="grid gap-4 sm:grid-cols-2">
         <div>
             <label for="status" class="{{ $labelClass }}">Status <span class="text-red-500">*</span></label>
-            <select id="status" name="status" required class="{{ $inputClass }}">
+            <select id="status" name="status" x-model="status" required class="{{ $inputClass }}">
                 @foreach ($statuses as $value => $label)
                     <option value="{{ $value }}" @selected(old('status', $followUp?->status?->value ?? 'pendente') === $value)>{{ $label }}</option>
                 @endforeach
@@ -98,6 +103,19 @@
                 class="{{ $inputClass }}"
             >
             @error('due_date')<p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>@enderror
+        </div>
+
+        <div x-show="status === 'concluido'" x-cloak>
+            <label for="completed_at" class="{{ $labelClass }}">Data de conclusão</label>
+            <input
+                id="completed_at"
+                name="completed_at"
+                type="date"
+                value="{{ old('completed_at', $followUp?->completed_at?->format('Y-m-d') ?? now()->format('Y-m-d')) }}"
+                class="{{ $inputClass }}"
+            >
+            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Deixe a data atual ou informe outra data de conclusão.</p>
+            @error('completed_at')<p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>@enderror
         </div>
 
         <div>
