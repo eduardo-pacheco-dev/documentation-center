@@ -149,6 +149,7 @@
             <div class="min-h-0 flex-1 overflow-y-auto px-5 pb-5">
             <div x-show="tab === 'manual'">
             <form
+                id="follow-up-email-manual-form"
                 method="POST"
                 x-bind:action="formAction()"
                 class="mt-4 space-y-4"
@@ -216,16 +217,12 @@
                     @error('subject')<p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>@enderror
                 </div>
 
-                <div class="flex flex-wrap items-center gap-2 border-t border-gray-100 pt-4 dark:border-white/10">
-                    <x-ui.action type="submit" icon="paper-airplane">Enviar e-mail</x-ui.action>
-                    <x-ui.action type="button" variant="secondary" x-on:click="close()">Cancelar</x-ui.action>
-                </div>
             </form>
             </div>
 
             @if (auth()->user()?->is_admin)
                 <div x-show="tab === 'scheduled'" x-cloak>
-                    <form method="POST" action="{{ route('admin.follow-ups.settings.schedule') }}" class="mt-4 space-y-4">
+                    <form id="follow-up-email-schedule-form" method="POST" action="{{ route('admin.follow-ups.settings.schedule') }}" class="mt-4 space-y-4">
                         @csrf
                         @method('PUT')
 
@@ -342,13 +339,23 @@
                             Requer o scheduler ativo no servidor.
                         </p>
 
-                        <div class="flex flex-wrap items-center gap-2 border-t border-gray-100 pt-4 dark:border-white/10">
-                            <x-ui.action type="submit" icon="check">Salvar agendamento</x-ui.action>
-                            <x-ui.action type="button" variant="secondary" x-on:click="close()">Cancelar</x-ui.action>
-                        </div>
                     </form>
                 </div>
             @endif
+            </div>
+
+            <div class="shrink-0 border-t border-gray-100 px-5 py-4 dark:border-white/10">
+                <div class="flex flex-wrap items-center gap-2" x-show="tab === 'manual'">
+                    <x-ui.action type="submit" icon="paper-airplane" form="follow-up-email-manual-form">Enviar e-mail</x-ui.action>
+                    <x-ui.action type="button" variant="secondary" x-on:click="close()">Cancelar</x-ui.action>
+                </div>
+
+                @if (auth()->user()?->is_admin)
+                    <div class="flex flex-wrap items-center gap-2" x-show="tab === 'scheduled'" x-cloak>
+                        <x-ui.action type="submit" icon="check" form="follow-up-email-schedule-form">Salvar agendamento</x-ui.action>
+                        <x-ui.action type="button" variant="secondary" x-on:click="close()">Cancelar</x-ui.action>
+                    </div>
+                @endif
             </div>
         </div>
     </div>
