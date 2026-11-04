@@ -99,7 +99,8 @@
     >
         <div class="absolute inset-0 bg-gray-900/50" x-on:click="close()"></div>
 
-        <div class="absolute left-1/2 top-1/2 max-h-[90vh] w-full max-w-lg -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-2xl bg-white p-5 shadow-xl dark:bg-[#1c1c1b]">
+        <div class="absolute inset-x-0 bottom-0 top-4 flex flex-col overflow-hidden rounded-t-2xl bg-white shadow-xl dark:bg-[#1c1c1b] sm:inset-0 sm:m-auto sm:h-fit sm:max-h-[90vh] sm:w-full sm:max-w-lg sm:rounded-2xl">
+            <div class="shrink-0 px-5 pt-5">
             <div class="flex items-start justify-between gap-3">
                 <div class="min-w-0">
                     <h2 id="follow-up-composer-title" class="text-base font-semibold text-gray-900 dark:text-gray-100">Enviar follow-up por e-mail</h2>
@@ -143,7 +144,9 @@
                     </button>
                 @endif
             </div>
+            </div>
 
+            <div class="min-h-0 flex-1 overflow-y-auto px-5 pb-5">
             <div x-show="tab === 'manual'">
             <form
                 method="POST"
@@ -346,6 +349,7 @@
                     </form>
                 </div>
             @endif
+            </div>
         </div>
     </div>
 </div>
