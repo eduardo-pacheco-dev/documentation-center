@@ -4,27 +4,11 @@ namespace Plugins\FollowUp\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\RedirectResponse;
-use Plugins\FollowUp\Http\Requests\StoreFollowUpProjectRequest;
 use Plugins\FollowUp\Http\Requests\UpdateFollowUpProjectRequest;
 use Plugins\FollowUp\Models\FollowUpProject;
 
 class FollowUpProjectController extends Controller
 {
-    /**
-     * Register a project for a client.
-     */
-    public function store(StoreFollowUpProjectRequest $request): RedirectResponse
-    {
-        FollowUpProject::query()->create([
-            'client_id' => $request->validated('client_id'),
-            'name' => $request->validated('project_name'),
-        ]);
-
-        return redirect()
-            ->route('admin.follow-ups.settings')
-            ->with('status', 'Projeto cadastrado com sucesso.');
-    }
-
     /**
      * Update the given project.
      */

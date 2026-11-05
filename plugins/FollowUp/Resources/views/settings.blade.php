@@ -360,15 +360,32 @@
             </div>
         </div>
 
-        <div class="mt-5 grid gap-4 lg:grid-cols-2">
-            <form method="POST" action="{{ route('admin.follow-ups.settings.clients.store') }}" class="rounded-2xl border border-gray-200/80 p-4 dark:border-white/10">
-                @csrf
+                        <form
+            method="POST"
+            action="{{ route('admin.follow-ups.settings.clients.store') }}"
+            class="mt-5 rounded-2xl border border-gray-200/80 p-4 dark:border-white/10"
+            x-data="{
+                clientId: @js(old('client_id', $clients->isEmpty() ? 'new' : '')),
+                get newClient() {
+                    return this.clientId === 'new';
+                },
+            }"
+        >
+            @csrf
 
-                <h3 class="text-sm font-semibold text-gray-900 dark:text-white">Novo cliente</h3>
+            <div class="grid gap-3 sm:grid-cols-2">
+                <div>
+                    <label for="client_id" class="{{ $labelClass }}">Cliente</label>
+                    <select id="client_id" name="client_id" x-model="clientId" required class="{{ $inputClass }}">
+                        <option value="">Selecione um cliente</option>
+                        @foreach ($clients as $client)
+                            <option value="{{ $client->getKey() }}">{{ $client->name }}</option>
+                        @endforeach
+                        <option value="new">+ Novo cliente</option>
+                    </select>
 
-                <div class="mt-3 flex flex-wrap items-end gap-2">
-                    <div class="min-w-0 flex-1">
-                        <label for="client_name" class="{{ $labelClass }}">Nome do cliente</label>
+                    <div x-cloak x-show="newClient" class="mt-2">
+                        <label for="client_name" class="{{ $labelClass }}">Nome do novo cliente</label>
                         <input
                             id="client_name"
                             name="client_name"
@@ -376,56 +393,35 @@
                             maxlength="150"
                             value="{{ old('client_name') }}"
                             placeholder="Ex.: AFL Engenharia"
-                            required
+                            x-bind:required="newClient"
                             class="{{ $inputClass }}"
                         >
-                    </div>
-
-                    <x-ui.action type="submit" icon="plus">Adicionar</x-ui.action>
-                </div>
-
-                @error('client_name')<p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>@enderror
-            </form>
-
-            <form method="POST" action="{{ route('admin.follow-ups.settings.projects.store') }}" class="rounded-2xl border border-gray-200/80 p-4 dark:border-white/10">
-                @csrf
-
-                <h3 class="text-sm font-semibold text-gray-900 dark:text-white">Novo projeto</h3>
-
-                <div class="mt-3 grid gap-2 sm:grid-cols-2">
-                    <div>
-                        <label for="new_project_client_id" class="{{ $labelClass }}">Cliente</label>
-                        <select id="new_project_client_id" name="client_id" required class="{{ $inputClass }}">
-                            <option value="">Selecione</option>
-                            @foreach ($clients as $client)
-                                <option value="{{ $client->getKey() }}" @selected((string) old('client_id') === (string) $client->getKey())>{{ $client->name }}</option>
-                            @endforeach
-                        </select>
-                    </div>
-
-                    <div>
-                        <label for="project_name" class="{{ $labelClass }}">Nome do projeto</label>
-                        <input
-                            id="project_name"
-                            name="project_name"
-                            type="text"
-                            maxlength="150"
-                            value="{{ old('project_name') }}"
-                            placeholder="Ex.: Expansão 5G"
-                            required
-                            class="{{ $inputClass }}"
-                        >
+                        @error('client_name')<p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>@enderror
                     </div>
                 </div>
 
-                <div class="mt-3">
-                    <x-ui.action type="submit" icon="plus">Adicionar</x-ui.action>
+                <div>
+                    <label for="project_name" class="{{ $labelClass }}">Projeto <span class="font-normal text-gray-400">(opcional para novo cliente)</span></label>
+                    <input
+                        id="project_name"
+                        name="project_name"
+                        type="text"
+                        maxlength="150"
+                        value="{{ old('project_name') }}"
+                        placeholder="Ex.: Expansão 5G"
+                        class="{{ $inputClass }}"
+                    >
                 </div>
+            </div>
 
-                @error('project_name')<p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>@enderror
-                @error('client_id')<p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>@enderror
-            </form>
-        </div>
+            <div class="mt-3 flex flex-wrap items-center justify-between gap-2">
+                <p class="text-xs text-gray-500 dark:text-gray-400">Selecione um cliente para adicionar um projeto, ou escolha "Novo cliente".</p>
+                <x-ui.action type="submit" icon="plus">Adicionar</x-ui.action>
+            </div>
+
+            @error('client_id')<p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>@enderror
+            @error('project_name')<p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>@enderror
+        </form>
 
         <div class="mt-5 space-y-3">
             @forelse ($clients as $client)

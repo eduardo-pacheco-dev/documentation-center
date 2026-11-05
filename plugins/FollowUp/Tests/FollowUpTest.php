@@ -1021,19 +1021,14 @@ test('an admin can register clients and their projects', function () {
     $admin = User::factory()->admin()->create();
 
     $this->actingAs($admin)
-        ->post('/admin/follow-ups/settings/clients', ['client_name' => 'AFL Engenharia'])
-        ->assertRedirect(route('admin.follow-ups.settings'))
-        ->assertSessionHas('status');
-
-    $client = FollowUpClient::query()->sole();
-
-    $this->actingAs($admin)
-        ->post('/admin/follow-ups/settings/projects', [
-            'client_id' => $client->getKey(),
+        ->post('/admin/follow-ups/settings/clients', [
+            'client_name' => 'AFL Engenharia',
             'project_name' => 'Expansão 5G',
         ])
         ->assertRedirect(route('admin.follow-ups.settings'))
         ->assertSessionHas('status');
+
+    $client = FollowUpClient::query()->sole();
 
     $this->actingAs($admin)
         ->get('/admin/follow-ups/settings')
@@ -1043,6 +1038,16 @@ test('an admin can register clients and their projects', function () {
         ->assertSee('Expansão 5G');
 
     expect($client->projects()->sole()->name)->toBe('Expansão 5G');
+
+    $this->actingAs($admin)
+        ->post('/admin/follow-ups/settings/clients', [
+            'client_id' => (string) $client->getKey(),
+            'project_name' => 'Novo site',
+        ])
+        ->assertRedirect(route('admin.follow-ups.settings'));
+
+    expect(FollowUpClient::query()->count())->toBe(1)
+        ->and($client->projects()->count())->toBe(2);
 });
 
 test('clients and projects can be updated and removed', function () {
@@ -1107,12 +1112,8 @@ test('clients cannot be duplicated', function () {
 
 test('regular users cannot manage clients and projects', function () {
     $this->actingAs(User::factory()->create())
-        ->post('/admin/follow-ups/settings/clients', ['client_name' => 'Cliente'])
-        ->assertForbidden();
-
-    $this->actingAs(User::factory()->create())
-        ->post('/admin/follow-ups/settings/projects', [
-            'client_id' => 1,
+        ->post('/admin/follow-ups/settings/clients', [
+            'client_name' => 'Cliente',
             'project_name' => 'Projeto',
         ])
         ->assertForbidden();

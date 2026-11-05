@@ -37,7 +37,6 @@ Route::middleware('auth')
             Route::put('settings/clients/{client}', [FollowUpClientController::class, 'update'])->name('settings.clients.update');
             Route::delete('settings/clients/{client}', [FollowUpClientController::class, 'destroy'])->name('settings.clients.destroy');
 
-            Route::post('settings/projects', [FollowUpProjectController::class, 'store'])->name('settings.projects.store');
             Route::put('settings/projects/{project}', [FollowUpProjectController::class, 'update'])->name('settings.projects.update');
             Route::delete('settings/projects/{project}', [FollowUpProjectController::class, 'destroy'])->name('settings.projects.destroy');
 

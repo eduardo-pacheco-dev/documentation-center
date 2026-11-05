@@ -4,7 +4,8 @@ namespace Plugins\FollowUp\Http\Requests;
 
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Validation\Rule;
+use Illuminate\Validation\Validator;
+use Plugins\FollowUp\Models\FollowUpClient;
 
 class StoreFollowUpClientRequest extends FormRequest
 {
@@ -24,8 +25,38 @@ class StoreFollowUpClientRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'client_name' => ['required', 'string', 'max:150', Rule::unique('follow_up_clients', 'name')],
+            'client_id' => ['nullable', 'string', 'max:50'],
+            'client_name' => ['nullable', 'string', 'max:150'],
+            'project_name' => ['nullable', 'string', 'max:150'],
         ];
+    }
+
+    /**
+     * Require a name for new clients and validate the selected client.
+     */
+    public function withValidator(Validator $validator): void
+    {
+        $validator->after(function (Validator $validator): void {
+            $clientId = $this->input('client_id');
+
+            if (filled($clientId) && $clientId !== 'new' && ! ctype_digit((string) $clientId)) {
+                $validator->errors()->add('client_id', 'Selecione um cliente válido.');
+
+                return;
+            }
+
+            if ($clientId === null || $clientId === '' || $clientId === 'new') {
+                if (blank($this->input('client_name'))) {
+                    $validator->errors()->add('client_name', 'Informe o nome do novo cliente.');
+                }
+
+                return;
+            }
+
+            if (! FollowUpClient::query()->whereKey($clientId)->exists()) {
+                $validator->errors()->add('client_id', 'Selecione um cliente válido.');
+            }
+        });
     }
 
     /**
@@ -36,9 +67,8 @@ class StoreFollowUpClientRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'client_name.required' => 'Informe o nome do cliente.',
             'client_name.max' => 'O nome do cliente pode ter no máximo 150 caracteres.',
-            'client_name.unique' => 'Já existe um cliente com este nome.',
+            'project_name.max' => 'O nome do projeto pode ter no máximo 150 caracteres.',
         ];
     }
 }
