@@ -674,6 +674,32 @@ test('the dashboard shows the signed in user follow-ups', function () {
         ->assertSee('1 atrasado');
 });
 
+test('the dashboard renders the follow-up charts widget', function () {
+    FollowUp::factory()->create([
+        'status' => FollowUpStatus::Pending->value,
+        'priority' => FollowUpPriority::High->value,
+    ]);
+    FollowUp::factory()->create([
+        'status' => FollowUpStatus::InProgress->value,
+        'priority' => FollowUpPriority::Urgent->value,
+    ]);
+    FollowUp::factory()->completed()->create([
+        'status' => FollowUpStatus::Completed->value,
+        'priority' => FollowUpPriority::Low->value,
+    ]);
+
+    $this->actingAs(User::factory()->create())
+        ->get('/admin')
+        ->assertOk()
+        ->assertSee('Painel de follow-ups')
+        ->assertSee('Por status')
+        ->assertSee('Por prioridade')
+        ->assertSee('Últimos 6 meses')
+        ->assertSee('Pendente')
+        ->assertSee('Em andamento')
+        ->assertSee('Concluídos');
+});
+
 test('the seeder creates sample follow-ups once', function () {
     User::factory()->count(3)->create();
 

@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\ServiceProvider;
 use Plugins\FollowUp\Console\SendDailySummaryCommand;
 use Plugins\FollowUp\Models\FollowUpSetting;
+use Plugins\FollowUp\Widgets\FollowUpChartsWidget;
 use Plugins\FollowUp\Widgets\OverdueFollowUpsWidget;
 use Throwable;
 
@@ -41,7 +42,10 @@ class FollowUpServiceProvider extends ServiceProvider
             $this->loadMigrationsFrom(__DIR__.'/../Database/Migrations');
         }
 
-        $this->app->make(WidgetRegistry::class)->register(new OverdueFollowUpsWidget);
+        $this->app->make(WidgetRegistry::class)->registerMany([
+            new OverdueFollowUpsWidget,
+            new FollowUpChartsWidget,
+        ]);
 
         $this->applySettings();
         $this->scheduleDailySummary();
