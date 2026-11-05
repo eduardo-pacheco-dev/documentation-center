@@ -91,6 +91,30 @@ test('the site list renders the details modal', function () {
         ->assertSee('END-4242');
 });
 
+test('the site list renders the create and edit modals', function () {
+    NokiaSite::factory()->create(['site_id' => 'SPMODAL1']);
+
+    $this->actingAs(User::factory()->create())
+        ->get('/admin/nokia/sites')
+        ->assertOk()
+        ->assertSee('create-site-modal', false)
+        ->assertSee('edit-site-modal', false)
+        ->assertSee('open-site-modal', false)
+        ->assertSee('open-edit-site-modal', false)
+        ->assertSee('name="modal" value="create"', false)
+        ->assertSee('name="modal" value="edit"', false)
+        ->assertSee('id="create-site-site_id"', false)
+        ->assertSee('id="edit-site-site_id"', false);
+});
+
+test('the create modal reopens when validation fails', function () {
+    $this->actingAs(User::factory()->create())
+        ->from('/admin/nokia/sites')
+        ->post('/admin/nokia/sites', ['modal' => 'create', 'site_id' => ''])
+        ->assertRedirect('/admin/nokia/sites')
+        ->assertSessionHasErrors('site_id');
+});
+
 test('sites can be searched by site or orders', function () {
     NokiaSite::factory()->create([
         'site_id' => 'SPALPHA1',

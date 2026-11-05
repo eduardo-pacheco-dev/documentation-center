@@ -2,6 +2,18 @@
 
 @php
     $menuId = 'nokia-site-actions-'.$site->getKey();
+
+    $fieldNames = collect(config('nokia.fields', []))
+        ->pluck('name')
+        ->merge(array_keys(config('nokia.checklists', [])));
+
+    $editPayload = [
+        'id' => $site->getKey(),
+        'action' => route('admin.nokia.sites.update', $site),
+        'fields' => $fieldNames
+            ->mapWithKeys(fn (string $name): array => [$name => $site->{$name}])
+            ->all(),
+    ];
 @endphp
 
 <div
@@ -80,14 +92,15 @@
                 Detalhes
             </button>
 
-            <a
-                href="{{ route('admin.nokia.sites.edit', $site) }}"
+            <button
+                type="button"
                 role="menuitem"
+                x-on:click="$dispatch('open-edit-site-modal', @js($editPayload)); close()"
                 class="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-gray-700 transition hover:bg-gray-50 dark:text-gray-200 dark:hover:bg-white/5"
             >
                 <x-icon name="pencil-square" class="h-4 w-4 text-gray-400 dark:text-gray-500" />
                 Editar
-            </a>
+            </button>
 
             <form
                 method="POST"

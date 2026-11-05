@@ -2,8 +2,9 @@
     @php
         $hasFilters = $search !== '';
         $checklists = config('nokia.checklists', []);
+        $createHasErrors = $createHasErrors ?? false;
+        $editHasErrors = $editHasErrors ?? false;
     @endphp
-
     <x-ui.page-header
         category="Nokia"
         title="Sites"
@@ -22,7 +23,11 @@
             Importar
         </x-ui.action>
 
-        <x-ui.action :href="route('admin.nokia.sites.create')" icon="plus">
+        <x-ui.action
+            :href="route('admin.nokia.sites.create')"
+            icon="plus"
+            x-on:click.prevent="$dispatch('open-site-modal')"
+        >
             Novo site
         </x-ui.action>
     </x-ui.page-header>
@@ -89,6 +94,7 @@
                         size="sm"
                         icon="plus"
                         class="mt-4"
+                        x-on:click.prevent="$dispatch('open-site-modal')"
                     >
                         Novo site
                     </x-ui.action>
@@ -120,7 +126,15 @@
                                     'os_fam_entrega' => $site->os_fam_entrega ?: null,
                                     'os_fam_instalacao' => $site->os_fam_instalacao ?: null,
                                     'updated_at' => $site->updated_at?->format('d/m/Y H:i'),
-                                    'edit_url' => route('admin.nokia.sites.edit', $site),
+                                    'edit' => [
+                                        'id' => $site->getKey(),
+                                        'action' => route('admin.nokia.sites.update', $site),
+                                        'fields' => collect(config('nokia.fields', []))
+                                            ->pluck('name')
+                                            ->merge(array_keys($checklists))
+                                            ->mapWithKeys(fn (string $name): array => [$name => $site->{$name}])
+                                            ->all(),
+                                    ],
                                     'checklists' => collect($checklists)
                                         ->map(fn (string $label, string $field): array => [
                                             'field' => $field,
@@ -180,6 +194,17 @@
             </div>
         </div>
     @endif
+
+    <x-nokia::partials.site-modal
+        mode="create"
+        :has-errors="$createHasErrors"
+    />
+
+    <x-nokia::partials.site-modal
+        mode="edit"
+        :site="$editSite ?? null"
+        :has-errors="$editHasErrors"
+    />
 
     <x-nokia::partials.details-modal />
 </x-layouts.admin>

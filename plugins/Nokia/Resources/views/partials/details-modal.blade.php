@@ -166,7 +166,13 @@
 
             <footer class="flex shrink-0 flex-wrap items-center justify-end gap-2 border-t border-gray-100 px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:px-6 sm:py-4 dark:border-white/10">
                 <x-ui.action type="button" variant="secondary" x-on:click="close()">Fechar</x-ui.action>
-                <x-ui.action :href="'#'" icon="pencil-square" x-bind:href="site?.edit_url ?? '#'">Editar site</x-ui.action>
+                <x-ui.action
+                    type="button"
+                    icon="pencil-square"
+                    x-on:click="close(); $dispatch('open-edit-site-modal', site?.edit)"
+                >
+                    Editar site
+                </x-ui.action>
             </footer>
         </div>
     </dialog>

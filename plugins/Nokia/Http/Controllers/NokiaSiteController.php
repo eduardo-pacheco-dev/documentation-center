@@ -34,9 +34,16 @@ class NokiaSiteController extends Controller
         $total = NokiaSite::query()->count();
         $completed = NokiaSite::query()->completed()->count();
 
+        $editSite = old('modal') === 'edit' && old('editing_id')
+            ? NokiaSite::query()->find(old('editing_id'))
+            : null;
+
         return view('nokia::index', [
             'sites' => $sites,
             'search' => $search,
+            'editSite' => $editSite,
+            'createHasErrors' => old('modal') === 'create' && session('errors')?->any(),
+            'editHasErrors' => old('modal') === 'edit' && session('errors')?->any(),
             'stats' => [
                 'total' => $total,
                 'completed' => $completed,
