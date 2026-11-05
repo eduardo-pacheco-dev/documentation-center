@@ -1,0 +1,20 @@
+{
+    "name": "documentation-center/plugin-projects",
+    "description": "Projetos com cronograma, tarefas, dependências, recursos, alocação, linha de base e valor agregado.",
+    "type": "library",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Documentation Center",
+            "email": "contato@example.com"
+        }
+    ],
+    "autoload": {
+        "psr-4": {
+            "Plugins\\Projects\\": ""
+        }
+    },
+    "config": {
+        "sort-packages": true
+    }
+}

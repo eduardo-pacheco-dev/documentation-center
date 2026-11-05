@@ -1,0 +1,56 @@
+<?php
+
+namespace Plugins\Projects\Database\Factories;
+
+use App\Models\User;
+use Illuminate\Database\Eloquent\Factories\Factory;
+use Plugins\Projects\Enums\ProjectRole;
+use Plugins\Projects\Models\Project;
+use Plugins\Projects\Models\ProjectMember;
+
+/**
+ * @extends Factory<ProjectMember>
+ */
+class ProjectMemberFactory extends Factory
+{
+    /**
+     * The model the factory creates.
+     *
+     * @var class-string<ProjectMember>
+     */
+    protected $model = ProjectMember::class;
+
+    /**
+     * Define the model's default state.
+     *
+     * @return array<string, mixed>
+     */
+    public function definition(): array
+    {
+        return [
+            'project_id' => Project::factory(),
+            'user_id' => User::factory(),
+            'role' => ProjectRole::Viewer,
+        ];
+    }
+
+    /**
+     * Grant the owner role.
+     */
+    public function owner(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'role' => ProjectRole::Owner,
+        ]);
+    }
+
+    /**
+     * Grant the editor role.
+     */
+    public function editor(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'role' => ProjectRole::Editor,
+        ]);
+    }
+}
