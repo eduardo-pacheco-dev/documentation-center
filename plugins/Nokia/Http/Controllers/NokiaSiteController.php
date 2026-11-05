@@ -9,6 +9,7 @@ use Illuminate\View\View;
 use Plugins\Nokia\Http\Requests\StoreNokiaSiteRequest;
 use Plugins\Nokia\Http\Requests\UpdateNokiaSiteRequest;
 use Plugins\Nokia\Models\NokiaSite;
+use Plugins\Nokia\Models\NokiaSiteAttachment;
 
 class NokiaSiteController extends Controller
 {
@@ -26,7 +27,6 @@ class NokiaSiteController extends Controller
         }
 
         $sites = $query
-            ->with('attachments')
             ->latest('updated_at')
             ->latest('id')
             ->paginate(15)
@@ -59,6 +59,29 @@ class NokiaSiteController extends Controller
     public function create(): View
     {
         return view('nokia::create');
+    }
+
+    /**
+     * Show the given site with its checklist and attachments.
+     */
+    public function show(NokiaSite $site): View
+    {
+        $site->load('attachments');
+
+        $attachments = collect(NokiaSiteAttachment::categories())
+            ->map(fn (string $label, string $category): array => [
+                'category' => $category,
+                'label' => $label,
+                'files' => $site->attachments
+                    ->where('category', $category)
+                    ->values(),
+            ])
+            ->values();
+
+        return view('nokia::show', [
+            'site' => $site,
+            'attachments' => $attachments,
+        ]);
     }
 
     /**

@@ -74,26 +74,47 @@ test('sites can be listed', function () {
         ->assertSee('FAM Panorâmica');
 });
 
-test('the site list renders the details modal', function () {
-    NokiaSite::factory()->create([
+test('the site list links to the site details page', function () {
+    $site = NokiaSite::factory()->create([
         'site_id' => 'SPDETAIL1',
         'end_id' => 'END-4242',
-        'checklist_fam_panoramica' => true,
     ]);
 
     $this->actingAs(User::factory()->create())
         ->get('/admin/nokia/sites')
         ->assertOk()
-        ->assertSee('details-site-modal', false)
-        ->assertSee('open-site-details-modal', false)
+        ->assertSee(route('admin.nokia.sites.show', $site), false)
         ->assertSee('Abrir menu de ações do site SPDETAIL1')
         ->assertSee('role="menu"', false)
-        ->assertSee('Detalhes do site')
+        ->assertSee('Detalhes')
         ->assertSee('SPDETAIL1')
-        ->assertSee('END-4242')
+        ->assertSee('END-4242');
+});
+
+test('a site details page shows the information, checklist and attachments', function () {
+    $site = NokiaSite::factory()->completed()->create([
+        'site_id' => 'SPDETAIL2',
+        'end_id' => 'END-9999',
+        'oc' => 'OC-777',
+        'os_fam_entrega' => 'OS-E-111',
+        'os_fam_instalacao' => 'OS-I-222',
+    ]);
+
+    $this->actingAs(User::factory()->create())
+        ->get(route('admin.nokia.sites.show', $site))
+        ->assertOk()
+        ->assertSee('SPDETAIL2')
+        ->assertSee('END-9999')
+        ->assertSee('OC-777')
+        ->assertSee('OS-E-111')
+        ->assertSee('OS-I-222')
+        ->assertSee('Checklist de atividades')
+        ->assertSee('Concluído')
         ->assertSee('TSSR')
         ->assertSee('DOC-D')
-        ->assertSee('DWG');
+        ->assertSee('DWG')
+        ->assertSee('name="files[]"', false)
+        ->assertSee('open-edit-site-modal', false);
 });
 
 test('the site list renders the create and edit modals', function () {

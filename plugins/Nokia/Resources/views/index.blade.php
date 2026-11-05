@@ -118,62 +118,14 @@
                     </thead>
                     <tbody class="divide-y divide-gray-100 dark:divide-white/10">
                         @foreach ($sites as $site)
-                            @php
-                                $detailsPayload = [
-                                    'site_id' => $site->site_id,
-                                    'end_id' => $site->end_id ?: null,
-                                    'oc' => $site->oc ?: null,
-                                    'os_fam_entrega' => $site->os_fam_entrega ?: null,
-                                    'os_fam_instalacao' => $site->os_fam_instalacao ?: null,
-                                    'updated_at' => $site->updated_at?->format('d/m/Y H:i'),
-                                    'edit' => [
-                                        'id' => $site->getKey(),
-                                        'action' => route('admin.nokia.sites.update', $site),
-                                        'fields' => collect(config('nokia.fields', []))
-                                            ->pluck('name')
-                                            ->merge(array_keys($checklists))
-                                            ->mapWithKeys(fn (string $name): array => [$name => $site->{$name}])
-                                            ->all(),
-                                    ],
-                                    'checklists' => collect($checklists)
-                                        ->map(fn (string $label, string $field): array => [
-                                            'field' => $field,
-                                            'label' => $label,
-                                            'done' => (bool) $site->{$field},
-                                        ])
-                                        ->values()
-                                        ->all(),
-                                    'upload_url' => route('admin.nokia.sites.attachments.store', $site),
-                                    'attachments' => collect(\Plugins\Nokia\Models\NokiaSiteAttachment::categories())
-                                        ->map(fn (string $label, string $category): array => [
-                                            'category' => $category,
-                                            'label' => $label,
-                                            'files' => $site->attachments
-                                                ->where('category', $category)
-                                                ->map(fn (\Plugins\Nokia\Models\NokiaSiteAttachment $attachment): array => [
-                                                    'id' => $attachment->getKey(),
-                                                    'name' => $attachment->original_name,
-                                                    'size' => $attachment->humanSize(),
-                                                    'download_url' => route('admin.nokia.sites.attachments.download', [$site, $attachment]),
-                                                    'delete_url' => route('admin.nokia.sites.attachments.destroy', [$site, $attachment]),
-                                                ])
-                                                ->values()
-                                                ->all(),
-                                        ])
-                                        ->values()
-                                        ->all(),
-                                ];
-                            @endphp
-
                             <tr class="transition hover:bg-gray-50/70 dark:hover:bg-white/[0.03]">
                                 <td class="px-5 py-4">
-                                    <button
-                                        type="button"
-                                        x-on:click="$dispatch('open-site-details-modal', @js($detailsPayload))"
-                                        class="text-left font-semibold text-gray-900 transition hover:text-indigo-600 dark:text-white dark:hover:text-indigo-400"
+                                    <a
+                                        href="{{ route('admin.nokia.sites.show', $site) }}"
+                                        class="font-semibold text-gray-900 transition hover:text-indigo-600 dark:text-white dark:hover:text-indigo-400"
                                     >
                                         {{ $site->site_id }}
-                                    </button>
+                                    </a>
                                     <p class="mt-0.5 font-mono text-[11px] text-gray-400 dark:text-gray-500">
                                         Atualizado {{ $site->updated_at?->format('d/m/Y H:i') }}
                                     </p>
@@ -206,7 +158,7 @@
                                 </td>
 
                                 <td class="px-5 py-4 text-right">
-                                    <x-nokia::partials.actions-menu :site="$site" :details-payload="$detailsPayload" />
+                                    <x-nokia::partials.actions-menu :site="$site" />
                                 </td>
                             </tr>
                         @endforeach
@@ -230,6 +182,4 @@
         :site="$editSite ?? null"
         :has-errors="$editHasErrors"
     />
-
-    <x-nokia::partials.details-modal />
 </x-layouts.admin>

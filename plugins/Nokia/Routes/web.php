@@ -17,6 +17,7 @@ Route::middleware('auth')
         Route::get('import', [NokiaSiteImportController::class, 'create'])->name('import');
         Route::post('import', [NokiaSiteImportController::class, 'store'])->name('import.store');
         Route::get('import/template', [NokiaSiteImportController::class, 'template'])->name('import.template');
+        Route::get('{site}', [NokiaSiteController::class, 'show'])->name('show');
         Route::get('{site}/edit', [NokiaSiteController::class, 'edit'])->name('edit');
         Route::put('{site}', [NokiaSiteController::class, 'update'])->name('update');
         Route::delete('{site}', [NokiaSiteController::class, 'destroy'])->name('destroy');

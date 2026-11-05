@@ -1,4 +1,4 @@
-@props(['site', 'detailsPayload'])
+@props(['site'])
 
 @php
     $menuId = 'nokia-site-actions-'.$site->getKey();
@@ -82,15 +82,14 @@
             role="menu"
             aria-orientation="vertical"
         >
-            <button
-                type="button"
+            <a
+                href="{{ route('admin.nokia.sites.show', $site) }}"
                 role="menuitem"
-                x-on:click="$dispatch('open-site-details-modal', @js($detailsPayload)); close()"
                 class="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-gray-700 transition hover:bg-gray-50 dark:text-gray-200 dark:hover:bg-white/5"
             >
                 <x-icon name="eye" class="h-4 w-4 text-gray-400 dark:text-gray-500" />
                 Detalhes
-            </button>
+            </a>
 
             <button
                 type="button"
