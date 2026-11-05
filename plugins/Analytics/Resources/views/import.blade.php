@@ -13,6 +13,10 @@
         description="Envie um arquivo CSV ou Excel com as ordens de serviço. Registros existentes são atualizados pelo número da OS."
         icon="arrow-up-tray"
     >
+        <x-ui.action :href="route('admin.analytics.import.template')" icon="arrow-down-tray" variant="secondary">
+            Baixar modelo
+        </x-ui.action>
+
         <x-ui.action :href="route('admin.analytics.index')" icon="chevron-left" variant="secondary">
             Voltar
         </x-ui.action>

@@ -102,6 +102,15 @@ test('the analytics panel filters records by supplier, status, node and period',
         ->assertDontSee('OS-FILTER-HUAWEI');
 });
 
+test('administrators can download the import template', function (): void {
+    $response = $this->actingAs(User::factory()->admin()->create())
+        ->get(route('admin.analytics.import.template'))
+        ->assertOk()
+        ->assertHeader('content-type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+
+    expect($response->streamedContent())->toStartWith('PK');
+});
+
 test('administrators can import records from a CSV file', function (): void {
     $csv = implode("\n", [
         'OC,OS,Data Criação,Fornecedor,Fornecedor Fiscalização,Tipo Projeto,Etapa Processo,Tipo Elemento,Endereço Atendimento,Cidade,Estado,Node Name,Localização,Operador,Status',
