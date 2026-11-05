@@ -38,7 +38,7 @@ class FollowUpTableMail extends Mailable
      */
     public function content(): Content
     {
-        $this->followUps->loadMissing(['assignee', 'creator']);
+        $this->followUps->loadMissing(['assignee', 'creator', 'client', 'project']);
 
         return new Content(
             view: 'follow-up::mail.table',
