@@ -1,0 +1,24 @@
+{
+    "name": "Analytics & Field Operations",
+    "alias": "analytics",
+    "description": "Módulo de análise e acompanhamento de ordens de serviço (OC/OS), fornecedores, etapas de processo e status de implantação em telecomunicações.",
+    "version": "1.0.0",
+    "icon": "chart-bar",
+    "active": false,
+    "priority": 25,
+    "providers": [
+        "Plugins\\Analytics\\Providers\\AnalyticsServiceProvider"
+    ],
+    "aliases": [],
+    "files": [],
+    "requires": [],
+    "navigation": [
+        {
+            "label": "Analytics",
+            "route": "admin.analytics.index",
+            "icon": "chart-bar",
+            "module": null,
+            "primary": false
+        }
+    ]
+}

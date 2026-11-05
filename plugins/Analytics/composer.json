@@ -1,0 +1,20 @@
+{
+    "name": "documentation-center/plugin-analytics",
+    "description": "Analytics & Field Operations for the Documentation Center.",
+    "type": "library",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Documentation Center",
+            "email": "contato@example.com"
+        }
+    ],
+    "autoload": {
+        "psr-4": {
+            "Plugins\Analytics\\": ""
+        }
+    },
+    "config": {
+        "sort-packages": true
+    }
+}
