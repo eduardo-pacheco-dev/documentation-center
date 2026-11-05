@@ -858,19 +858,29 @@ test('delivery failures are reported in a toast when sending the table', functio
 });
 
 test('the table e-mail includes the rows, the completion date and the excel attachment', function () {
+    $client = FollowUpClient::factory()->create(['name' => 'Cliente da Tabela']);
+    $project = FollowUpProject::factory()->create([
+        'client_id' => $client->getKey(),
+        'name' => 'Projeto da Tabela',
+    ]);
+
     FollowUp::factory()->create([
         'title' => 'Linha enviada na tabela',
+        'client_id' => $client->getKey(),
+        'project_id' => $project->getKey(),
         'status' => FollowUpStatus::Completed->value,
         'completed_at' => '2026-10-20',
     ]);
 
     $mail = new FollowUpTableMail(
-        FollowUp::query()->with(['assignee', 'creator'])->get(),
+        FollowUp::query()->with(['assignee', 'creator', 'client', 'project'])->get(),
     );
 
     expect($mail->attachments())->toHaveCount(1)
         ->and($mail->render())
         ->toContain('Linha enviada na tabela')
+        ->toContain('Cliente da Tabela')
+        ->toContain('Projeto da Tabela')
         ->toContain('Concluído em')
         ->toContain('20/10/2026')
         ->toContain('1 follow-up(s)');
@@ -891,7 +901,17 @@ test('invalid e-mail recipients are rejected', function () {
 });
 
 test('the follow-up e-mail includes the summary, history and excel attachment', function () {
-    $followUp = FollowUp::factory()->create(['title' => 'Follow-up no corpo do e-mail']);
+    $client = FollowUpClient::factory()->create(['name' => 'Cliente do E-mail']);
+    $project = FollowUpProject::factory()->create([
+        'client_id' => $client->getKey(),
+        'name' => 'Projeto do E-mail',
+    ]);
+
+    $followUp = FollowUp::factory()->create([
+        'title' => 'Follow-up no corpo do e-mail',
+        'client_id' => $client->getKey(),
+        'project_id' => $project->getKey(),
+    ]);
 
     $followUp->updates()->create([
         'user_id' => User::factory()->create()->getKey(),
@@ -903,6 +923,8 @@ test('the follow-up e-mail includes the summary, history and excel attachment', 
     expect($mail->attachments())->toHaveCount(1)
         ->and($mail->render())
         ->toContain('Follow-up no corpo do e-mail')
+        ->toContain('Cliente do E-mail')
+        ->toContain('Projeto do E-mail')
         ->toContain('Andamento registrado no corpo do e-mail.');
 });
 

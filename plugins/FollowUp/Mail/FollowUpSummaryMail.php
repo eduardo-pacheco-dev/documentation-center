@@ -46,6 +46,8 @@ class FollowUpSummaryMail extends Mailable implements ShouldQueue
      */
     public function content(): Content
     {
+        $this->followUps->loadMissing(['assignee', 'creator', 'client', 'project']);
+
         return new Content(
             view: 'follow-up::mail.summary',
             with: [
