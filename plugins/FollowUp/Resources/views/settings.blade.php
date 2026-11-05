@@ -379,7 +379,7 @@
                 @endphp
 
                 <div
-                    x-data="{ editing: false, projectModal: @js($errors->hasAny(['project_name']) && old('source') === 'client' && (string) old('client_id') === (string) $client->getKey()) }"
+                    x-data="{ editing: false, projectsOpen: @js($errors->hasAny(['project_name']) && old('source') === 'client' && (string) old('client_id') === (string) $client->getKey()), projectModal: @js($errors->hasAny(['project_name']) && old('source') === 'client' && (string) old('client_id') === (string) $client->getKey()) }"
                     class="rounded-2xl border border-gray-200/80 bg-gray-50/40 p-4 transition hover:border-indigo-200 hover:shadow-sm hover:shadow-indigo-600/5 dark:border-white/10 dark:bg-white/[0.02] dark:hover:border-indigo-500/40"
                 >
                     <div class="flex items-start justify-between gap-3">
@@ -458,12 +458,21 @@
 
                     <div class="mt-3 rounded-xl border border-gray-200/70 bg-white/80 p-2 dark:border-white/10 dark:bg-white/[0.03]">
                         <div class="flex items-center justify-between gap-2 px-1 py-1">
-                            <p class="text-[11px] font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">Projetos</p>
+                            <button
+                                type="button"
+                                x-on:click="projectsOpen = ! projectsOpen"
+                                class="inline-flex items-center gap-1 rounded-md px-1 py-0.5 text-[11px] font-semibold uppercase tracking-wider text-gray-400 transition hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300"
+                                aria-label="Mostrar ou ocultar projetos do cliente {{ $client->name }}"
+                                x-bind:aria-expanded="projectsOpen"
+                            >
+                                <x-icon name="chevron-right" class="h-3 w-3 transition-transform" x-bind:class="projectsOpen ? 'rotate-90' : ''" />
+                                Projetos
+                            </button>
                             <div class="flex items-center gap-1">
                                 <span class="rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-semibold text-gray-500 dark:bg-white/10 dark:text-gray-400">{{ $client->projects->count() }}</span>
                                 <button
                                     type="button"
-                                    x-on:click="projectModal = true"
+                                    x-on:click="projectModal = true; projectsOpen = true"
                                     class="inline-flex h-6 w-6 items-center justify-center rounded-md text-gray-400 transition hover:bg-indigo-50 hover:text-indigo-600 dark:text-gray-500 dark:hover:bg-indigo-500/10 dark:hover:text-indigo-300"
                                     aria-label="Adicionar projeto ao cliente {{ $client->name }}"
                                     title="Adicionar projeto"
@@ -473,7 +482,7 @@
                             </div>
                         </div>
 
-                        <div class="mt-1 space-y-1">
+                        <div x-cloak x-show="projectsOpen" x-transition.origin.top class="mt-1 space-y-1">
                             @forelse ($client->projects as $project)
                                 <div x-data="{ editing: false }" class="rounded-lg transition hover:bg-gray-50 dark:hover:bg-white/[0.04]">
                                     <div x-show="! editing" class="flex items-center gap-2 px-2 py-2">
