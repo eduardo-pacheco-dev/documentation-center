@@ -56,6 +56,7 @@ class FollowUpSettingsController extends Controller
             'email_subject_prefix' => $request->validated('email_subject_prefix'),
             'summary_period' => $request->validated('summary_period') ?? FollowUpSetting::SUMMARY_PERIOD_ALL,
             'summary_times' => implode(',', $request->summaryTimes()),
+            'summary_days' => implode(',', $request->summaryDays()),
             'summary_recipients' => $request->summaryRecipients() !== []
                 ? implode(',', $request->summaryRecipients())
                 : null,

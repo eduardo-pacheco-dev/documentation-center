@@ -43,6 +43,8 @@ return [
 
         'summary_times' => ['08:00', '17:00'],
 
+        'summary_days' => [0, 1, 2, 3, 4, 5, 6],
+
         'summary_enabled' => true,
 
     ],

@@ -15,6 +15,7 @@ use Illuminate\Database\Eloquent\Model;
     'email_subject_prefix',
     'summary_period',
     'summary_times',
+    'summary_days',
     'mail_enabled',
     'mail_host',
     'mail_port',
@@ -50,6 +51,7 @@ class FollowUpSetting extends Model
             'email_subject_prefix' => (string) config('follow-up.email.subject_prefix', 'Follow-up'),
             'summary_period' => self::SUMMARY_PERIOD_ALL,
             'summary_times' => implode(',', (array) config('follow-up.email.summary_times', ['08:00', '17:00'])),
+            'summary_days' => implode(',', self::allSummaryDays()),
         ]);
     }
 
@@ -92,6 +94,64 @@ class FollowUpSetting extends Model
     public function summaryTimes(): array
     {
         return self::parseSummaryTimes((string) $this->summary_times);
+    }
+
+    /**
+     * The weekdays available for the periodic summary.
+     *
+     * @return array<int, string>
+     */
+    public static function summaryDayOptions(): array
+    {
+        return [
+            1 => 'Segunda',
+            2 => 'Terça',
+            3 => 'Quarta',
+            4 => 'Quinta',
+            5 => 'Sexta',
+            6 => 'Sábado',
+            0 => 'Domingo',
+        ];
+    }
+
+    /**
+     * Every weekday, used as the default selection.
+     *
+     * @return list<int>
+     */
+    public static function allSummaryDays(): array
+    {
+        return array_keys(self::summaryDayOptions());
+    }
+
+    /**
+     * The configured weekdays of the periodic summary.
+     *
+     * @return list<int>
+     */
+    public function summaryDays(): array
+    {
+        $days = self::parseSummaryDays((string) $this->summary_days);
+
+        return $days === [] ? self::allSummaryDays() : $days;
+    }
+
+    /**
+     * Normalize a comma separated list of weekdays (0 = Sunday, 6 = Saturday).
+     *
+     * @return list<int>
+     */
+    public static function parseSummaryDays(string $value): array
+    {
+        $days = preg_split('/[\s,;]+/', $value) ?: [];
+
+        return collect($days)
+            ->filter(fn (string $day): bool => ctype_digit($day) && (int) $day >= 0 && (int) $day <= 6)
+            ->map(fn (string $day): int => (int) $day)
+            ->unique()
+            ->sort()
+            ->values()
+            ->all();
     }
 
     /**
