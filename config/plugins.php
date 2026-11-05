@@ -111,6 +111,23 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Storage
+    |--------------------------------------------------------------------------
+    |
+    | Every plugin receives an isolated directory inside the configured disk.
+    | A plugin may override the disk in its manifest through the
+    | "storage.disk" attribute, while the visibility applies to new files.
+    |
+    */
+
+    'storage' => [
+        'disk' => env('PLUGIN_STORAGE_DISK', 'plugins'),
+        'root' => env('PLUGIN_STORAGE_ROOT', ''),
+        'visibility' => env('PLUGIN_STORAGE_VISIBILITY', 'private'),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Composer Template
     |--------------------------------------------------------------------------
     |
