@@ -23,6 +23,16 @@ class InstalledPluginsWidget extends Widget
         return 'Plugins instalados';
     }
 
+    public function description(): ?string
+    {
+        return 'Plugins encontrados no diretório de plugins.';
+    }
+
+    public function icon(): ?string
+    {
+        return 'squares-2x2';
+    }
+
     public function view(): string
     {
         return 'admin.widgets.installed-plugins';

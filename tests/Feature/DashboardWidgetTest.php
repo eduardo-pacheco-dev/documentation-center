@@ -173,3 +173,149 @@ test('guests can not edit dashboard widgets', function () {
     $this->put(route('admin.widgets.update', ['widget' => 'core.plugins.installed']), ['hidden' => 1])
         ->assertRedirect('/login');
 });
+
+test('the dashboard follows the widget order chosen by the user', function () {
+    $admin = User::factory()->admin()->create([
+        'dashboard_widget_order' => [
+            'core.plugins.active',
+            'core.users.recent',
+            'core.users',
+            'core.plugins.installed',
+        ],
+    ]);
+
+    $this->actingAs($admin)
+        ->get('/admin')
+        ->assertOk()
+        ->assertSeeInOrder([
+            'data-widget="core.plugins.active"',
+            'data-widget="core.users.recent"',
+            'data-widget="core.users"',
+            'data-widget="core.plugins.installed"',
+        ], false);
+});
+
+test('new widgets are appended after the widgets ordered by the user', function () {
+    $admin = User::factory()->admin()->create([
+        'dashboard_widget_order' => ['core.users.recent'],
+    ]);
+
+    $this->actingAs($admin)
+        ->get('/admin')
+        ->assertOk()
+        ->assertSeeInOrder([
+            'data-widget="core.users.recent"',
+            'data-widget="core.users"',
+            'data-widget="core.plugins.installed"',
+            'data-widget="core.plugins.active"',
+        ], false);
+});
+
+test('users can reorder widgets through the drag and drop endpoint', function () {
+    $admin = User::factory()->admin()->create();
+
+    $order = [
+        'core.users.recent',
+        'core.plugins.active',
+        'core.users',
+        'core.plugins.installed',
+    ];
+
+    $this->actingAs($admin)
+        ->putJson(route('admin.widgets.order'), ['order' => $order])
+        ->assertOk()
+        ->assertJson(['order' => $order]);
+
+    expect($admin->fresh()->dashboardWidgetOrder())->toBe($order);
+
+    $this->actingAs($admin->fresh())
+        ->get('/admin')
+        ->assertOk()
+        ->assertSeeInOrder([
+            'data-widget="core.users.recent"',
+            'data-widget="core.plugins.active"',
+            'data-widget="core.users"',
+            'data-widget="core.plugins.installed"',
+        ], false);
+});
+
+test('unknown widget identifiers are discarded from the order', function () {
+    $admin = User::factory()->admin()->create();
+
+    $this->actingAs($admin)
+        ->putJson(route('admin.widgets.order'), [
+            'order' => ['core.missing', 'core.users'],
+        ])
+        ->assertOk();
+
+    expect($admin->fresh()->dashboardWidgetOrder())->toBe([
+        'core.users',
+        'core.plugins.installed',
+        'core.plugins.active',
+        'core.users.recent',
+    ]);
+});
+
+test('users can resize a widget', function () {
+    $admin = User::factory()->admin()->create();
+
+    $this->actingAs($admin)
+        ->put(route('admin.widgets.layout', ['widget' => 'core.users']), ['span' => 2])
+        ->assertRedirect(route('admin.dashboard', ['edit' => 1]))
+        ->assertSessionHas('status', 'Largura do widget atualizada.');
+
+    expect($admin->fresh()->dashboardWidgetSpan('core.users'))->toBe(2);
+
+    $this->actingAs($admin->fresh())
+        ->get('/admin')
+        ->assertOk()
+        ->assertSee('data-widget="core.users"', false);
+});
+
+test('choosing the default width removes the custom span', function () {
+    $admin = User::factory()->admin()->create([
+        'dashboard_widget_spans' => ['core.users' => 2],
+    ]);
+
+    $this->actingAs($admin)
+        ->put(route('admin.widgets.layout', ['widget' => 'core.users']), ['span' => 1])
+        ->assertRedirect(route('admin.dashboard', ['edit' => 1]));
+
+    expect($admin->fresh()->dashboardWidgetSpans())->toBe([]);
+});
+
+test('the widget layout validates the order and span', function (array $payload, string $error) {
+    $this->actingAs(User::factory()->admin()->create())
+        ->put(route('admin.widgets.layout', ['widget' => 'core.users']), $payload)
+        ->assertSessionHasErrors($error);
+})->with([
+    'span too small' => [['span' => 0], 'span'],
+    'span too large' => [['span' => 4], 'span'],
+]);
+
+test('the widget order validation rejects invalid payloads', function () {
+    $this->actingAs(User::factory()->admin()->create())
+        ->putJson(route('admin.widgets.order'), ['order' => 'not-an-array'])
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors('order');
+});
+
+test('guests can not reorder dashboard widgets', function () {
+    $this->putJson(route('admin.widgets.order'), ['order' => []])
+        ->assertUnauthorized();
+});
+
+test('unknown widgets can not be reordered or resized', function () {
+    $this->actingAs(User::factory()->admin()->create())
+        ->put(route('admin.widgets.layout', ['widget' => 'core.missing']), ['span' => 2])
+        ->assertNotFound();
+});
+
+test('the edit mode exposes the widget metadata', function () {
+    $this->actingAs(User::factory()->admin()->create())
+        ->get('/admin?edit=1')
+        ->assertOk()
+        ->assertSee('Total de contas cadastradas no sistema.')
+        ->assertSee('Arraste para reordenar')
+        ->assertSee('Largura');
+});
