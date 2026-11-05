@@ -182,7 +182,7 @@
                     type="search"
                     name="search"
                     value="{{ $search }}"
-                    placeholder="Buscar por título, código ou descrição..."
+                    placeholder="Buscar por título, código, responsável, status ou data..."
                     class="h-10 w-full rounded-xl border border-gray-300 bg-white pl-9 pr-3 text-sm text-gray-900 transition focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
                 >
             </div>
@@ -480,5 +480,13 @@
         :statuses="$statuses"
         :priorities="$priorities"
         :open-on-load="$openCreateModal"
+    />
+
+    <x-follow-up::partials.edit-modal
+        :assignees="$assignees"
+        :clients="$clients"
+        :statuses="$statuses"
+        :priorities="$priorities"
+        :follow-up="$editFollowUp"
     />
 </x-layouts.admin>
