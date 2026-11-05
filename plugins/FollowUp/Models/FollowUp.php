@@ -17,6 +17,8 @@ use Plugins\FollowUp\Enums\FollowUpStatus;
     'title',
     'code',
     'description',
+    'client',
+    'project',
     'status',
     'priority',
     'due_date',
@@ -76,7 +78,9 @@ class FollowUp extends Model
         $query->where(function (Builder $query) use ($like): void {
             $query->where('title', 'like', $like)
                 ->orWhere('code', 'like', $like)
-                ->orWhere('description', 'like', $like);
+                ->orWhere('description', 'like', $like)
+                ->orWhere('client', 'like', $like)
+                ->orWhere('project', 'like', $like);
         });
     }
 

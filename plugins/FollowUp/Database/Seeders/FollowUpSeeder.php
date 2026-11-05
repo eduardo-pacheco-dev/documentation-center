@@ -97,12 +97,17 @@ class FollowUpSeeder extends Seeder
             ],
         ];
 
+        $clients = ['AFL Engenharia', 'Nokia', 'Vivo', 'TIM'];
+        $projects = ['Expansão 5G', 'Manutenção preventiva', 'Modernização de rede', 'Implantação de site'];
+
         foreach ($followUps as $index => $data) {
             $user = $users[$index % $users->count()];
 
             $followUp = FollowUp::query()->create([
                 'title' => $data['title'],
                 'description' => $data['description'],
+                'client' => $data['client'] ?? $clients[$index % count($clients)],
+                'project' => $data['project'] ?? $projects[$index % count($projects)],
                 'status' => $data['status']->value,
                 'priority' => $data['priority']->value,
                 'due_date' => $data['due_date'],

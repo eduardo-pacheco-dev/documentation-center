@@ -74,6 +74,36 @@
 
     <div class="grid gap-4 sm:grid-cols-2">
         <div>
+            <label for="client" class="{{ $labelClass }}">Cliente</label>
+            <input
+                id="client"
+                name="client"
+                type="text"
+                value="{{ old('client', $followUp?->client) }}"
+                maxlength="150"
+                placeholder="Ex.: AFL Engenharia"
+                class="{{ $inputClass }}"
+            >
+            @error('client')<p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>@enderror
+        </div>
+
+        <div>
+            <label for="project" class="{{ $labelClass }}">Projeto</label>
+            <input
+                id="project"
+                name="project"
+                type="text"
+                value="{{ old('project', $followUp?->project) }}"
+                maxlength="150"
+                placeholder="Ex.: Expansão 5G"
+                class="{{ $inputClass }}"
+            >
+            @error('project')<p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>@enderror
+        </div>
+    </div>
+
+    <div class="grid gap-4 sm:grid-cols-2">
+        <div>
             <label for="status" class="{{ $labelClass }}">Status <span class="text-red-500">*</span></label>
             <select id="status" name="status" x-model="status" required class="{{ $inputClass }}">
                 @foreach ($statuses as $value => $label)

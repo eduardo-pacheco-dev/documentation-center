@@ -24,6 +24,20 @@
         @endif
     </div>
 
+    @if ($followUp->client || $followUp->project)
+        <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">
+            @if ($followUp->client)
+                <span class="font-medium text-gray-700 dark:text-gray-200">{{ $followUp->client }}</span>
+            @endif
+            @if ($followUp->client && $followUp->project)
+                <span aria-hidden="true">·</span>
+            @endif
+            @if ($followUp->project)
+                {{ $followUp->project }}
+            @endif
+        </p>
+    @endif
+
     <dl class="mt-auto grid grid-cols-2 gap-3 border-t border-gray-100 pt-3 text-xs dark:border-white/10">
         <div class="min-w-0">
             <dt class="text-gray-400 dark:text-gray-500">Responsável</dt>

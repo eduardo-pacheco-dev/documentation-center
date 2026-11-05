@@ -29,6 +29,8 @@ class FollowUpFactory extends Factory
         return [
             'title' => fake()->sentence(5),
             'description' => fake()->paragraph(),
+            'client' => fake()->company(),
+            'project' => fake()->words(3, true),
             'status' => FollowUpStatus::Pending->value,
             'priority' => fake()->randomElement(FollowUpPriority::values()),
             'due_date' => fake()->dateTimeBetween('-5 days', '+20 days')->format('Y-m-d'),
