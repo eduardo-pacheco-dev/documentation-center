@@ -376,10 +376,11 @@
                         ->take(2)
                         ->map(fn ($part): string => mb_strtoupper(mb_substr($part, 0, 1)))
                         ->implode('');
+                    $projectError = $errors->hasAny(['project_name']) && old('source') === 'client' && (string) old('client_id') === (string) $client->getKey();
                 @endphp
 
                 <div
-                    x-data="{ editing: false, projectsOpen: @js($errors->hasAny(['project_name']) && old('source') === 'client' && (string) old('client_id') === (string) $client->getKey()), projectModal: @js($errors->hasAny(['project_name']) && old('source') === 'client' && (string) old('client_id') === (string) $client->getKey()) }"
+                    x-data="{ editing: false, projectsOpen: @js($projectError), projectModal: @js($projectError) }"
                     class="rounded-2xl border border-gray-200/80 bg-gray-50/40 p-4 transition hover:border-indigo-200 hover:shadow-sm hover:shadow-indigo-600/5 dark:border-white/10 dark:bg-white/[0.02] dark:hover:border-indigo-500/40"
                 >
                     <div class="flex items-start justify-between gap-3">
@@ -468,6 +469,7 @@
                                 <x-icon name="chevron-right" class="h-3 w-3 transition-transform" x-bind:class="projectsOpen ? 'rotate-90' : ''" />
                                 Projetos
                             </button>
+
                             <div class="flex items-center gap-1">
                                 <span class="rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-semibold text-gray-500 dark:bg-white/10 dark:text-gray-400">{{ $client->projects->count() }}</span>
                                 <button
@@ -491,7 +493,6 @@
                                         </span>
 
                                         <span class="min-w-0 flex-1 truncate text-sm text-gray-700 dark:text-gray-200">{{ $project->name }}</span>
-
                                         <span class="shrink-0 text-[11px] text-gray-400 dark:text-gray-500">{{ $project->follow_ups_count }} follow-up(s)</span>
 
                                         <button
@@ -575,19 +576,13 @@
                                     <p class="mt-1 truncate text-sm text-gray-500 dark:text-gray-400">{{ $client->name }}</p>
                                 </div>
 
-                                <button
-                                    type="button"
-                                    x-on:click="projectModal = false"
-                                    class="rounded-lg p-1 text-gray-400 transition hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-white/10"
-                                    aria-label="Fechar"
-                                >
+                                <button type="button" x-on:click="projectModal = false" class="rounded-lg p-1 text-gray-400 transition hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-white/10" aria-label="Fechar">
                                     <x-icon name="x-mark" class="h-4 w-4" />
                                 </button>
                             </div>
 
                             <form method="POST" action="{{ route('admin.follow-ups.settings.clients.store') }}" class="mt-4 space-y-4">
                                 @csrf
-                                @method('POST')
 
                                 <input type="hidden" name="source" value="client">
                                 <input type="hidden" name="client_id" value="{{ $client->getKey() }}">
@@ -604,7 +599,7 @@
                                         required
                                         class="{{ $inputClass }}"
                                     >
-                                    @if (old('source') === 'client' && (string) old('client_id') === (string) $client->getKey())
+                                    @if ($projectError)
                                         @error('project_name')<p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>@enderror
                                     @endif
                                 </div>
@@ -623,11 +618,12 @@
                         <x-icon name="building-office" class="h-5 w-5" />
                     </span>
                     <p class="mt-2 text-sm font-medium text-gray-700 dark:text-gray-200">Nenhum cliente cadastrado</p>
-                    <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Use o botão Adicionar para cadastrar o primeiro cliente.</p>
+                    <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Use o botão Adicionar cliente para começar.</p>
                 </div>
             @endforelse
         </div>
-<div
+
+        <div
             x-cloak
             x-show="clientModal"
             x-transition.opacity.duration.100ms
@@ -638,200 +634,44 @@
         >
             <div class="absolute inset-0 bg-gray-900/50" x-on:click="clientModal = false"></div>
 
-            <div class="absolute left-1/2 top-1/2 max-h-[90vh] w-full max-w-xl -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-2xl bg-white p-5 shadow-xl dark:bg-[#1c1c1b]">
+            <div class="absolute left-1/2 top-1/2 w-full max-w-md -translate-x-1/2 -translate-y-1/2 rounded-2xl bg-white p-5 shadow-xl dark:bg-[#1c1c1b]">
                 <div class="flex items-start justify-between gap-3">
                     <div class="min-w-0">
                         <h2 id="client-form-title" class="text-base font-semibold text-gray-900 dark:text-gray-100">Novo cliente</h2>
-                        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Selecione um cliente existente ou digite um nome novo para cadastrá-lo.</p>
+                        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Informe o nome do cliente que deseja cadastrar.</p>
                     </div>
 
-                    <button
-                        type="button"
-                        x-on:click="clientModal = false"
-                        class="rounded-lg p-1 text-gray-400 transition hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-white/10"
-                        aria-label="Fechar"
-                    >
+                    <button type="button" x-on:click="clientModal = false" class="rounded-lg p-1 text-gray-400 transition hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-white/10" aria-label="Fechar">
                         <x-icon name="x-mark" class="h-4 w-4" />
                     </button>
                 </div>
 
-@php
-            $selectedClientId = (string) old('client_id', '');
-            $selectedClientName = (string) old('client_name', '');
-            $selectedClient = $selectedClientId !== '' && ctype_digit($selectedClientId)
-                ? $clients->firstWhere('id', (int) $selectedClientId)
-                : null;
-            $clientSearch = $selectedClient?->name ?? $selectedClientName;
-            $clientOptions = $clients->map(fn ($client): array => [
-                'id' => (string) $client->getKey(),
-                'name' => $client->name,
-            ])->values()->all();
-        @endphp
+                <form method="POST" action="{{ route('admin.follow-ups.settings.clients.store') }}" class="mt-4 space-y-4">
+                    @csrf
 
-        <form
-            method="POST"
-            action="{{ route('admin.follow-ups.settings.clients.store') }}"
-            class="mt-4"
-            x-data="{
-                open: false,
-                search: @js($clientSearch),
-                clientId: @js((string) $selectedClientId),
-                clientName: @js($selectedClientId === '' ? $selectedClientName : ''),
-                clients: @js($clientOptions),
-                active: 0,
-                get filtered() {
-                    const term = this.search.trim().toLowerCase();
+                    <input type="hidden" name="source" value="top">
 
-                    if (term === '') {
-                        return this.clients;
-                    }
-
-                    return this.clients.filter((client) => client.name.toLowerCase().includes(term));
-                },
-                get exact() {
-                    return this.clients.find((client) => client.name.toLowerCase() === this.search.trim().toLowerCase());
-                },
-                onInput() {
-                    this.clientId = '';
-                    this.clientName = this.search;
-                    this.open = true;
-                    this.active = 0;
-                },
-                choose(client) {
-                    this.clientId = client.id;
-                    this.clientName = '';
-                    this.search = client.name;
-                    this.open = false;
-                },
-                create() {
-                    this.clientId = '';
-                    this.clientName = this.search.trim();
-                    this.open = false;
-                },
-                clear() {
-                    this.search = '';
-                    this.clientId = '';
-                    this.clientName = '';
-                    this.open = true;
-                    this.$nextTick(() => this.$refs.clientInput.focus());
-                },
-                move(step) {
-                    const max = this.filtered.length - 1;
-                    this.active = Math.min(Math.max(this.active + step, 0), Math.max(max, 0));
-                },
-                chooseActive() {
-                    if (this.filtered[this.active]) {
-                        this.choose(this.filtered[this.active]);
-
-                        return;
-                    }
-
-                    if (this.search.trim() !== '') {
-                        this.create();
-                    }
-                },
-            }"
-            @click.outside="open = false"
-            @keydown.escape.stop="open = false"
-        >
-            @csrf
-
-            <input type="hidden" name="source" value="top">
-            <input type="hidden" name="client_id" :value="clientId">
-            <input type="hidden" name="client_name" :value="clientName">
-
-            <div class="grid gap-3">
-                <div>
-                    <label for="client_search" class="{{ $labelClass }}">Cliente</label>
-
-                    <div class="relative">
+                    <div>
+                        <label for="client_name" class="{{ $labelClass }}">Nome do cliente <span class="text-red-500">*</span></label>
                         <input
-                            id="client_search"
-                            x-ref="clientInput"
+                            id="client_name"
+                            name="client_name"
                             type="text"
-                            x-model="search"
-                            @focus="open = true"
-                            @input="onInput()"
-                            @keydown.arrow-down.prevent="open = true; move(1)"
-                            @keydown.arrow-up.prevent="move(-1)"
-                            @keydown.enter.prevent="chooseActive()"
-                            placeholder="Busque ou digite um novo cliente"
-                            autocomplete="off"
-                            role="combobox"
-                            :aria-expanded="open"
-                            class="{{ $inputClass }} pr-16"
+                            maxlength="150"
+                            value="{{ old('source') === 'top' ? old('client_name') : '' }}"
+                            placeholder="Ex.: AFL Engenharia"
+                            required
+                            autofocus
+                            class="{{ $inputClass }}"
                         >
-
-                        <button
-                            type="button"
-                            x-show="search !== ''"
-                            x-cloak
-                            @click="clear()"
-                            class="absolute right-9 top-1/2 -translate-y-1/2 rounded-full p-0.5 text-gray-400 transition hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800 dark:hover:text-gray-200"
-                            aria-label="Limpar cliente"
-                        >
-                            <x-icon name="x-mark" class="h-3.5 w-3.5" />
-                        </button>
-
-                        <button
-                            type="button"
-                            @click="open = ! open"
-                            class="absolute right-2 top-1/2 -translate-y-1/2 rounded-md p-1 text-gray-400 transition hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800 dark:hover:text-gray-200"
-                            aria-label="Mostrar clientes"
-                        >
-                            <x-icon name="chevron-up-down" class="h-4 w-4" />
-                        </button>
-
-                        <div
-                            x-cloak
-                            x-show="open"
-                            x-transition.origin.top
-                            class="absolute left-0 right-0 z-30 mt-1 max-h-56 overflow-auto rounded-xl border border-gray-200 bg-white p-1 shadow-lg dark:border-white/10 dark:bg-[#1c1c1b]"
-                            role="listbox"
-                        >
-                            <template x-for="(client, index) in filtered" :key="client.id">
-                                <button
-                                    type="button"
-                                    @mousedown.prevent="choose(client)"
-                                    @mouseenter="active = index"
-                                    :class="active === index ? 'bg-indigo-50 text-indigo-700 dark:bg-indigo-500/10 dark:text-indigo-200' : 'text-gray-700 dark:text-gray-200'"
-                                    class="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm transition"
-                                    role="option"
-                                    :aria-selected="String(client.id) === String(clientId)"
-                                >
-                                    <x-icon name="building-office" class="h-4 w-4 shrink-0 text-gray-400 dark:text-gray-500" />
-                                    <span class="min-w-0 flex-1 truncate" x-text="client.name"></span>
-                                    <x-icon x-show="String(client.id) === String(clientId)" name="check" class="h-4 w-4 shrink-0 text-indigo-600 dark:text-indigo-400" />
-                                </button>
-                            </template>
-
-                            <button
-                                type="button"
-                                x-show="search.trim() !== '' && ! exact"
-                                @mousedown.prevent="create()"
-                                class="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm font-medium text-indigo-600 transition hover:bg-indigo-50 dark:text-indigo-300 dark:hover:bg-indigo-500/10"
-                            >
-                                <x-icon name="plus" class="h-4 w-4 shrink-0" />
-                                <span class="min-w-0 truncate">Criar cliente "<span x-text="search.trim()"></span>"</span>
-                            </button>
-
-                            <p x-show="filtered.length === 0 && search.trim() === ''" class="px-3 py-2 text-sm text-gray-500 dark:text-gray-400">
-                                Nenhum cliente cadastrado. Digite um nome para criar o primeiro.
-                            </p>
-                        </div>
+                        @error('client_name')<p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>@enderror
                     </div>
 
-                    <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Selecione um cliente ou digite um nome novo para cadastrá-lo.</p>
-                    @error('client_id')<p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>@enderror
-                    @error('client_name')<p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>@enderror
-                </div>
-            </div>
-
-            <div class="mt-3 flex flex-wrap items-center justify-between gap-2">
-                <p class="text-xs text-gray-500 dark:text-gray-400">O cliente pode ser selecionado da lista ou criado digitando um nome novo.</p>
-                <x-ui.action type="submit" icon="plus">Adicionar cliente</x-ui.action>
-            </div>
-        </form>
+                    <div class="flex flex-wrap items-center gap-2 border-t border-gray-100 pt-4 dark:border-white/10">
+                        <x-ui.action type="submit" icon="plus">Adicionar cliente</x-ui.action>
+                        <x-ui.action type="button" variant="secondary" x-on:click="clientModal = false">Cancelar</x-ui.action>
+                    </div>
+                </form>
             </div>
         </div>
     </section>
