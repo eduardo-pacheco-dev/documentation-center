@@ -8,6 +8,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\UpdateDashboardWidgetLayoutRequest;
 use App\Http\Requests\UpdateDashboardWidgetRequest;
 use App\Models\User;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -74,7 +75,30 @@ class DashboardController extends Controller
     }
 
     /**
-     * Reorder or resize a dashboard widget for the authenticated user.
+     * Persist the widget order chosen through drag and drop.
+     */
+    public function updateWidgetOrder(
+        UpdateDashboardWidgetLayoutRequest $request,
+        WidgetRegistry $widgets,
+    ): JsonResponse|RedirectResponse {
+        $order = $this->normalizeOrder(
+            $widgets->forRequest($request),
+            (array) ($request->validated('order') ?? []),
+        );
+
+        $request->user()->update(['dashboard_widget_order' => $order]);
+
+        if ($request->expectsJson()) {
+            return response()->json(['order' => $order]);
+        }
+
+        return redirect()
+            ->route('admin.dashboard', ['edit' => 1])
+            ->with('status', 'Ordem dos widgets atualizada.');
+    }
+
+    /**
+     * Resize a dashboard widget for the authenticated user.
      */
     public function updateWidgetLayout(
         UpdateDashboardWidgetLayoutRequest $request,
@@ -87,20 +111,8 @@ class DashboardController extends Controller
         abort_if($widgetInstance === null, 404);
 
         $user = $request->user();
-        $order = $this->normalizeOrder($available, $user->dashboardWidgetOrder());
         $spans = $user->dashboardWidgetSpans();
-        $direction = $request->validated('direction');
         $message = 'Widget atualizado.';
-
-        if ($direction !== null) {
-            $position = array_search($widget, $order, true);
-            $target = $direction === 'up' ? $position - 1 : $position + 1;
-
-            if ($position !== false && isset($order[$target])) {
-                [$order[$position], $order[$target]] = [$order[$target], $order[$position]];
-                $message = 'Ordem dos widgets atualizada.';
-            }
-        }
 
         if ($request->filled('span')) {
             $span = (int) $request->validated('span');
@@ -114,10 +126,7 @@ class DashboardController extends Controller
             $message = 'Largura do widget atualizada.';
         }
 
-        $user->update([
-            'dashboard_widget_order' => $order,
-            'dashboard_widget_spans' => $spans,
-        ]);
+        $user->update(['dashboard_widget_spans' => $spans]);
 
         return redirect()
             ->route('admin.dashboard', ['edit' => 1])

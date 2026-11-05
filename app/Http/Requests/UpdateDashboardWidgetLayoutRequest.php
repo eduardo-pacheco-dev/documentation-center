@@ -4,7 +4,6 @@ namespace App\Http\Requests;
 
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Validation\Rule;
 
 class UpdateDashboardWidgetLayoutRequest extends FormRequest
 {
@@ -24,7 +23,8 @@ class UpdateDashboardWidgetLayoutRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'direction' => ['nullable', Rule::in(['up', 'down'])],
+            'order' => ['nullable', 'array'],
+            'order.*' => ['string', 'max:100'],
             'span' => ['nullable', 'integer', 'between:1,3'],
         ];
     }
@@ -37,7 +37,8 @@ class UpdateDashboardWidgetLayoutRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'direction.in' => 'A direção informada é inválida.',
+            'order.array' => 'A ordem dos widgets é inválida.',
+            'order.*.string' => 'A ordem dos widgets é inválida.',
             'span.integer' => 'A largura do widget deve ser um número.',
             'span.between' => 'A largura do widget deve ficar entre 1 e 3 colunas.',
         ];

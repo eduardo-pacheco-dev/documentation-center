@@ -380,3 +380,102 @@ const LoginForm = (() => {
 
     return { sync, update };
 })();
+
+window.dashboardLayout = (initialOrder = [], endpoint = '') => ({
+    order: [...initialOrder],
+    dragging: null,
+    dragOver: null,
+    saving: false,
+
+    dragStart(id, event) {
+        if (event.target.closest('form, button, a, input, select, textarea')) {
+            event.preventDefault();
+
+            return;
+        }
+
+        this.dragging = id;
+        event.dataTransfer.effectAllowed = 'move';
+        event.dataTransfer.setData('text/plain', id);
+    },
+
+    dragEnter(id) {
+        if (this.dragging && this.dragging !== id) {
+            this.dragOver = id;
+        }
+    },
+
+    dragLeave(id) {
+        if (this.dragOver === id) {
+            this.dragOver = null;
+        }
+    },
+
+    async drop(id, event) {
+        event.preventDefault();
+
+        const source = this.dragging || event.dataTransfer.getData('text/plain');
+
+        this.dragging = null;
+        this.dragOver = null;
+
+        if (!source || source === id) {
+            return;
+        }
+
+        const from = this.order.indexOf(source);
+        const to = this.order.indexOf(id);
+
+        if (from < 0 || to < 0) {
+            return;
+        }
+
+        this.order.splice(to, 0, this.order.splice(from, 1)[0]);
+        this.reorderDom();
+
+        await this.save();
+    },
+
+    dragEnd() {
+        this.dragging = null;
+        this.dragOver = null;
+    },
+
+    reorderDom() {
+        this.order.forEach((id) => {
+            const element = this.$root.querySelector(`[data-widget="${id}"]`);
+
+            if (element) {
+                this.$root.appendChild(element);
+            }
+        });
+    },
+
+    async save() {
+        if (!endpoint || this.saving) {
+            return;
+        }
+
+        this.saving = true;
+
+        try {
+            const response = await fetch(endpoint, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Accept: 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '',
+                },
+                body: JSON.stringify({ order: this.order }),
+            });
+
+            if (!response.ok) {
+                window.location.reload();
+            }
+        } catch {
+            window.location.reload();
+        } finally {
+            this.saving = false;
+        }
+    },
+});

@@ -43,7 +43,7 @@
             <div class="min-w-0">
                 <p class="text-sm font-semibold text-gray-900 dark:text-white">Modo edição</p>
                 <p class="mt-0.5 text-xs text-gray-600 dark:text-gray-400">
-                    Reordene, redimensione, remova widgets do painel ou adicione de volta os que estão ocultos.
+                    Arraste para reordenar, redimensione, remova widgets do painel ou adicione de volta os que estão ocultos.
                 </p>
             </div>
         </div>
@@ -68,7 +68,12 @@
             </x-ui.empty-state>
         </div>
     @else
-        <div class="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+        <div
+            class="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-3"
+            @if ($editing)
+                x-data="dashboardLayout(@js($widgets->map(fn ($widget): string => $widget->id())->values()), @js(route('admin.widgets.order')))"
+            @endif
+        >
             @foreach ($widgets as $widget)
                 @php
                     $span = $widgetSpans[$widget->id()] ?? $widget->columnSpan();
@@ -80,7 +85,20 @@
                     };
                 @endphp
 
-                <div @class([$spanClass, 'flex flex-col']) data-widget="{{ $widget->id() }}">
+                <div
+                    @class([$spanClass, 'flex flex-col', 'transition' => $editing, 'cursor-grab active:cursor-grabbing' => $editing])
+                    data-widget="{{ $widget->id() }}"
+                    @if ($editing)
+                        draggable="true"
+                        @dragstart="dragStart('{{ $widget->id() }}', $event)"
+                        @dragenter.prevent="dragEnter('{{ $widget->id() }}')"
+                        @dragover.prevent
+                        @dragleave="dragLeave('{{ $widget->id() }}')"
+                        @drop.prevent="drop('{{ $widget->id() }}', $event)"
+                        @dragend="dragEnd()"
+                        :class="{ 'opacity-40': dragging === '{{ $widget->id() }}', 'rounded-2xl ring-2 ring-indigo-400 ring-offset-2 dark:ring-offset-[#101010]': dragOver === '{{ $widget->id() }}' }"
+                    @endif
+                >
                     @if ($editing)
                         <div class="mb-2 overflow-hidden rounded-xl border border-dashed border-gray-300 bg-white/80 dark:border-white/15 dark:bg-white/[0.03]">
                             <div class="flex items-start justify-between gap-2 px-3 py-2">
@@ -114,21 +132,14 @@
                             </div>
 
                             <div class="flex flex-wrap items-center justify-between gap-2 border-t border-dashed border-gray-200 px-3 py-1.5 dark:border-white/10">
+                                <span class="inline-flex items-center gap-1 text-[10px] font-medium uppercase tracking-wider text-gray-400 dark:text-gray-500">
+                                    <x-icon name="bars-3" class="h-3.5 w-3.5" />
+                                    Arraste para reordenar
+                                </span>
+
                                 <form method="POST" action="{{ route('admin.widgets.layout', ['widget' => $widget->id()]) }}" class="flex items-center gap-1">
                                     @csrf
                                     @method('PUT')
-
-                                    <span class="mr-1 text-[10px] font-medium uppercase tracking-wider text-gray-400 dark:text-gray-500">Ordem</span>
-
-                                    <button type="submit" name="direction" value="up" @disabled($loop->first) class="inline-flex h-6 w-6 items-center justify-center rounded-md text-gray-500 transition hover:bg-gray-100 hover:text-gray-900 disabled:cursor-not-allowed disabled:opacity-30 dark:text-gray-400 dark:hover:bg-white/10 dark:hover:text-white" aria-label="Mover para cima" title="Mover para cima">
-                                        <x-icon name="chevron-up" class="h-3.5 w-3.5" />
-                                    </button>
-
-                                    <button type="submit" name="direction" value="down" @disabled($loop->last) class="inline-flex h-6 w-6 items-center justify-center rounded-md text-gray-500 transition hover:bg-gray-100 hover:text-gray-900 disabled:cursor-not-allowed disabled:opacity-30 dark:text-gray-400 dark:hover:bg-white/10 dark:hover:text-white" aria-label="Mover para baixo" title="Mover para baixo">
-                                        <x-icon name="chevron-down" class="h-3.5 w-3.5" />
-                                    </button>
-
-                                    <span class="mx-1 h-4 w-px bg-gray-200 dark:bg-white/10"></span>
 
                                     <span class="mr-1 text-[10px] font-medium uppercase tracking-wider text-gray-400 dark:text-gray-500">Largura</span>
 
