@@ -1,0 +1,101 @@
+<?php
+
+namespace Plugins\Nokia\Http\Controllers;
+
+use App\Http\Controllers\Controller;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Illuminate\View\View;
+use Plugins\Nokia\Http\Requests\StoreNokiaSiteRequest;
+use Plugins\Nokia\Http\Requests\UpdateNokiaSiteRequest;
+use Plugins\Nokia\Models\NokiaSite;
+
+class NokiaSiteController extends Controller
+{
+    /**
+     * List the registered sites.
+     */
+    public function index(Request $request): View
+    {
+        $search = $request->string('search')->trim()->toString();
+
+        $query = NokiaSite::query();
+
+        if ($search !== '') {
+            $query->matching($search);
+        }
+
+        $sites = $query
+            ->latest('updated_at')
+            ->latest('id')
+            ->paginate(15)
+            ->withQueryString();
+
+        $total = NokiaSite::query()->count();
+        $completed = NokiaSite::query()->completed()->count();
+
+        return view('nokia::index', [
+            'sites' => $sites,
+            'search' => $search,
+            'stats' => [
+                'total' => $total,
+                'completed' => $completed,
+                'pending' => $total - $completed,
+            ],
+        ]);
+    }
+
+    /**
+     * Show the form to create a site.
+     */
+    public function create(): View
+    {
+        return view('nokia::create');
+    }
+
+    /**
+     * Store a newly created site.
+     */
+    public function store(StoreNokiaSiteRequest $request): RedirectResponse
+    {
+        NokiaSite::query()->create($request->validated());
+
+        return redirect()
+            ->route('admin.nokia.sites.index')
+            ->with('status', 'Site cadastrado com sucesso.');
+    }
+
+    /**
+     * Show the form to edit the given site.
+     */
+    public function edit(NokiaSite $site): View
+    {
+        return view('nokia::edit', [
+            'site' => $site,
+        ]);
+    }
+
+    /**
+     * Update the given site.
+     */
+    public function update(UpdateNokiaSiteRequest $request, NokiaSite $site): RedirectResponse
+    {
+        $site->update($request->validated());
+
+        return redirect()
+            ->route('admin.nokia.sites.index')
+            ->with('status', 'Site atualizado com sucesso.');
+    }
+
+    /**
+     * Remove the given site.
+     */
+    public function destroy(NokiaSite $site): RedirectResponse
+    {
+        $site->delete();
+
+        return redirect()
+            ->route('admin.nokia.sites.index')
+            ->with('status', 'Site excluído com sucesso.');
+    }
+}
