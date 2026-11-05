@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Enums\AdminModule;
 use App\Http\Requests\DeleteAccountRequest;
 use App\Http\Requests\UpdateModulesRequest;
+use App\Http\Requests\UpdateNotificationSettingsRequest;
 use App\Http\Requests\UpdatePasswordRequest;
 use App\Http\Requests\UpdateStorageSettingsRequest;
 use App\Http\Requests\UpdateSystemTimezoneRequest;
@@ -102,6 +103,18 @@ class SettingsController extends Controller
         cookie()->queue('theme', $theme, 60 * 24 * 365);
 
         return back()->with('status', 'Preferência de tema salva com sucesso.');
+    }
+
+    /**
+     * Save the authenticated user's notification preferences.
+     */
+    public function updateNotifications(UpdateNotificationSettingsRequest $request): RedirectResponse
+    {
+        $request->user()->update([
+            'email_notifications' => $request->boolean('email_notifications'),
+        ]);
+
+        return back()->with('status', 'Preferências de notificação atualizadas com sucesso.');
     }
 
     /**

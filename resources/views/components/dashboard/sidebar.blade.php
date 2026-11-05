@@ -82,6 +82,8 @@
             <x-dashboard.modules-menu :items="$moduleItems" />
         @endif
 
+        <x-dashboard.notifications-menu />
+
         <x-dashboard.sidebar-item
             :href="route('settings')"
             icon="adjustments-horizontal"

@@ -1,5 +1,6 @@
 <?php
 
+use App\Notifications\PluginNotifier;
 use App\Plugins\Plugin;
 use App\Plugins\PluginRepository;
 use App\Plugins\PluginStorage;
@@ -59,5 +60,15 @@ if (! function_exists('plugin_storage')) {
     function plugin_storage(Plugin|string $plugin): PluginStorage
     {
         return PluginStorage::for($plugin);
+    }
+}
+
+if (! function_exists('plugin_notifier')) {
+    /**
+     * Resolve the notification sender of a plugin.
+     */
+    function plugin_notifier(Plugin|string $plugin): PluginNotifier
+    {
+        return PluginNotifier::for($plugin instanceof Plugin ? $plugin->getAlias() : $plugin);
     }
 }

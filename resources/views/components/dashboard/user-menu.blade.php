@@ -33,6 +33,7 @@
 
         <div class="my-1 border-t border-gray-100 dark:border-gray-800"></div>
 
+        <a href="{{ route('notifications.index') }}" class="block rounded-lg px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-800">Notificações</a>
         <a href="{{ route('profile') }}" class="block rounded-lg px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-800">Perfil</a>
         <a href="{{ route('settings') }}" class="block rounded-lg px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-800">Configurações</a>
 

@@ -5,6 +5,7 @@ use App\Http\Controllers\Admin\DevDocController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\RegisteredUserController;
+use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\PluginController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\SettingsController;
@@ -53,10 +54,17 @@ Route::middleware('auth')->group(function () {
     Route::get('settings', [SettingsController::class, 'show'])->name('settings');
     Route::put('settings/theme', [SettingsController::class, 'updateTheme'])->name('settings.theme.update');
     Route::put('settings/modules', [SettingsController::class, 'updateModules'])->name('settings.modules.update');
+    Route::put('settings/notifications', [SettingsController::class, 'updateNotifications'])->name('settings.notifications.update');
     Route::put('settings/system', [SettingsController::class, 'updateTimezone'])->name('settings.system.update');
     Route::put('settings/storage', [SettingsController::class, 'updateStorage'])->name('settings.storage.update');
     Route::put('settings/password', [SettingsController::class, 'updatePassword'])->name('settings.password.update');
     Route::delete('settings/account', [SettingsController::class, 'destroy'])->name('settings.account.destroy');
+
+    Route::get('notifications', [NotificationController::class, 'index'])->name('notifications.index');
+    Route::patch('notifications/read-all', [NotificationController::class, 'readAll'])->name('notifications.read-all');
+    Route::patch('notifications/{notification}/read', [NotificationController::class, 'read'])->name('notifications.read');
+    Route::delete('notifications/{notification}', [NotificationController::class, 'destroy'])->name('notifications.destroy');
+    Route::delete('notifications', [NotificationController::class, 'clear'])->name('notifications.clear');
 
     Route::middleware('admin')->group(function () {
         Route::post('settings/plugins', [PluginController::class, 'store'])->name('settings.plugins.store');

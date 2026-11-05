@@ -1,6 +1,6 @@
 <x-layouts.admin title="Configurações">
     @php
-        $sections = ['aparencia', 'modulos'];
+        $sections = ['aparencia', 'modulos', 'notificacoes'];
 
         if ($user->is_admin) {
             $sections[] = 'sistema';
@@ -101,6 +101,16 @@
                         <x-icon name="squares-2x2" class="h-4 w-4 shrink-0" x-bind:class="active === 'modulos' ? 'text-white' : 'text-indigo-500'" />
                         <span class="flex-1 truncate">Módulos</span>
                         <x-ui.badge tone="gray">{{ count($enabledModules) }}</x-ui.badge>
+                    </a>
+
+                    <a
+                        href="#notificacoes"
+                        @click="active = 'notificacoes'"
+                        x-bind:class="active === 'notificacoes' ? '{{ $navActive }}' : '{{ $navIdle }}'"
+                        class="group flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm font-medium transition"
+                    >
+                        <x-icon name="bell" class="h-4 w-4 shrink-0" x-bind:class="active === 'notificacoes' ? 'text-white' : 'text-rose-500'" />
+                        <span class="flex-1 truncate">Notificações</span>
                     </a>
 
                     @if ($user->is_admin)
@@ -464,6 +474,57 @@
                     <div class="mt-5">
                         <x-ui.action type="submit" icon="check">
                             Salvar módulos
+                        </x-ui.action>
+                    </div>
+                </div>
+            </form>
+
+            <form
+                id="notificacoes"
+                method="POST"
+                action="{{ route('settings.notifications.update') }}"
+                class="{{ $cardClass }} scroll-mt-6"
+            >
+                @csrf
+                @method('PUT')
+
+                <div class="{{ $headerClass }}">
+                    <span class="{{ $tileClass }}">
+                        <x-icon name="bell" class="h-5 w-5" />
+                    </span>
+
+                    <div class="min-w-0">
+                        <h2 class="{{ $titleClass }}">Notificações</h2>
+                        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                            As notificações no painel são sempre exibidas. Escolha se também deseja recebê-las por e-mail.
+                        </p>
+                    </div>
+                </div>
+
+                <div class="{{ $bodyClass }}">
+                    <label class="flex cursor-pointer items-start gap-3 rounded-xl border border-gray-200/80 p-3 transition hover:border-indigo-200 dark:border-white/10 dark:hover:border-indigo-500/40">
+                        <input type="hidden" name="email_notifications" value="0">
+                        <input
+                            type="checkbox"
+                            name="email_notifications"
+                            value="1"
+                            @checked(old('email_notifications', $user->email_notifications))
+                            class="mt-0.5 h-4 w-4 shrink-0 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500/30 dark:border-white/20 dark:bg-white/[0.03] dark:text-indigo-400"
+                        >
+
+                        <span class="min-w-0">
+                            <span class="block text-sm font-medium text-gray-800 dark:text-gray-100">Receber notificações por e-mail</span>
+                            <span class="mt-0.5 block text-xs text-gray-500 dark:text-gray-400">Aplicado aos avisos do sistema e dos plugins enviados a partir de agora.</span>
+                        </span>
+                    </label>
+
+                    @error('email_notifications')
+                        <p class="mt-2 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
+                    @enderror
+
+                    <div class="mt-5">
+                        <x-ui.action type="submit" icon="check">
+                            Salvar notificações
                         </x-ui.action>
                     </div>
                 </div>
