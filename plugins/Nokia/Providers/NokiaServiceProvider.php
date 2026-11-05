@@ -2,9 +2,11 @@
 
 namespace Plugins\Nokia\Providers;
 
+use App\Dashboard\WidgetRegistry;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
+use Plugins\Nokia\Widgets\NokiaChartsWidget;
 
 class NokiaServiceProvider extends ServiceProvider
 {
@@ -29,6 +31,8 @@ class NokiaServiceProvider extends ServiceProvider
         if (is_dir(__DIR__.'/../Database/Migrations')) {
             $this->loadMigrationsFrom(__DIR__.'/../Database/Migrations');
         }
+
+        $this->app->make(WidgetRegistry::class)->register(new NokiaChartsWidget);
     }
 
     /**

@@ -114,7 +114,8 @@ test('a site details page shows the information, checklist and attachments', fun
         ->assertSee('DOC-D')
         ->assertSee('DWG')
         ->assertSee('name="files[]"', false)
-        ->assertSee('open-edit-site-modal', false);
+        ->assertSee('open-edit-site-modal', false)
+        ->assertDontSee('@js(', false);
 });
 
 test('the site list renders the create and edit modals', function () {
@@ -130,7 +131,8 @@ test('the site list renders the create and edit modals', function () {
         ->assertSee('name="modal" value="create"', false)
         ->assertSee('name="modal" value="edit"', false)
         ->assertSee('id="create-site-site_id"', false)
-        ->assertSee('id="edit-site-site_id"', false);
+        ->assertSee('id="edit-site-site_id"', false)
+        ->assertDontSee('@js(', false);
 });
 
 test('the create modal reopens when validation fails', function () {
@@ -139,6 +141,20 @@ test('the create modal reopens when validation fails', function () {
         ->post('/admin/nokia/sites', ['modal' => 'create', 'site_id' => ''])
         ->assertRedirect('/admin/nokia/sites')
         ->assertSessionHasErrors('site_id');
+});
+
+test('the nokia charts widget appears on the dashboard', function () {
+    NokiaSite::factory()->completed()->create(['site_id' => 'SPWIDGET1']);
+    NokiaSite::factory()->create(['site_id' => 'SPWIDGET2']);
+
+    $this->actingAs(User::factory()->create())
+        ->get('/admin')
+        ->assertOk()
+        ->assertSee('Sites Nokia')
+        ->assertSee('Conclusão do checklist')
+        ->assertSee('Atividades concluídas')
+        ->assertSee('Últimos 6 meses')
+        ->assertSee('Ver sites');
 });
 
 test('sites can be searched by site or orders', function () {

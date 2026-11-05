@@ -47,7 +47,7 @@
             </div>
         @endif
 
-        <section class="relative overflow-hidden rounded-3xl border border-gray-200/80 bg-white dark:border-white/10 dark:bg-[#171716]">
+        <section class="relative overflow-hidden rounded-3xl border border-gray-200/80 bg-white dark:border-white/10 dark:bg-[#171716]" x-data="{ edit: @js($editPayload) }">
             <div class="pointer-events-none absolute inset-x-0 top-0 h-44 bg-linear-to-br from-indigo-500/15 via-violet-500/10 to-transparent dark:from-indigo-500/20 dark:via-violet-500/10"></div>
 
             <div class="relative flex flex-col gap-6 p-6 sm:p-8 xl:flex-row xl:items-center xl:justify-between">
@@ -122,7 +122,7 @@
                     <x-ui.action
                         type="button"
                         icon="pencil-square"
-                        x-on:click="$dispatch('open-edit-site-modal', @js($editPayload))"
+                        x-on:click="$dispatch('open-edit-site-modal', edit)"
                     >
                         Editar site
                     </x-ui.action>
