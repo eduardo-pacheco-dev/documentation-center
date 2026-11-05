@@ -69,6 +69,25 @@ test('sites can be listed', function () {
         ->assertSee('FAM Panorâmica');
 });
 
+test('the site list renders the details modal', function () {
+    NokiaSite::factory()->create([
+        'site_id' => 'SPDETAIL1',
+        'end_id' => 'END-4242',
+        'checklist_fam_panoramica' => true,
+    ]);
+
+    $this->actingAs(User::factory()->create())
+        ->get('/admin/nokia/sites')
+        ->assertOk()
+        ->assertSee('details-site-modal', false)
+        ->assertSee('open-site-details-modal', false)
+        ->assertSee('Abrir menu de ações do site SPDETAIL1')
+        ->assertSee('role="menu"', false)
+        ->assertSee('Detalhes do site')
+        ->assertSee('SPDETAIL1')
+        ->assertSee('END-4242');
+});
+
 test('sites can be searched by site or orders', function () {
     NokiaSite::factory()->create([
         'site_id' => 'SPALPHA1',

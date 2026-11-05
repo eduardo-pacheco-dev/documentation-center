@@ -100,6 +100,26 @@
                     </thead>
                     <tbody class="divide-y divide-gray-100 dark:divide-white/10">
                         @foreach ($sites as $site)
+                            @php
+                                $detailsPayload = [
+                                    'site_id' => $site->site_id,
+                                    'end_id' => $site->end_id ?: null,
+                                    'oc' => $site->oc ?: null,
+                                    'os_fam_entrega' => $site->os_fam_entrega ?: null,
+                                    'os_fam_instalacao' => $site->os_fam_instalacao ?: null,
+                                    'updated_at' => $site->updated_at?->format('d/m/Y H:i'),
+                                    'edit_url' => route('admin.nokia.sites.edit', $site),
+                                    'checklists' => collect($checklists)
+                                        ->map(fn (string $label, string $field): array => [
+                                            'field' => $field,
+                                            'label' => $label,
+                                            'done' => (bool) $site->{$field},
+                                        ])
+                                        ->values()
+                                        ->all(),
+                                ];
+                            @endphp
+
                             <tr class="transition hover:bg-gray-50/70 dark:hover:bg-white/[0.03]">
                                 <td class="px-5 py-4">
                                     <span class="font-semibold text-gray-900 dark:text-white">{{ $site->site_id }}</span>
@@ -135,33 +155,7 @@
                                 </td>
 
                                 <td class="px-5 py-4 text-right">
-                                    <div class="inline-flex items-center gap-1">
-                                        <x-ui.action
-                                            :href="route('admin.nokia.sites.edit', $site)"
-                                            variant="ghost"
-                                            size="sm"
-                                            icon="pencil-square"
-                                        >
-                                            Editar
-                                        </x-ui.action>
-
-                                        <form
-                                            method="POST"
-                                            action="{{ route('admin.nokia.sites.destroy', $site) }}"
-                                            data-confirm-delete="Excluir o site {{ $site->site_id }}? Essa ação não pode ser desfeita."
-                                        >
-                                            @csrf
-                                            @method('DELETE')
-
-                                            <button
-                                                type="submit"
-                                                class="inline-flex h-9 items-center justify-center gap-1.5 rounded-xl px-3 text-xs font-semibold text-red-600 transition hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-500/15"
-                                            >
-                                                <x-icon name="trash" class="h-4 w-4" />
-                                                Excluir
-                                            </button>
-                                        </form>
-                                    </div>
+                                    <x-nokia::partials.actions-menu :site="$site" :details-payload="$detailsPayload" />
                                 </td>
                             </tr>
                         @endforeach
@@ -174,4 +168,6 @@
             </div>
         </div>
     @endif
+
+    <x-nokia::partials.details-modal />
 </x-layouts.admin>
