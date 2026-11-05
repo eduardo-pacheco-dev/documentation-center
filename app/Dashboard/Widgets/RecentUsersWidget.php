@@ -21,6 +21,16 @@ class RecentUsersWidget extends Widget
         return 'Usuários recentes';
     }
 
+    public function description(): ?string
+    {
+        return 'As últimas contas criadas na aplicação.';
+    }
+
+    public function icon(): ?string
+    {
+        return 'clock';
+    }
+
     public function view(): string
     {
         return 'admin.widgets.recent-users';

@@ -23,6 +23,16 @@ class ActivePluginsWidget extends Widget
         return 'Plugins ativos';
     }
 
+    public function description(): ?string
+    {
+        return 'Plugins habilitados e em execução.';
+    }
+
+    public function icon(): ?string
+    {
+        return 'chart-bar';
+    }
+
     public function view(): string
     {
         return 'admin.widgets.active-plugins';

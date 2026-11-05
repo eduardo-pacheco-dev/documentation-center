@@ -13,7 +13,7 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 
-#[Fillable(['name', 'surname', 'email', 'password', 'theme', 'enabled_modules', 'module_order', 'module_sections', 'dashboard_hidden_widgets', 'email_notifications'])]
+#[Fillable(['name', 'surname', 'email', 'password', 'theme', 'enabled_modules', 'module_order', 'module_sections', 'dashboard_hidden_widgets', 'dashboard_widget_order', 'dashboard_widget_spans', 'email_notifications'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable
 {
@@ -88,6 +88,57 @@ class User extends Authenticatable
     }
 
     /**
+     * The custom order of the dashboard widgets chosen by the user.
+     *
+     * @return list<string>
+     */
+    public function dashboardWidgetOrder(): array
+    {
+        $order = $this->dashboard_widget_order;
+
+        if (! is_array($order)) {
+            return [];
+        }
+
+        return array_values(array_filter(
+            $order,
+            fn (mixed $widget): bool => is_string($widget) && $widget !== '',
+        ));
+    }
+
+    /**
+     * The custom column spans chosen by the user, keyed by widget identifier.
+     *
+     * @return array<string, int>
+     */
+    public function dashboardWidgetSpans(): array
+    {
+        $spans = $this->dashboard_widget_spans;
+
+        if (! is_array($spans)) {
+            return [];
+        }
+
+        $normalized = [];
+
+        foreach ($spans as $widget => $span) {
+            if (is_string($widget) && $widget !== '' && is_numeric($span)) {
+                $normalized[$widget] = max(1, min(3, (int) $span));
+            }
+        }
+
+        return $normalized;
+    }
+
+    /**
+     * The column span chosen by the user for a widget, when customized.
+     */
+    public function dashboardWidgetSpan(string $widget): ?int
+    {
+        return $this->dashboardWidgetSpans()[$widget] ?? null;
+    }
+
+    /**
      * Get the attributes that should be cast.
      *
      * @return array<string, string>
@@ -103,6 +154,8 @@ class User extends Authenticatable
             'module_order' => 'array',
             'module_sections' => 'array',
             'dashboard_hidden_widgets' => 'array',
+            'dashboard_widget_order' => 'array',
+            'dashboard_widget_spans' => 'array',
             'email_notifications' => 'boolean',
         ];
     }

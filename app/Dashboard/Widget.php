@@ -23,6 +23,22 @@ abstract class Widget
     abstract public function title(): string;
 
     /**
+     * A short description used by the dashboard editor.
+     */
+    public function description(): ?string
+    {
+        return null;
+    }
+
+    /**
+     * The icon used by the dashboard editor.
+     */
+    public function icon(): ?string
+    {
+        return null;
+    }
+
+    /**
      * The Blade view rendered for the widget.
      */
     abstract public function view(): string;

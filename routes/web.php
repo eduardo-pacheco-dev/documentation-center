@@ -82,6 +82,7 @@ Route::middleware('auth')->group(function () {
 Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
     Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
     Route::put('widgets/{widget}', [DashboardController::class, 'updateWidget'])->name('widgets.update');
+    Route::put('widgets/{widget}/layout', [DashboardController::class, 'updateWidgetLayout'])->name('widgets.layout');
 
     /*
     | Administration only

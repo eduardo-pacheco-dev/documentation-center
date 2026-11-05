@@ -5,10 +5,12 @@ namespace App\Http\Controllers\Admin;
 use App\Dashboard\Widget;
 use App\Dashboard\WidgetRegistry;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\UpdateDashboardWidgetLayoutRequest;
 use App\Http\Requests\UpdateDashboardWidgetRequest;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\View\View;
 
 class DashboardController extends Controller
@@ -20,6 +22,7 @@ class DashboardController extends Controller
     {
         $user = $request->user();
         $availableWidgets = $widgets->forRequest($request);
+        $orderedWidgets = $this->applyOrder($availableWidgets, $user->dashboardWidgetOrder());
         $hiddenWidgets = $user->hiddenDashboardWidgets();
         $editing = $request->boolean('edit');
 
@@ -27,11 +30,12 @@ class DashboardController extends Controller
 
         return view('admin.dashboard', [
             'greeting' => $this->greeting($user),
-            'widgets' => $availableWidgets->reject($isHidden)->values(),
+            'widgets' => $orderedWidgets->reject($isHidden)->values(),
             'editing' => $editing,
             'hiddenWidgets' => $editing
                 ? $availableWidgets->filter($isHidden)->values()
                 : collect(),
+            'widgetSpans' => $user->dashboardWidgetSpans(),
         ]);
     }
 
@@ -67,6 +71,88 @@ class DashboardController extends Controller
                     ? 'Widget removido do painel.'
                     : 'Widget adicionado ao painel.',
             );
+    }
+
+    /**
+     * Reorder or resize a dashboard widget for the authenticated user.
+     */
+    public function updateWidgetLayout(
+        UpdateDashboardWidgetLayoutRequest $request,
+        WidgetRegistry $widgets,
+        string $widget,
+    ): RedirectResponse {
+        $available = $widgets->forRequest($request);
+        $widgetInstance = $available->firstWhere(fn (Widget $available): bool => $available->id() === $widget);
+
+        abort_if($widgetInstance === null, 404);
+
+        $user = $request->user();
+        $order = $this->normalizeOrder($available, $user->dashboardWidgetOrder());
+        $spans = $user->dashboardWidgetSpans();
+        $direction = $request->validated('direction');
+        $message = 'Widget atualizado.';
+
+        if ($direction !== null) {
+            $position = array_search($widget, $order, true);
+            $target = $direction === 'up' ? $position - 1 : $position + 1;
+
+            if ($position !== false && isset($order[$target])) {
+                [$order[$position], $order[$target]] = [$order[$target], $order[$position]];
+                $message = 'Ordem dos widgets atualizada.';
+            }
+        }
+
+        if ($request->filled('span')) {
+            $span = (int) $request->validated('span');
+
+            if ($span === $widgetInstance->columnSpan()) {
+                unset($spans[$widget]);
+            } else {
+                $spans[$widget] = $span;
+            }
+
+            $message = 'Largura do widget atualizada.';
+        }
+
+        $user->update([
+            'dashboard_widget_order' => $order,
+            'dashboard_widget_spans' => $spans,
+        ]);
+
+        return redirect()
+            ->route('admin.dashboard', ['edit' => 1])
+            ->with('status', $message);
+    }
+
+    /**
+     * Apply the order chosen by the user, appending new widgets at the end.
+     *
+     * @param  Collection<int, Widget>  $widgets
+     * @param  list<string>  $order
+     * @return Collection<int, Widget>
+     */
+    private function applyOrder(Collection $widgets, array $order): Collection
+    {
+        $positions = array_flip($this->normalizeOrder($widgets, $order));
+
+        return $widgets
+            ->sortBy(fn (Widget $widget): int => $positions[$widget->id()])
+            ->values();
+    }
+
+    /**
+     * Keep only available widgets, preserving the registry order for new ones.
+     *
+     * @param  Collection<int, Widget>  $widgets
+     * @param  list<string>  $order
+     * @return list<string>
+     */
+    private function normalizeOrder(Collection $widgets, array $order): array
+    {
+        $available = $widgets->map(fn (Widget $widget): string => $widget->id())->all();
+        $ordered = array_values(array_intersect($order, $available));
+
+        return array_merge($ordered, array_values(array_diff($available, $ordered)));
     }
 
     /**

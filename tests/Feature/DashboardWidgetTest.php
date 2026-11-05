@@ -173,3 +173,132 @@ test('guests can not edit dashboard widgets', function () {
     $this->put(route('admin.widgets.update', ['widget' => 'core.plugins.installed']), ['hidden' => 1])
         ->assertRedirect('/login');
 });
+
+test('the dashboard follows the widget order chosen by the user', function () {
+    $admin = User::factory()->admin()->create([
+        'dashboard_widget_order' => [
+            'core.plugins.active',
+            'core.users.recent',
+            'core.users',
+            'core.plugins.installed',
+        ],
+    ]);
+
+    $this->actingAs($admin)
+        ->get('/admin')
+        ->assertOk()
+        ->assertSeeInOrder([
+            'data-widget="core.plugins.active"',
+            'data-widget="core.users.recent"',
+            'data-widget="core.users"',
+            'data-widget="core.plugins.installed"',
+        ], false);
+});
+
+test('new widgets are appended after the widgets ordered by the user', function () {
+    $admin = User::factory()->admin()->create([
+        'dashboard_widget_order' => ['core.users.recent'],
+    ]);
+
+    $this->actingAs($admin)
+        ->get('/admin')
+        ->assertOk()
+        ->assertSeeInOrder([
+            'data-widget="core.users.recent"',
+            'data-widget="core.users"',
+            'data-widget="core.plugins.installed"',
+            'data-widget="core.plugins.active"',
+        ], false);
+});
+
+test('users can move a widget up and down', function () {
+    $admin = User::factory()->admin()->create();
+
+    $this->actingAs($admin)
+        ->put(route('admin.widgets.layout', ['widget' => 'core.plugins.installed']), ['direction' => 'up'])
+        ->assertRedirect(route('admin.dashboard', ['edit' => 1]))
+        ->assertSessionHas('status', 'Ordem dos widgets atualizada.');
+
+    expect($admin->fresh()->dashboardWidgetOrder())->toBe([
+        'core.plugins.installed',
+        'core.users',
+        'core.plugins.active',
+        'core.users.recent',
+    ]);
+
+    $this->actingAs($admin->fresh())
+        ->get('/admin')
+        ->assertOk()
+        ->assertSeeInOrder([
+            'data-widget="core.plugins.installed"',
+            'data-widget="core.users"',
+        ], false);
+});
+
+test('moving the first widget up keeps the order unchanged', function () {
+    $admin = User::factory()->admin()->create();
+
+    $this->actingAs($admin)
+        ->put(route('admin.widgets.layout', ['widget' => 'core.users']), ['direction' => 'up'])
+        ->assertRedirect(route('admin.dashboard', ['edit' => 1]));
+
+    expect($admin->fresh()->dashboardWidgetOrder())->toBe([
+        'core.users',
+        'core.plugins.installed',
+        'core.plugins.active',
+        'core.users.recent',
+    ]);
+});
+
+test('users can resize a widget', function () {
+    $admin = User::factory()->admin()->create();
+
+    $this->actingAs($admin)
+        ->put(route('admin.widgets.layout', ['widget' => 'core.users']), ['span' => 2])
+        ->assertRedirect(route('admin.dashboard', ['edit' => 1]))
+        ->assertSessionHas('status', 'Largura do widget atualizada.');
+
+    expect($admin->fresh()->dashboardWidgetSpan('core.users'))->toBe(2);
+
+    $this->actingAs($admin->fresh())
+        ->get('/admin')
+        ->assertOk()
+        ->assertSee('data-widget="core.users"', false);
+});
+
+test('choosing the default width removes the custom span', function () {
+    $admin = User::factory()->admin()->create([
+        'dashboard_widget_spans' => ['core.users' => 2],
+    ]);
+
+    $this->actingAs($admin)
+        ->put(route('admin.widgets.layout', ['widget' => 'core.users']), ['span' => 1])
+        ->assertRedirect(route('admin.dashboard', ['edit' => 1]));
+
+    expect($admin->fresh()->dashboardWidgetSpans())->toBe([]);
+});
+
+test('the widget layout validates direction and span', function (array $payload, string $error) {
+    $this->actingAs(User::factory()->admin()->create())
+        ->put(route('admin.widgets.layout', ['widget' => 'core.users']), $payload)
+        ->assertSessionHasErrors($error);
+})->with([
+    'invalid direction' => [['direction' => 'left'], 'direction'],
+    'span too small' => [['span' => 0], 'span'],
+    'span too large' => [['span' => 4], 'span'],
+]);
+
+test('unknown widgets can not be reordered or resized', function () {
+    $this->actingAs(User::factory()->admin()->create())
+        ->put(route('admin.widgets.layout', ['widget' => 'core.missing']), ['span' => 2])
+        ->assertNotFound();
+});
+
+test('the edit mode exposes the widget metadata', function () {
+    $this->actingAs(User::factory()->admin()->create())
+        ->get('/admin?edit=1')
+        ->assertOk()
+        ->assertSee('Total de contas cadastradas no sistema.')
+        ->assertSee('Largura')
+        ->assertSee('Ordem');
+});

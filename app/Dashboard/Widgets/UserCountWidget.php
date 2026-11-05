@@ -21,6 +21,16 @@ class UserCountWidget extends Widget
         return 'Usuários';
     }
 
+    public function description(): ?string
+    {
+        return 'Total de contas cadastradas no sistema.';
+    }
+
+    public function icon(): ?string
+    {
+        return 'users';
+    }
+
     public function view(): string
     {
         return 'admin.widgets.user-count';
