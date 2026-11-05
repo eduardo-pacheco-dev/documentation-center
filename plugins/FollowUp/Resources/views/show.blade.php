@@ -1,4 +1,20 @@
 <x-layouts.admin title="{{ $followUp->title }}">
+    @php
+        $editPayload = [
+            'id' => $followUp->getKey(),
+            'title' => $followUp->title,
+            'code' => $followUp->code,
+            'description' => $followUp->description,
+            'client_id' => (string) ($followUp->client_id ?? ''),
+            'project_id' => (string) ($followUp->project_id ?? ''),
+            'status' => $followUp->status->value,
+            'priority' => $followUp->priority->value,
+            'due_date' => $followUp->due_date?->format('Y-m-d') ?? '',
+            'completed_at' => $followUp->completed_at?->format('Y-m-d') ?? '',
+            'assignee_id' => (string) ($followUp->assignee_id ?? ''),
+        ];
+    @endphp
+
     <nav class="flex flex-wrap items-center gap-1.5 text-xs text-gray-400 dark:text-gray-500" aria-label="Trilha de navegação">
         <a href="{{ route('admin.follow-ups.index') }}" class="font-medium text-gray-500 transition hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">Follow-ups</a>
         <x-icon name="chevron-right" class="h-3 w-3" />
@@ -41,7 +57,12 @@
                 Enviar por e-mail
             </x-ui.action>
 
-            <x-ui.action :href="route('admin.follow-ups.edit', $followUp)" icon="pencil-square" variant="secondary">
+            <x-ui.action
+                type="button"
+                icon="pencil-square"
+                variant="secondary"
+                x-on:click="$dispatch('open-follow-up-edit', {{ \Illuminate\Support\Js::from($editPayload) }})"
+            >
                 Editar
             </x-ui.action>
 
@@ -204,4 +225,11 @@
     </div>
 
     <x-follow-up::partials.email-modal :follow-up="$followUp" />
+
+    <x-follow-up::partials.edit-modal
+        :assignees="$assignees"
+        :clients="$clients"
+        :statuses="$statuses"
+        :priorities="$priorities"
+    />
 </x-layouts.admin>

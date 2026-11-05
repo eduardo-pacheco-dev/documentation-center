@@ -103,6 +103,87 @@ test('follow-ups can be listed, searched and filtered', function () {
         ->assertDontSee('Relatório mensal');
 });
 
+test('follow-ups can be searched by assignee, status and id', function () {
+    $user = User::factory()->create();
+
+    $assignee = FollowUpAssignee::factory()->create([
+        'name' => 'Mariana Busca',
+        'email' => 'mariana.busca@example.com',
+    ]);
+
+    $followUp = FollowUp::factory()->create([
+        'title' => 'Tratativa vinculada ao responsável',
+        'status' => FollowUpStatus::Completed->value,
+        'assignee_id' => $assignee->getKey(),
+    ]);
+
+    FollowUp::factory()->create(['title' => 'Acompanhamento sem vínculo']);
+
+    $this->actingAs($user)
+        ->get('/admin/follow-ups?search=Mariana')
+        ->assertOk()
+        ->assertSee($followUp->title)
+        ->assertDontSee('Acompanhamento sem vínculo');
+
+    $this->actingAs($user)
+        ->get('/admin/follow-ups?search=mariana.busca@example.com')
+        ->assertOk()
+        ->assertSee($followUp->title);
+
+    $this->actingAs($user)
+        ->get('/admin/follow-ups?search=concluido')
+        ->assertOk()
+        ->assertSee($followUp->title)
+        ->assertDontSee('Acompanhamento sem vínculo');
+
+    $this->actingAs($user)
+        ->get('/admin/follow-ups?search='.$followUp->getKey())
+        ->assertOk()
+        ->assertSee($followUp->title);
+});
+
+test('the edit modal opens from the listing and reopens after a validation error', function () {
+    $user = User::factory()->create();
+    $followUp = FollowUp::factory()->create(['title' => 'Ajustar contrato']);
+
+    $this->actingAs($user)
+        ->get('/admin/follow-ups')
+        ->assertOk()
+        ->assertSee('open-follow-up-edit')
+        ->assertSee('name="modal" value="edit"', false);
+
+    $this->actingAs($user)
+        ->from('/admin/follow-ups')
+        ->put("/admin/follow-ups/{$followUp->getKey()}", [
+            'modal' => 'edit',
+            'title' => '',
+            'status' => FollowUpStatus::Pending->value,
+            'priority' => FollowUpPriority::Medium->value,
+        ])
+        ->assertRedirect(route('admin.follow-ups.index', ['edit' => $followUp->getKey()]))
+        ->assertSessionHasErrors('title');
+
+    $this->actingAs($user)
+        ->get(route('admin.follow-ups.index', ['edit' => $followUp->getKey()]))
+        ->assertOk()
+        ->assertSee('Ajustar contrato')
+        ->assertSee('Revise os campos destacados para salvar as alterações.');
+});
+
+test('the edit modal is also available on the follow-up details page', function () {
+    $user = User::factory()->create();
+    $followUp = FollowUp::factory()->create(['title' => 'Editar pelo detalhe']);
+
+    $this->actingAs($user)
+        ->get(route('admin.follow-ups.show', $followUp))
+        ->assertOk()
+        ->assertSee('open-follow-up-edit')
+        ->assertSee("dispatch('open-follow-up-edit'", false)
+        ->assertSee('JSON.parse(', false)
+        ->assertDontSee('@js($editPayload)', false)
+        ->assertSee('Editar follow-up');
+});
+
 test('follow-ups can be sorted by the table columns', function () {
     FollowUp::factory()->create(['title' => 'Alfa acompanhamento']);
     FollowUp::factory()->create(['title' => 'Beta acompanhamento']);
@@ -493,7 +574,7 @@ test('the index renders an actions menu for each follow-up', function () {
         ->assertOk()
         ->assertSee('Abrir menu de ações do follow-up Acompanhar proposta')
         ->assertSee(route('admin.follow-ups.show', $followUp))
-        ->assertSee(route('admin.follow-ups.edit', $followUp))
+        ->assertSee('open-follow-up-edit')
         ->assertSee(route('admin.follow-ups.export-one', $followUp))
         ->assertSee(route('admin.follow-ups.destroy', $followUp));
 });

@@ -2,6 +2,20 @@
 
 @php
     $menuId = 'follow-up-actions-'.$followUp->getKey();
+
+    $editPayload = [
+        'id' => $followUp->getKey(),
+        'title' => $followUp->title,
+        'code' => $followUp->code,
+        'description' => $followUp->description,
+        'client_id' => (string) ($followUp->client_id ?? ''),
+        'project_id' => (string) ($followUp->project_id ?? ''),
+        'status' => $followUp->status->value,
+        'priority' => $followUp->priority->value,
+        'due_date' => $followUp->due_date?->format('Y-m-d') ?? '',
+        'completed_at' => $followUp->completed_at?->format('Y-m-d') ?? '',
+        'assignee_id' => (string) ($followUp->assignee_id ?? ''),
+    ];
 @endphp
 
 <div
@@ -79,14 +93,15 @@
                 Ver detalhes
             </a>
 
-            <a
-                href="{{ route('admin.follow-ups.edit', $followUp) }}"
+            <button
+                type="button"
                 role="menuitem"
+                x-on:click="$dispatch('open-follow-up-edit', @js($editPayload)); close()"
                 class="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-gray-700 transition hover:bg-gray-50 dark:text-gray-200 dark:hover:bg-white/5"
             >
                 <x-icon name="pencil-square" class="h-4 w-4 text-gray-400 dark:text-gray-500" />
                 Editar
-            </a>
+            </button>
 
             <a
                 href="{{ route('admin.follow-ups.export-one', $followUp) }}"

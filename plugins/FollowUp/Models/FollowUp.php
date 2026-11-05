@@ -85,18 +85,29 @@ class FollowUp extends Model
     }
 
     /**
-     * Filter by title, code or description.
+     * Filter by title, code, description, status, priority, due date, client,
+     * project or assignee (name and e-mail).
      */
     public function scopeMatching(Builder $query, string $term): void
     {
         $like = "%{$term}%";
 
-        $query->where(function (Builder $query) use ($like): void {
+        $query->where(function (Builder $query) use ($like, $term): void {
             $query->where('title', 'like', $like)
                 ->orWhere('code', 'like', $like)
                 ->orWhere('description', 'like', $like)
+                ->orWhere('status', 'like', $like)
+                ->orWhere('priority', 'like', $like)
+                ->orWhere('due_date', 'like', $like)
                 ->orWhereHas('client', fn (Builder $query) => $query->where('name', 'like', $like))
-                ->orWhereHas('project', fn (Builder $query) => $query->where('name', 'like', $like));
+                ->orWhereHas('project', fn (Builder $query) => $query->where('name', 'like', $like))
+                ->orWhereHas('assignee', fn (Builder $query) => $query
+                    ->where('name', 'like', $like)
+                    ->orWhere('email', 'like', $like));
+
+            if (ctype_digit($term)) {
+                $query->orWhere('id', (int) $term);
+            }
         });
     }
 

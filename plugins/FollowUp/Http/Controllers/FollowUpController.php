@@ -69,8 +69,15 @@ class FollowUpController extends Controller
 
         $emailSettings = FollowUpSetting::current();
 
+        $editFollowUp = null;
+
+        if ($request->filled('edit')) {
+            $editFollowUp = FollowUp::query()->find($request->integer('edit'));
+        }
+
         return view('follow-up::index', [
             'followUps' => $followUps,
+            'editFollowUp' => $editFollowUp,
             'emailFollowUps' => $emailFollowUps,
             'emailSchedule' => [
                 'enabled' => $emailSettings->email_summary_enabled,
@@ -153,6 +160,10 @@ class FollowUpController extends Controller
 
         return view('follow-up::show', [
             'followUp' => $followUp,
+            'assignees' => $this->assignees(),
+            'clients' => $this->clients(),
+            'statuses' => FollowUpStatus::options(),
+            'priorities' => FollowUpPriority::options(),
         ]);
     }
 
