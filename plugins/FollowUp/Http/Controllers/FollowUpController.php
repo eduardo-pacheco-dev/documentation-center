@@ -77,6 +77,8 @@ class FollowUpController extends Controller
                 'recipients' => $emailSettings->summary_recipients,
                 'recipientsList' => $emailSettings->summaryRecipients(),
                 'ccRecipients' => $emailSettings->summaryCcRecipients(),
+                'days' => $emailSettings->summaryDays(),
+                'dayOptions' => FollowUpSetting::summaryDayOptions(),
                 'prefix' => $emailSettings->email_subject_prefix,
                 'period' => $emailSettings->summaryPeriod(),
                 'periodOptions' => FollowUpSetting::summaryPeriodOptions(),

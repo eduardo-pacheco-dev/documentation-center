@@ -29,6 +29,8 @@ class UpdateFollowUpScheduleRequest extends FormRequest
             'email_subject_prefix' => ['required', 'string', 'max:150'],
             'summary_period' => ['nullable', Rule::in(array_keys(FollowUpSetting::summaryPeriodOptions()))],
             'summary_times' => ['required', 'string', 'max:100'],
+            'summary_days' => ['required', 'array', 'min:1'],
+            'summary_days.*' => ['integer', 'distinct', Rule::in(FollowUpSetting::allSummaryDays())],
             'summary_recipients' => ['nullable', 'string', 'max:1000'],
             'summary_cc_recipients' => ['nullable', 'string', 'max:1000'],
         ];
@@ -100,6 +102,18 @@ class UpdateFollowUpScheduleRequest extends FormRequest
     }
 
     /**
+     * The normalized summary delivery days.
+     *
+     * @return list<int>
+     */
+    public function summaryDays(): array
+    {
+        return FollowUpSetting::parseSummaryDays(
+            implode(',', array_map('intval', (array) $this->validated('summary_days', []))),
+        );
+    }
+
+    /**
      * Get custom validation messages.
      *
      * @return array<string, string>
@@ -108,6 +122,9 @@ class UpdateFollowUpScheduleRequest extends FormRequest
     {
         return [
             'summary_times.required' => 'Informe os horários do resumo periódico.',
+            'summary_days.required' => 'Selecione ao menos um dia da semana.',
+            'summary_days.min' => 'Selecione ao menos um dia da semana.',
+            'summary_days.*.in' => 'Um dos dias da semana selecionados é inválido.',
             'email_subject_prefix.required' => 'Informe o prefixo do assunto dos e-mails.',
             'summary_period.in' => 'Selecione um período válido para o resumo.',
         ];

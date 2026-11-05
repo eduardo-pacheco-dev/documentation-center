@@ -68,6 +68,7 @@ class FollowUpServiceProvider extends ServiceProvider
             'follow-up.widget_limit' => $settings->widget_limit,
             'follow-up.email.subject_prefix' => $settings->email_subject_prefix,
             'follow-up.email.summary_times' => $settings->summaryTimes(),
+            'follow-up.email.summary_days' => $settings->summaryDays(),
             'follow-up.email.summary_enabled' => $settings->email_summary_enabled,
         ]);
 
@@ -115,9 +116,10 @@ class FollowUpServiceProvider extends ServiceProvider
         }
 
         $times = (array) config('follow-up.email.summary_times', ['08:00', '17:00']);
+        $days = (array) config('follow-up.email.summary_days', range(0, 6));
 
         foreach ($times as $time) {
-            Schedule::command('follow-up:send-daily-summary')->dailyAt($time);
+            Schedule::command('follow-up:send-daily-summary')->dailyAt($time)->days($days);
         }
     }
 

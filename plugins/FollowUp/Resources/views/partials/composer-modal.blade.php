@@ -13,12 +13,16 @@
     $ccChips = old('summary_cc_recipients')
         ? \Plugins\FollowUp\Models\FollowUpSetting::parseSummaryRecipients((string) old('summary_cc_recipients'))
         : $schedule['ccRecipients'];
+
+    $selectedDays = collect((array) old('summary_days', $schedule['days']))
+        ->map(fn ($day): int => (int) $day)
+        ->all();
 @endphp
 
 <div
     x-data="{
-        open: {{ $errors->hasAny(['recipients', 'subject', 'summary_times', 'email_summary_enabled', 'summary_recipients', 'summary_cc_recipients']) ? 'true' : 'false' }},
-        tab: {{ $errors->hasAny(['summary_times', 'email_summary_enabled', 'summary_recipients', 'summary_cc_recipients']) ? "'scheduled'" : "'manual'" }},
+        open: {{ $errors->hasAny(['recipients', 'subject', 'summary_times', 'summary_days', 'email_summary_enabled', 'summary_recipients', 'summary_cc_recipients']) ? 'true' : 'false' }},
+        tab: {{ $errors->hasAny(['summary_times', 'summary_days', 'email_summary_enabled', 'summary_recipients', 'summary_cc_recipients']) ? "'scheduled'" : "'manual'" }},
         recipientsList: [],
         ccList: [],
         newRecipient: '',
@@ -342,6 +346,31 @@
 
                             <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Recebem uma cópia de cada resumo agendado. E-mails cadastrados em Configurações também entram em cópia.</p>
                             @error('summary_cc_recipients')<p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>@enderror
+                        </div>
+
+                        <div>
+                            <fieldset>
+                                <legend class="block text-sm font-medium text-gray-700 dark:text-gray-200">Dias da semana</legend>
+
+                                <div class="mt-1.5 grid grid-cols-2 gap-2 sm:grid-cols-4">
+                                    @foreach ($schedule['dayOptions'] as $value => $label)
+                                        <label class="flex min-h-10 cursor-pointer items-center gap-2 rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 transition has-[:checked]:border-indigo-500 has-[:checked]:bg-indigo-50 has-[:checked]:text-indigo-700 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200 dark:has-[:checked]:border-indigo-400 dark:has-[:checked]:bg-indigo-500/10 dark:has-[:checked]:text-indigo-200">
+                                            <input
+                                                type="checkbox"
+                                                name="summary_days[]"
+                                                value="{{ $value }}"
+                                                @checked(in_array((int) $value, $selectedDays, true))
+                                                class="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500/30 dark:border-gray-600 dark:bg-gray-800 dark:text-indigo-400"
+                                            >
+                                            <span>{{ $label }}</span>
+                                        </label>
+                                    @endforeach
+                                </div>
+
+                                <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">O resumo é enviado apenas nos dias selecionados.</p>
+                                @error('summary_days')<p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>@enderror
+                                @error('summary_days.*')<p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>@enderror
+                            </fieldset>
                         </div>
 
                         <div>

@@ -248,8 +248,31 @@ test('the e-mail composer offers manual and scheduled tabs', function () {
         ->assertSee('Agendamento ativo')
         ->assertSee('Período do resumo')
         ->assertSee('name="summary_period"', false)
+        ->assertSee('Dias da semana')
+        ->assertSee('Segunda')
+        ->assertSee('Domingo')
+        ->assertSee('name="summary_days[]"', false)
         ->assertSee('Destinatários (Para)')
         ->assertSee('Cópias (CC)');
+});
+
+test('the summary days default to every weekday', function () {
+    expect(FollowUpSetting::current()->summaryDays())->toBe([0, 1, 2, 3, 4, 5, 6]);
+});
+
+test('the summary days are normalized and ignore invalid values', function () {
+    expect(FollowUpSetting::parseSummaryDays('5,1,3,3,9,-1,abc'))->toBe([1, 3, 5]);
+});
+
+test('the schedule requires at least one weekday', function () {
+    $this->actingAs(User::factory()->admin()->create())
+        ->put('/admin/follow-ups/settings/schedule', [
+            'email_summary_enabled' => '1',
+            'email_subject_prefix' => 'Follow-up',
+            'summary_times' => '08:00',
+            'summary_days' => [],
+        ])
+        ->assertSessionHasErrors('summary_days');
 });
 
 test('the index exposes secondary actions in the action menu', function () {
@@ -278,6 +301,7 @@ test('the periodic schedule can be updated from the composer', function () {
             'email_subject_prefix' => 'Acompanhamento',
             'summary_period' => FollowUpSetting::SUMMARY_PERIOD_LAST_30_DAYS,
             'summary_times' => '07:30, 19:45',
+            'summary_days' => ['1', '3', '5'],
             'summary_recipients' => 'gestao@example.com, financeiro@example.com',
             'summary_cc_recipients' => 'cc@example.com',
         ])
@@ -290,6 +314,7 @@ test('the periodic schedule can be updated from the composer', function () {
         ->and($settings->email_subject_prefix)->toBe('Acompanhamento')
         ->and($settings->summaryPeriod())->toBe(FollowUpSetting::SUMMARY_PERIOD_LAST_30_DAYS)
         ->and($settings->summaryTimes())->toBe(['07:30', '19:45'])
+        ->and($settings->summaryDays())->toBe([1, 3, 5])
         ->and($settings->summaryRecipients())->toBe(['gestao@example.com', 'financeiro@example.com'])
         ->and($settings->summaryCcRecipients())->toBe(['cc@example.com']);
 });
@@ -338,6 +363,7 @@ test('invalid summary recipients are rejected', function () {
             'email_summary_enabled' => '1',
             'email_subject_prefix' => 'Follow-up',
             'summary_times' => '08:00',
+            'summary_days' => [1, 2, 3, 4, 5],
             'summary_recipients' => 'nao-e-um-email',
         ])
         ->assertSessionHasErrors('summary_recipients');
@@ -398,6 +424,7 @@ test('regular users cannot change the periodic schedule', function () {
             'email_summary_enabled' => '1',
             'email_subject_prefix' => 'Follow-up',
             'summary_times' => '08:00',
+            'summary_days' => [1, 2, 3, 4, 5],
         ])
         ->assertForbidden();
 });
@@ -969,6 +996,7 @@ test('invalid summary period is rejected', function () {
             'email_subject_prefix' => 'Follow-up',
             'summary_period' => 'invalid-period',
             'summary_times' => '08:00',
+            'summary_days' => [1, 2, 3, 4, 5],
         ])
         ->assertSessionHasErrors('summary_period');
 });
@@ -979,6 +1007,7 @@ test('invalid summary times are rejected', function () {
             'email_summary_enabled' => '1',
             'email_subject_prefix' => 'Follow-up',
             'summary_times' => '25:00',
+            'summary_days' => [1, 2, 3, 4, 5],
         ])
         ->assertSessionHasErrors('summary_times');
 });
