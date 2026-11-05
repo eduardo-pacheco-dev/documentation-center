@@ -53,6 +53,7 @@ Route::middleware('auth')->group(function () {
     Route::get('settings', [SettingsController::class, 'show'])->name('settings');
     Route::put('settings/theme', [SettingsController::class, 'updateTheme'])->name('settings.theme.update');
     Route::put('settings/modules', [SettingsController::class, 'updateModules'])->name('settings.modules.update');
+    Route::put('settings/system', [SettingsController::class, 'updateTimezone'])->name('settings.system.update');
     Route::put('settings/password', [SettingsController::class, 'updatePassword'])->name('settings.password.update');
     Route::delete('settings/account', [SettingsController::class, 'destroy'])->name('settings.account.destroy');
 

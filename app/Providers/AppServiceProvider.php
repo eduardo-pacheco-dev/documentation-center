@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use App\Settings\SettingsSectionRegistry;
+use App\Settings\SystemSettings;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
@@ -25,6 +26,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        SystemSettings::apply(SystemSettings::timezone());
+
         RateLimiter::for('login', function (Request $request) {
             $email = Str::lower($request->string('email')->toString());
 

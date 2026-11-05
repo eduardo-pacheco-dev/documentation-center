@@ -3,6 +3,7 @@
         $sections = ['aparencia', 'modulos'];
 
         if ($user->is_admin) {
+            $sections[] = 'sistema';
             $sections[] = 'plugins';
         }
 
@@ -100,6 +101,18 @@
                         <span class="flex-1 truncate">Módulos</span>
                         <x-ui.badge tone="gray">{{ count($enabledModules) }}</x-ui.badge>
                     </a>
+
+                    @if ($user->is_admin)
+                        <a
+                            href="#sistema"
+                            @click="active = 'sistema'"
+                            x-bind:class="active === 'sistema' ? '{{ $navActive }}' : '{{ $navIdle }}'"
+                            class="group flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm font-medium transition"
+                        >
+                            <x-icon name="globe-alt" class="h-4 w-4 shrink-0" x-bind:class="active === 'sistema' ? 'text-white' : 'text-sky-500'" />
+                            <span class="flex-1 truncate">Sistema</span>
+                        </a>
+                    @endif
 
                     @if ($user->is_admin)
                         <a
@@ -446,6 +459,66 @@
             </form>
 
             @if ($user->is_admin)
+                <form
+                    id="sistema"
+                    method="POST"
+                    action="{{ route('settings.system.update') }}"
+                    class="{{ $cardClass }} scroll-mt-6"
+                >
+                    @csrf
+                    @method('PUT')
+
+                    <div class="{{ $headerClass }}">
+                        <span class="{{ $tileClass }}">
+                            <x-icon name="globe-alt" class="h-5 w-5" />
+                        </span>
+
+                        <div class="min-w-0">
+                            <h2 class="{{ $titleClass }}">Sistema</h2>
+                            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                                Defina o fuso horário usado para exibir datas, agendar tarefas e registrar horários em todo o sistema.
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="{{ $bodyClass }}">
+                        <div class="max-w-sm">
+                            <label for="timezone" class="{{ $labelClass }}">Fuso horário do sistema</label>
+
+                            <select
+                                id="timezone"
+                                name="timezone"
+                                class="{{ $inputClass }}"
+                                required
+                            >
+                                @foreach ($timezoneGroups as $region => $timezones)
+                                    <optgroup label="{{ $region }}">
+                                        @foreach ($timezones as $timezone)
+                                            <option value="{{ $timezone }}" @selected(old('timezone', $systemTimezone) === $timezone)>
+                                                {{ $timezone }}
+                                            </option>
+                                        @endforeach
+                                    </optgroup>
+                                @endforeach
+                            </select>
+
+                            @error('timezone')
+                                <p class="mt-2 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
+                            @enderror
+
+                            <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                                Fuso atual: <span class="font-medium text-gray-700 dark:text-gray-200">{{ $systemTimezone }}</span>
+                            </p>
+                        </div>
+
+                        <div class="mt-5">
+                            <x-ui.action type="submit" icon="check">
+                                Salvar fuso horário
+                            </x-ui.action>
+                        </div>
+                    </div>
+                </form>
+
                 @include('settings.partials.plugins', [
                     'cardClass' => $cardClass,
                     'headerClass' => $headerClass,
