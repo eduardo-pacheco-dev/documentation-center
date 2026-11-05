@@ -6,10 +6,12 @@ use App\Enums\AdminModule;
 use App\Http\Requests\DeleteAccountRequest;
 use App\Http\Requests\UpdateModulesRequest;
 use App\Http\Requests\UpdatePasswordRequest;
+use App\Http\Requests\UpdateSystemTimezoneRequest;
 use App\Http\Requests\UpdateThemeRequest;
 use App\Plugins\Plugin;
 use App\Plugins\PluginRepository;
 use App\Settings\SettingsSectionRegistry;
+use App\Settings\SystemSettings;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -34,6 +36,8 @@ class SettingsController extends Controller
                 AdminModule::enabledFor($user),
             ),
             'plugins' => $installedPlugins,
+            'systemTimezone' => SystemSettings::timezone(),
+            'timezoneGroups' => SystemSettings::groupedIdentifiers(),
             'pluginSettingsSections' => $settingsSections->forRequest($request),
             'pluginStats' => [
                 'total' => $installedPlugins->count(),
@@ -86,6 +90,16 @@ class SettingsController extends Controller
         cookie()->queue('theme', $theme, 60 * 24 * 365);
 
         return back()->with('status', 'Preferência de tema salva com sucesso.');
+    }
+
+    /**
+     * Save the system timezone used across the application.
+     */
+    public function updateTimezone(UpdateSystemTimezoneRequest $request): RedirectResponse
+    {
+        SystemSettings::setTimezone($request->validated('timezone'));
+
+        return back()->with('status', 'Fuso horário do sistema atualizado com sucesso.');
     }
 
     /**
