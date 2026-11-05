@@ -349,7 +349,7 @@
     </div>
 
         <section
-        x-data="{ clientModal: @js($errors->hasAny(['client_id', 'client_name', 'project_name']) && old('source') !== 'client') }"
+        x-data="{ clientModal: @js($errors->hasAny(['client_id', 'client_name']) && old('source') !== 'client') }"
         x-on:keydown.escape.window="clientModal = false"
         class="mt-4 rounded-3xl border border-gray-200/80 bg-white p-5 sm:p-6 dark:border-white/10 dark:bg-[#171716]"
     >
@@ -365,7 +365,7 @@
                 </div>
             </div>
 
-            <x-ui.action type="button" icon="plus" x-on:click="clientModal = true">Adicionar</x-ui.action>
+            <x-ui.action type="button" icon="plus" x-on:click="clientModal = true">Adicionar cliente</x-ui.action>
         </div>
 
         <div class="mt-5 space-y-3">
@@ -632,7 +632,7 @@
             <div class="absolute left-1/2 top-1/2 max-h-[90vh] w-full max-w-xl -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-2xl bg-white p-5 shadow-xl dark:bg-[#1c1c1b]">
                 <div class="flex items-start justify-between gap-3">
                     <div class="min-w-0">
-                        <h2 id="client-form-title" class="text-base font-semibold text-gray-900 dark:text-gray-100">Cliente e projeto</h2>
+                        <h2 id="client-form-title" class="text-base font-semibold text-gray-900 dark:text-gray-100">Novo cliente</h2>
                         <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Selecione um cliente existente ou digite um nome novo para cadastrá-lo.</p>
                     </div>
 
@@ -731,7 +731,7 @@
             <input type="hidden" name="client_id" :value="clientId">
             <input type="hidden" name="client_name" :value="clientName">
 
-            <div class="grid gap-3 sm:grid-cols-2">
+            <div class="grid gap-3">
                 <div>
                     <label for="client_search" class="{{ $labelClass }}">Cliente</label>
 
@@ -816,25 +816,11 @@
                     @error('client_id')<p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>@enderror
                     @error('client_name')<p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>@enderror
                 </div>
-
-                <div>
-                    <label for="project_name" class="{{ $labelClass }}">Projeto <span class="font-normal text-gray-400">(opcional para novo cliente)</span></label>
-                    <input
-                        id="project_name"
-                        name="project_name"
-                        type="text"
-                        maxlength="150"
-                        value="{{ old('project_name') }}"
-                        placeholder="Ex.: Expansão 5G"
-                        class="{{ $inputClass }}"
-                    >
-                    @error('project_name')<p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>@enderror
-                </div>
             </div>
 
             <div class="mt-3 flex flex-wrap items-center justify-between gap-2">
                 <p class="text-xs text-gray-500 dark:text-gray-400">O cliente pode ser selecionado da lista ou criado digitando um nome novo.</p>
-                <x-ui.action type="submit" icon="plus">Adicionar</x-ui.action>
+                <x-ui.action type="submit" icon="plus">Adicionar cliente</x-ui.action>
             </div>
         </form>
             </div>

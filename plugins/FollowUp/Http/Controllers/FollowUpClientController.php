@@ -41,7 +41,7 @@ class FollowUpClientController extends Controller
 
             if ($projectName === '') {
                 throw ValidationException::withMessages([
-                    'project_name' => 'Informe um projeto para o cliente selecionado.',
+                    'client_id' => 'Este cliente já está cadastrado. Use o botão + ao lado dele para adicionar projetos.',
                 ]);
             }
         }
