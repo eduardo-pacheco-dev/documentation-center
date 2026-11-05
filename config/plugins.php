@@ -111,6 +111,26 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Storage
+    |--------------------------------------------------------------------------
+    |
+    | Every plugin receives an isolated directory inside the configured disk.
+    | The active provider is managed in the settings page; the values below
+    | define the local disk, the key prefix used inside cloud buckets and the
+    | visibility applied to new files. A plugin may override the disk in its
+    | manifest through the "storage.disk" attribute.
+    |
+    */
+
+    'storage' => [
+        'disk' => env('PLUGIN_STORAGE_DISK', 'plugins'),
+        'root' => env('PLUGIN_STORAGE_ROOT', ''),
+        'prefix' => env('PLUGIN_STORAGE_PREFIX', 'plugins'),
+        'visibility' => env('PLUGIN_STORAGE_VISIBILITY', 'private'),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Composer Template
     |--------------------------------------------------------------------------
     |

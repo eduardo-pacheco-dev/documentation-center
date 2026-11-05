@@ -2,6 +2,7 @@
 
 use App\Plugins\Plugin;
 use App\Plugins\PluginRepository;
+use App\Plugins\PluginStorage;
 
 if (! function_exists('plugin')) {
     /**
@@ -48,5 +49,15 @@ if (! function_exists('plugin_path')) {
         }
 
         return $path === '' ? $plugin->getPath() : $plugin->getExtraPath($path);
+    }
+}
+
+if (! function_exists('plugin_storage')) {
+    /**
+     * Resolve the storage sandbox of a plugin.
+     */
+    function plugin_storage(Plugin|string $plugin): PluginStorage
+    {
+        return PluginStorage::for($plugin);
     }
 }

@@ -6,11 +6,14 @@ use App\Enums\AdminModule;
 use App\Http\Requests\DeleteAccountRequest;
 use App\Http\Requests\UpdateModulesRequest;
 use App\Http\Requests\UpdatePasswordRequest;
+use App\Http\Requests\UpdateStorageSettingsRequest;
 use App\Http\Requests\UpdateSystemTimezoneRequest;
 use App\Http\Requests\UpdateThemeRequest;
+use App\Models\StorageSetting;
 use App\Plugins\Plugin;
 use App\Plugins\PluginRepository;
 use App\Settings\SettingsSectionRegistry;
+use App\Settings\StorageSettings;
 use App\Settings\SystemSettings;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -26,6 +29,7 @@ class SettingsController extends Controller
         $user = auth()->user();
 
         $installedPlugins = $user->is_admin ? $plugins->all() : collect();
+        $storageSettings = $user->is_admin ? StorageSettings::current() : null;
 
         return view('settings.show', [
             'user' => $user,
@@ -38,6 +42,14 @@ class SettingsController extends Controller
             'plugins' => $installedPlugins,
             'systemTimezone' => SystemSettings::timezone(),
             'timezoneGroups' => SystemSettings::groupedIdentifiers(),
+            'storageSettings' => $storageSettings,
+            'storageConfigured' => $storageSettings === null
+                ? []
+                : collect(StorageSetting::providers())
+                    ->mapWithKeys(fn (string $provider): array => [
+                        $provider => StorageSettings::configured($provider, $storageSettings),
+                    ])
+                    ->all(),
             'pluginSettingsSections' => $settingsSections->forRequest($request),
             'pluginStats' => [
                 'total' => $installedPlugins->count(),
@@ -100,6 +112,26 @@ class SettingsController extends Controller
         SystemSettings::setTimezone($request->validated('timezone'));
 
         return back()->with('status', 'Fuso horário do sistema atualizado com sucesso.');
+    }
+
+    /**
+     * Save the storage provider used by the plugins.
+     */
+    public function updateStorage(UpdateStorageSettingsRequest $request): RedirectResponse
+    {
+        $data = $request->validated();
+
+        foreach (['aws_secret', 'azure_account_key', 'cloudflare_secret_access_key'] as $secret) {
+            if (blank($data[$secret] ?? null)) {
+                unset($data[$secret]);
+            }
+        }
+
+        StorageSettings::save($data);
+
+        return redirect()
+            ->to(route('settings').'#armazenamento')
+            ->with('status', 'Configurações de armazenamento salvas com sucesso.');
     }
 
     /**
