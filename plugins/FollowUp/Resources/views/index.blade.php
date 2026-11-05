@@ -116,6 +116,16 @@
                     </button>
 
                     @if (auth()->user()?->is_admin)
+                        <button
+                            type="button"
+                            role="menuitem"
+                            x-on:click="$dispatch('open-follow-up-schedule'); close()"
+                            class="flex w-full items-center justify-start gap-2 whitespace-nowrap rounded-lg px-3 py-2 text-left text-sm text-gray-700 transition hover:bg-gray-50 dark:text-gray-200 dark:hover:bg-white/5"
+                        >
+                            <x-icon name="clock" class="h-4 w-4 text-gray-400 dark:text-gray-500" />
+                            Agendamento
+                        </button>
+
                         <a
                             href="{{ route('admin.follow-ups.settings') }}"
                             role="menuitem"
@@ -458,7 +468,11 @@
         </div>
     @endif
 
-    <x-follow-up::partials.composer-modal :follow-ups="$emailFollowUps" :schedule="$emailSchedule" />
+    <x-follow-up::partials.composer-modal :follow-ups="$emailFollowUps" />
+
+    @if (auth()->user()?->is_admin)
+        <x-follow-up::partials.schedule-modal :schedule="$emailSchedule" />
+    @endif
 
     <x-follow-up::partials.create-modal
         :assignees="$assignees"
