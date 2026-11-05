@@ -15,6 +15,8 @@ use Plugins\FollowUp\Enums\FollowUpStatus;
 use Plugins\FollowUp\Http\Requests\StoreFollowUpRequest;
 use Plugins\FollowUp\Models\FollowUp;
 use Plugins\FollowUp\Models\FollowUpAssignee;
+use Plugins\FollowUp\Models\FollowUpClient;
+use Plugins\FollowUp\Models\FollowUpProject;
 
 final class FollowUpImporter
 {
@@ -112,6 +114,8 @@ final class FollowUpImporter
             'title' => trim((string) ($row['title'] ?? '')),
             'code' => $this->nullableString($row['code'] ?? null),
             'description' => $this->nullableString($row['description'] ?? null),
+            'client_id' => null,
+            'project_id' => null,
             'status' => $status,
             'priority' => $priority,
             'due_date' => $this->parseDate($row['due_date'] ?? null),
@@ -140,6 +144,25 @@ final class FollowUpImporter
             }
 
             $data['assignee_id'] = $assignee->getKey();
+        }
+
+        $clientName = $this->nullableString($row['client'] ?? null);
+        $projectName = $this->nullableString($row['project'] ?? null);
+
+        if ($clientName !== null) {
+            $client = FollowUpClient::query()->firstOrCreate(['name' => $clientName]);
+            $data['client_id'] = $client->getKey();
+
+            if ($projectName !== null) {
+                $project = FollowUpProject::query()->firstOrCreate([
+                    'client_id' => $client->getKey(),
+                    'name' => $projectName,
+                ]);
+
+                $data['project_id'] = $project->getKey();
+            }
+        } elseif ($projectName !== null) {
+            throw new InvalidArgumentException('Informe o cliente do projeto "'.$projectName.'" antes de importar.');
         }
 
         return $data;
@@ -367,6 +390,10 @@ final class FollowUpImporter
             'title' => 'title',
             'descricao' => 'description',
             'description' => 'description',
+            'cliente' => 'client',
+            'client' => 'client',
+            'projeto' => 'project',
+            'project' => 'project',
             'status' => 'status',
             'prioridade' => 'priority',
             'priority' => 'priority',

@@ -21,6 +21,8 @@ final class FollowUpExport
      */
     public function all(Collection $followUps): Spreadsheet
     {
+        $followUps->loadMissing(['client', 'project']);
+
         $spreadsheet = new Spreadsheet;
         $spreadsheet->getProperties()
             ->setCreator(config('app.name'))
@@ -35,6 +37,8 @@ final class FollowUpExport
             ['label' => 'Código', 'width' => 16, 'value' => fn (FollowUp $followUp): string => (string) ($followUp->code ?? '')],
             ['label' => 'Título', 'width' => 34, 'value' => fn (FollowUp $followUp): string => $followUp->title],
             ['label' => 'Descrição', 'width' => 50, 'value' => fn (FollowUp $followUp): string => (string) ($followUp->description ?? '')],
+            ['label' => 'Cliente', 'width' => 28, 'value' => fn (FollowUp $followUp): string => (string) ($followUp->client?->name ?? '')],
+            ['label' => 'Projeto', 'width' => 28, 'value' => fn (FollowUp $followUp): string => (string) ($followUp->project?->name ?? '')],
             ['label' => 'Status', 'width' => 16, 'value' => fn (FollowUp $followUp): string => $followUp->status->label()],
             ['label' => 'Prioridade', 'width' => 14, 'value' => fn (FollowUp $followUp): string => $followUp->priority->label()],
             ['label' => 'Responsável', 'width' => 28, 'value' => fn (FollowUp $followUp): string => $followUp->assignee?->full_name ?? 'Não atribuído'],
@@ -92,7 +96,7 @@ final class FollowUpExport
      */
     public function single(FollowUp $followUp): Spreadsheet
     {
-        $followUp->loadMissing(['assignee', 'creator', 'updates.user']);
+        $followUp->loadMissing(['assignee', 'creator', 'client', 'project', 'updates.user']);
 
         $spreadsheet = new Spreadsheet;
         $spreadsheet->getProperties()
@@ -115,6 +119,8 @@ final class FollowUpExport
         $rows = [
             ['Código', $followUp->code ?? '—'],
             ['Descrição', $followUp->description ?? '—'],
+            ['Cliente', $followUp->client?->name ?? '—'],
+            ['Projeto', $followUp->project?->name ?? '—'],
             ['Status', $followUp->status->label()],
             ['Prioridade', $followUp->priority->label()],
             ['Responsável', $followUp->assignee?->full_name ?? 'Não atribuído'],

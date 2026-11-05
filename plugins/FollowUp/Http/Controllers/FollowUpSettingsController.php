@@ -11,6 +11,7 @@ use Plugins\FollowUp\Http\Requests\UpdateFollowUpScheduleRequest;
 use Plugins\FollowUp\Http\Requests\UpdateFollowUpSettingsRequest;
 use Plugins\FollowUp\Mail\FollowUpTestMail;
 use Plugins\FollowUp\Models\FollowUpAssignee;
+use Plugins\FollowUp\Models\FollowUpClient;
 use Plugins\FollowUp\Models\FollowUpSetting;
 use Throwable;
 
@@ -24,6 +25,11 @@ class FollowUpSettingsController extends Controller
         return view('follow-up::settings', [
             'settings' => FollowUpSetting::current(),
             'assignees' => FollowUpAssignee::query()->withCount('followUps')->orderBy('name')->get(),
+            'clients' => FollowUpClient::query()
+                ->with(['projects' => fn ($query) => $query->withCount('followUps')->orderBy('name')])
+                ->withCount('followUps')
+                ->orderBy('name')
+                ->get(),
         ]);
     }
 

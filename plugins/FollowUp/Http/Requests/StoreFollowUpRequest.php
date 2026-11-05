@@ -4,8 +4,10 @@ namespace Plugins\FollowUp\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Validator;
 use Plugins\FollowUp\Enums\FollowUpPriority;
 use Plugins\FollowUp\Enums\FollowUpStatus;
+use Plugins\FollowUp\Models\FollowUpProject;
 
 class StoreFollowUpRequest extends FormRequest
 {
@@ -38,6 +40,8 @@ class StoreFollowUpRequest extends FormRequest
             'title' => ['required', 'string', 'max:150'],
             'code' => ['nullable', 'string', 'max:50'],
             'description' => ['nullable', 'string', 'max:5000'],
+            'client_id' => ['nullable', 'integer', 'exists:follow_up_clients,id'],
+            'project_id' => ['nullable', 'integer', 'exists:follow_up_projects,id'],
             'status' => ['required', Rule::enum(FollowUpStatus::class)],
             'priority' => ['required', Rule::enum(FollowUpPriority::class)],
             'due_date' => ['nullable', 'date'],
@@ -57,6 +61,30 @@ class StoreFollowUpRequest extends FormRequest
     }
 
     /**
+     * Ensure the selected project belongs to the selected client.
+     */
+    public function withValidator(Validator $validator): void
+    {
+        $validator->after(function (Validator $validator): void {
+            if ($validator->errors()->hasAny(['client_id', 'project_id'])) {
+                return;
+            }
+
+            $projectId = $this->input('project_id');
+
+            if (blank($projectId)) {
+                return;
+            }
+
+            $project = FollowUpProject::query()->find($projectId);
+
+            if ($project !== null && (int) $project->client_id !== (int) $this->input('client_id')) {
+                $validator->errors()->add('project_id', 'O projeto selecionado não pertence ao cliente informado.');
+            }
+        });
+    }
+
+    /**
      * The custom validation messages shared with the bulk import.
      *
      * @return array<string, string>
@@ -67,6 +95,8 @@ class StoreFollowUpRequest extends FormRequest
             'title.required' => 'Informe o título do follow-up.',
             'title.max' => 'O título pode ter no máximo 150 caracteres.',
             'code.max' => 'O código pode ter no máximo 50 caracteres.',
+            'client_id.exists' => 'Selecione um cliente válido.',
+            'project_id.exists' => 'Selecione um projeto válido.',
             'status.required' => 'Selecione o status.',
             'status.enum' => 'Selecione um status válido.',
             'priority.required' => 'Selecione a prioridade.',

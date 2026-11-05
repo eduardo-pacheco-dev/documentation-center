@@ -21,6 +21,8 @@ use Plugins\FollowUp\Mail\FollowUpTableMail;
 use Plugins\FollowUp\Mail\FollowUpTestMail;
 use Plugins\FollowUp\Models\FollowUp;
 use Plugins\FollowUp\Models\FollowUpAssignee;
+use Plugins\FollowUp\Models\FollowUpClient;
+use Plugins\FollowUp\Models\FollowUpProject;
 use Plugins\FollowUp\Models\FollowUpSetting;
 use Plugins\FollowUp\Models\FollowUpUpdate;
 use Plugins\FollowUp\Providers\FollowUpServiceProvider;
@@ -457,6 +459,8 @@ test('the index renders the follow-up creation modal', function () {
         ->assertSee('name="status"', false)
         ->assertSee('name="priority"', false)
         ->assertSee('name="due_date"', false)
+        ->assertSee('name="client_id"', false)
+        ->assertSee('name="project_id"', false)
         ->assertSee('name="completed_at"', false)
         ->assertSee('name="assignee_id"', false)
         ->assertSee('name="modal" value="create"', false);
@@ -465,11 +469,18 @@ test('the index renders the follow-up creation modal', function () {
 test('a follow-up can be created with its initial timeline entry', function () {
     $user = User::factory()->create();
     $assignee = FollowUpAssignee::factory()->create();
+    $client = FollowUpClient::factory()->create(['name' => 'AFL Engenharia']);
+    $project = FollowUpProject::factory()->create([
+        'client_id' => $client->getKey(),
+        'name' => 'Expansão 5G',
+    ]);
 
     $response = $this->actingAs($user)->post('/admin/follow-ups', [
         'title' => 'Acompanhar aprovação da proposta',
         'code' => 'FU-2026-001',
         'description' => 'Validar com o jurídico.',
+        'client_id' => $client->getKey(),
+        'project_id' => $project->getKey(),
         'status' => FollowUpStatus::InProgress->value,
         'priority' => FollowUpPriority::Urgent->value,
         'due_date' => now()->addDays(3)->toDateString(),
@@ -483,6 +494,8 @@ test('a follow-up can be created with its initial timeline entry', function () {
     expect($followUp)
         ->title->toBe('Acompanhar aprovação da proposta')
         ->code->toBe('FU-2026-001')
+        ->client_id->toBe($client->getKey())
+        ->project_id->toBe($project->getKey())
         ->status->toBe(FollowUpStatus::InProgress)
         ->priority->toBe(FollowUpPriority::Urgent)
         ->assignee_id->toBe($assignee->getKey())
@@ -541,9 +554,17 @@ test('follow-up creation requires title, status and priority', function () {
 });
 
 test('the follow-up details page renders its data', function () {
+    $client = FollowUpClient::factory()->create(['name' => 'Nokia']);
+    $project = FollowUpProject::factory()->create([
+        'client_id' => $client->getKey(),
+        'name' => 'Modernização de rede',
+    ]);
+
     $followUp = FollowUp::factory()->create([
         'title' => 'Detalhe importante',
         'description' => 'Descrição detalhada do acompanhamento.',
+        'client_id' => $client->getKey(),
+        'project_id' => $project->getKey(),
         'status' => FollowUpStatus::Pending->value,
         'priority' => FollowUpPriority::High->value,
     ]);
@@ -553,11 +574,19 @@ test('the follow-up details page renders its data', function () {
         ->assertOk()
         ->assertSee('Detalhe importante')
         ->assertSee('Descrição detalhada do acompanhamento.')
+        ->assertSee('Nokia')
+        ->assertSee('Modernização de rede')
         ->assertSee('Pendente')
         ->assertSee('Prioridade Alta');
 });
 
 test('a follow-up can be updated and status changes are recorded', function () {
+    $client = FollowUpClient::factory()->create(['name' => 'Cliente Atualizado']);
+    $project = FollowUpProject::factory()->create([
+        'client_id' => $client->getKey(),
+        'name' => 'Projeto Atualizado',
+    ]);
+
     $followUp = FollowUp::factory()->create([
         'title' => 'Atualizar acompanhamento',
         'status' => FollowUpStatus::Pending->value,
@@ -567,6 +596,8 @@ test('a follow-up can be updated and status changes are recorded', function () {
     $response = $this->actingAs(User::factory()->create())
         ->put(route('admin.follow-ups.update', $followUp), [
             'title' => 'Atualizar acompanhamento',
+            'client_id' => $client->getKey(),
+            'project_id' => $project->getKey(),
             'status' => FollowUpStatus::Completed->value,
             'priority' => FollowUpPriority::High->value,
         ]);
@@ -574,6 +605,8 @@ test('a follow-up can be updated and status changes are recorded', function () {
     $response->assertRedirect(route('admin.follow-ups.show', $followUp));
 
     expect($followUp->fresh())
+        ->client_id->toBe($client->getKey())
+        ->project_id->toBe($project->getKey())
         ->status->toBe(FollowUpStatus::Completed)
         ->priority->toBe(FollowUpPriority::High)
         ->completed_at->not->toBeNull();
@@ -655,9 +688,17 @@ test('the seeder creates sample follow-ups once', function () {
 });
 
 test('follow-ups can be exported to excel with the current filters', function () {
+    $client = FollowUpClient::factory()->create(['name' => 'Cliente Exportado']);
+    $project = FollowUpProject::factory()->create([
+        'client_id' => $client->getKey(),
+        'name' => 'Projeto Exportado',
+    ]);
+
     FollowUp::factory()->create([
         'code' => 'FU-EXP-001',
         'title' => 'Follow-up exportado pendente',
+        'client_id' => $client->getKey(),
+        'project_id' => $project->getKey(),
         'status' => FollowUpStatus::Pending->value,
         'priority' => FollowUpPriority::High->value,
     ]);
@@ -686,6 +727,8 @@ test('follow-ups can be exported to excel with the current filters', function ()
         ->and($text)
         ->toContain('FU-EXP-001')
         ->toContain('Follow-up exportado pendente')
+        ->toContain('Cliente Exportado')
+        ->toContain('Projeto Exportado')
         ->toContain('Alta')
         ->not->toContain('Follow-up exportado concluído');
 
@@ -974,6 +1017,138 @@ test('an assignee can be removed from the settings page', function () {
         ->and($followUp->fresh()->assignee_id)->toBeNull();
 });
 
+test('an admin can register clients and their projects', function () {
+    $admin = User::factory()->admin()->create();
+
+    $this->actingAs($admin)
+        ->post('/admin/follow-ups/settings/clients', [
+            'client_name' => 'AFL Engenharia',
+            'project_name' => 'Expansão 5G',
+        ])
+        ->assertRedirect(route('admin.follow-ups.settings'))
+        ->assertSessionHas('status');
+
+    $client = FollowUpClient::query()->sole();
+
+    $this->actingAs($admin)
+        ->get('/admin/follow-ups/settings')
+        ->assertOk()
+        ->assertSee('Clientes e projetos')
+        ->assertSee('AFL Engenharia')
+        ->assertSee('Expansão 5G');
+
+    expect($client->projects()->sole()->name)->toBe('Expansão 5G');
+
+    $this->actingAs($admin)
+        ->post('/admin/follow-ups/settings/clients', [
+            'client_id' => (string) $client->getKey(),
+            'project_name' => 'Novo site',
+        ])
+        ->assertRedirect(route('admin.follow-ups.settings'));
+
+    expect(FollowUpClient::query()->count())->toBe(1)
+        ->and($client->projects()->count())->toBe(2);
+});
+
+test('clients and projects can be updated and removed', function () {
+    $admin = User::factory()->admin()->create();
+    $client = FollowUpClient::factory()->create(['name' => 'Cliente Antigo']);
+    $otherClient = FollowUpClient::factory()->create(['name' => 'Cliente Novo']);
+    $project = FollowUpProject::factory()->create([
+        'client_id' => $client->getKey(),
+        'name' => 'Projeto Antigo',
+    ]);
+    $followUp = FollowUp::factory()->create([
+        'client_id' => $client->getKey(),
+        'project_id' => $project->getKey(),
+    ]);
+
+    $this->actingAs($admin)
+        ->put(route('admin.follow-ups.settings.clients.update', $client), [
+            'client_name' => 'Cliente Renomeado',
+        ])
+        ->assertRedirect(route('admin.follow-ups.settings'));
+
+    $this->actingAs($admin)
+        ->put(route('admin.follow-ups.settings.projects.update', $project), [
+            'client_id' => $otherClient->getKey(),
+            'project_name' => 'Projeto Movido',
+        ])
+        ->assertRedirect(route('admin.follow-ups.settings'));
+
+    expect($client->fresh()->name)->toBe('Cliente Renomeado')
+        ->and($project->fresh()->name)->toBe('Projeto Movido')
+        ->and($project->fresh()->client_id)->toBe($otherClient->getKey())
+        ->and($followUp->fresh()->client_id)->toBe($otherClient->getKey());
+
+    $this->actingAs($admin)
+        ->delete(route('admin.follow-ups.settings.projects.destroy', $project))
+        ->assertRedirect(route('admin.follow-ups.settings'));
+
+    $this->actingAs($admin)
+        ->delete(route('admin.follow-ups.settings.clients.destroy', $client))
+        ->assertRedirect(route('admin.follow-ups.settings'));
+
+    $this->actingAs($admin)
+        ->delete(route('admin.follow-ups.settings.clients.destroy', $otherClient))
+        ->assertRedirect(route('admin.follow-ups.settings'));
+
+    expect(FollowUpProject::query()->find($project->getKey()))->toBeNull()
+        ->and(FollowUpClient::query()->find($client->getKey()))->toBeNull()
+        ->and(FollowUpClient::query()->find($otherClient->getKey()))->toBeNull()
+        ->and($followUp->fresh()->client_id)->toBeNull()
+        ->and($followUp->fresh()->project_id)->toBeNull();
+});
+
+test('clients cannot be duplicated', function () {
+    FollowUpClient::factory()->create(['name' => 'AFL Engenharia']);
+
+    $this->actingAs(User::factory()->admin()->create())
+        ->post('/admin/follow-ups/settings/clients', ['client_name' => 'AFL Engenharia'])
+        ->assertSessionHasErrors('client_name');
+
+    expect(FollowUpClient::query()->count())->toBe(1);
+});
+
+test('regular users cannot manage clients and projects', function () {
+    $this->actingAs(User::factory()->create())
+        ->post('/admin/follow-ups/settings/clients', [
+            'client_name' => 'Cliente',
+            'project_name' => 'Projeto',
+        ])
+        ->assertForbidden();
+});
+
+test('the follow-up form lists the registered clients and projects', function () {
+    $client = FollowUpClient::factory()->create(['name' => 'Cliente do Formulário']);
+    FollowUpProject::factory()->create([
+        'client_id' => $client->getKey(),
+        'name' => 'Projeto do Formulário',
+    ]);
+
+    $this->actingAs(User::factory()->create())
+        ->get('/admin/follow-ups?create=1')
+        ->assertOk()
+        ->assertSee('Cliente do Formulário')
+        ->assertSee('Projeto do Formulário');
+});
+
+test('a follow-up rejects a project from another client', function () {
+    $client = FollowUpClient::factory()->create();
+    $otherClient = FollowUpClient::factory()->create();
+    $project = FollowUpProject::factory()->create(['client_id' => $otherClient->getKey()]);
+
+    $this->actingAs(User::factory()->create())
+        ->post('/admin/follow-ups', [
+            'title' => 'Follow-up inválido',
+            'client_id' => $client->getKey(),
+            'project_id' => $project->getKey(),
+            'status' => FollowUpStatus::Pending->value,
+            'priority' => FollowUpPriority::Medium->value,
+        ])
+        ->assertSessionHasErrors('project_id');
+});
+
 test('assignee registration requires a name', function () {
     $this->actingAs(User::factory()->admin()->create())
         ->post('/admin/follow-ups/settings/assignees', [
@@ -1157,6 +1332,28 @@ test('follow-ups can be imported from csv with defaults and assignees', function
         ->assignee_id->toBeNull();
 
     expect(FollowUpUpdate::query()->where('body', 'Follow-up importado.')->count())->toBe(2);
+});
+
+test('follow-ups can be imported with client and project', function () {
+    $user = User::factory()->create();
+
+    $csv = implode("\n", [
+        'Título;Cliente;Projeto',
+        'Follow-up com cliente;AFL Engenharia;Expansão 5G',
+    ]);
+
+    $this->actingAs($user)
+        ->post('/admin/follow-ups/import', [
+            'file' => UploadedFile::fake()->createWithContent('follow-ups.csv', $csv),
+        ])
+        ->assertRedirect(route('admin.follow-ups.index'))
+        ->assertSessionHasNoErrors();
+
+    $followUp = FollowUp::query()->sole();
+
+    expect($followUp)
+        ->client->name->toBe('AFL Engenharia')
+        ->project->name->toBe('Expansão 5G');
 });
 
 test('follow-ups can be imported from an excel template', function () {

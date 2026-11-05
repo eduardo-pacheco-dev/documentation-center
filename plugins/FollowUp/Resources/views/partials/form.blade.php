@@ -3,6 +3,7 @@
     'method' => 'POST',
     'followUp' => null,
     'assignees',
+    'clients',
     'statuses',
     'priorities',
     'submitLabel' => 'Salvar follow-up',
@@ -12,13 +13,31 @@
 @php
     $inputClass = 'mt-1.5 h-10 w-full rounded-xl border border-gray-300 bg-white px-3 text-sm text-gray-900 transition focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100';
     $labelClass = 'block text-sm font-medium text-gray-700 dark:text-gray-200';
+    $clientOptions = $clients->map(fn ($client): array => [
+        'id' => $client->getKey(),
+        'name' => $client->name,
+        'projects' => $client->projects->map(fn ($project): array => [
+            'id' => $project->getKey(),
+            'name' => $project->name,
+        ])->values()->all(),
+    ])->values()->all();
 @endphp
 
 <form
     method="POST"
     action="{{ $action }}"
     class="space-y-5"
-    x-data="{ status: @js(old('status', $followUp?->status?->value ?? 'pendente')) }"
+    x-data="{
+        status: @js(old('status', $followUp?->status?->value ?? 'pendente')),
+        clientId: @js((string) old('client_id', $followUp?->client_id ?? '')),
+        projectId: @js((string) old('project_id', $followUp?->project_id ?? '')),
+        clients: @js($clientOptions),
+        get projects() {
+            const client = this.clients.find((item) => String(item.id) === String(this.clientId));
+
+            return client ? client.projects : [];
+        },
+    }"
 >
     @csrf
 
@@ -70,6 +89,43 @@
             class="mt-1.5 block w-full rounded-xl border border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-900 transition placeholder:text-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100 dark:placeholder:text-gray-500"
         >{{ old('description', $followUp?->description) }}</textarea>
         @error('description')<p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>@enderror
+    </div>
+
+    <div class="grid gap-4 sm:grid-cols-2">
+        <div>
+            <label for="client_id" class="{{ $labelClass }}">Cliente</label>
+            <select
+                id="client_id"
+                name="client_id"
+                x-model="clientId"
+                x-on:change="projectId = ''"
+                class="{{ $inputClass }}"
+            >
+                <option value="">Sem cliente</option>
+                <template x-for="client in clients" :key="client.id">
+                    <option :value="client.id" x-text="client.name" :selected="String(client.id) === String(clientId)"></option>
+                </template>
+            </select>
+            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Cadastre clientes e projetos nas configurações do plugin.</p>
+            @error('client_id')<p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>@enderror
+        </div>
+
+        <div>
+            <label for="project_id" class="{{ $labelClass }}">Projeto</label>
+            <select
+                id="project_id"
+                name="project_id"
+                x-model="projectId"
+                x-bind:disabled="! clientId"
+                class="{{ $inputClass }} disabled:cursor-not-allowed disabled:opacity-60"
+            >
+                <option value="">Sem projeto</option>
+                <template x-for="project in projects" :key="project.id">
+                    <option :value="project.id" x-text="project.name" :selected="String(project.id) === String(projectId)"></option>
+                </template>
+            </select>
+            @error('project_id')<p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>@enderror
+        </div>
     </div>
 
     <div class="grid gap-4 sm:grid-cols-2">

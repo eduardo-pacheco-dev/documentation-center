@@ -2,10 +2,12 @@
 
 use Illuminate\Support\Facades\Route;
 use Plugins\FollowUp\Http\Controllers\FollowUpAssigneeController;
+use Plugins\FollowUp\Http\Controllers\FollowUpClientController;
 use Plugins\FollowUp\Http\Controllers\FollowUpController;
 use Plugins\FollowUp\Http\Controllers\FollowUpEmailController;
 use Plugins\FollowUp\Http\Controllers\FollowUpExportController;
 use Plugins\FollowUp\Http\Controllers\FollowUpImportController;
+use Plugins\FollowUp\Http\Controllers\FollowUpProjectController;
 use Plugins\FollowUp\Http\Controllers\FollowUpSettingsController;
 use Plugins\FollowUp\Http\Controllers\FollowUpUpdateController;
 
@@ -30,6 +32,13 @@ Route::middleware('auth')
 
             Route::post('settings/assignees', [FollowUpAssigneeController::class, 'store'])->name('settings.assignees.store');
             Route::delete('settings/assignees/{assignee}', [FollowUpAssigneeController::class, 'destroy'])->name('settings.assignees.destroy');
+
+            Route::post('settings/clients', [FollowUpClientController::class, 'store'])->name('settings.clients.store');
+            Route::put('settings/clients/{client}', [FollowUpClientController::class, 'update'])->name('settings.clients.update');
+            Route::delete('settings/clients/{client}', [FollowUpClientController::class, 'destroy'])->name('settings.clients.destroy');
+
+            Route::put('settings/projects/{project}', [FollowUpProjectController::class, 'update'])->name('settings.projects.update');
+            Route::delete('settings/projects/{project}', [FollowUpProjectController::class, 'destroy'])->name('settings.projects.destroy');
 
         });
 

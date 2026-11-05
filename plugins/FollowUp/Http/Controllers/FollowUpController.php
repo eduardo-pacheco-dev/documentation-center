@@ -14,6 +14,7 @@ use Plugins\FollowUp\Http\Requests\StoreFollowUpRequest;
 use Plugins\FollowUp\Http\Requests\UpdateFollowUpRequest;
 use Plugins\FollowUp\Models\FollowUp;
 use Plugins\FollowUp\Models\FollowUpAssignee;
+use Plugins\FollowUp\Models\FollowUpClient;
 use Plugins\FollowUp\Models\FollowUpSetting;
 use Plugins\FollowUp\Support\FollowUpFilters;
 
@@ -30,7 +31,7 @@ class FollowUpController extends Controller
         $assigned = $request->string('assigned')->trim()->toString();
 
         $query = FollowUpFilters::apply(
-            FollowUp::query()->with(['assignee', 'creator']),
+            FollowUp::query()->with(['assignee', 'creator', 'client', 'project']),
             $request,
         );
 
@@ -92,6 +93,7 @@ class FollowUpController extends Controller
             'statuses' => FollowUpStatus::options(),
             'priorities' => FollowUpPriority::options(),
             'assignees' => $this->assignees(),
+            'clients' => $this->clients(),
             'stats' => [
                 'open' => FollowUp::query()->open()->count(),
                 'overdue' => FollowUp::query()->overdue()->count(),
@@ -144,6 +146,8 @@ class FollowUpController extends Controller
         $followUp->load([
             'assignee',
             'creator',
+            'client',
+            'project',
             'updates.user',
         ]);
 
@@ -160,6 +164,7 @@ class FollowUpController extends Controller
         return view('follow-up::edit', [
             'followUp' => $followUp,
             'assignees' => $this->assignees(),
+            'clients' => $this->clients(),
             'statuses' => FollowUpStatus::options(),
             'priorities' => FollowUpPriority::options(),
         ]);
@@ -257,5 +262,18 @@ class FollowUpController extends Controller
         return FollowUpAssignee::query()
             ->orderBy('name')
             ->get(['id', 'name', 'email']);
+    }
+
+    /**
+     * The clients and their projects available for selection.
+     *
+     * @return Collection<int, FollowUpClient>
+     */
+    private function clients(): Collection
+    {
+        return FollowUpClient::query()
+            ->with(['projects' => fn ($query) => $query->orderBy('name')])
+            ->orderBy('name')
+            ->get();
     }
 }

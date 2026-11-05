@@ -25,6 +25,7 @@
             method="PUT"
             :follow-up="$followUp"
             :assignees="$assignees"
+            :clients="$clients"
             :statuses="$statuses"
             :priorities="$priorities"
             submit-label="Salvar alterações"

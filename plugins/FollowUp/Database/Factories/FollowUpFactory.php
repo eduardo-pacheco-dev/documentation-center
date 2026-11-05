@@ -8,6 +8,7 @@ use Plugins\FollowUp\Enums\FollowUpPriority;
 use Plugins\FollowUp\Enums\FollowUpStatus;
 use Plugins\FollowUp\Models\FollowUp;
 use Plugins\FollowUp\Models\FollowUpAssignee;
+use Plugins\FollowUp\Models\FollowUpClient;
 
 /**
  * @extends Factory<FollowUp>
@@ -29,6 +30,8 @@ class FollowUpFactory extends Factory
         return [
             'title' => fake()->sentence(5),
             'description' => fake()->paragraph(),
+            'client_id' => FollowUpClient::factory(),
+            'project_id' => null,
             'status' => FollowUpStatus::Pending->value,
             'priority' => fake()->randomElement(FollowUpPriority::values()),
             'due_date' => fake()->dateTimeBetween('-5 days', '+20 days')->format('Y-m-d'),
