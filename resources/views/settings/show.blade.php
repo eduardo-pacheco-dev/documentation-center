@@ -4,6 +4,7 @@
 
         if ($user->is_admin) {
             $sections[] = 'sistema';
+            $sections[] = 'armazenamento';
             $sections[] = 'plugins';
         }
 
@@ -115,6 +116,16 @@
                     @endif
 
                     @if ($user->is_admin)
+                        <a
+                            href="#armazenamento"
+                            @click="active = 'armazenamento'"
+                            x-bind:class="active === 'armazenamento' ? '{{ $navActive }}' : '{{ $navIdle }}'"
+                            class="group flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm font-medium transition"
+                        >
+                            <x-icon name="server" class="h-4 w-4 shrink-0" x-bind:class="active === 'armazenamento' ? 'text-white' : 'text-emerald-500'" />
+                            <span class="flex-1 truncate">Armazenamento</span>
+                        </a>
+
                         <a
                             href="#plugins"
                             @click="active = 'plugins'"
@@ -518,6 +529,16 @@
                         </div>
                     </div>
                 </form>
+
+                @include('settings.partials.storage', [
+                    'cardClass' => $cardClass,
+                    'headerClass' => $headerClass,
+                    'bodyClass' => $bodyClass,
+                    'tileClass' => $tileClass,
+                    'titleClass' => $titleClass,
+                    'labelClass' => $labelClass,
+                    'inputClass' => $inputClass,
+                ])
 
                 @include('settings.partials.plugins', [
                     'cardClass' => $cardClass,

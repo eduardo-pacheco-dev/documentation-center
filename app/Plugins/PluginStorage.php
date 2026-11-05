@@ -2,11 +2,11 @@
 
 namespace App\Plugins;
 
+use App\Settings\StorageSettings;
 use DateTimeInterface;
 use Illuminate\Contracts\Filesystem\Filesystem;
 use Illuminate\Http\File;
 use Illuminate\Http\UploadedFile;
-use Illuminate\Support\Facades\Storage;
 use InvalidArgumentException;
 use RuntimeException;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -47,13 +47,7 @@ final class PluginStorage
      */
     public function diskName(): string
     {
-        $storage = $this->plugin->get('storage');
-
-        if (is_array($storage) && is_string($storage['disk'] ?? null) && $storage['disk'] !== '') {
-            return $storage['disk'];
-        }
-
-        return (string) config('plugins.storage.disk', 'plugins');
+        return $this->manifestDisk() ?? StorageSettings::diskName();
     }
 
     /**
@@ -61,7 +55,7 @@ final class PluginStorage
      */
     public function disk(): Filesystem
     {
-        return Storage::disk($this->diskName());
+        return StorageSettings::disk($this->diskName());
     }
 
     /**
@@ -207,6 +201,20 @@ final class PluginStorage
     public function download(string $path, ?string $name = null): StreamedResponse
     {
         return $this->disk()->download($this->key($path), $name);
+    }
+
+    /**
+     * The disk declared by the plugin manifest, when present.
+     */
+    private function manifestDisk(): ?string
+    {
+        $storage = $this->plugin->get('storage');
+
+        if (is_array($storage) && is_string($storage['disk'] ?? null) && $storage['disk'] !== '') {
+            return $storage['disk'];
+        }
+
+        return null;
     }
 
     /**
