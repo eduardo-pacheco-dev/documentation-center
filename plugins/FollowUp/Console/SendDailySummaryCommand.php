@@ -34,8 +34,11 @@ class SendDailySummaryCommand extends Command
         $settings = FollowUpSetting::current();
 
         $query = FollowUp::query()
-            ->open()
             ->with(['assignee', 'creator']);
+
+        if (! $settings->summaryIncludesClosed()) {
+            $query->open();
+        }
 
         if ($settings->summaryLimitedToLastThirtyDays()) {
             $query->whereNotNull('due_date')

@@ -240,22 +240,43 @@ test('the index offers a manual e-mail composer', function () {
         ->assertSee('Todos os follow-ups da listagem (1)');
 });
 
-test('the e-mail composer offers manual and scheduled tabs', function () {
+test('the e-mail composer offers the manual form', function () {
     $this->actingAs(User::factory()->admin()->create())
         ->get('/admin/follow-ups')
         ->assertOk()
-        ->assertSee('Envio manual')
-        ->assertSee('Agendado')
-        ->assertSee('Salvar agendamento')
+        ->assertSee('Enviar follow-up por e-mail')
+        ->assertSee('name="recipients"', false)
+        ->assertSee('name="subject"', false)
+        ->assertSee('Enviar e-mail');
+});
+
+test('the summary schedule modal is available to administrators', function () {
+    $this->actingAs(User::factory()->admin()->create())
+        ->get('/admin/follow-ups')
+        ->assertOk()
+        ->assertSee('open-follow-up-schedule')
+        ->assertSee('Agendamento')
+        ->assertSee('Agendamento do resumo')
         ->assertSee('Agendamento ativo')
         ->assertSee('Período do resumo')
         ->assertSee('name="summary_period"', false)
+        ->assertSee('Todos os follow-ups existentes')
+        ->assertSee('value="all_existing"', false)
         ->assertSee('Dias da semana')
         ->assertSee('Segunda')
         ->assertSee('Domingo')
         ->assertSee('name="summary_days[]"', false)
         ->assertSee('Destinatários (Para)')
-        ->assertSee('Cópias (CC)');
+        ->assertSee('Cópias (CC)')
+        ->assertSee('Salvar agendamento');
+});
+
+test('regular users cannot see the summary schedule modal', function () {
+    $this->actingAs(User::factory()->create())
+        ->get('/admin/follow-ups')
+        ->assertOk()
+        ->assertDontSee('name="summary_period"', false)
+        ->assertDontSee('open-follow-up-schedule');
 });
 
 test('the summary days default to every weekday', function () {
@@ -296,7 +317,7 @@ test('the index exposes secondary actions in the action menu', function () {
         ->assertDontSee('Configuração');
 });
 
-test('the periodic schedule can be updated from the composer', function () {
+test('the periodic schedule can be updated from the schedule modal', function () {
     $this->actingAs(User::factory()->admin()->create())
         ->put('/admin/follow-ups/settings/schedule', [
             'email_summary_enabled' => '0',
@@ -356,6 +377,39 @@ test('the summary can be limited to the last thirty days by due date', function 
 
     Mail::assertSent(FollowUpTableMail::class, function (FollowUpTableMail $mail): bool {
         return $mail->followUps->pluck('title')->all() === ['Dentro dos últimos 30 dias'];
+    });
+});
+
+test('the summary can include every follow-up including the closed ones', function () {
+    Mail::fake();
+
+    $creator = User::factory()->create(['email' => 'criador@example.com']);
+
+    foreach ([
+        'Pendente no resumo' => FollowUpStatus::Pending,
+        'Concluído no resumo' => FollowUpStatus::Completed,
+        'Cancelado no resumo' => FollowUpStatus::Cancelled,
+    ] as $title => $status) {
+        FollowUp::factory()->create([
+            'title' => $title,
+            'status' => $status->value,
+            'created_by' => $creator->getKey(),
+        ]);
+    }
+
+    FollowUpSetting::current()->update([
+        'summary_recipients' => 'gestao@example.com',
+        'summary_period' => FollowUpSetting::SUMMARY_PERIOD_ALL_EXISTING,
+    ]);
+
+    $this->artisan('follow-up:send-daily-summary')->assertSuccessful();
+
+    Mail::assertSent(FollowUpTableMail::class, function (FollowUpTableMail $mail): bool {
+        return $mail->followUps->pluck('title')->sort()->values()->all() === [
+            'Cancelado no resumo',
+            'Concluído no resumo',
+            'Pendente no resumo',
+        ];
     });
 });
 

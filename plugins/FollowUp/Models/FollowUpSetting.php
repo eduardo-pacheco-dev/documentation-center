@@ -33,6 +33,8 @@ class FollowUpSetting extends Model
 
     public const SUMMARY_PERIOD_LAST_30_DAYS = 'last_30_days';
 
+    public const SUMMARY_PERIOD_ALL_EXISTING = 'all_existing';
+
     /**
      * The table associated with the model.
      */
@@ -64,6 +66,7 @@ class FollowUpSetting extends Model
     {
         return [
             self::SUMMARY_PERIOD_ALL => 'Todos os follow-ups em aberto',
+            self::SUMMARY_PERIOD_ALL_EXISTING => 'Todos os follow-ups existentes',
             self::SUMMARY_PERIOD_LAST_30_DAYS => 'Somente os últimos 30 dias (por prazo)',
         ];
     }
@@ -76,6 +79,14 @@ class FollowUpSetting extends Model
         return array_key_exists((string) $this->summary_period, self::summaryPeriodOptions())
             ? (string) $this->summary_period
             : self::SUMMARY_PERIOD_ALL;
+    }
+
+    /**
+     * Whether the summary should include follow-ups that are already closed.
+     */
+    public function summaryIncludesClosed(): bool
+    {
+        return $this->summaryPeriod() === self::SUMMARY_PERIOD_ALL_EXISTING;
     }
 
     /**
