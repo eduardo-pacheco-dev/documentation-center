@@ -148,7 +148,13 @@
 
                             <tr class="transition hover:bg-gray-50/70 dark:hover:bg-white/[0.03]">
                                 <td class="px-5 py-4">
-                                    <span class="font-semibold text-gray-900 dark:text-white">{{ $site->site_id }}</span>
+                                    <button
+                                        type="button"
+                                        x-on:click="$dispatch('open-site-details-modal', @js($detailsPayload))"
+                                        class="text-left font-semibold text-gray-900 transition hover:text-indigo-600 dark:text-white dark:hover:text-indigo-400"
+                                    >
+                                        {{ $site->site_id }}
+                                    </button>
                                     <p class="mt-0.5 font-mono text-[11px] text-gray-400 dark:text-gray-500">
                                         Atualizado {{ $site->updated_at?->format('d/m/Y H:i') }}
                                     </p>
