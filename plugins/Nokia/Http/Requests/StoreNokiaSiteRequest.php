@@ -3,6 +3,7 @@
 namespace Plugins\Nokia\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Support\Str;
 
 class StoreNokiaSiteRequest extends FormRequest
 {
@@ -19,13 +20,22 @@ class StoreNokiaSiteRequest extends FormRequest
      */
     protected function prepareForValidation(): void
     {
-        $values = [];
+        $this->merge(self::normalizeChecklistValues($this->all()));
+    }
 
+    /**
+     * Normalize the checklist values from a request or import row.
+     *
+     * @param  array<string, mixed>  $values
+     * @return array<string, mixed>
+     */
+    public static function normalizeChecklistValues(array $values): array
+    {
         foreach (array_keys(config('nokia.checklists', [])) as $field) {
-            $values[$field] = (bool) filter_var($this->input($field, false), FILTER_VALIDATE_BOOLEAN);
+            $values[$field] = self::parseBoolean($values[$field] ?? false);
         }
 
-        $this->merge($values);
+        return $values;
     }
 
     /**
@@ -34,6 +44,16 @@ class StoreNokiaSiteRequest extends FormRequest
      * @return array<string, mixed>
      */
     public function rules(): array
+    {
+        return self::fieldRules();
+    }
+
+    /**
+     * The validation rules shared with the bulk import.
+     *
+     * @return array<string, mixed>
+     */
+    public static function fieldRules(): array
     {
         return [
             'site_id' => ['required', 'string', 'max:100'],
@@ -46,5 +66,23 @@ class StoreNokiaSiteRequest extends FormRequest
             'checklist_fam_instalacao' => ['boolean'],
             'checklist_fam_panoramica' => ['boolean'],
         ];
+    }
+
+    /**
+     * Interpret the common spreadsheet values as a boolean.
+     */
+    private static function parseBoolean(mixed $value): bool
+    {
+        if (is_bool($value)) {
+            return $value;
+        }
+
+        if (is_int($value) || is_float($value)) {
+            return $value !== 0;
+        }
+
+        $normalized = Str::of((string) $value)->ascii()->lower()->trim()->toString();
+
+        return in_array($normalized, ['1', 'sim', 's', 'x', 'yes', 'y', 'true', 'on', 'concluido', 'concluida', 'ok'], true);
     }
 }

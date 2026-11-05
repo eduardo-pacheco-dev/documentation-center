@@ -10,6 +10,18 @@
         description="Cadastre os sites e acompanhe o checklist de atividades de entrega e instalação."
         icon="signal"
     >
+        <x-ui.action
+            :href="route('admin.nokia.sites.export', array_filter(['search' => $search]))"
+            icon="arrow-down-tray"
+            variant="secondary"
+        >
+            Exportar
+        </x-ui.action>
+
+        <x-ui.action :href="route('admin.nokia.sites.import')" icon="arrow-up-tray" variant="secondary">
+            Importar
+        </x-ui.action>
+
         <x-ui.action :href="route('admin.nokia.sites.create')" icon="plus">
             Novo site
         </x-ui.action>

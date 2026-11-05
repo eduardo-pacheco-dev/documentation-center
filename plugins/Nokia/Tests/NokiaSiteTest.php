@@ -5,11 +5,14 @@ use App\Plugins\PluginActivator;
 use App\Plugins\PluginMigrator;
 use App\Plugins\PluginRepository;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Str;
+use PhpOffice\PhpSpreadsheet\IOFactory;
 use Plugins\Nokia\Models\NokiaSite;
 use Plugins\Nokia\Providers\NokiaServiceProvider;
+use Plugins\Nokia\Support\NokiaSiteExport;
 
 uses(RefreshDatabase::class);
 
@@ -209,4 +212,137 @@ test('a site can be deleted', function () {
         ->assertRedirect(route('admin.nokia.sites.index'));
 
     expect(NokiaSite::query()->find($site->getKey()))->toBeNull();
+});
+
+test('all sites can be exported to excel', function () {
+    NokiaSite::factory()->completed()->create([
+        'site_id' => 'SPEXPORT1',
+        'end_id' => 'END-11111',
+        'oc' => 'OC-2222',
+        'os_fam_entrega' => 'OS-E-33333',
+        'os_fam_instalacao' => 'OS-I-44444',
+    ]);
+
+    $fileName = app(NokiaSiteExport::class)->fileName();
+
+    $response = $this->actingAs(User::factory()->create())
+        ->get(route('admin.nokia.sites.export'))
+        ->assertOk()
+        ->assertDownload($fileName);
+
+    $path = sys_get_temp_dir().'/nokia-sites-export-'.Str::random(8).'.xlsx';
+    file_put_contents($path, $response->streamedContent());
+
+    $spreadsheet = IOFactory::load($path);
+    $sheet = $spreadsheet->getSheet(0);
+    $text = collect($sheet->toArray())->flatten()->filter()->implode(' | ');
+
+    expect($sheet->getTitle())->toBe('Sites')
+        ->and($sheet->getCell('A1')->getValue())->toBe('Site ID')
+        ->and($sheet->getCell('F1')->getValue())->toBe('Tarefas enviadas')
+        ->and($text)
+        ->toContain('SPEXPORT1')
+        ->toContain('END-11111')
+        ->toContain('OC-2222')
+        ->toContain('OS-E-33333')
+        ->toContain('OS-I-44444');
+
+    $spreadsheet->disconnectWorksheets();
+    @unlink($path);
+});
+
+test('the excel export respects the search filter', function () {
+    NokiaSite::factory()->create(['site_id' => 'SPALPHA1']);
+    NokiaSite::factory()->create(['site_id' => 'SPBETA2']);
+
+    $response = $this->actingAs(User::factory()->create())
+        ->get(route('admin.nokia.sites.export', ['search' => 'SPALPHA']))
+        ->assertOk();
+
+    $path = sys_get_temp_dir().'/nokia-sites-export-'.Str::random(8).'.xlsx';
+    file_put_contents($path, $response->streamedContent());
+
+    $spreadsheet = IOFactory::load($path);
+    $text = collect($spreadsheet->getSheet(0)->toArray())->flatten()->filter()->implode(' | ');
+
+    expect($text)
+        ->toContain('SPALPHA1')
+        ->not->toContain('SPBETA2');
+
+    $spreadsheet->disconnectWorksheets();
+    @unlink($path);
+});
+
+test('the import page renders the instructions and file field', function () {
+    $this->actingAs(User::factory()->create())
+        ->get(route('admin.nokia.sites.import'))
+        ->assertOk()
+        ->assertSee('Importar sites')
+        ->assertSee('Baixar modelo Excel')
+        ->assertSee('500 sites')
+        ->assertSee('name="file"', false);
+});
+
+test('sites can be imported from a csv file', function () {
+    $csv = implode("\n", [
+        'Site ID;End ID;OC;OS FAM Entrega;OS FAM Instalação;Tarefas enviadas;FAM Entrega;FAM Instalação;FAM Panorâmica',
+        'SPIMP001;END-1;OC-1;OS-E-1;OS-I-1;Sim;Sim;Não;Não',
+        'SPIMP002;END-2;OC-2;OS-E-2;OS-I-2;Não;Não;Não;Não',
+    ]);
+
+    $this->actingAs(User::factory()->create())
+        ->post(route('admin.nokia.sites.import.store'), [
+            'file' => UploadedFile::fake()->createWithContent('sites.csv', $csv),
+        ])
+        ->assertRedirect(route('admin.nokia.sites.index'))
+        ->assertSessionHas('status');
+
+    expect(NokiaSite::query()->count())->toBe(2);
+
+    expect(NokiaSite::query()->where('site_id', 'SPIMP001')->sole())
+        ->end_id->toBe('END-1')
+        ->oc->toBe('OC-1')
+        ->os_fam_entrega->toBe('OS-E-1')
+        ->os_fam_instalacao->toBe('OS-I-1')
+        ->checklist_tarefas_enviadas->toBeTrue()
+        ->checklist_fam_entrega->toBeTrue()
+        ->checklist_fam_instalacao->toBeFalse()
+        ->checklist_fam_panoramica->toBeFalse();
+});
+
+test('an invalid row prevents the whole import', function () {
+    $csv = implode("\n", [
+        'Site ID;End ID',
+        'SPVALID1;END-1',
+        ';END-2',
+    ]);
+
+    $this->actingAs(User::factory()->create())
+        ->post(route('admin.nokia.sites.import.store'), [
+            'file' => UploadedFile::fake()->createWithContent('sites.csv', $csv),
+        ])
+        ->assertSessionHasErrors('file');
+
+    expect(NokiaSite::query()->count())->toBe(0);
+});
+
+test('the import template can be downloaded as an excel file', function () {
+    $response = $this->actingAs(User::factory()->create())
+        ->get(route('admin.nokia.sites.import.template'))
+        ->assertOk()
+        ->assertDownload('modelo-importacao-sites-nokia.xlsx');
+
+    $path = sys_get_temp_dir().'/nokia-sites-template-'.Str::random(8).'.xlsx';
+    file_put_contents($path, $response->streamedContent());
+
+    $spreadsheet = IOFactory::load($path);
+
+    expect($spreadsheet->getSheetNames())
+        ->toBe(['Sites', 'Instruções'])
+        ->and($spreadsheet->getSheet(0)->getCell('A1')->getValue())->toBe('Site ID *')
+        ->and($spreadsheet->getSheet(0)->getCell('F1')->getValue())->toBe('Tarefas enviadas')
+        ->and($spreadsheet->getSheet(0)->getCell('I1')->getValue())->toBe('FAM Panorâmica');
+
+    $spreadsheet->disconnectWorksheets();
+    @unlink($path);
 });
