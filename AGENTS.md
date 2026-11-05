@@ -1,3 +1,245 @@
+# AGENTS.md — Documentation Center
+
+Guia para agentes de IA que trabalham neste repositório. Leia antes de planejar ou editar qualquer arquivo.
+
+## Visão geral
+
+O **Documentation Center** é uma aplicação interna de documentação e administração construída em Laravel 13, com painel em português e arquitetura de **plugins** inspirada no Akaunting. O core oferece autenticação, usuários, módulos, dashboard com widgets, configurações, notificações e armazenamento; os plugins adicionam domínios independentes (estações, follow-ups, analytics etc.).
+
+- Aplicação local (Herd): `http://documentation-center.test`
+- Não execute servidor web — o Herd já serve a aplicação
+- Use `get-absolute-url` (Laravel Boost) antes de compartilhar URLs
+
+## Stack
+
+| Camada | Tecnologia |
+| --- | --- |
+| PHP | `^8.3` no `composer.json` (ambiente local: 8.6) |
+| Framework | Laravel `^13.17` |
+| Frontend | Blade + Tailwind CSS 4 + Alpine.js (CDN) + Vite 8 |
+| Build | `npm run build` (produção) / `npm run dev` (HMR) |
+| Testes | Pest 5 + Pest Laravel |
+| Formatação | Laravel Pint |
+| Banco | MySQL (`documentation_center`); testes usam SQLite em memória |
+| Fila | `database` |
+| Planilhas | `maatwebsite/excel` 4 |
+| Storage | local + AWS S3, Azure Blob e Cloudflare R2 |
+| Deploy | `deploy.sh` via GitHub Actions ao dar push na `main` |
+
+Confirme versões instaladas antes de usar APIs sensíveis:
+
+```bash
+composer show --direct
+cat package.json
+php artisan config:show app.name
+```
+
+## Comandos essenciais
+
+```bash
+# Primeira instalação
+composer setup
+
+# Desenvolvimento (servidor + fila + Vite)
+composer run dev
+
+# Build dos assets
+npm run build
+
+# Testes
+php artisan test --compact
+php artisan test --compact tests/Feature/AlgumTest.php
+vendor/bin/pest --filter=testName
+
+# Formatação (obrigatório após alterar PHP)
+vendor/bin/pint --dirty --format agent
+
+# E2E (Cypress)
+npm run test:e2e
+```
+
+Para criar arquivos, prefira `php artisan make:*` com `--no-interaction`:
+
+```bash
+php artisan make:controller NomeController --no-interaction
+php artisan make:request StoreNomeRequest --no-interaction
+php artisan make:test --pest NomeTest --no-interaction
+php artisan make:model Nome -m --no-interaction
+```
+
+## Estrutura da aplicação
+
+```text
+app/
+  Console/          Comandos Artisan (inclui plugin:*)
+  Dashboard/        Widget base, registry e widgets do core
+  Enums/            AdminModule (navegação e permissões)
+  Http/             Controllers, Requests e Controllers/Api
+  Models/           User, Setting, StorageSetting, DevDoc
+  Notifications/    SystemNotification e PluginNotifier
+  Plugins/          Núcleo do sistema de plugins + helpers
+  Providers/        App, Plugin e Dashboard service providers
+  Settings/         SystemSettings, StorageSettings, SettingsSectionRegistry
+  View/             Componentes class-based (ex.: notificações)
+plugins/            Plugins independentes (PSR-4 Plugins\)
+resources/views/    Layouts, componentes x-ui.*, telas e widgets
+routes/web.php      Rotas web e do painel
+routes/api.php      API v1 (Sanctum)
+database/           Migrations, factories e seeders do core
+tests/Feature/      Testes do core
+plugins/*/Tests/    Testes de cada plugin (também rodam na suíte)
+```
+
+## Navegação e módulos
+
+- O menu é controlado por `App\Enums\AdminModule` (`Dashboard`, `Users`, `DevDocs`) combinado com `users.enabled_modules`, `module_order` e `module_sections`.
+- O Dashboard é sempre habilitado; módulos administrativos só aparecem para `is_admin`.
+- Plugins contribuem com itens de navegação via `navigation` no `plugin.json` e podem declarar um `module` para respeitar a preferência do usuário.
+
+## Sistema de plugins
+
+- Cada plugin fica em `plugins/<StudlyName>/` e é descrito por `plugin.json` (`alias`, `version`, `providers`, `files`, `navigation`, `requires`, `lifecycle`, `storage`).
+- O `PluginServiceProvider` registra provedores, aliases, arquivos e traduções dos plugins habilitados.
+- Estado habilitado/desabilitado fica em `storage/plugin_statuses.json` (fora do versionamento).
+- Comandos:
+
+```bash
+php artisan plugin:list
+php artisan plugin:make <alias>
+php artisan plugin:enable <alias>
+php artisan plugin:disable <alias>
+php artisan plugin:install <zip>
+php artisan plugin:remove <alias>
+```
+
+- Testes de plugin ficam em `plugins/<Nome>/Tests/` e são descobertos pelo `phpunit.xml`.
+
+### Helpers disponíveis para plugins
+
+```php
+plugin();                                  // PluginRepository
+plugin('alias');                           // Plugin
+plugin_attribute('alias', 'version');      // atributo do manifesto
+plugin_version('alias');                   // versão
+plugin_path('alias', 'Resources/views');   // caminho no plugin
+plugin_storage('alias');                   // sandbox de armazenamento isolado
+plugin_notifier('alias');                  // envio de notificações
+```
+
+### Widgets de plugins
+
+Estenda `App\Dashboard\Widget` e registre em `WidgetRegistry` no provider:
+
+```php
+public function id(): string;          // ex.: "analytics.overview"
+public function title(): string;
+public function view(): string;        // ex.: "analytics::widgets.overview"
+public function data(Request $request): array;
+public function order(): int;          // menor renderiza antes
+public function columnSpan(): int;     // 1 a 3
+public function visible(Request $request): bool;
+public function description(): ?string;
+public function icon(): ?string;
+```
+
+O usuário pode ocultar, reordenar por drag and drop e redimensionar widgets; a ordem e a largura ficam por usuário.
+
+### Seções de configuração de plugins
+
+Use `SettingsSectionRegistry` + `SettingsSection` para contribuir um card em `/settings`.
+
+## Dashboard
+
+- Core widgets em `app/Dashboard/Widgets`.
+- Layout por usuário: `dashboard_hidden_widgets`, `dashboard_widget_order`, `dashboard_widget_spans`.
+- Reordenação via drag and drop (Alpine) e persistência em `PUT /admin/widgets/order`.
+- Redimensionamento em `PUT /admin/widgets/{widget}/layout`.
+
+## Configurações
+
+- **Aparência**: tema por usuário (`users.theme`).
+- **Módulos**: quais módulos aparecem e em qual seção.
+- **Notificações**: preferência de e-mail (`users.email_notifications`).
+- **Sistema** (admin): fuso horário global (`settings`).
+- **Armazenamento** (admin): provedor dos plugins em `storage_settings`, credenciais criptografadas.
+- **Plugins** (admin): instalação, ativação e remoção.
+
+## Notificações
+
+- `App\Notifications\SystemNotification` grava no banco e, conforme a preferência do usuário, envia e-mail.
+- `App\Notifications\PluginNotifier` permite que plugins enviem notificações:
+  - `plugin_notifier('alias')->send($users, $title, $body, $url, $level)`
+  - `plugin_notifier('alias')->toAdmins($title, $body, $url, $level)`
+- Níveis: `info`, `success`, `warning`, `danger`.
+- URLs aceitam apenas `http(s)` ou caminhos relativos iniciados por `/`.
+- Central em `/notifications`, sino na sidebar e contador de não lidas.
+
+## Armazenamento
+
+- `App\Settings\StorageSettings` resolve o provedor ativo e configura os discos.
+- Provedores: local (`plugins`), AWS S3, Azure Blob e Cloudflare R2.
+- Novos arquivos usam o provedor ativo; se incompleto, cai para o disco local.
+- `plugin_storage('alias')` isola os arquivos em `plugins/{alias}/...` e bloqueia travessia de diretório.
+- Plugins podem sobrescrever o disco no manifesto: `"storage": { "disk": "s3" }`.
+
+## Convenções de código
+
+- Siga o padrão dos arquivos vizinhos; não introduza um segundo padrão para o mesmo problema.
+- Use tipos explícitos em parâmetros e retornos; promoção de construtor; chaves em todas as estruturas de controle.
+- Prefira PHPDoc a comentários inline; descreva arrays com array shapes.
+- Use `route()` e rotas nomeadas; nunca hardcode URLs.
+- Validação em Form Requests dedicados quando houver regra relevante; `authorize()` quando houver permissão.
+- Controllers retornam `back()->with('status', ...)` após mutações.
+- Blade: componentes anônimos em `resources/views/components`, layouts em `components/layouts`; reutilize `x-ui.*` antes de criar novos.
+- UI segue o padrão do módulo de Tarefas/Dashboard: cards `rounded-3xl`, inputs `h-10 rounded-xl`, foco indigo, suporte a dark mode.
+- Em Blade, `{{ }}` para escapar; `{!! !!}` apenas com conteúdo sanitizado.
+- Use `@csrf` em formulários e `@method` para PUT/DELETE.
+- Alpine: `x-bind:class` para expressões; `:attr` é avaliação PHP no Blade.
+
+## Testes e qualidade
+
+- Todo comportamento novo ou corrigido deve ter teste de regressão quando fizer sentido.
+- Mudanças apenas de texto, estilo ou layout não exigem teste novo.
+- Use factories e estados existentes (`User::factory()->admin()` etc.).
+- Rode o escopo mais estreito primeiro: `php artisan test --compact <arquivo>`.
+- Ao finalizar PHP: `vendor/bin/pint --dirty --format agent`.
+- Não crie scripts de verificação ou use tinker quando houver teste cobrindo o comportamento.
+- Não apague testes sem aprovação.
+- A suíte completa atual tem cerca de 344 testes; rode `php artisan test --compact` antes de entregar quando possível.
+
+## Git e entrega
+
+**Nunca** execute `git commit`, `git push`, merge, tag, reset destrutivo ou reescrita de histórico sem autorização explícita do usuário na conversa atual.
+
+- Trabalhe em branch `feature/...`; nunca commite direto na `main`.
+- Antes de commitar: revise `git status`/`git diff`, rode Pint e os testes do escopo.
+- Commits em inglês, imperativos e sem prefixo (ex.: `Add configurable storage providers for plugins`).
+- Não commite segredos, `.env`, `storage/*` gerados, `vendor/`, `node_modules/`, `public/build/` ou `public/hot`.
+- Push só com autorização explícita: `git push -u origin <branch>`.
+- Push na `main` dispara o deploy automático (`.github/workflows/deploy.yml` → `deploy.sh`).
+
+## Deploy
+
+- `deploy.sh` faz fast-forward/reset para `origin/main`, instala dependências, compila assets, cacheia config/rotas/views, roda migrations e configura worker + scheduler via systemd.
+- `storage`, `bootstrap/cache` e `plugins` precisam ser graváveis pelo usuário do PHP-FPM.
+- O deploy exige MySQL/MariaDB (falha se `DB_CONNECTION=sqlite`).
+
+## Regras do projeto
+
+Antes de planejar ou editar, leia `.ai/rules/index.md` e os arquivos de regra cujos globs cobrem os caminhos em edição. Hoje:
+
+- `routes/*.php` → `.ai/rules/routes.md` (parâmetros explícitos em `Route::resource`).
+
+Se `.ai/rules` mudar, siga o índice atualizado.
+
+## Banco de dados
+
+- Não use SQL cru em tinker quando houver `database-query` do Boost.
+- Consulte o schema com `database-schema` antes de migrations/models.
+- Prefira factories e seeders existentes em testes.
+
+---
+
 <laravel-boost-guidelines>
 === foundation rules ===
 
