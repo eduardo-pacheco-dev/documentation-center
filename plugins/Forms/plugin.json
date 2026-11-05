@@ -1,0 +1,31 @@
+{
+    "name": "Formulários",
+    "alias": "forms",
+    "description": "Formulários dinâmicos com etapas, respostas, avaliações, templates reutilizáveis e preenchimento público.",
+    "version": "1.0.0",
+    "icon": "document-check",
+    "active": true,
+    "priority": 22,
+    "providers": [
+        "Plugins\\Forms\\Providers\\FormsServiceProvider"
+    ],
+    "navigation": [
+        {
+            "label": "Formulários",
+            "route": "admin.forms.index",
+            "icon": "document-check",
+            "primary": false,
+            "module": null
+        },
+        {
+            "label": "Templates",
+            "route": "admin.form-templates.index",
+            "icon": "document-duplicate",
+            "primary": false,
+            "module": null
+        }
+    ],
+    "aliases": [],
+    "files": [],
+    "requires": []
+}

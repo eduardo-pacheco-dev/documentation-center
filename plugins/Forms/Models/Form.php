@@ -1,0 +1,111 @@
+<?php
+
+namespace Plugins\Forms\Models;
+
+use App\Models\User;
+use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
+use Plugins\Forms\Database\Factories\FormFactory;
+
+#[Fillable([
+    'user_id',
+    'code',
+    'name',
+    'type',
+    'status',
+    'allows_multiple_responses',
+    'steps',
+    'fields',
+])]
+class Form extends Model
+{
+    /** @use HasFactory<FormFactory> */
+    use HasFactory, SoftDeletes;
+
+    /**
+     * The factory shipped with the plugin.
+     */
+    protected static function newFactory(): FormFactory
+    {
+        return FormFactory::new();
+    }
+
+    /**
+     * Boot the model and assign a sequential code when none is provided.
+     */
+    protected static function booted(): void
+    {
+        static::creating(function (Form $form): void {
+            if (blank($form->code) && $form->user_id !== null) {
+                $form->code = static::generateCode($form->user);
+            }
+        });
+    }
+
+    /**
+     * The user that owns the form.
+     */
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
+    }
+
+    /**
+     * The responses submitted for the form.
+     */
+    public function responses(): HasMany
+    {
+        return $this->hasMany(FormResponse::class);
+    }
+
+    /**
+     * The evaluations recorded for the form.
+     */
+    public function evaluations(): HasMany
+    {
+        return $this->hasMany(FormEvaluation::class);
+    }
+
+    /**
+     * Restrict a query to the forms the user owns.
+     */
+    public function scopeOwnedBy(Builder $query, User $user): Builder
+    {
+        return $query->where('user_id', $user->getKey());
+    }
+
+    /**
+     * Generate the next sequential code for the user's forms.
+     */
+    public static function generateCode(User $user): string
+    {
+        $forms = static::query()->withTrashed()->where('user_id', $user->getKey());
+        $sequence = (clone $forms)->count() + 1;
+
+        do {
+            $code = 'FRM-'.str_pad((string) $sequence, 4, '0', STR_PAD_LEFT);
+            $sequence++;
+        } while ((clone $forms)->where('code', $code)->exists());
+
+        return $code;
+    }
+
+    /**
+     * Get the attributes that should be cast.
+     *
+     * @return array<string, string>
+     */
+    protected function casts(): array
+    {
+        return [
+            'allows_multiple_responses' => 'boolean',
+            'steps' => 'array',
+            'fields' => 'array',
+        ];
+    }
+}

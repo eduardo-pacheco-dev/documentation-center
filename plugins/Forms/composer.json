@@ -1,0 +1,20 @@
+{
+    "name": "documentation-center/plugin-forms",
+    "description": "Formulários dinâmicos com etapas, respostas, avaliações, templates e preenchimento público.",
+    "type": "library",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Documentation Center",
+            "email": "contato@example.com"
+        }
+    ],
+    "autoload": {
+        "psr-4": {
+            "Plugins\\Forms\\": ""
+        }
+    },
+    "config": {
+        "sort-packages": true
+    }
+}

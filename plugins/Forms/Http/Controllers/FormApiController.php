@@ -1,0 +1,189 @@
+<?php
+
+namespace Plugins\Forms\Http\Controllers;
+
+use App\Http\Controllers\Controller;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use OpenApi\Attributes as OA;
+use Plugins\Forms\Http\Requests\ApiUpdateFormRequest;
+use Plugins\Forms\Http\Resources\FormResource;
+use Plugins\Forms\Models\Form;
+
+#[OA\Schema(
+    schema: 'FormField',
+    title: 'Campo do formulário',
+    properties: [
+        new OA\Property(property: 'id', type: 'string', example: 'F1-1'),
+        new OA\Property(property: 'type', type: 'string', enum: ['text', 'textarea', 'number', 'date', 'time', 'radio', 'checkbox', 'dropdown', 'scale', 'image', 'file'], example: 'text'),
+        new OA\Property(property: 'label', type: 'string', example: 'Área registrada'),
+        new OA\Property(property: 'required', type: 'boolean', nullable: true, example: false),
+        new OA\Property(property: 'help', type: 'string', nullable: true, example: 'Informe a área exata vistoriada.'),
+        new OA\Property(property: 'options', type: 'array', nullable: true, description: 'Opções para os tipos radio, checkbox e dropdown.', items: new OA\Items(type: 'string')),
+        new OA\Property(property: 'scaleMin', type: 'integer', nullable: true, example: 1),
+        new OA\Property(property: 'scaleMax', type: 'integer', nullable: true, example: 5),
+        new OA\Property(property: 'scaleMinLabel', type: 'string', nullable: true, example: 'Discordo'),
+        new OA\Property(property: 'scaleMaxLabel', type: 'string', nullable: true, example: 'Concordo'),
+        new OA\Property(property: 'value', type: 'string', nullable: true, example: 'Galpão A'),
+        new OA\Property(property: 'images', type: 'array', nullable: true, items: new OA\Items(type: 'string', format: 'uri')),
+        new OA\Property(property: 'imageThumbnails', type: 'array', nullable: true, description: 'URLs das miniaturas comprimidas das imagens enviadas.', items: new OA\Items(type: 'string', format: 'uri')),
+        new OA\Property(property: 'files', type: 'array', nullable: true, description: 'URLs dos arquivos enviados para os tipos image e file.', items: new OA\Items(type: 'string', format: 'uri')),
+        new OA\Property(property: 'fileNames', type: 'array', nullable: true, description: 'Nomes originais dos arquivos enviados.', items: new OA\Items(type: 'string')),
+        new OA\Property(property: 'status', type: 'string', nullable: true, enum: ['aprovado', 'reprovado', 'pendente', 'enviado', 'nao_aplicavel']),
+    ],
+)]
+#[OA\Schema(
+    schema: 'FormStep',
+    title: 'Etapa do formulário',
+    properties: [
+        new OA\Property(property: 'id', type: 'string', example: 'FRM-0001-S1'),
+        new OA\Property(property: 'title', type: 'string', nullable: true, example: 'Identificação'),
+        new OA\Property(property: 'fields', type: 'array', items: new OA\Items(ref: '#/components/schemas/FormField')),
+    ],
+)]
+#[OA\Schema(
+    schema: 'Form',
+    title: 'Formulário',
+    properties: [
+        new OA\Property(property: 'id', type: 'string', example: 'FRM-0001'),
+        new OA\Property(property: 'name', type: 'string', example: 'Registro Fotográfico Completo - Estrutura'),
+        new OA\Property(property: 'type', type: 'string', example: 'Registro Fotográfico'),
+        new OA\Property(property: 'status', type: 'string', nullable: true, example: 'Preenchido'),
+        new OA\Property(property: 'createdAt', type: 'string', format: 'date', nullable: true, example: '2026-02-02'),
+        new OA\Property(property: 'steps', type: 'array', items: new OA\Items(ref: '#/components/schemas/FormStep')),
+    ],
+)]
+#[OA\Schema(
+    schema: 'FormUpdateRequest',
+    title: 'Atualização do formulário',
+    properties: [
+        new OA\Property(property: 'status', type: 'string', nullable: true, example: 'Preenchido'),
+        new OA\Property(property: 'steps', type: 'array', items: new OA\Items(ref: '#/components/schemas/FormStep')),
+    ],
+)]
+class FormApiController extends Controller
+{
+    /**
+     * List the forms of the authenticated user.
+     */
+    #[OA\Get(
+        path: '/api/v1/forms',
+        operationId: 'listForms',
+        summary: 'Lista os formulários do usuário',
+        description: 'O retorno já inclui os `steps`/`fields` completos, usados para cache offline.',
+        tags: ['Formulários'],
+        security: [['bearerAuth' => []]],
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: 'Lista de formulários',
+                content: new OA\JsonContent(type: 'array', items: new OA\Items(ref: '#/components/schemas/Form')),
+            ),
+            new OA\Response(response: 401, description: 'Token ausente ou inválido'),
+        ],
+    )]
+    public function index(Request $request): JsonResponse
+    {
+        $forms = Form::query()
+            ->ownedBy($request->user())
+            ->orderBy('id')
+            ->get();
+
+        return response()->json(FormResource::collection($forms)->toArray($request));
+    }
+
+    /**
+     * Show a single form.
+     */
+    #[OA\Get(
+        path: '/api/v1/forms/{id}',
+        operationId: 'showForm',
+        summary: 'Retorna um formulário',
+        tags: ['Formulários'],
+        security: [['bearerAuth' => []]],
+        parameters: [
+            new OA\Parameter(name: 'id', in: 'path', required: true, description: 'Código do formulário.', schema: new OA\Schema(type: 'string')),
+        ],
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: 'Formulário do usuário',
+                content: new OA\JsonContent(ref: '#/components/schemas/Form'),
+            ),
+            new OA\Response(response: 401, description: 'Token ausente ou inválido'),
+            new OA\Response(response: 404, description: 'Formulário não encontrado'),
+        ],
+    )]
+    public function show(Request $request, string $form): JsonResponse
+    {
+        $model = $this->resolveForm($request, $form);
+
+        return response()->json((new FormResource($model))->toArray($request));
+    }
+
+    /**
+     * Update a form with the answers, photos and synchronization state.
+     */
+    #[OA\Patch(
+        path: '/api/v1/forms/{id}',
+        operationId: 'updateForm',
+        summary: 'Atualiza um formulário',
+        description: 'Usado ao preencher/salvar respostas, capturar fotos e sincronizar. O recurso atualizado é devolvido.',
+        tags: ['Formulários'],
+        security: [['bearerAuth' => []]],
+        parameters: [
+            new OA\Parameter(name: 'id', in: 'path', required: true, description: 'Código do formulário.', schema: new OA\Schema(type: 'string')),
+        ],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(ref: '#/components/schemas/FormUpdateRequest'),
+        ),
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: 'Formulário atualizado',
+                content: new OA\JsonContent(ref: '#/components/schemas/Form'),
+            ),
+            new OA\Response(response: 401, description: 'Token ausente ou inválido'),
+            new OA\Response(response: 403, description: 'Acesso negado ao formulário de outro usuário'),
+            new OA\Response(response: 404, description: 'Formulário não encontrado'),
+            new OA\Response(response: 422, description: 'Dados inválidos'),
+        ],
+    )]
+    public function update(ApiUpdateFormRequest $request, string $form): JsonResponse
+    {
+        $model = $this->resolveFormForUpdate($request, $form);
+
+        $this->authorize('update', $model);
+
+        $model->update($request->validated());
+
+        return response()->json((new FormResource($model))->toArray($request));
+    }
+
+    /**
+     * Resolve a form by code (or numeric id) without user scope so the policy can decide access.
+     */
+    private function resolveFormForUpdate(Request $request, string $form): Form
+    {
+        return Form::query()
+            ->where(fn (Builder $builder) => $builder
+                ->where('code', $form)
+                ->orWhere('id', ctype_digit($form) ? (int) $form : 0))
+            ->firstOrFail();
+    }
+
+    /**
+     * Resolve a form by code (or numeric id) for the authenticated user.
+     */
+    private function resolveForm(Request $request, string $form): Form
+    {
+        return Form::query()
+            ->ownedBy($request->user())
+            ->where(fn (Builder $builder) => $builder
+                ->where('code', $form)
+                ->orWhere('id', ctype_digit($form) ? (int) $form : 0))
+            ->firstOrFail();
+    }
+}
