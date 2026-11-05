@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use Plugins\Nokia\Http\Controllers\NokiaSiteAttachmentController;
 use Plugins\Nokia\Http\Controllers\NokiaSiteController;
 use Plugins\Nokia\Http\Controllers\NokiaSiteExportController;
 use Plugins\Nokia\Http\Controllers\NokiaSiteImportController;
@@ -19,4 +20,10 @@ Route::middleware('auth')
         Route::get('{site}/edit', [NokiaSiteController::class, 'edit'])->name('edit');
         Route::put('{site}', [NokiaSiteController::class, 'update'])->name('update');
         Route::delete('{site}', [NokiaSiteController::class, 'destroy'])->name('destroy');
+
+        Route::scopeBindings()->group(function (): void {
+            Route::post('{site}/attachments', [NokiaSiteAttachmentController::class, 'store'])->name('attachments.store');
+            Route::get('{site}/attachments/{attachment}', [NokiaSiteAttachmentController::class, 'download'])->name('attachments.download');
+            Route::delete('{site}/attachments/{attachment}', [NokiaSiteAttachmentController::class, 'destroy'])->name('attachments.destroy');
+        });
     });

@@ -26,6 +26,7 @@ class NokiaSiteController extends Controller
         }
 
         $sites = $query
+            ->with('attachments')
             ->latest('updated_at')
             ->latest('id')
             ->paginate(15)

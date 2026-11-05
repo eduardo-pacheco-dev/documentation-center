@@ -159,6 +159,82 @@
                     </ul>
                 </section>
 
+                <section class="mt-5">
+                    <h3 class="text-sm font-semibold tracking-tight text-gray-900 dark:text-white">Anexos</h3>
+                    <p class="mt-0.5 text-xs text-gray-500 dark:text-gray-400">Arquivos TSSR, DOC-D e DWG deste site.</p>
+
+                    <div class="mt-3 space-y-3">
+                        <template x-for="group in (site?.attachments ?? [])" :key="group.category">
+                            <div class="rounded-2xl border border-gray-200/80 p-4 dark:border-white/10">
+                                <div class="flex items-center justify-between gap-2">
+                                    <h4 class="text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400" x-text="group.label"></h4>
+                                    <span class="text-[10px] font-medium text-gray-400 dark:text-gray-500" x-text="`${group.files.length} arquivo(s)`"></span>
+                                </div>
+
+                                <ul class="mt-2 divide-y divide-gray-100 dark:divide-white/10" x-show="group.files.length > 0">
+                                    <template x-for="file in group.files" :key="file.id">
+                                        <li class="flex items-center gap-2 py-2">
+                                            <x-icon name="paper-clip" class="h-4 w-4 shrink-0 text-gray-400 dark:text-gray-500" />
+
+                                            <span class="min-w-0 flex-1 truncate text-sm text-gray-700 dark:text-gray-200" x-text="file.name"></span>
+                                            <span class="shrink-0 text-[11px] text-gray-400 dark:text-gray-500" x-text="file.size"></span>
+
+                                            <a
+                                                x-bind:href="file.download_url"
+                                                class="shrink-0 rounded-lg px-2 py-1 text-xs font-semibold text-indigo-600 transition hover:bg-indigo-50 dark:text-indigo-400 dark:hover:bg-indigo-500/10"
+                                            >
+                                                Baixar
+                                            </a>
+
+                                            <form
+                                                method="POST"
+                                                x-bind:action="file.delete_url"
+                                                data-confirm-delete="Remover este anexo? Essa ação não pode ser desfeita."
+                                                class="shrink-0"
+                                            >
+                                                @csrf
+                                                @method('DELETE')
+
+                                                <button
+                                                    type="submit"
+                                                    class="rounded-lg p-1.5 text-red-500 transition hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-500/15"
+                                                    aria-label="Remover anexo"
+                                                >
+                                                    <x-icon name="trash" class="h-4 w-4" />
+                                                </button>
+                                            </form>
+                                        </li>
+                                    </template>
+                                </ul>
+
+                                <p class="mt-2 text-xs text-gray-400 dark:text-gray-500" x-show="group.files.length === 0">Nenhum arquivo enviado.</p>
+
+                                <form
+                                    method="POST"
+                                    enctype="multipart/form-data"
+                                    x-bind:action="site?.upload_url ?? '#'"
+                                    class="mt-3 flex flex-wrap items-center gap-2"
+                                >
+                                    @csrf
+                                    <input type="hidden" name="category" x-bind:value="group.category">
+
+                                    <input
+                                        type="file"
+                                        name="files[]"
+                                        multiple
+                                        accept=".pdf,.doc,.docx,.dwg,.dxf,.xls,.xlsx,.csv,.txt,.png,.jpg,.jpeg,.zip"
+                                        class="block min-w-0 flex-1 text-xs text-gray-500 file:mr-3 file:rounded-lg file:border-0 file:bg-indigo-50 file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-indigo-600 dark:text-gray-400 dark:file:bg-indigo-500/10 dark:file:text-indigo-300"
+                                    >
+
+                                    <x-ui.action type="submit" icon="arrow-up-tray" size="sm">
+                                        Enviar
+                                    </x-ui.action>
+                                </form>
+                            </div>
+                        </template>
+                    </div>
+                </section>
+
                 <p class="mt-4 text-xs text-gray-500 dark:text-gray-400">
                     Atualizado em <span class="font-medium text-gray-700 dark:text-gray-200" x-text="site?.updated_at ?? '—'"></span>
                 </p>

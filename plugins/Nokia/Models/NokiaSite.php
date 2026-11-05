@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Plugins\Nokia\Database\Factories\NokiaSiteFactory;
 
 #[Fillable([
@@ -50,6 +51,24 @@ class NokiaSite extends Model
             'checklist_fam_instalacao' => 'boolean',
             'checklist_fam_panoramica' => 'boolean',
         ];
+    }
+
+    /**
+     * Delete the stored attachments when the site is deleted.
+     */
+    protected static function booted(): void
+    {
+        static::deleting(function (NokiaSite $site): void {
+            $site->attachments()->get()->each->delete();
+        });
+    }
+
+    /**
+     * The files attached to the site.
+     */
+    public function attachments(): HasMany
+    {
+        return $this->hasMany(NokiaSiteAttachment::class, 'nokia_site_id')->latest('id');
     }
 
     /**

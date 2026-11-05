@@ -8,9 +8,11 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use Plugins\Nokia\Models\NokiaSite;
+use Plugins\Nokia\Models\NokiaSiteAttachment;
 use Plugins\Nokia\Providers\NokiaServiceProvider;
 use Plugins\Nokia\Support\NokiaSiteExport;
 
@@ -88,7 +90,10 @@ test('the site list renders the details modal', function () {
         ->assertSee('role="menu"', false)
         ->assertSee('Detalhes do site')
         ->assertSee('SPDETAIL1')
-        ->assertSee('END-4242');
+        ->assertSee('END-4242')
+        ->assertSee('TSSR')
+        ->assertSee('DOC-D')
+        ->assertSee('DWG');
 });
 
 test('the site list renders the create and edit modals', function () {
@@ -236,6 +241,82 @@ test('a site can be deleted', function () {
         ->assertRedirect(route('admin.nokia.sites.index'));
 
     expect(NokiaSite::query()->find($site->getKey()))->toBeNull();
+});
+
+test('attachments can be uploaded, downloaded and removed', function () {
+    Storage::fake(plugin_storage('nokia')->diskName());
+
+    $user = User::factory()->create();
+    $site = NokiaSite::factory()->create();
+
+    $this->actingAs($user)
+        ->post(route('admin.nokia.sites.attachments.store', $site), [
+            'category' => NokiaSiteAttachment::CATEGORY_TSSR,
+            'files' => [
+                UploadedFile::fake()->create('tssr.pdf', 120, 'application/pdf'),
+            ],
+        ])
+        ->assertRedirect()
+        ->assertSessionHas('status');
+
+    $attachment = $site->attachments()->sole();
+
+    expect($attachment)
+        ->category->toBe(NokiaSiteAttachment::CATEGORY_TSSR)
+        ->original_name->toBe('tssr.pdf');
+
+    Storage::disk(plugin_storage('nokia')->diskName())->assertExists(plugin_storage('nokia')->path($attachment->path));
+
+    $this->actingAs($user)
+        ->get(route('admin.nokia.sites.attachments.download', [$site, $attachment]))
+        ->assertOk()
+        ->assertDownload('tssr.pdf');
+
+    $this->actingAs($user)
+        ->delete(route('admin.nokia.sites.attachments.destroy', [$site, $attachment]))
+        ->assertRedirect()
+        ->assertSessionHas('status');
+
+    Storage::disk(plugin_storage('nokia')->diskName())->assertMissing(plugin_storage('nokia')->path($attachment->path));
+    expect(NokiaSiteAttachment::query()->find($attachment->getKey()))->toBeNull();
+});
+
+test('attachment uploads reject unsupported files', function () {
+    Storage::fake(plugin_storage('nokia')->diskName());
+
+    $site = NokiaSite::factory()->create();
+
+    $this->actingAs(User::factory()->create())
+        ->post(route('admin.nokia.sites.attachments.store', $site), [
+            'category' => NokiaSiteAttachment::CATEGORY_DWG,
+            'files' => [
+                UploadedFile::fake()->create('script.exe', 10, 'application/octet-stream'),
+            ],
+        ])
+        ->assertSessionHasErrors('files.0');
+
+    expect(NokiaSiteAttachment::query()->count())->toBe(0);
+});
+
+test('deleting a site removes its stored attachments', function () {
+    Storage::fake(plugin_storage('nokia')->diskName());
+
+    $site = NokiaSite::factory()->create();
+    $attachment = NokiaSiteAttachment::factory()
+        ->category(NokiaSiteAttachment::CATEGORY_DOC_D)
+        ->create([
+            'nokia_site_id' => $site->getKey(),
+            'path' => 'sites/'.$site->getKey().'/doc-d/planta.pdf',
+        ]);
+
+    Storage::disk(plugin_storage('nokia')->diskName())->put(plugin_storage('nokia')->path($attachment->path), 'conteúdo');
+
+    $this->actingAs(User::factory()->create())
+        ->delete(route('admin.nokia.sites.destroy', $site))
+        ->assertRedirect(route('admin.nokia.sites.index'));
+
+    Storage::disk(plugin_storage('nokia')->diskName())->assertMissing(plugin_storage('nokia')->path($attachment->path));
+    expect(NokiaSiteAttachment::query()->count())->toBe(0);
 });
 
 test('all sites can be exported to excel', function () {

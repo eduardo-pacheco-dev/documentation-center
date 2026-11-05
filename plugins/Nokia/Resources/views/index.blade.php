@@ -143,6 +143,25 @@
                                         ])
                                         ->values()
                                         ->all(),
+                                    'upload_url' => route('admin.nokia.sites.attachments.store', $site),
+                                    'attachments' => collect(\Plugins\Nokia\Models\NokiaSiteAttachment::categories())
+                                        ->map(fn (string $label, string $category): array => [
+                                            'category' => $category,
+                                            'label' => $label,
+                                            'files' => $site->attachments
+                                                ->where('category', $category)
+                                                ->map(fn (\Plugins\Nokia\Models\NokiaSiteAttachment $attachment): array => [
+                                                    'id' => $attachment->getKey(),
+                                                    'name' => $attachment->original_name,
+                                                    'size' => $attachment->humanSize(),
+                                                    'download_url' => route('admin.nokia.sites.attachments.download', [$site, $attachment]),
+                                                    'delete_url' => route('admin.nokia.sites.attachments.destroy', [$site, $attachment]),
+                                                ])
+                                                ->values()
+                                                ->all(),
+                                        ])
+                                        ->values()
+                                        ->all(),
                                 ];
                             @endphp
 
