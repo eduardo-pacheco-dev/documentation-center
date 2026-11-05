@@ -8,6 +8,8 @@ use Plugins\FollowUp\Enums\FollowUpPriority;
 use Plugins\FollowUp\Enums\FollowUpStatus;
 use Plugins\FollowUp\Models\FollowUp;
 use Plugins\FollowUp\Models\FollowUpAssignee;
+use Plugins\FollowUp\Models\FollowUpClient;
+use Plugins\FollowUp\Models\FollowUpProject;
 
 class FollowUpSeeder extends Seeder
 {
@@ -103,11 +105,20 @@ class FollowUpSeeder extends Seeder
         foreach ($followUps as $index => $data) {
             $user = $users[$index % $users->count()];
 
+            $client = FollowUpClient::query()->firstOrCreate([
+                'name' => $data['client'] ?? $clients[$index % count($clients)],
+            ]);
+
+            $project = FollowUpProject::query()->firstOrCreate([
+                'client_id' => $client->getKey(),
+                'name' => $data['project'] ?? $projects[$index % count($projects)],
+            ]);
+
             $followUp = FollowUp::query()->create([
                 'title' => $data['title'],
                 'description' => $data['description'],
-                'client' => $data['client'] ?? $clients[$index % count($clients)],
-                'project' => $data['project'] ?? $projects[$index % count($projects)],
+                'client_id' => $client->getKey(),
+                'project_id' => $project->getKey(),
                 'status' => $data['status']->value,
                 'priority' => $data['priority']->value,
                 'due_date' => $data['due_date'],

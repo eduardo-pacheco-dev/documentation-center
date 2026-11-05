@@ -1,4 +1,4 @@
-@props(['assignees', 'statuses', 'priorities', 'openOnLoad' => false])
+@props(['assignees', 'clients', 'statuses', 'priorities', 'openOnLoad' => false])
 
 <div
     x-data="{ open: false }"
@@ -39,6 +39,7 @@
                 <x-follow-up::partials.form
                     :action="route('admin.follow-ups.store')"
                     :assignees="$assignees"
+                    :clients="$clients"
                     :statuses="$statuses"
                     :priorities="$priorities"
                     modal-mode

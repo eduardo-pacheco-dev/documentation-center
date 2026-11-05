@@ -60,12 +60,12 @@
     <div class="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
         <div class="rounded-2xl border border-gray-200/80 bg-white px-4 py-3 dark:border-white/10 dark:bg-[#171716]">
             <p class="text-[11px] font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">Cliente</p>
-            <p class="mt-1 text-sm font-medium text-gray-800 dark:text-gray-100">{{ $followUp->client ?: 'Não informado' }}</p>
+            <p class="mt-1 text-sm font-medium text-gray-800 dark:text-gray-100">{{ $followUp->client?->name ?: 'Não informado' }}</p>
         </div>
 
         <div class="rounded-2xl border border-gray-200/80 bg-white px-4 py-3 dark:border-white/10 dark:bg-[#171716]">
             <p class="text-[11px] font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">Projeto</p>
-            <p class="mt-1 text-sm font-medium text-gray-800 dark:text-gray-100">{{ $followUp->project ?: 'Não informado' }}</p>
+            <p class="mt-1 text-sm font-medium text-gray-800 dark:text-gray-100">{{ $followUp->project?->name ?: 'Não informado' }}</p>
         </div>
 
         <div class="rounded-2xl border border-gray-200/80 bg-white px-4 py-3 dark:border-white/10 dark:bg-[#171716]">

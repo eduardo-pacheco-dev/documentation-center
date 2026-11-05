@@ -27,13 +27,13 @@
     @if ($followUp->client || $followUp->project)
         <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">
             @if ($followUp->client)
-                <span class="font-medium text-gray-700 dark:text-gray-200">{{ $followUp->client }}</span>
+                <span class="font-medium text-gray-700 dark:text-gray-200">{{ $followUp->client->name }}</span>
             @endif
             @if ($followUp->client && $followUp->project)
                 <span aria-hidden="true">·</span>
             @endif
             @if ($followUp->project)
-                {{ $followUp->project }}
+                {{ $followUp->project->name }}
             @endif
         </p>
     @endif

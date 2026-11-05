@@ -17,8 +17,8 @@ use Plugins\FollowUp\Enums\FollowUpStatus;
     'title',
     'code',
     'description',
-    'client',
-    'project',
+    'client_id',
+    'project_id',
     'status',
     'priority',
     'due_date',
@@ -42,6 +42,22 @@ class FollowUp extends Model
     protected static function newFactory(): FollowUpFactory
     {
         return FollowUpFactory::new();
+    }
+
+    /**
+     * The client linked to the follow-up.
+     */
+    public function client(): BelongsTo
+    {
+        return $this->belongsTo(FollowUpClient::class, 'client_id');
+    }
+
+    /**
+     * The project linked to the follow-up.
+     */
+    public function project(): BelongsTo
+    {
+        return $this->belongsTo(FollowUpProject::class, 'project_id');
     }
 
     /**
@@ -79,8 +95,8 @@ class FollowUp extends Model
             $query->where('title', 'like', $like)
                 ->orWhere('code', 'like', $like)
                 ->orWhere('description', 'like', $like)
-                ->orWhere('client', 'like', $like)
-                ->orWhere('project', 'like', $like);
+                ->orWhereHas('client', fn (Builder $query) => $query->where('name', 'like', $like))
+                ->orWhereHas('project', fn (Builder $query) => $query->where('name', 'like', $like));
         });
     }
 

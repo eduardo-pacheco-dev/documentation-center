@@ -462,6 +462,7 @@
 
     <x-follow-up::partials.create-modal
         :assignees="$assignees"
+        :clients="$clients"
         :statuses="$statuses"
         :priorities="$priorities"
         :open-on-load="$openCreateModal"

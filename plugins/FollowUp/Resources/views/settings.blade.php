@@ -348,6 +348,174 @@
     </div>
     </div>
 
+    <section class="mt-4 rounded-3xl border border-gray-200/80 bg-white p-5 sm:p-6 dark:border-white/10 dark:bg-[#171716]">
+        <div class="flex items-start gap-3">
+            <span class="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-400">
+                <x-icon name="building-office" class="h-5 w-5" />
+            </span>
+
+            <div>
+                <h2 class="text-sm font-semibold tracking-tight text-gray-900 dark:text-white">Clientes e projetos</h2>
+                <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Cadastre os clientes e os projetos de cada cliente usados nos follow-ups.</p>
+            </div>
+        </div>
+
+        <div class="mt-5 grid gap-4 lg:grid-cols-2">
+            <form method="POST" action="{{ route('admin.follow-ups.settings.clients.store') }}" class="rounded-2xl border border-gray-200/80 p-4 dark:border-white/10">
+                @csrf
+
+                <h3 class="text-sm font-semibold text-gray-900 dark:text-white">Novo cliente</h3>
+
+                <div class="mt-3 flex flex-wrap items-end gap-2">
+                    <div class="min-w-0 flex-1">
+                        <label for="client_name" class="{{ $labelClass }}">Nome do cliente</label>
+                        <input
+                            id="client_name"
+                            name="client_name"
+                            type="text"
+                            maxlength="150"
+                            value="{{ old('client_name') }}"
+                            placeholder="Ex.: AFL Engenharia"
+                            required
+                            class="{{ $inputClass }}"
+                        >
+                    </div>
+
+                    <x-ui.action type="submit" icon="plus">Adicionar</x-ui.action>
+                </div>
+
+                @error('client_name')<p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>@enderror
+            </form>
+
+            <form method="POST" action="{{ route('admin.follow-ups.settings.projects.store') }}" class="rounded-2xl border border-gray-200/80 p-4 dark:border-white/10">
+                @csrf
+
+                <h3 class="text-sm font-semibold text-gray-900 dark:text-white">Novo projeto</h3>
+
+                <div class="mt-3 grid gap-2 sm:grid-cols-2">
+                    <div>
+                        <label for="new_project_client_id" class="{{ $labelClass }}">Cliente</label>
+                        <select id="new_project_client_id" name="client_id" required class="{{ $inputClass }}">
+                            <option value="">Selecione</option>
+                            @foreach ($clients as $client)
+                                <option value="{{ $client->getKey() }}" @selected((string) old('client_id') === (string) $client->getKey())>{{ $client->name }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+
+                    <div>
+                        <label for="project_name" class="{{ $labelClass }}">Nome do projeto</label>
+                        <input
+                            id="project_name"
+                            name="project_name"
+                            type="text"
+                            maxlength="150"
+                            value="{{ old('project_name') }}"
+                            placeholder="Ex.: Expansão 5G"
+                            required
+                            class="{{ $inputClass }}"
+                        >
+                    </div>
+                </div>
+
+                <div class="mt-3">
+                    <x-ui.action type="submit" icon="plus">Adicionar</x-ui.action>
+                </div>
+
+                @error('project_name')<p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>@enderror
+                @error('client_id')<p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>@enderror
+            </form>
+        </div>
+
+        <div class="mt-5 space-y-3">
+            @forelse ($clients as $client)
+                <div class="rounded-2xl border border-gray-200/80 p-4 dark:border-white/10">
+                    <div class="flex flex-wrap items-center gap-2">
+                        <form method="POST" action="{{ route('admin.follow-ups.settings.clients.update', $client) }}" class="flex min-w-0 flex-1 items-center gap-2">
+                            @csrf
+                            @method('PUT')
+
+                            <input
+                                name="client_name"
+                                type="text"
+                                maxlength="150"
+                                value="{{ $client->name }}"
+                                required
+                                aria-label="Nome do cliente {{ $client->name }}"
+                                class="h-9 min-w-0 flex-1 rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 transition focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
+                            >
+
+                            <button type="submit" class="inline-flex h-9 items-center gap-1.5 rounded-lg bg-indigo-600 px-3 text-xs font-semibold text-white transition hover:bg-indigo-500">
+                                <x-icon name="check" class="h-3.5 w-3.5" />
+                                Salvar
+                            </button>
+                        </form>
+
+                        <span class="text-xs text-gray-500 dark:text-gray-400">{{ $client->follow_ups_count }} follow-up(s)</span>
+
+                        <form method="POST" action="{{ route('admin.follow-ups.settings.clients.destroy', $client) }}" data-confirm-delete="Remover o cliente {{ $client->name }}? Os projetos e vínculos dos follow-ups serão removidos.">
+                            @csrf
+                            @method('DELETE')
+
+                            <button type="submit" class="inline-flex h-9 w-9 items-center justify-center rounded-lg text-red-500 transition hover:bg-red-50 hover:text-red-600 dark:text-red-400 dark:hover:bg-red-500/15" aria-label="Remover cliente {{ $client->name }}">
+                                <x-icon name="trash" class="h-4 w-4" />
+                            </button>
+                        </form>
+                    </div>
+
+                    <ul class="mt-3 space-y-2 border-t border-gray-100 pt-3 dark:border-white/10">
+                        @forelse ($client->projects as $project)
+                            <li class="flex flex-wrap items-center gap-2">
+                                <form method="POST" action="{{ route('admin.follow-ups.settings.projects.update', $project) }}" class="grid min-w-0 flex-1 gap-2 sm:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)_auto]">
+                                    @csrf
+                                    @method('PUT')
+
+                                    <select name="client_id" aria-label="Cliente do projeto {{ $project->name }}" class="h-9 rounded-lg border border-gray-300 bg-white px-2 text-sm text-gray-900 transition focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100">
+                                        @foreach ($clients as $clientOption)
+                                            <option value="{{ $clientOption->getKey() }}" @selected($project->client_id === $clientOption->getKey())>{{ $clientOption->name }}</option>
+                                        @endforeach
+                                    </select>
+
+                                    <input
+                                        name="project_name"
+                                        type="text"
+                                        maxlength="150"
+                                        value="{{ $project->name }}"
+                                        required
+                                        aria-label="Nome do projeto {{ $project->name }}"
+                                        class="h-9 min-w-0 rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 transition focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
+                                    >
+
+                                    <button type="submit" class="inline-flex h-9 items-center gap-1.5 rounded-lg bg-indigo-600 px-3 text-xs font-semibold text-white transition hover:bg-indigo-500">
+                                        <x-icon name="check" class="h-3.5 w-3.5" />
+                                        Salvar
+                                    </button>
+                                </form>
+
+                                <span class="text-xs text-gray-500 dark:text-gray-400">{{ $project->follow_ups_count }} follow-up(s)</span>
+
+                                <form method="POST" action="{{ route('admin.follow-ups.settings.projects.destroy', $project) }}" data-confirm-delete="Remover o projeto {{ $project->name }}?">
+                                    @csrf
+                                    @method('DELETE')
+
+                                    <button type="submit" class="inline-flex h-9 w-9 items-center justify-center rounded-lg text-red-500 transition hover:bg-red-50 hover:text-red-600 dark:text-red-400 dark:hover:bg-red-500/15" aria-label="Remover projeto {{ $project->name }}">
+                                        <x-icon name="trash" class="h-4 w-4" />
+                                    </button>
+                                </form>
+                            </li>
+                        @empty
+                            <li class="text-xs text-gray-500 dark:text-gray-400">Nenhum projeto cadastrado para este cliente.</li>
+                        @endforelse
+                    </ul>
+                </div>
+            @empty
+                <div class="rounded-2xl border border-dashed border-gray-300 px-4 py-8 text-center text-sm text-gray-500 dark:border-white/15 dark:text-gray-400">
+                    Nenhum cliente cadastrado. Use o formulário acima para começar.
+                </div>
+            @endforelse
+        </div>
+    </section>
+
     <div
         x-cloak
         x-show="testEmailOpen"
