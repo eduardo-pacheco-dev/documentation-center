@@ -284,6 +284,9 @@ php artisan storage:link
 log "Running database migrations"
 php artisan migrate --force
 
+log "Running plugin migrations"
+php artisan plugin:migrate
+
 log "Clearing the application cache"
 php artisan cache:clear
 
