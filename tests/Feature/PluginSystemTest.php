@@ -497,6 +497,49 @@ it('runs the plugin migrations when enabling it from the settings page', functio
     File::deleteDirectory($path);
 });
 
+it('runs the migrations of enabled plugins through the artisan command', function () {
+    $path = storage_path('framework/testing/plugins_'.Str::random(8));
+
+    config(['plugins.paths.plugins' => $path]);
+    app()->forgetInstance(PluginRepository::class);
+
+    pluginWithMigration($path, 'command-migrated');
+    app(PluginRepository::class)->findOrFail('command-migrated')->enable();
+    app()->forgetInstance(PluginRepository::class);
+
+    $this->artisan('plugin:migrate')
+        ->expectsOutputToContain('1 migration(s) executed')
+        ->assertSuccessful();
+
+    expect(Schema::hasTable('migrated_widgets'))->toBeTrue();
+
+    Schema::dropIfExists('migrated_widgets');
+    File::deleteDirectory($path);
+});
+
+it('skips disabled plugins when migrating every plugin', function () {
+    $path = storage_path('framework/testing/plugins_'.Str::random(8));
+
+    config(['plugins.paths.plugins' => $path]);
+    app()->forgetInstance(PluginRepository::class);
+
+    pluginWithMigration($path, 'command-disabled');
+
+    $this->artisan('plugin:migrate')
+        ->expectsOutputToContain('No plugins to migrate')
+        ->assertSuccessful();
+
+    expect(Schema::hasTable('migrated_widgets'))->toBeFalse();
+
+    File::deleteDirectory($path);
+});
+
+it('fails when migrating an unknown plugin through the artisan command', function () {
+    $this->artisan('plugin:migrate', ['alias' => 'missing-plugin'])
+        ->expectsOutputToContain('was not found')
+        ->assertFailed();
+});
+
 it('registers the plugin providers before running its migrations', function () {
     $path = storage_path('framework/testing/plugins_'.Str::random(8));
 
