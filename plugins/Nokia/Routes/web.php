@@ -24,6 +24,9 @@ Route::middleware('auth')
         Route::put('{site}', [NokiaSiteController::class, 'update'])->name('update');
         Route::delete('{site}', [NokiaSiteController::class, 'destroy'])->name('destroy');
         Route::post('{site}/tasks/{task}', [NokiaSiteController::class, 'toggleTask'])->name('tasks.toggle');
+        Route::put('{site}/checklist/{field}', [NokiaSiteController::class, 'updateChecklist'])
+            ->where('field', '[a-z_]+')
+            ->name('checklist.update');
         Route::put('{site}/interruption', [NokiaSiteController::class, 'updateInterruption'])->name('interruption.update');
         Route::delete('{site}/interruption', [NokiaSiteController::class, 'clearInterruption'])->name('interruption.destroy');
 

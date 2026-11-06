@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
+use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 use Plugins\Nokia\Http\Requests\StoreNokiaSiteRequest;
 use Plugins\Nokia\Http\Requests\UpdateNokiaInterruptionRequest;
@@ -109,7 +110,9 @@ class NokiaSiteController extends Controller
      */
     public function store(StoreNokiaSiteRequest $request): RedirectResponse
     {
-        NokiaSite::query()->create($request->validated());
+        $site = NokiaSite::query()->create($request->validated());
+
+        $this->syncChecklistStatuses($site);
 
         return redirect()
             ->route('admin.nokia.sites.index')
@@ -132,7 +135,11 @@ class NokiaSiteController extends Controller
      */
     public function update(UpdateNokiaSiteRequest $request, NokiaSite $site): RedirectResponse
     {
+        $original = $site->only(array_keys(config('nokia.checklists', [])));
+
         $site->update($request->validated());
+
+        $this->syncChecklistStatuses($site, $original);
 
         return redirect()
             ->route('admin.nokia.sites.index')
@@ -189,6 +196,57 @@ class NokiaSiteController extends Controller
         ]);
 
         return back()->with('status', 'Interrupção de obra encerrada.');
+    }
+
+    /**
+     * Update the status of a checklist item for the given site.
+     */
+    public function updateChecklist(Request $request, NokiaSite $site, string $field): RedirectResponse
+    {
+        $checklists = config('nokia.checklists', []);
+
+        abort_unless(array_key_exists($field, $checklists), 404);
+
+        $validated = $request->validate([
+            'status' => ['required', 'string', Rule::in(array_keys(NokiaSite::CHECKLIST_STATUSES))],
+        ]);
+
+        $status = $validated['status'];
+
+        $site->update([
+            $field => $status === NokiaSite::STATUS_SENT,
+            $field.'_status' => $status,
+        ]);
+
+        return back()->with(
+            'status',
+            sprintf('%s atualizado para %s.', $checklists[$field], NokiaSite::CHECKLIST_STATUSES[$status]),
+        );
+    }
+
+    /**
+     * Keep the checklist status columns aligned with the legacy booleans.
+     *
+     * @param  array<string, mixed>  $original
+     */
+    private function syncChecklistStatuses(NokiaSite $site, array $original = []): void
+    {
+        $attributes = [];
+
+        foreach (array_keys(config('nokia.checklists', [])) as $field) {
+            $changed = ! array_key_exists($field, $original)
+                || (bool) $original[$field] !== (bool) $site->{$field};
+
+            if ($changed) {
+                $attributes[$field.'_status'] = $site->{$field}
+                    ? NokiaSite::STATUS_SENT
+                    : NokiaSite::STATUS_PENDING;
+            }
+        }
+
+        if ($attributes !== []) {
+            $site->update($attributes);
+        }
     }
 
     /**

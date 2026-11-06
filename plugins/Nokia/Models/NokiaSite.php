@@ -25,9 +25,32 @@ use Plugins\Nokia\Database\Factories\NokiaSiteFactory;
     'checklist_fam_entrega',
     'checklist_fam_instalacao',
     'checklist_fam_panoramica',
+    'checklist_fam_entrega_status',
+    'checklist_fam_instalacao_status',
+    'checklist_fam_panoramica_status',
 ])]
 class NokiaSite extends Model
 {
+    public const STATUS_PENDING = 'pending';
+
+    public const STATUS_ANALYSIS = 'analysis';
+
+    public const STATUS_REJECTED = 'rejected';
+
+    public const STATUS_SENT = 'sent';
+
+    /**
+     * The labels for every checklist status.
+     *
+     * @var array<string, string>
+     */
+    public const CHECKLIST_STATUSES = [
+        self::STATUS_PENDING => 'Pendente',
+        self::STATUS_ANALYSIS => 'Análise TIM',
+        self::STATUS_REJECTED => 'Rejeitado',
+        self::STATUS_SENT => 'Enviado',
+    ];
+
     /** @use HasFactory<NokiaSiteFactory> */
     use HasFactory;
 
@@ -58,6 +81,48 @@ class NokiaSite extends Model
             'interruption_return_days' => 'integer',
             'interruption_started_at' => 'datetime',
         ];
+    }
+
+    /**
+     * The status of the given checklist item.
+     *
+     * New or legacy records fall back to the boolean value so previously
+     * completed items keep showing as sent.
+     */
+    public function checklistStatus(string $field): string
+    {
+        $status = $this->getAttribute($field.'_status');
+
+        if (! is_string($status) || ! array_key_exists($status, self::CHECKLIST_STATUSES)) {
+            $status = self::STATUS_PENDING;
+        }
+
+        if ($status === self::STATUS_PENDING && (bool) $this->{$field}) {
+            return self::STATUS_SENT;
+        }
+
+        return $status;
+    }
+
+    /**
+     * The label of the given checklist item status.
+     */
+    public function checklistStatusLabel(string $field): string
+    {
+        return self::CHECKLIST_STATUSES[$this->checklistStatus($field)];
+    }
+
+    /**
+     * The badge tone of the given checklist item status.
+     */
+    public function checklistStatusTone(string $field): string
+    {
+        return match ($this->checklistStatus($field)) {
+            self::STATUS_SENT => 'green',
+            self::STATUS_ANALYSIS => 'amber',
+            self::STATUS_REJECTED => 'red',
+            default => 'gray',
+        };
     }
 
     /**

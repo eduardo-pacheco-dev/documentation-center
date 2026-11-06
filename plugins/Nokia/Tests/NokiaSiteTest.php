@@ -139,7 +139,7 @@ test('a site details page shows the information, checklist and attachments', fun
         ->assertSee('OS-E-111')
         ->assertSee('OS-I-222')
         ->assertSee('Checklist de atividades')
-        ->assertSee('Concluído')
+        ->assertSee('Enviado')
         ->assertSee('TSSR')
         ->assertSee('DOC-D')
         ->assertSee('DWG')
@@ -264,6 +264,50 @@ test('a site can be created with the checklist', function () {
         ->checklist_fam_entrega->toBeTrue()
         ->checklist_fam_instalacao->toBeFalse()
         ->checklist_fam_panoramica->toBeFalse();
+});
+
+test('checklist items can be moved through their statuses', function (string $status, bool $approved) {
+    $site = NokiaSite::factory()->create([
+        'site_id' => 'SPSTATUS1',
+        'checklist_fam_entrega' => false,
+    ]);
+
+    $this->actingAs(User::factory()->create())
+        ->put(route('admin.nokia.sites.checklist.update', [$site, 'checklist_fam_entrega']), [
+            'status' => $status,
+        ])
+        ->assertRedirect()
+        ->assertSessionHas('status');
+
+    $site->refresh();
+
+    expect($site->checklist_fam_entrega)->toBe($approved)
+        ->and($site->checklistStatus('checklist_fam_entrega'))->toBe($status);
+})->with([
+    ['pending', false],
+    ['analysis', false],
+    ['rejected', false],
+    ['sent', true],
+]);
+
+test('checklist status rejects unknown values', function () {
+    $site = NokiaSite::factory()->create();
+
+    $this->actingAs(User::factory()->create())
+        ->put(route('admin.nokia.sites.checklist.update', [$site, 'checklist_fam_entrega']), [
+            'status' => 'done',
+        ])
+        ->assertSessionHasErrors('status');
+});
+
+test('checklist status rejects unknown checklist items', function () {
+    $site = NokiaSite::factory()->create();
+
+    $this->actingAs(User::factory()->create())
+        ->put(route('admin.nokia.sites.checklist.update', [$site, 'checklist_unknown']), [
+            'status' => 'sent',
+        ])
+        ->assertNotFound();
 });
 
 test('the site id is required to create a site', function () {

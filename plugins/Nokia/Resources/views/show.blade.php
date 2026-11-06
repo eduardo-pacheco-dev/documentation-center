@@ -4,7 +4,7 @@
 
         $checklistTotal = count($checklists);
         $checklistDone = collect($checklists)->keys()
-            ->filter(fn (string $field): bool => (bool) $site->{$field})
+            ->filter(fn (string $field): bool => $site->checklistStatus($field) === 'sent')
             ->count();
         $checklistPercent = $checklistTotal > 0 ? (int) round(($checklistDone / $checklistTotal) * 100) : 0;
 
@@ -216,20 +216,55 @@
 
                     <ol class="mt-5 divide-y divide-gray-100 dark:divide-white/10">
                         @foreach ($checklists as $field => $label)
-                            <li class="flex items-center gap-3 py-3.5 first:pt-0 last:pb-0">
-                                <span @class([
-                                    'inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-xl',
-                                    'bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400' => $site->{$field},
-                                    'bg-gray-100 text-gray-400 dark:bg-white/10 dark:text-gray-500' => ! $site->{$field},
-                                ])>
-                                    <x-icon :name="$site->{$field} ? 'check' : 'x-mark'" class="h-4 w-4" />
-                                </span>
+                            @php($status = $site->checklistStatus($field))
 
-                                <span class="text-sm font-medium text-gray-700 dark:text-gray-200">{{ $label }}</span>
+                            <li class="py-2 first:pt-0 last:pb-0">
+                                <form method="POST" action="{{ route('admin.nokia.sites.checklist.update', [$site, $field]) }}" class="flex flex-wrap items-center gap-3 py-1.5">
+                                    @csrf
+                                    @method('PUT')
 
-                                <x-ui.badge :tone="$site->{$field} ? 'green' : 'gray'" class="ml-auto">
-                                    {{ $site->{$field} ? 'Concluído' : 'Pendente' }}
-                                </x-ui.badge>
+                                    <span @class([
+                                        'inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-xl',
+                                        'bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400' => $status === 'sent',
+                                        'bg-amber-50 text-amber-600 dark:bg-amber-500/15 dark:text-amber-400' => $status === 'analysis',
+                                        'bg-red-50 text-red-600 dark:bg-red-500/15 dark:text-red-400' => $status === 'rejected',
+                                        'bg-gray-100 text-gray-400 dark:bg-white/10 dark:text-gray-500' => $status === 'pending',
+                                    ])>
+                                        <x-icon :name="match ($status) {
+                                            'sent' => 'check',
+                                            'analysis' => 'clock',
+                                            'rejected' => 'x-mark',
+                                            default => 'minus',
+                                        }" class="h-4 w-4" />
+                                    </span>
+
+                                    <span class="text-sm font-medium text-gray-700 dark:text-gray-200">{{ $label }}</span>
+
+                                    <div class="ml-auto flex items-center gap-2">
+                                        <x-ui.badge :tone="$site->checklistStatusTone($field)">
+                                            {{ $site->checklistStatusLabel($field) }}
+                                        </x-ui.badge>
+
+                                        <label for="checklist-status-{{ $field }}" class="sr-only">Status de {{ $label }}</label>
+                                        <select
+                                            id="checklist-status-{{ $field }}"
+                                            name="status"
+                                            class="h-9 rounded-xl border border-gray-300 bg-white px-2.5 text-xs font-medium text-gray-900 transition focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
+                                        >
+                                            @foreach (\Plugins\Nokia\Models\NokiaSite::CHECKLIST_STATUSES as $value => $statusLabel)
+                                                <option value="{{ $value }}" @selected($status === $value)>{{ $statusLabel }}</option>
+                                            @endforeach
+                                        </select>
+
+                                        <button
+                                            type="submit"
+                                            class="rounded-lg p-1.5 text-indigo-600 transition hover:bg-indigo-50 dark:text-indigo-400 dark:hover:bg-indigo-500/10"
+                                            aria-label="Salvar status de {{ $label }}"
+                                        >
+                                            <x-icon name="check" class="h-4 w-4" />
+                                        </button>
+                                    </div>
+                                </form>
                             </li>
                         @endforeach
                     </ol>

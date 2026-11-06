@@ -191,8 +191,8 @@
                                 <td class="px-5 py-4">
                                     <div class="flex flex-wrap gap-1">
                                         @foreach ($checklists as $field => $label)
-                                            <x-ui.badge :tone="$site->{$field} ? 'green' : 'gray'">
-                                                {{ $label }}
+                                            <x-ui.badge :tone="$site->checklistStatusTone($field)">
+                                                {{ $label }}: {{ $site->checklistStatusLabel($field) }}
                                             </x-ui.badge>
                                         @endforeach
                                     </div>
