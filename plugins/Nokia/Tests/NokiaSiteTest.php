@@ -231,6 +231,10 @@ test('the seeder creates the sample sites once', function () {
 
     expect(NokiaSite::query()->count())->toBe(12)
         ->and(NokiaSite::query()->completed()->count())->toBe(4)
+        ->and(NokiaTask::query()->count())->toBe(4)
+        ->and(NokiaSite::query()->whereNotNull('interruption_reason')->count())->toBe(1)
+        ->and(NokiaSite::query()->whereNotNull('rejection_reason')->count())->toBe(1)
+        ->and(NokiaSite::query()->whereHas('tasks')->count())->toBeGreaterThan(0)
         ->and(NokiaSite::query()->where('site_id', 'SPJAB051M')->exists())->toBeTrue()
         ->and(NokiaSite::query()->where('site_id', 'SPFORA01J')->exists())->toBeTrue();
 });
@@ -821,6 +825,8 @@ test('all sites can be exported to excel', function () {
         'os_fam_instalacao' => 'OS-I-44444',
     ]);
 
+    NokiaTask::query()->create(['name' => 'Validar documentação', 'position' => 1]);
+
     $fileName = app(NokiaSiteExport::class)->fileName();
 
     $response = $this->actingAs(User::factory()->create())
@@ -837,13 +843,19 @@ test('all sites can be exported to excel', function () {
 
     expect($sheet->getTitle())->toBe('Sites')
         ->and($sheet->getCell('A1')->getValue())->toBe('Site ID')
-        ->and($sheet->getCell('F1')->getValue())->toBe('FAM Entrega')
+        ->and($sheet->getCell('F1')->getValue())->toBe('OS FAM Instalação')
+        ->and($sheet->getCell('G1')->getValue())->toBe('Checklist - FAM Entrega')
         ->and($text)
         ->toContain('SPEXPORT1')
         ->toContain('END-11111')
         ->toContain('OC-2222')
         ->toContain('OS-E-33333')
-        ->toContain('OS-I-44444');
+        ->toContain('OS-I-44444')
+        ->toContain('Tarefa - Validar documentação')
+        ->toContain('Interrupção - Motivo')
+        ->toContain('Rejeição - Motivo')
+        ->toContain('MOS Plan')
+        ->toContain('FAM Panorâmica Aprovado');
 
     $spreadsheet->disconnectWorksheets();
     @unlink($path);
