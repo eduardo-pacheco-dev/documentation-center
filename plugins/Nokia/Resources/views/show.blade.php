@@ -23,6 +23,9 @@
         $isInterrupted = $site->isInterrupted();
         $interruptionReturnAt = $site->interruptionReturnAt();
 
+        $isRejected = $site->isRejected();
+        $rejectionReturnAt = $site->rejectionReturnAt();
+
         $dateRows = [
             ['label' => 'MOS', 'plan' => 'mos_plan_at', 'real' => 'mos_real_at'],
             ['label' => 'Instalação', 'plan' => 'instalacao_plan_at', 'real' => 'instalacao_real_at'],
@@ -159,6 +162,15 @@
 
                     <x-ui.action
                         type="button"
+                        variant="secondary"
+                        icon="x-circle"
+                        x-on:click="$dispatch('open-rejection-modal')"
+                    >
+                        {{ $isRejected ? 'Editar rejeição' : 'Rejeitar' }}
+                    </x-ui.action>
+
+                    <x-ui.action
+                        type="button"
                         icon="pencil-square"
                         x-on:click="$dispatch('open-edit-site-modal', edit)"
                     >
@@ -210,6 +222,52 @@
                                 @method('DELETE')
 
                                 <x-ui.action type="submit" size="sm" variant="secondary" icon="play">Encerrar interrupção</x-ui.action>
+                            </form>
+                        </div>
+                    </section>
+                @endif
+
+                @if ($isRejected)
+                    <section class="rounded-3xl border border-gray-200/80 bg-white p-5 sm:p-6 dark:border-white/10 dark:bg-[#171716]">
+                        <div class="flex flex-wrap items-start justify-between gap-3">
+                            <div>
+                                <h2 class="text-sm font-semibold tracking-tight text-gray-900 dark:text-white">Rejeições</h2>
+                                <p class="mt-0.5 text-xs text-gray-500 dark:text-gray-400">Motivo da rejeição, início e prazo de retorno.</p>
+                            </div>
+
+                            <x-ui.badge tone="red">Obra rejeitada</x-ui.badge>
+                        </div>
+
+                        <div class="mt-4 rounded-2xl border border-red-200 bg-red-50/70 p-4 dark:border-red-500/30 dark:bg-red-500/10">
+                            <dl class="space-y-2.5 text-sm">
+                                <div class="flex flex-col gap-0.5 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
+                                    <dt class="text-red-700/80 dark:text-red-300/80">Motivo da rejeição</dt>
+                                    <dd class="font-medium text-red-900 dark:text-red-100 sm:text-right">{{ $site->rejection_reason }}</dd>
+                                </div>
+
+                                <div class="flex items-center justify-between gap-4">
+                                    <dt class="text-red-700/80 dark:text-red-300/80">Início</dt>
+                                    <dd class="font-medium text-red-900 dark:text-red-100">{{ $site->rejection_started_at?->format('d/m/Y H:i') ?? '—' }}</dd>
+                                </div>
+
+                                <div class="flex items-center justify-between gap-4">
+                                    <dt class="text-red-700/80 dark:text-red-300/80">Prazo de retorno</dt>
+                                    <dd class="font-medium text-red-900 dark:text-red-100">{{ $site->rejection_return_days }} dias · {{ $rejectionReturnAt?->format('d/m/Y') ?? '—' }}</dd>
+                                </div>
+                            </dl>
+
+                            <form
+                                method="POST"
+                                action="{{ route('admin.nokia.sites.rejection.destroy', $site) }}"
+                                data-confirm="Encerrar a rejeição deste site?"
+                                data-confirm-title="Encerrar rejeição"
+                                data-confirm-label="Encerrar"
+                                class="mt-4"
+                            >
+                                @csrf
+                                @method('DELETE')
+
+                                <x-ui.action type="submit" size="sm" variant="secondary" icon="play">Encerrar rejeição</x-ui.action>
                             </form>
                         </div>
                     </section>
@@ -623,6 +681,131 @@
                 </section>
             </aside>
         </div>
+    </div>
+
+    <div
+        x-data="{
+            open: @js($errors->hasAny(['rejection_reason', 'rejection_return_days'])),
+            init() {
+                if (this.open) {
+                    this.$nextTick(() => this.show());
+                }
+            },
+            show() {
+                if (this.$refs.dialog.open) {
+                    return;
+                }
+
+                this.$refs.dialog.showModal();
+                document.body.classList.add('overflow-hidden');
+
+                this.$nextTick(() => this.$refs.dialog.querySelector('[data-autofocus]')?.focus());
+            },
+            close() {
+                this.$refs.dialog.close();
+            },
+            onClose() {
+                document.body.classList.remove('overflow-hidden');
+            },
+            onBackdropClick(event) {
+                if (event.target === this.$refs.dialog) {
+                    this.close();
+                }
+            },
+        }"
+        x-on:open-rejection-modal.window="show()"
+    >
+        <dialog
+            id="rejection-modal"
+            x-ref="dialog"
+            x-on:close="onClose()"
+            x-on:click="onBackdropClick($event)"
+            class="m-auto max-h-[calc(100dvh-1.5rem)] w-[calc(100%-1.5rem)] max-w-lg overflow-hidden rounded-2xl bg-white p-0 text-gray-900 shadow-2xl dark:bg-[#1c1c1b] dark:text-gray-100"
+            aria-labelledby="rejection-modal-title"
+        >
+            <div class="flex max-h-[calc(100dvh-1.5rem)] flex-col">
+                <header class="flex shrink-0 items-start justify-between gap-3 border-b border-gray-100 px-4 py-3.5 sm:px-6 sm:py-4 dark:border-white/10">
+                    <div class="flex min-w-0 items-start gap-3">
+                        <span class="mt-0.5 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-red-50 text-red-600 dark:bg-red-500/10 dark:text-red-400">
+                            <x-icon name="x-circle" class="h-5 w-5" />
+                        </span>
+
+                        <div class="min-w-0">
+                            <h2 id="rejection-modal-title" class="truncate text-base font-semibold sm:text-lg">Rejeição</h2>
+                            <p class="mt-0.5 hidden text-xs text-gray-500 sm:block dark:text-gray-400">
+                                Informe o motivo da rejeição e o prazo de retorno.
+                            </p>
+                        </div>
+                    </div>
+
+                    <button
+                        type="button"
+                        x-on:click="close()"
+                        class="rounded-full p-1.5 text-gray-400 transition hover:bg-gray-100 hover:text-gray-700 dark:text-gray-500 dark:hover:bg-white/10"
+                        aria-label="Fechar"
+                    >
+                        <x-icon name="x-mark" class="h-5 w-5" />
+                    </button>
+                </header>
+
+                <form method="POST" action="{{ route('admin.nokia.sites.rejection.update', $site) }}" class="flex min-h-0 flex-1 flex-col">
+                    @csrf
+                    @method('PUT')
+
+                    <div class="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain px-4 py-4 sm:px-6 sm:py-5">
+                        @if ($errors->hasAny(['rejection_reason', 'rejection_return_days']))
+                            <div class="rounded-xl border border-red-200 bg-red-50 p-3 dark:border-red-900/60 dark:bg-red-950/40">
+                                <p class="flex items-center gap-2 text-sm font-semibold text-red-700 dark:text-red-300">
+                                    <x-icon name="exclamation-triangle" class="h-4 w-4 shrink-0" />
+                                    Não foi possível registrar a rejeição
+                                </p>
+                            </div>
+                        @endif
+
+                        <div>
+                            <label for="rejection-reason" class="block text-sm font-medium text-gray-700 dark:text-gray-200">Motivo da rejeição</label>
+                            <textarea
+                                id="rejection-reason"
+                                name="rejection_reason"
+                                rows="3"
+                                required
+                                data-autofocus
+                                placeholder="Descreva o motivo da rejeição"
+                                @error('rejection_reason') aria-invalid="true" @enderror
+                                class="mt-1.5 w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 transition focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
+                            >{{ old('rejection_reason', $site->rejection_reason) }}</textarea>
+                            @error('rejection_reason')
+                                <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
+                            @enderror
+                        </div>
+
+                        <div>
+                            <label for="rejection-return-days" class="block text-sm font-medium text-gray-700 dark:text-gray-200">Prazo de retorno</label>
+                            <select
+                                id="rejection-return-days"
+                                name="rejection_return_days"
+                                required
+                                @error('rejection_return_days') aria-invalid="true" @enderror
+                                class="mt-1.5 h-10 w-full rounded-xl border border-gray-300 bg-white px-3 text-sm text-gray-900 transition focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
+                            >
+                                <option value="">Selecione o prazo</option>
+                                @foreach ([7, 14, 21, 28] as $days)
+                                    <option value="{{ $days }}" @selected((int) old('rejection_return_days', $site->rejection_return_days) === $days)>{{ $days }} dias</option>
+                                @endforeach
+                            </select>
+                            @error('rejection_return_days')
+                                <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
+                            @enderror
+                        </div>
+                    </div>
+
+                    <footer class="flex shrink-0 flex-wrap items-center justify-end gap-2 border-t border-gray-100 px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:px-6 sm:py-4 dark:border-white/10">
+                        <x-ui.action type="button" variant="secondary" x-on:click="close()">Cancelar</x-ui.action>
+                        <x-ui.action type="submit" icon="x-circle">Registrar rejeição</x-ui.action>
+                    </footer>
+                </form>
+            </div>
+        </dialog>
     </div>
 
     <div

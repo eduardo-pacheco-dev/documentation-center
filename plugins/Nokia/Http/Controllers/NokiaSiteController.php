@@ -11,6 +11,7 @@ use Illuminate\View\View;
 use Plugins\Nokia\Http\Requests\StoreNokiaSiteRequest;
 use Plugins\Nokia\Http\Requests\UpdateNokiaDatesRequest;
 use Plugins\Nokia\Http\Requests\UpdateNokiaInterruptionRequest;
+use Plugins\Nokia\Http\Requests\UpdateNokiaRejectionRequest;
 use Plugins\Nokia\Http\Requests\UpdateNokiaSiteRequest;
 use Plugins\Nokia\Models\NokiaRom;
 use Plugins\Nokia\Models\NokiaSite;
@@ -253,6 +254,34 @@ class NokiaSiteController extends Controller
         if ($attributes !== []) {
             $site->update($attributes);
         }
+    }
+
+    /**
+     * Register a rejection for the given site.
+     */
+    public function updateRejection(UpdateNokiaRejectionRequest $request, NokiaSite $site): RedirectResponse
+    {
+        $site->update([
+            'rejection_reason' => $request->validated('rejection_reason'),
+            'rejection_return_days' => (int) $request->validated('rejection_return_days'),
+            'rejection_started_at' => now(),
+        ]);
+
+        return back()->with('status', 'Rejeição registrada.');
+    }
+
+    /**
+     * Clear the rejection of the given site.
+     */
+    public function clearRejection(NokiaSite $site): RedirectResponse
+    {
+        $site->update([
+            'rejection_reason' => null,
+            'rejection_return_days' => null,
+            'rejection_started_at' => null,
+        ]);
+
+        return back()->with('status', 'Rejeição encerrada.');
     }
 
     /**

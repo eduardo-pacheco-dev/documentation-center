@@ -611,6 +611,92 @@ test('the milestone dates reject invalid values', function () {
         ->assertSessionHasErrors('mos_plan_at');
 });
 
+test('a rejection can be registered and cleared on the site page', function () {
+    $site = NokiaSite::factory()->create(['site_id' => 'SPREJECT1']);
+    $user = User::factory()->create();
+
+    $this->actingAs($user)
+        ->get(route('admin.nokia.sites.show', $site))
+        ->assertOk()
+        ->assertSee('Rejeitar')
+        ->assertSee('rejection-modal', false)
+        ->assertSee('Registrar rejeição');
+
+    $this->actingAs($user)
+        ->put(route('admin.nokia.sites.rejection.update', $site), [
+            'rejection_reason' => 'Documentação incompleta',
+            'rejection_return_days' => 21,
+        ])
+        ->assertRedirect()
+        ->assertSessionHas('status');
+
+    $site->refresh();
+
+    expect($site->rejection_reason)->toBe('Documentação incompleta')
+        ->and($site->rejection_return_days)->toBe(21)
+        ->and($site->isRejected())->toBeTrue()
+        ->and($site->rejectionReturnAt()->toDateString())->toBe(now()->addDays(21)->toDateString());
+
+    $this->actingAs($user)
+        ->get(route('admin.nokia.sites.show', $site))
+        ->assertOk()
+        ->assertSee('Obra rejeitada')
+        ->assertSee('Editar rejeição')
+        ->assertSee('Documentação incompleta')
+        ->assertSee('21 dias')
+        ->assertSee('Encerrar rejeição');
+
+    $this->actingAs($user)
+        ->delete(route('admin.nokia.sites.rejection.destroy', $site))
+        ->assertRedirect()
+        ->assertSessionHas('status');
+
+    expect($site->refresh()->isRejected())->toBeFalse();
+});
+
+test('rejections accept the available return periods', function (int $days) {
+    $site = NokiaSite::factory()->create();
+
+    $this->actingAs(User::factory()->create())
+        ->put(route('admin.nokia.sites.rejection.update', $site), [
+            'rejection_reason' => 'Pendência de documentos',
+            'rejection_return_days' => $days,
+        ])
+        ->assertRedirect()
+        ->assertSessionHasNoErrors();
+
+    expect($site->refresh()->rejection_return_days)->toBe($days);
+})->with([7, 14, 21, 28]);
+
+test('the rejection requires a reason and a valid return period', function () {
+    $site = NokiaSite::factory()->create();
+
+    $this->actingAs(User::factory()->create())
+        ->put(route('admin.nokia.sites.rejection.update', $site), [
+            'rejection_reason' => '',
+            'rejection_return_days' => 10,
+        ])
+        ->assertSessionHasErrors(['rejection_reason', 'rejection_return_days']);
+});
+
+test('the rejection modal reopens when validation fails', function () {
+    $site = NokiaSite::factory()->create();
+
+    $this->actingAs(User::factory()->create())
+        ->from(route('admin.nokia.sites.show', $site))
+        ->put(route('admin.nokia.sites.rejection.update', $site), [
+            'rejection_reason' => '',
+            'rejection_return_days' => 10,
+        ])
+        ->assertRedirect(route('admin.nokia.sites.show', $site))
+        ->assertSessionHasErrors(['rejection_reason', 'rejection_return_days']);
+
+    $this->actingAs(User::factory()->create())
+        ->get(route('admin.nokia.sites.show', $site))
+        ->assertOk()
+        ->assertSee('rejection-modal', false);
+});
+
 test('tasks can be marked as completed on the site page', function () {
     $site = NokiaSite::factory()->create(['site_id' => 'SPTASK1']);
     $task = NokiaTask::query()->create(['name' => 'Validar documentação', 'position' => 1]);
