@@ -1,4 +1,4 @@
-<x-layouts.admin title="Sites Nokia">
+<x-layouts.admin title="Projetos Nokia">
     @php
         $hasFilters = $search !== '';
         $checklists = config('nokia.checklists', []);

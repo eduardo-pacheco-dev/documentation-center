@@ -218,7 +218,7 @@ test('the nokia charts widget appears on the dashboard', function () {
     $this->actingAs(User::factory()->create())
         ->get('/admin')
         ->assertOk()
-        ->assertSee('Sites Nokia')
+        ->assertSee('Projetos Nokia')
         ->assertSee('Conclusão do checklist')
         ->assertSee('Atividades concluídas')
         ->assertSee('Últimos 6 meses')
