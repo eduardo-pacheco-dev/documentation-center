@@ -9,6 +9,7 @@ use Illuminate\Support\Collection;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 use Plugins\Nokia\Http\Requests\StoreNokiaSiteRequest;
+use Plugins\Nokia\Http\Requests\UpdateNokiaDatesRequest;
 use Plugins\Nokia\Http\Requests\UpdateNokiaInterruptionRequest;
 use Plugins\Nokia\Http\Requests\UpdateNokiaSiteRequest;
 use Plugins\Nokia\Models\NokiaRom;
@@ -252,6 +253,16 @@ class NokiaSiteController extends Controller
         if ($attributes !== []) {
             $site->update($attributes);
         }
+    }
+
+    /**
+     * Update the milestone dates of the given site.
+     */
+    public function updateDates(UpdateNokiaDatesRequest $request, NokiaSite $site): RedirectResponse
+    {
+        $site->update($request->validated());
+
+        return back()->with('status', 'Datas atualizadas com sucesso.');
     }
 
     /**

@@ -546,6 +546,71 @@ test('the interruption modal reopens when validation fails', function () {
         ->assertSee('interruption-modal', false);
 });
 
+test('the milestone dates can be updated and are shown on the site page', function () {
+    $site = NokiaSite::factory()->create(['site_id' => 'SPDATES1']);
+
+    $this->actingAs(User::factory()->create())
+        ->put(route('admin.nokia.sites.dates.update', $site), [
+            'mos_plan_at' => '2026-01-10',
+            'mos_real_at' => '2026-01-12',
+            'fam_entrega_approved_at' => '2026-02-01',
+        ])
+        ->assertRedirect()
+        ->assertSessionHas('status');
+
+    $site->refresh();
+
+    expect($site->mos_plan_at->toDateString())->toBe('2026-01-10')
+        ->and($site->mos_real_at->toDateString())->toBe('2026-01-12')
+        ->and($site->fam_entrega_approved_at->toDateString())->toBe('2026-02-01');
+
+    $this->actingAs(User::factory()->create())
+        ->get(route('admin.nokia.sites.show', $site))
+        ->assertOk()
+        ->assertSee('Datas')
+        ->assertSee('10/01/2026')
+        ->assertSee('12/01/2026')
+        ->assertSee('01/02/2026');
+});
+
+test('the site page shows an empty dates state when nothing is filled', function () {
+    $site = NokiaSite::factory()->create();
+
+    $this->actingAs(User::factory()->create())
+        ->get(route('admin.nokia.sites.show', $site))
+        ->assertOk()
+        ->assertSee('Nenhuma data informada');
+});
+
+test('milestone dates accept typed brazilian dates', function () {
+    $site = NokiaSite::factory()->create();
+
+    $this->actingAs(User::factory()->create())
+        ->put(route('admin.nokia.sites.dates.update', $site), [
+            'mos_plan_at' => '10/01/2026',
+            'mos_real_at' => '12-01-2026',
+            'fam_instalacao_approved_at' => '01/02/2026',
+        ])
+        ->assertRedirect()
+        ->assertSessionHasNoErrors();
+
+    $site->refresh();
+
+    expect($site->mos_plan_at->toDateString())->toBe('2026-01-10')
+        ->and($site->mos_real_at->toDateString())->toBe('2026-01-12')
+        ->and($site->fam_instalacao_approved_at->toDateString())->toBe('2026-02-01');
+});
+
+test('the milestone dates reject invalid values', function () {
+    $site = NokiaSite::factory()->create();
+
+    $this->actingAs(User::factory()->create())
+        ->put(route('admin.nokia.sites.dates.update', $site), [
+            'mos_plan_at' => 'not-a-date',
+        ])
+        ->assertSessionHasErrors('mos_plan_at');
+});
+
 test('tasks can be marked as completed on the site page', function () {
     $site = NokiaSite::factory()->create(['site_id' => 'SPTASK1']);
     $task = NokiaTask::query()->create(['name' => 'Validar documentação', 'position' => 1]);

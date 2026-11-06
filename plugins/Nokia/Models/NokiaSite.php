@@ -28,6 +28,17 @@ use Plugins\Nokia\Database\Factories\NokiaSiteFactory;
     'checklist_fam_entrega_status',
     'checklist_fam_instalacao_status',
     'checklist_fam_panoramica_status',
+    'mos_plan_at',
+    'mos_real_at',
+    'instalacao_plan_at',
+    'instalacao_real_at',
+    'integracao_plan_at',
+    'integracao_real_at',
+    'rfa_plan_at',
+    'rfa_real_at',
+    'fam_entrega_approved_at',
+    'fam_instalacao_approved_at',
+    'fam_panoramica_approved_at',
 ])]
 class NokiaSite extends Model
 {
@@ -49,6 +60,25 @@ class NokiaSite extends Model
         self::STATUS_ANALYSIS => 'Análise TIM',
         self::STATUS_REJECTED => 'Rejeitado',
         self::STATUS_SENT => 'Enviado',
+    ];
+
+    /**
+     * The date fields tracked for a site.
+     *
+     * @var list<string>
+     */
+    public const DATE_FIELDS = [
+        'mos_plan_at',
+        'mos_real_at',
+        'instalacao_plan_at',
+        'instalacao_real_at',
+        'integracao_plan_at',
+        'integracao_real_at',
+        'rfa_plan_at',
+        'rfa_real_at',
+        'fam_entrega_approved_at',
+        'fam_instalacao_approved_at',
+        'fam_panoramica_approved_at',
     ];
 
     /** @use HasFactory<NokiaSiteFactory> */
@@ -80,7 +110,32 @@ class NokiaSite extends Model
             'checklist_fam_panoramica' => 'boolean',
             'interruption_return_days' => 'integer',
             'interruption_started_at' => 'datetime',
+            'mos_plan_at' => 'date',
+            'mos_real_at' => 'date',
+            'instalacao_plan_at' => 'date',
+            'instalacao_real_at' => 'date',
+            'integracao_plan_at' => 'date',
+            'integracao_real_at' => 'date',
+            'rfa_plan_at' => 'date',
+            'rfa_real_at' => 'date',
+            'fam_entrega_approved_at' => 'date',
+            'fam_instalacao_approved_at' => 'date',
+            'fam_panoramica_approved_at' => 'date',
         ];
+    }
+
+    /**
+     * Whether the site has any date filled in.
+     */
+    public function hasDates(): bool
+    {
+        foreach (self::DATE_FIELDS as $field) {
+            if ($this->{$field} !== null) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**

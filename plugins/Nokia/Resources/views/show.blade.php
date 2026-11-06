@@ -23,6 +23,21 @@
         $isInterrupted = $site->isInterrupted();
         $interruptionReturnAt = $site->interruptionReturnAt();
 
+        $dateRows = [
+            ['label' => 'MOS', 'plan' => 'mos_plan_at', 'real' => 'mos_real_at'],
+            ['label' => 'Instalação', 'plan' => 'instalacao_plan_at', 'real' => 'instalacao_real_at'],
+            ['label' => 'Integração', 'plan' => 'integracao_plan_at', 'real' => 'integracao_real_at'],
+            ['label' => 'RFA', 'plan' => 'rfa_plan_at', 'real' => 'rfa_real_at'],
+        ];
+
+        $approvalDates = [
+            'fam_entrega_approved_at' => 'FAM Entrega aprovado',
+            'fam_instalacao_approved_at' => 'FAM Instalação aprovado',
+            'fam_panoramica_approved_at' => 'FAM Panorâmica aprovado',
+        ];
+
+        $hasDates = $site->hasDates();
+
         $ringRadius = 9;
         $ringCircumference = 2 * M_PI * $ringRadius;
         $ringOffset = $ringCircumference * (1 - ($progressPercent / 100));
@@ -199,6 +214,65 @@
                         </div>
                     </section>
                 @endif
+
+                <section class="rounded-3xl border border-gray-200/80 bg-white p-5 sm:p-6 dark:border-white/10 dark:bg-[#171716]">
+                    <div class="flex flex-wrap items-start justify-between gap-3">
+                        <div>
+                            <h2 class="text-sm font-semibold tracking-tight text-gray-900 dark:text-white">Datas</h2>
+                            <p class="mt-0.5 text-xs text-gray-500 dark:text-gray-400">Cronograma planejado, realizado e aprovações das FAMs.</p>
+                        </div>
+
+                        <x-ui.action
+                            type="button"
+                            size="sm"
+                            variant="secondary"
+                            icon="calendar-days"
+                            x-on:click="$dispatch('open-dates-modal')"
+                        >
+                            Editar datas
+                        </x-ui.action>
+                    </div>
+
+                    @if (! $hasDates)
+                        <div class="mt-4 rounded-2xl border border-dashed border-gray-200 px-4 py-8 text-center dark:border-white/10">
+                            <span class="mx-auto inline-flex h-10 w-10 items-center justify-center rounded-full bg-gray-50 text-gray-400 dark:bg-white/[0.04] dark:text-gray-500">
+                                <x-icon name="calendar-days" class="h-5 w-5" />
+                            </span>
+                            <p class="mt-2 text-sm font-medium text-gray-700 dark:text-gray-200">Nenhuma data informada</p>
+                            <p class="mt-0.5 text-xs text-gray-500 dark:text-gray-400">Clique em Editar datas para preencher o cronograma.</p>
+                        </div>
+                    @else
+                        <div class="mt-4 overflow-hidden rounded-2xl border border-gray-200/80 dark:border-white/10">
+                            <table class="min-w-full divide-y divide-gray-100 text-sm dark:divide-white/10">
+                                <thead class="bg-gray-50/80 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:bg-white/[0.03] dark:text-gray-400">
+                                    <tr>
+                                        <th class="px-4 py-2.5">Etapa</th>
+                                        <th class="px-4 py-2.5">Plan</th>
+                                        <th class="px-4 py-2.5">Real</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-gray-100 dark:divide-white/10">
+                                    @foreach ($dateRows as $dateRow)
+                                        <tr>
+                                            <td class="px-4 py-2.5 font-medium text-gray-700 dark:text-gray-200">{{ $dateRow['label'] }}</td>
+                                            <td class="px-4 py-2.5 text-gray-600 dark:text-gray-300">{{ $site->{$dateRow['plan']}?->format('d/m/Y') ?? '—' }}</td>
+                                            <td class="px-4 py-2.5 text-gray-600 dark:text-gray-300">{{ $site->{$dateRow['real']}?->format('d/m/Y') ?? '—' }}</td>
+                                        </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <dl class="mt-3 space-y-2">
+                            @foreach ($approvalDates as $field => $label)
+                                <div class="flex items-center justify-between gap-4 rounded-xl bg-gray-50/70 px-3 py-2 text-sm dark:bg-white/[0.03]">
+                                    <dt class="text-gray-600 dark:text-gray-300">{{ $label }}</dt>
+                                    <dd class="font-medium text-gray-900 dark:text-white">{{ $site->{$field}?->format('d/m/Y') ?? '—' }}</dd>
+                                </div>
+                            @endforeach
+                        </dl>
+                    @endif
+                </section>
 
                 <section class="rounded-3xl border border-gray-200/80 bg-white p-5 sm:p-6 dark:border-white/10 dark:bg-[#171716]">
                     <div class="flex flex-wrap items-start justify-between gap-3">
@@ -549,6 +623,167 @@
                 </section>
             </aside>
         </div>
+    </div>
+
+    <div
+        x-data="{
+            open: @js($errors->hasAny(\Plugins\Nokia\Models\NokiaSite::DATE_FIELDS)),
+            init() {
+                if (this.open) {
+                    this.$nextTick(() => this.show());
+                }
+            },
+            show() {
+                if (this.$refs.dialog.open) {
+                    return;
+                }
+
+                this.$refs.dialog.showModal();
+                document.body.classList.add('overflow-hidden');
+
+                this.$nextTick(() => this.$refs.dialog.querySelector('[data-autofocus]')?.focus());
+            },
+            close() {
+                this.$refs.dialog.close();
+            },
+            onClose() {
+                document.body.classList.remove('overflow-hidden');
+            },
+            onBackdropClick(event) {
+                if (event.target === this.$refs.dialog) {
+                    this.close();
+                }
+            },
+        }"
+        x-on:open-dates-modal.window="show()"
+    >
+        <dialog
+            id="dates-modal"
+            x-ref="dialog"
+            x-on:close="onClose()"
+            x-on:click="onBackdropClick($event)"
+            class="m-auto max-h-[calc(100dvh-1.5rem)] w-[calc(100%-1.5rem)] max-w-2xl overflow-hidden rounded-2xl bg-white p-0 text-gray-900 shadow-2xl dark:bg-[#1c1c1b] dark:text-gray-100"
+            aria-labelledby="dates-modal-title"
+        >
+            <div class="flex max-h-[calc(100dvh-1.5rem)] flex-col">
+                <header class="flex shrink-0 items-start justify-between gap-3 border-b border-gray-100 px-4 py-3.5 sm:px-6 sm:py-4 dark:border-white/10">
+                    <div class="flex min-w-0 items-start gap-3">
+                        <span class="mt-0.5 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-400">
+                            <x-icon name="calendar-days" class="h-5 w-5" />
+                        </span>
+
+                        <div class="min-w-0">
+                            <h2 id="dates-modal-title" class="truncate text-base font-semibold sm:text-lg">Datas</h2>
+                            <p class="mt-0.5 hidden text-xs text-gray-500 sm:block dark:text-gray-400">
+                                Preencha o cronograma planejado, realizado e as aprovações das FAMs.
+                            </p>
+                        </div>
+                    </div>
+
+                    <button
+                        type="button"
+                        x-on:click="close()"
+                        class="rounded-full p-1.5 text-gray-400 transition hover:bg-gray-100 hover:text-gray-700 dark:text-gray-500 dark:hover:bg-white/10"
+                        aria-label="Fechar"
+                    >
+                        <x-icon name="x-mark" class="h-5 w-5" />
+                    </button>
+                </header>
+
+                <form method="POST" action="{{ route('admin.nokia.sites.dates.update', $site) }}" class="flex min-h-0 flex-1 flex-col">
+                    @csrf
+                    @method('PUT')
+
+                    <div class="min-h-0 flex-1 space-y-5 overflow-y-auto overscroll-contain px-4 py-4 sm:px-6 sm:py-5">
+                        @if ($errors->hasAny(\Plugins\Nokia\Models\NokiaSite::DATE_FIELDS))
+                            <div class="rounded-xl border border-red-200 bg-red-50 p-3 dark:border-red-900/60 dark:bg-red-950/40">
+                                <p class="flex items-center gap-2 text-sm font-semibold text-red-700 dark:text-red-300">
+                                    <x-icon name="exclamation-triangle" class="h-4 w-4 shrink-0" />
+                                    Não foi possível salvar as datas
+                                </p>
+                            </div>
+                        @endif
+
+                        <fieldset>
+                            <legend class="text-sm font-semibold tracking-tight text-gray-900 dark:text-white">Cronograma</legend>
+
+                            <div class="mt-3 space-y-4">
+                                @foreach ($dateRows as $dateRow)
+                                    <div class="grid gap-3 sm:grid-cols-2">
+                                        <div>
+                                            <label for="dates-{{ $dateRow['plan'] }}" class="block text-sm font-medium text-gray-700 dark:text-gray-200">{{ $dateRow['label'] }} Plan</label>
+                                            <input
+                                                id="dates-{{ $dateRow['plan'] }}"
+                                                name="{{ $dateRow['plan'] }}"
+                                                type="text"
+                                                inputmode="numeric"
+                                                maxlength="10"
+                                                placeholder="dd/mm/aaaa"
+                                                value="{{ old($dateRow['plan'], $site->{$dateRow['plan']}?->format('d/m/Y')) }}"
+                                                @error($dateRow['plan']) aria-invalid="true" @enderror
+                                                class="mt-1.5 h-10 w-full rounded-xl border border-gray-300 bg-white px-3 text-sm text-gray-900 transition focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
+                                            >
+                                            @error($dateRow['plan'])
+                                                <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
+                                            @enderror
+                                        </div>
+
+                                        <div>
+                                            <label for="dates-{{ $dateRow['real'] }}" class="block text-sm font-medium text-gray-700 dark:text-gray-200">{{ $dateRow['label'] }} Real</label>
+                                            <input
+                                                id="dates-{{ $dateRow['real'] }}"
+                                                name="{{ $dateRow['real'] }}"
+                                                type="text"
+                                                inputmode="numeric"
+                                                maxlength="10"
+                                                placeholder="dd/mm/aaaa"
+                                                value="{{ old($dateRow['real'], $site->{$dateRow['real']}?->format('d/m/Y')) }}"
+                                                @error($dateRow['real']) aria-invalid="true" @enderror
+                                                class="mt-1.5 h-10 w-full rounded-xl border border-gray-300 bg-white px-3 text-sm text-gray-900 transition focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
+                                            >
+                                            @error($dateRow['real'])
+                                                <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
+                                            @enderror
+                                        </div>
+                                    </div>
+                                @endforeach
+                            </div>
+                        </fieldset>
+
+                        <fieldset>
+                            <legend class="text-sm font-semibold tracking-tight text-gray-900 dark:text-white">Aprovações FAM</legend>
+
+                            <div class="mt-3 grid gap-3 sm:grid-cols-2">
+                                @foreach ($approvalDates as $field => $label)
+                                    <div>
+                                        <label for="dates-{{ $field }}" class="block text-sm font-medium text-gray-700 dark:text-gray-200">{{ $label }}</label>
+                                        <input
+                                            id="dates-{{ $field }}"
+                                            name="{{ $field }}"
+                                            type="text"
+                                            inputmode="numeric"
+                                            maxlength="10"
+                                            placeholder="dd/mm/aaaa"
+                                            value="{{ old($field, $site->{$field}?->format('d/m/Y')) }}"
+                                            @error($field) aria-invalid="true" @enderror
+                                            class="mt-1.5 h-10 w-full rounded-xl border border-gray-300 bg-white px-3 text-sm text-gray-900 transition focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
+                                        >
+                                        @error($field)
+                                            <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
+                                        @enderror
+                                    </div>
+                                @endforeach
+                            </div>
+                        </fieldset>
+                    </div>
+
+                    <footer class="flex shrink-0 flex-wrap items-center justify-end gap-2 border-t border-gray-100 px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:px-6 sm:py-4 dark:border-white/10">
+                        <x-ui.action type="button" variant="secondary" x-on:click="close()">Cancelar</x-ui.action>
+                        <x-ui.action type="submit" icon="check">Salvar datas</x-ui.action>
+                    </footer>
+                </form>
+            </div>
+        </dialog>
     </div>
 
     <div

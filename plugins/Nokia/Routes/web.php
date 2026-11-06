@@ -27,6 +27,7 @@ Route::middleware('auth')
         Route::put('{site}/checklist/{field}', [NokiaSiteController::class, 'updateChecklist'])
             ->where('field', '[a-z_]+')
             ->name('checklist.update');
+        Route::put('{site}/dates', [NokiaSiteController::class, 'updateDates'])->name('dates.update');
         Route::put('{site}/interruption', [NokiaSiteController::class, 'updateInterruption'])->name('interruption.update');
         Route::delete('{site}/interruption', [NokiaSiteController::class, 'clearInterruption'])->name('interruption.destroy');
 
