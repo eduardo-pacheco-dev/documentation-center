@@ -22,7 +22,7 @@ class StoreNokiaSiteImportRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'file' => ['required', 'file', 'extensions:csv,txt,xlsx,xls', 'max:5120'],
+            'file' => ['required', 'file', 'extensions:csv,txt,xlsx,xls', 'max:10240'],
         ];
     }
 
@@ -36,7 +36,7 @@ class StoreNokiaSiteImportRequest extends FormRequest
         return [
             'file.required' => 'Selecione a planilha com os sites.',
             'file.extensions' => 'Envie uma planilha CSV, XLSX ou XLS.',
-            'file.max' => 'O arquivo deve ter no máximo 5 MB.',
+            'file.max' => 'O arquivo deve ter no máximo 10 MB.',
         ];
     }
 }

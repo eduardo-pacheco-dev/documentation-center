@@ -66,7 +66,7 @@
                     </span>
 
                     <span class="mt-3 text-sm font-semibold text-gray-800 dark:text-gray-100">Selecionar planilha</span>
-                    <span class="mt-1 text-xs text-gray-500 dark:text-gray-400" x-show="! fileName">Excel (XLSX/XLS) ou CSV · até 5 MB · máximo de {{ \Plugins\Nokia\Support\NokiaSiteImporter::MAX_SITES }} sites</span>
+                    <span class="mt-1 text-xs text-gray-500 dark:text-gray-400" x-show="! fileName">Excel (XLSX/XLS) ou CSV · até 10 MB · máximo de {{ \Plugins\Nokia\Support\NokiaSiteImporter::MAX_SITES }} sites</span>
                     <span class="mt-1 max-w-full truncate text-xs font-medium text-indigo-600 dark:text-indigo-400" x-show="fileName" x-text="fileName"></span>
 
                     <input

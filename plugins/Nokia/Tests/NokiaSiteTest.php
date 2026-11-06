@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use PhpOffice\PhpSpreadsheet\IOFactory;
+use Plugins\Nokia\Database\Seeders\NokiaSiteSeeder;
 use Plugins\Nokia\Models\NokiaSite;
 use Plugins\Nokia\Models\NokiaSiteAttachment;
 use Plugins\Nokia\Providers\NokiaServiceProvider;
@@ -155,6 +156,16 @@ test('the nokia charts widget appears on the dashboard', function () {
         ->assertSee('Atividades concluídas')
         ->assertSee('Últimos 6 meses')
         ->assertSee('Ver sites');
+});
+
+test('the seeder creates the sample sites once', function () {
+    $this->seed(NokiaSiteSeeder::class);
+    $this->seed(NokiaSiteSeeder::class);
+
+    expect(NokiaSite::query()->count())->toBe(12)
+        ->and(NokiaSite::query()->completed()->count())->toBe(4)
+        ->and(NokiaSite::query()->where('site_id', 'SPJAB051M')->exists())->toBeTrue()
+        ->and(NokiaSite::query()->where('site_id', 'SPFORA01J')->exists())->toBeTrue();
 });
 
 test('sites can be searched by site or orders', function () {
@@ -421,6 +432,7 @@ test('the import page renders the instructions and file field', function () {
         ->assertOk()
         ->assertSee('Importar sites')
         ->assertSee('Baixar modelo Excel')
+        ->assertSee('10 MB')
         ->assertSee('500 sites')
         ->assertSee('name="file"', false);
 });
