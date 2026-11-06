@@ -10,6 +10,12 @@
 
         $attachmentCount = $attachments->sum(fn (array $group): int => $group['files']->count());
 
+        $tasks = $tasks ?? collect();
+        $completedTaskIds = $completedTaskIds ?? [];
+        $taskTotal = $tasks->count();
+        $taskDone = $tasks->filter(fn ($task): bool => in_array($task->getKey(), $completedTaskIds, true))->count();
+        $taskPercent = $taskTotal > 0 ? (int) round(($taskDone / $taskTotal) * 100) : 0;
+
         $ringRadius = 9;
         $ringCircumference = 2 * M_PI * $ringRadius;
         $ringOffset = $ringCircumference * (1 - ($checklistPercent / 100));
@@ -170,6 +176,80 @@
                             </li>
                         @endforeach
                     </ol>
+                </section>
+
+                <section class="rounded-3xl border border-gray-200/80 bg-white p-5 sm:p-6 dark:border-white/10 dark:bg-[#171716]">
+                    <div class="flex flex-wrap items-start justify-between gap-3">
+                        <div>
+                            <h2 class="text-sm font-semibold tracking-tight text-gray-900 dark:text-white">Tarefas</h2>
+                            <p class="mt-0.5 text-xs text-gray-500 dark:text-gray-400">Tarefas cadastradas nas configurações do Nokia.</p>
+                        </div>
+
+                        <span @class([
+                            'inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold',
+                            'bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400' => $taskTotal > 0 && $taskPercent === 100,
+                            'bg-gray-100 text-gray-600 dark:bg-white/10 dark:text-gray-300' => $taskTotal === 0,
+                            'bg-amber-50 text-amber-600 dark:bg-amber-500/15 dark:text-amber-400' => $taskTotal > 0 && $taskPercent !== 100,
+                        ])>
+                            {{ $taskDone }}/{{ $taskTotal }}
+                        </span>
+                    </div>
+
+                    @if ($taskTotal > 0)
+                        <x-ui.progress-bar :percent="$taskPercent" height="h-1.5" class="mt-4" />
+                    @endif
+
+                    @if ($tasks->isEmpty())
+                        <div class="mt-4 rounded-2xl border border-dashed border-gray-200 px-4 py-8 text-center dark:border-white/10">
+                            <span class="mx-auto inline-flex h-10 w-10 items-center justify-center rounded-full bg-gray-50 text-gray-400 dark:bg-white/[0.04] dark:text-gray-500">
+                                <x-icon name="clipboard-document-list" class="h-5 w-5" />
+                            </span>
+                            <p class="mt-2 text-sm font-medium text-gray-700 dark:text-gray-200">Nenhuma tarefa cadastrada</p>
+                            <p class="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
+                                @if (auth()->user()?->is_admin)
+                                    <a href="{{ route('admin.nokia.settings.index') }}" class="font-semibold text-indigo-600 hover:underline dark:text-indigo-400">Cadastre tarefas nas configurações</a>.
+                                @else
+                                    Peça a um administrador para cadastrar as tarefas nas configurações.
+                                @endif
+                            </p>
+                        </div>
+                    @else
+                        <ul class="mt-5 divide-y divide-gray-100 dark:divide-white/10">
+                            @foreach ($tasks as $task)
+                                @php($taskCompleted = in_array($task->getKey(), $completedTaskIds, true))
+
+                                <li class="py-1 first:pt-0 last:pb-0">
+                                    <form method="POST" action="{{ route('admin.nokia.sites.tasks.toggle', [$site, $task]) }}" class="flex w-full items-center gap-3 py-3 text-left">
+                                        @csrf
+
+                                        <button
+                                            type="submit"
+                                            @class([
+                                                'inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-xl transition',
+                                                'bg-emerald-50 text-emerald-600 hover:bg-emerald-100 dark:bg-emerald-500/10 dark:text-emerald-400 dark:hover:bg-emerald-500/20' => $taskCompleted,
+                                                'bg-gray-100 text-gray-400 hover:bg-gray-200 dark:bg-white/10 dark:text-gray-500 dark:hover:bg-white/15' => ! $taskCompleted,
+                                            ])
+                                            aria-label="{{ $taskCompleted ? 'Reabrir' : 'Concluir' }} a tarefa {{ $task->name }}"
+                                        >
+                                            <x-icon :name="$taskCompleted ? 'check' : 'plus'" class="h-4 w-4" />
+                                        </button>
+
+                                        <span @class([
+                                            'text-sm font-medium',
+                                            'text-gray-400 line-through dark:text-gray-500' => $taskCompleted,
+                                            'text-gray-700 dark:text-gray-200' => ! $taskCompleted,
+                                        ])>
+                                            {{ $task->name }}
+                                        </span>
+
+                                        <x-ui.badge :tone="$taskCompleted ? 'green' : 'gray'" class="ml-auto">
+                                            {{ $taskCompleted ? 'Concluída' : 'Pendente' }}
+                                        </x-ui.badge>
+                                    </form>
+                                </li>
+                            @endforeach
+                        </ul>
+                    @endif
                 </section>
 
                 <section

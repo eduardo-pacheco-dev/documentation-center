@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Plugins\Nokia\Database\Factories\NokiaSiteFactory;
 
@@ -71,6 +72,18 @@ class NokiaSite extends Model
     public function attachments(): HasMany
     {
         return $this->hasMany(NokiaSiteAttachment::class, 'nokia_site_id')->latest('id');
+    }
+
+    /**
+     * The configurable tasks tracked for the site.
+     */
+    public function tasks(): BelongsToMany
+    {
+        return $this->belongsToMany(NokiaTask::class, 'nokia_site_task', 'nokia_site_id', 'nokia_task_id')
+            ->withPivot('completed_at')
+            ->withTimestamps()
+            ->orderBy('position')
+            ->orderBy('name');
     }
 
     /**

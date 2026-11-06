@@ -16,6 +16,7 @@ use Plugins\Nokia\Database\Seeders\NokiaSiteSeeder;
 use Plugins\Nokia\Models\NokiaRom;
 use Plugins\Nokia\Models\NokiaSite;
 use Plugins\Nokia\Models\NokiaSiteAttachment;
+use Plugins\Nokia\Models\NokiaTask;
 use Plugins\Nokia\Providers\NokiaServiceProvider;
 use Plugins\Nokia\Support\NokiaSiteExport;
 
@@ -327,6 +328,98 @@ test('a site can be deleted', function () {
         ->assertRedirect(route('admin.nokia.sites.index'));
 
     expect(NokiaSite::query()->find($site->getKey()))->toBeNull();
+});
+
+test('administrators can manage tasks from the settings page', function () {
+    $admin = User::factory()->admin()->create();
+
+    $this->actingAs($admin)
+        ->get(route('admin.nokia.settings.index'))
+        ->assertOk()
+        ->assertSee('Tarefas')
+        ->assertSee('Nova tarefa')
+        ->assertSee('create-task-modal', false)
+        ->assertSee('Nenhuma tarefa cadastrada');
+
+    $this->actingAs($admin)
+        ->post(route('admin.nokia.settings.tasks.store'), ['name' => 'Validar documentação'])
+        ->assertRedirect(route('admin.nokia.settings.index'))
+        ->assertSessionHas('status');
+
+    $task = NokiaTask::query()->sole();
+
+    expect($task->name)->toBe('Validar documentação')
+        ->and($task->position)->toBe(1);
+
+    $this->actingAs($admin)
+        ->put(route('admin.nokia.settings.tasks.update', $task), ['name' => 'Validar documentação final'])
+        ->assertRedirect(route('admin.nokia.settings.index'));
+
+    expect($task->refresh()->name)->toBe('Validar documentação final');
+
+    $this->actingAs($admin)
+        ->delete(route('admin.nokia.settings.tasks.destroy', $task))
+        ->assertRedirect(route('admin.nokia.settings.index'));
+
+    expect(NokiaTask::query()->count())->toBe(0);
+});
+
+test('regular users cannot manage tasks', function () {
+    $this->actingAs(User::factory()->create())
+        ->post(route('admin.nokia.settings.tasks.store'), ['name' => 'Nova tarefa'])
+        ->assertForbidden();
+});
+
+test('the task modal reopens when validation fails', function () {
+    $this->actingAs(User::factory()->admin()->create())
+        ->from(route('admin.nokia.settings.index'))
+        ->post(route('admin.nokia.settings.tasks.store'), ['name' => ''])
+        ->assertRedirect(route('admin.nokia.settings.index'))
+        ->assertSessionHasErrors('name');
+
+    $this->actingAs(User::factory()->admin()->create())
+        ->get(route('admin.nokia.settings.index'))
+        ->assertOk()
+        ->assertSee('create-task-modal', false);
+});
+
+test('tasks can be marked as completed on the site page', function () {
+    $site = NokiaSite::factory()->create(['site_id' => 'SPTASK1']);
+    $task = NokiaTask::query()->create(['name' => 'Validar documentação', 'position' => 1]);
+
+    $this->actingAs(User::factory()->create())
+        ->get(route('admin.nokia.sites.show', $site))
+        ->assertOk()
+        ->assertSee('Tarefas cadastradas nas configurações')
+        ->assertSee('Validar documentação')
+        ->assertSee('Pendente');
+
+    $this->actingAs(User::factory()->create())
+        ->post(route('admin.nokia.sites.tasks.toggle', [$site, $task]))
+        ->assertRedirect()
+        ->assertSessionHas('status');
+
+    expect($site->tasks()->whereKey($task->getKey())->wherePivotNotNull('completed_at')->exists())->toBeTrue();
+
+    $this->actingAs(User::factory()->create())
+        ->get(route('admin.nokia.sites.show', $site))
+        ->assertOk()
+        ->assertSee('Concluída');
+
+    $this->actingAs(User::factory()->create())
+        ->post(route('admin.nokia.sites.tasks.toggle', [$site, $task]))
+        ->assertRedirect();
+
+    expect($site->tasks()->whereKey($task->getKey())->wherePivotNotNull('completed_at')->exists())->toBeFalse();
+});
+
+test('the site page prompts to configure tasks when none exist', function () {
+    $site = NokiaSite::factory()->create();
+
+    $this->actingAs(User::factory()->create())
+        ->get(route('admin.nokia.sites.show', $site))
+        ->assertOk()
+        ->assertSee('Nenhuma tarefa cadastrada');
 });
 
 test('attachments can be uploaded, downloaded and removed', function () {

@@ -6,6 +6,7 @@ use Plugins\Nokia\Http\Controllers\NokiaSiteAttachmentController;
 use Plugins\Nokia\Http\Controllers\NokiaSiteController;
 use Plugins\Nokia\Http\Controllers\NokiaSiteExportController;
 use Plugins\Nokia\Http\Controllers\NokiaSiteImportController;
+use Plugins\Nokia\Http\Controllers\NokiaTaskController;
 
 Route::middleware('auth')
     ->prefix('admin/nokia/sites')
@@ -22,6 +23,7 @@ Route::middleware('auth')
         Route::get('{site}/edit', [NokiaSiteController::class, 'edit'])->name('edit');
         Route::put('{site}', [NokiaSiteController::class, 'update'])->name('update');
         Route::delete('{site}', [NokiaSiteController::class, 'destroy'])->name('destroy');
+        Route::post('{site}/tasks/{task}', [NokiaSiteController::class, 'toggleTask'])->name('tasks.toggle');
 
         Route::scopeBindings()->group(function (): void {
             Route::post('{site}/attachments', [NokiaSiteAttachmentController::class, 'store'])->name('attachments.store');
@@ -39,4 +41,8 @@ Route::middleware(['auth', 'admin'])
         Route::get('roms/{rom}/edit', [NokiaRomController::class, 'edit'])->name('roms.edit');
         Route::put('roms/{rom}', [NokiaRomController::class, 'update'])->name('roms.update');
         Route::delete('roms/{rom}', [NokiaRomController::class, 'destroy'])->name('roms.destroy');
+
+        Route::post('tasks', [NokiaTaskController::class, 'store'])->name('tasks.store');
+        Route::put('tasks/{task}', [NokiaTaskController::class, 'update'])->name('tasks.update');
+        Route::delete('tasks/{task}', [NokiaTaskController::class, 'destroy'])->name('tasks.destroy');
     });
