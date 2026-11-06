@@ -24,8 +24,14 @@ Route::middleware('auth')
         Route::put('{site}', [NokiaSiteController::class, 'update'])->name('update');
         Route::delete('{site}', [NokiaSiteController::class, 'destroy'])->name('destroy');
         Route::post('{site}/tasks/{task}', [NokiaSiteController::class, 'toggleTask'])->name('tasks.toggle');
+        Route::put('{site}/checklist/{field}', [NokiaSiteController::class, 'updateChecklist'])
+            ->where('field', '[a-z_]+')
+            ->name('checklist.update');
+        Route::put('{site}/dates', [NokiaSiteController::class, 'updateDates'])->name('dates.update');
         Route::put('{site}/interruption', [NokiaSiteController::class, 'updateInterruption'])->name('interruption.update');
         Route::delete('{site}/interruption', [NokiaSiteController::class, 'clearInterruption'])->name('interruption.destroy');
+        Route::put('{site}/rejection', [NokiaSiteController::class, 'updateRejection'])->name('rejection.update');
+        Route::delete('{site}/rejection', [NokiaSiteController::class, 'clearRejection'])->name('rejection.destroy');
 
         Route::scopeBindings()->group(function (): void {
             Route::post('{site}/attachments', [NokiaSiteAttachmentController::class, 'store'])->name('attachments.store');

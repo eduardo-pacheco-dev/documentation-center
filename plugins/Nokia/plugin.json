@@ -14,7 +14,7 @@
     "requires": [],
     "navigation": [
         {
-            "label": "Sites Nokia",
+            "label": "Projetos Nokia",
             "route": "admin.nokia.sites.index",
             "icon": "signal",
             "module": null,

@@ -22,12 +22,68 @@ use Plugins\Nokia\Database\Factories\NokiaSiteFactory;
     'interruption_reason',
     'interruption_return_days',
     'interruption_started_at',
+    'rejection_reason',
+    'rejection_return_days',
+    'rejection_started_at',
     'checklist_fam_entrega',
     'checklist_fam_instalacao',
     'checklist_fam_panoramica',
+    'checklist_fam_entrega_status',
+    'checklist_fam_instalacao_status',
+    'checklist_fam_panoramica_status',
+    'mos_plan_at',
+    'mos_real_at',
+    'instalacao_plan_at',
+    'instalacao_real_at',
+    'integracao_plan_at',
+    'integracao_real_at',
+    'rfa_plan_at',
+    'rfa_real_at',
+    'fam_entrega_approved_at',
+    'fam_instalacao_approved_at',
+    'fam_panoramica_approved_at',
 ])]
 class NokiaSite extends Model
 {
+    public const STATUS_PENDING = 'pending';
+
+    public const STATUS_ANALYSIS = 'analysis';
+
+    public const STATUS_REJECTED = 'rejected';
+
+    public const STATUS_SENT = 'sent';
+
+    /**
+     * The labels for every checklist status.
+     *
+     * @var array<string, string>
+     */
+    public const CHECKLIST_STATUSES = [
+        self::STATUS_PENDING => 'Pendente',
+        self::STATUS_ANALYSIS => 'Análise TIM',
+        self::STATUS_REJECTED => 'Rejeitado',
+        self::STATUS_SENT => 'Enviado',
+    ];
+
+    /**
+     * The date fields tracked for a site.
+     *
+     * @var list<string>
+     */
+    public const DATE_FIELDS = [
+        'mos_plan_at',
+        'mos_real_at',
+        'instalacao_plan_at',
+        'instalacao_real_at',
+        'integracao_plan_at',
+        'integracao_real_at',
+        'rfa_plan_at',
+        'rfa_real_at',
+        'fam_entrega_approved_at',
+        'fam_instalacao_approved_at',
+        'fam_panoramica_approved_at',
+    ];
+
     /** @use HasFactory<NokiaSiteFactory> */
     use HasFactory;
 
@@ -57,7 +113,98 @@ class NokiaSite extends Model
             'checklist_fam_panoramica' => 'boolean',
             'interruption_return_days' => 'integer',
             'interruption_started_at' => 'datetime',
+            'rejection_return_days' => 'integer',
+            'rejection_started_at' => 'datetime',
+            'mos_plan_at' => 'date',
+            'mos_real_at' => 'date',
+            'instalacao_plan_at' => 'date',
+            'instalacao_real_at' => 'date',
+            'integracao_plan_at' => 'date',
+            'integracao_real_at' => 'date',
+            'rfa_plan_at' => 'date',
+            'rfa_real_at' => 'date',
+            'fam_entrega_approved_at' => 'date',
+            'fam_instalacao_approved_at' => 'date',
+            'fam_panoramica_approved_at' => 'date',
         ];
+    }
+
+    /**
+     * Whether the site has any date filled in.
+     */
+    public function hasDates(): bool
+    {
+        foreach (self::DATE_FIELDS as $field) {
+            if ($this->{$field} !== null) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * The status of the given checklist item.
+     *
+     * New or legacy records fall back to the boolean value so previously
+     * completed items keep showing as sent.
+     */
+    public function checklistStatus(string $field): string
+    {
+        $status = $this->getAttribute($field.'_status');
+
+        if (! is_string($status) || ! array_key_exists($status, self::CHECKLIST_STATUSES)) {
+            $status = self::STATUS_PENDING;
+        }
+
+        if ($status === self::STATUS_PENDING && (bool) $this->{$field}) {
+            return self::STATUS_SENT;
+        }
+
+        return $status;
+    }
+
+    /**
+     * The label of the given checklist item status.
+     */
+    public function checklistStatusLabel(string $field): string
+    {
+        return self::CHECKLIST_STATUSES[$this->checklistStatus($field)];
+    }
+
+    /**
+     * The badge tone of the given checklist item status.
+     */
+    public function checklistStatusTone(string $field): string
+    {
+        return match ($this->checklistStatus($field)) {
+            self::STATUS_SENT => 'green',
+            self::STATUS_ANALYSIS => 'amber',
+            self::STATUS_REJECTED => 'red',
+            default => 'gray',
+        };
+    }
+
+    /**
+     * Whether the site has an active rejection.
+     */
+    public function isRejected(): bool
+    {
+        return $this->rejection_reason !== null
+            && $this->rejection_return_days !== null
+            && $this->rejection_started_at !== null;
+    }
+
+    /**
+     * The expected return date for the current rejection.
+     */
+    public function rejectionReturnAt(): ?Carbon
+    {
+        if (! $this->isRejected()) {
+            return null;
+        }
+
+        return $this->rejection_started_at->copy()->addDays($this->rejection_return_days);
     }
 
     /**

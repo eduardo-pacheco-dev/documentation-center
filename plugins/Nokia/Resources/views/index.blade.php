@@ -1,4 +1,4 @@
-<x-layouts.admin title="Sites Nokia">
+<x-layouts.admin title="Projetos Nokia">
     @php
         $hasFilters = $search !== '';
         $checklists = config('nokia.checklists', []);
@@ -149,7 +149,7 @@
                             <th class="px-5 py-3.5">ROM</th>
                             <th class="px-5 py-3.5">OS FAM Entrega</th>
                             <th class="px-5 py-3.5">OS FAM Instalação</th>
-                            <th class="px-5 py-3.5">Checklist</th>
+                            <th class="px-5 py-3.5">Progresso</th>
                             <th class="px-5 py-3.5 text-right">Ações</th>
                         </tr>
                     </thead>
@@ -189,12 +189,20 @@
                                 </td>
 
                                 <td class="px-5 py-4">
-                                    <div class="flex flex-wrap gap-1">
-                                        @foreach ($checklists as $field => $label)
-                                            <x-ui.badge :tone="$site->{$field} ? 'green' : 'gray'">
-                                                {{ $label }}
-                                            </x-ui.badge>
-                                        @endforeach
+                                    @php
+                                        $checklistTotal = count($checklists) + ($tasksTotal ?? 0);
+                                        $checklistDone = collect($checklists)->keys()
+                                            ->filter(fn (string $field): bool => $site->checklistStatus($field) === 'sent')
+                                            ->count() + (int) $site->completed_tasks_count;
+                                        $checklistPercent = $checklistTotal > 0 ? (int) round(($checklistDone / $checklistTotal) * 100) : 0;
+                                    @endphp
+
+                                    <div class="flex items-center gap-2">
+                                        <x-ui.progress-bar :percent="$checklistPercent" height="h-1.5" class="w-24" />
+
+                                        <span class="text-xs font-medium text-gray-600 dark:text-gray-300">
+                                            {{ $checklistDone }}/{{ $checklistTotal }}
+                                        </span>
                                     </div>
                                 </td>
 

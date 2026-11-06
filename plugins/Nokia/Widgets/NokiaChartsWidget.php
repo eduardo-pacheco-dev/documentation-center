@@ -16,7 +16,7 @@ class NokiaChartsWidget extends Widget
 
     public function title(): string
     {
-        return 'Sites Nokia';
+        return 'Projetos Nokia';
     }
 
     public function description(): ?string

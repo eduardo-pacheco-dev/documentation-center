@@ -32,7 +32,7 @@ final class NokiaSiteExport
         $spreadsheet = new Spreadsheet;
         $spreadsheet->getProperties()
             ->setCreator(config('app.name'))
-            ->setTitle('Sites Nokia')
+            ->setTitle('Projetos Nokia')
             ->setDescription('Exportação dos sites Nokia cadastrados.');
 
         $this->sitesSheet($spreadsheet, $sites);

@@ -4,7 +4,7 @@
 
         $checklistTotal = count($checklists);
         $checklistDone = collect($checklists)->keys()
-            ->filter(fn (string $field): bool => (bool) $site->{$field})
+            ->filter(fn (string $field): bool => $site->checklistStatus($field) === 'sent')
             ->count();
         $checklistPercent = $checklistTotal > 0 ? (int) round(($checklistDone / $checklistTotal) * 100) : 0;
 
@@ -16,12 +16,34 @@
         $taskDone = $tasks->filter(fn ($task): bool => in_array($task->getKey(), $completedTaskIds, true))->count();
         $taskPercent = $taskTotal > 0 ? (int) round(($taskDone / $taskTotal) * 100) : 0;
 
+        $progressTotal = $checklistTotal + $taskTotal;
+        $progressDone = $checklistDone + $taskDone;
+        $progressPercent = $progressTotal > 0 ? (int) round(($progressDone / $progressTotal) * 100) : 0;
+
         $isInterrupted = $site->isInterrupted();
         $interruptionReturnAt = $site->interruptionReturnAt();
 
+        $isRejected = $site->isRejected();
+        $rejectionReturnAt = $site->rejectionReturnAt();
+
+        $dateRows = [
+            ['label' => 'MOS', 'plan' => 'mos_plan_at', 'real' => 'mos_real_at'],
+            ['label' => 'Instalação', 'plan' => 'instalacao_plan_at', 'real' => 'instalacao_real_at'],
+            ['label' => 'Integração', 'plan' => 'integracao_plan_at', 'real' => 'integracao_real_at'],
+            ['label' => 'RFA', 'plan' => 'rfa_plan_at', 'real' => 'rfa_real_at'],
+        ];
+
+        $approvalDates = [
+            'fam_entrega_approved_at' => 'FAM Entrega aprovado',
+            'fam_instalacao_approved_at' => 'FAM Instalação aprovado',
+            'fam_panoramica_approved_at' => 'FAM Panorâmica aprovado',
+        ];
+
+        $hasDates = $site->hasDates();
+
         $ringRadius = 9;
         $ringCircumference = 2 * M_PI * $ringRadius;
-        $ringOffset = $ringCircumference * (1 - ($checklistPercent / 100));
+        $ringOffset = $ringCircumference * (1 - ($progressPercent / 100));
 
         $editPayload = [
             'id' => $site->getKey(),
@@ -37,7 +59,7 @@
 
     <div class="space-y-5">
         <nav class="flex flex-wrap items-center gap-1.5 text-xs text-gray-400 dark:text-gray-500" aria-label="Trilha de navegação">
-            <a href="{{ route('admin.nokia.sites.index') }}" class="font-medium text-gray-500 transition hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">Sites Nokia</a>
+            <a href="{{ route('admin.nokia.sites.index') }}" class="font-medium text-gray-500 transition hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">Projetos Nokia</a>
             <x-icon name="chevron-right" class="h-3 w-3" />
             <span class="truncate text-gray-400 dark:text-gray-500">{{ $site->site_id }}</span>
         </nav>
@@ -70,8 +92,8 @@
                         <div class="flex flex-wrap items-center gap-2">
                             <p class="text-[11px] font-semibold uppercase tracking-[0.18em] text-indigo-600 dark:text-indigo-400">Site Nokia</p>
 
-                            <x-ui.badge :tone="$checklistPercent === 100 ? 'green' : 'amber'">
-                                {{ $checklistPercent === 100 ? 'Checklist concluído' : 'Checklist pendente' }}
+                            <x-ui.badge :tone="$progressPercent === 100 ? 'green' : 'amber'">
+                                {{ $progressPercent === 100 ? 'Progresso concluído' : 'Progresso pendente' }}
                             </x-ui.badge>
                         </div>
 
@@ -111,14 +133,14 @@
                                             stroke-dasharray="{{ round($ringCircumference, 2) }}"
                                             stroke-dashoffset="{{ round($ringOffset, 2) }}"
                                             @class([
-                                                'stroke-emerald-500' => $checklistPercent === 100,
-                                                'stroke-indigo-600 dark:stroke-indigo-500' => $checklistPercent !== 100,
+                                                'stroke-emerald-500' => $progressPercent === 100,
+                                                'stroke-indigo-600 dark:stroke-indigo-500' => $progressPercent !== 100,
                                             ])
                                         />
                                     </svg>
                                 </span>
 
-                                Checklist {{ $checklistDone }}/{{ $checklistTotal }}
+                                Progresso {{ $progressDone }}/{{ $progressTotal }}
                             </span>
                         </div>
                     </div>
@@ -136,6 +158,15 @@
                         x-on:click="$dispatch('open-interruption-modal')"
                     >
                         {{ $isInterrupted ? 'Editar interrupção' : 'Interromper obra' }}
+                    </x-ui.action>
+
+                    <x-ui.action
+                        type="button"
+                        variant="secondary"
+                        icon="x-circle"
+                        x-on:click="$dispatch('open-rejection-modal')"
+                    >
+                        {{ $isRejected ? 'Editar rejeição' : 'Rejeitar' }}
                     </x-ui.action>
 
                     <x-ui.action
@@ -196,6 +227,111 @@
                     </section>
                 @endif
 
+                @if ($isRejected)
+                    <section class="rounded-3xl border border-gray-200/80 bg-white p-5 sm:p-6 dark:border-white/10 dark:bg-[#171716]">
+                        <div class="flex flex-wrap items-start justify-between gap-3">
+                            <div>
+                                <h2 class="text-sm font-semibold tracking-tight text-gray-900 dark:text-white">Rejeições</h2>
+                                <p class="mt-0.5 text-xs text-gray-500 dark:text-gray-400">Motivo da rejeição, início e prazo de retorno.</p>
+                            </div>
+
+                            <x-ui.badge tone="red">Obra rejeitada</x-ui.badge>
+                        </div>
+
+                        <div class="mt-4 rounded-2xl border border-red-200 bg-red-50/70 p-4 dark:border-red-500/30 dark:bg-red-500/10">
+                            <dl class="space-y-2.5 text-sm">
+                                <div class="flex flex-col gap-0.5 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
+                                    <dt class="text-red-700/80 dark:text-red-300/80">Motivo da rejeição</dt>
+                                    <dd class="font-medium text-red-900 dark:text-red-100 sm:text-right">{{ $site->rejection_reason }}</dd>
+                                </div>
+
+                                <div class="flex items-center justify-between gap-4">
+                                    <dt class="text-red-700/80 dark:text-red-300/80">Início</dt>
+                                    <dd class="font-medium text-red-900 dark:text-red-100">{{ $site->rejection_started_at?->format('d/m/Y H:i') ?? '—' }}</dd>
+                                </div>
+
+                                <div class="flex items-center justify-between gap-4">
+                                    <dt class="text-red-700/80 dark:text-red-300/80">Prazo de retorno</dt>
+                                    <dd class="font-medium text-red-900 dark:text-red-100">{{ $site->rejection_return_days }} dias · {{ $rejectionReturnAt?->format('d/m/Y') ?? '—' }}</dd>
+                                </div>
+                            </dl>
+
+                            <form
+                                method="POST"
+                                action="{{ route('admin.nokia.sites.rejection.destroy', $site) }}"
+                                data-confirm="Encerrar a rejeição deste site?"
+                                data-confirm-title="Encerrar rejeição"
+                                data-confirm-label="Encerrar"
+                                class="mt-4"
+                            >
+                                @csrf
+                                @method('DELETE')
+
+                                <x-ui.action type="submit" size="sm" variant="secondary" icon="play">Encerrar rejeição</x-ui.action>
+                            </form>
+                        </div>
+                    </section>
+                @endif
+
+                <section class="rounded-3xl border border-gray-200/80 bg-white p-5 sm:p-6 dark:border-white/10 dark:bg-[#171716]">
+                    <div class="flex flex-wrap items-start justify-between gap-3">
+                        <div>
+                            <h2 class="text-sm font-semibold tracking-tight text-gray-900 dark:text-white">Datas</h2>
+                            <p class="mt-0.5 text-xs text-gray-500 dark:text-gray-400">Cronograma planejado, realizado e aprovações das FAMs.</p>
+                        </div>
+
+                        <x-ui.action
+                            type="button"
+                            size="sm"
+                            variant="secondary"
+                            icon="calendar-days"
+                            x-on:click="$dispatch('open-dates-modal')"
+                        >
+                            Editar datas
+                        </x-ui.action>
+                    </div>
+
+                    @if (! $hasDates)
+                        <div class="mt-4 rounded-2xl border border-dashed border-gray-200 px-4 py-8 text-center dark:border-white/10">
+                            <span class="mx-auto inline-flex h-10 w-10 items-center justify-center rounded-full bg-gray-50 text-gray-400 dark:bg-white/[0.04] dark:text-gray-500">
+                                <x-icon name="calendar-days" class="h-5 w-5" />
+                            </span>
+                            <p class="mt-2 text-sm font-medium text-gray-700 dark:text-gray-200">Nenhuma data informada</p>
+                            <p class="mt-0.5 text-xs text-gray-500 dark:text-gray-400">Clique em Editar datas para preencher o cronograma.</p>
+                        </div>
+                    @else
+                        <div class="mt-4 overflow-hidden rounded-2xl border border-gray-200/80 dark:border-white/10">
+                            <table class="min-w-full divide-y divide-gray-100 text-sm dark:divide-white/10">
+                                <thead class="bg-gray-50/80 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:bg-white/[0.03] dark:text-gray-400">
+                                    <tr>
+                                        <th class="px-4 py-2.5">Etapa</th>
+                                        <th class="px-4 py-2.5">Plan</th>
+                                        <th class="px-4 py-2.5">Real</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-gray-100 dark:divide-white/10">
+                                    @foreach ($dateRows as $dateRow)
+                                        <tr>
+                                            <td class="px-4 py-2.5 font-medium text-gray-700 dark:text-gray-200">{{ $dateRow['label'] }}</td>
+                                            <td class="px-4 py-2.5 text-gray-600 dark:text-gray-300">{{ $site->{$dateRow['plan']}?->format('d/m/Y') ?? '—' }}</td>
+                                            <td class="px-4 py-2.5 text-gray-600 dark:text-gray-300">{{ $site->{$dateRow['real']}?->format('d/m/Y') ?? '—' }}</td>
+                                        </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <dl class="mt-3 space-y-2">
+                            @foreach ($approvalDates as $field => $label)
+                                <div class="flex items-center justify-between gap-4 rounded-xl bg-gray-50/70 px-3 py-2 text-sm dark:bg-white/[0.03]">
+                                    <dt class="text-gray-600 dark:text-gray-300">{{ $label }}</dt>
+                                    <dd class="font-medium text-gray-900 dark:text-white">{{ $site->{$field}?->format('d/m/Y') ?? '—' }}</dd>
+                                </div>
+                            @endforeach
+                        </dl>
+                    @endif
+                </section>
+
                 <section class="rounded-3xl border border-gray-200/80 bg-white p-5 sm:p-6 dark:border-white/10 dark:bg-[#171716]">
                     <div class="flex flex-wrap items-start justify-between gap-3">
                         <div>
@@ -216,20 +352,55 @@
 
                     <ol class="mt-5 divide-y divide-gray-100 dark:divide-white/10">
                         @foreach ($checklists as $field => $label)
-                            <li class="flex items-center gap-3 py-3.5 first:pt-0 last:pb-0">
-                                <span @class([
-                                    'inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-xl',
-                                    'bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400' => $site->{$field},
-                                    'bg-gray-100 text-gray-400 dark:bg-white/10 dark:text-gray-500' => ! $site->{$field},
-                                ])>
-                                    <x-icon :name="$site->{$field} ? 'check' : 'x-mark'" class="h-4 w-4" />
-                                </span>
+                            @php($status = $site->checklistStatus($field))
 
-                                <span class="text-sm font-medium text-gray-700 dark:text-gray-200">{{ $label }}</span>
+                            <li class="py-2 first:pt-0 last:pb-0">
+                                <form method="POST" action="{{ route('admin.nokia.sites.checklist.update', [$site, $field]) }}" class="flex flex-wrap items-center gap-3 py-1.5">
+                                    @csrf
+                                    @method('PUT')
 
-                                <x-ui.badge :tone="$site->{$field} ? 'green' : 'gray'" class="ml-auto">
-                                    {{ $site->{$field} ? 'Concluído' : 'Pendente' }}
-                                </x-ui.badge>
+                                    <span @class([
+                                        'inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-xl',
+                                        'bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400' => $status === 'sent',
+                                        'bg-amber-50 text-amber-600 dark:bg-amber-500/15 dark:text-amber-400' => $status === 'analysis',
+                                        'bg-red-50 text-red-600 dark:bg-red-500/15 dark:text-red-400' => $status === 'rejected',
+                                        'bg-gray-100 text-gray-400 dark:bg-white/10 dark:text-gray-500' => $status === 'pending',
+                                    ])>
+                                        <x-icon :name="match ($status) {
+                                            'sent' => 'check',
+                                            'analysis' => 'clock',
+                                            'rejected' => 'x-mark',
+                                            default => 'minus',
+                                        }" class="h-4 w-4" />
+                                    </span>
+
+                                    <span class="text-sm font-medium text-gray-700 dark:text-gray-200">{{ $label }}</span>
+
+                                    <div class="ml-auto flex items-center gap-2">
+                                        <x-ui.badge :tone="$site->checklistStatusTone($field)">
+                                            {{ $site->checklistStatusLabel($field) }}
+                                        </x-ui.badge>
+
+                                        <label for="checklist-status-{{ $field }}" class="sr-only">Status de {{ $label }}</label>
+                                        <select
+                                            id="checklist-status-{{ $field }}"
+                                            name="status"
+                                            class="h-9 rounded-xl border border-gray-300 bg-white px-2.5 text-xs font-medium text-gray-900 transition focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
+                                        >
+                                            @foreach (\Plugins\Nokia\Models\NokiaSite::CHECKLIST_STATUSES as $value => $statusLabel)
+                                                <option value="{{ $value }}" @selected($status === $value)>{{ $statusLabel }}</option>
+                                            @endforeach
+                                        </select>
+
+                                        <button
+                                            type="submit"
+                                            class="rounded-lg p-1.5 text-indigo-600 transition hover:bg-indigo-50 dark:text-indigo-400 dark:hover:bg-indigo-500/10"
+                                            aria-label="Salvar status de {{ $label }}"
+                                        >
+                                            <x-icon name="check" class="h-4 w-4" />
+                                        </button>
+                                    </div>
+                                </form>
                             </li>
                         @endforeach
                     </ol>
@@ -510,6 +681,292 @@
                 </section>
             </aside>
         </div>
+    </div>
+
+    <div
+        x-data="{
+            open: @js($errors->hasAny(['rejection_reason', 'rejection_return_days'])),
+            init() {
+                if (this.open) {
+                    this.$nextTick(() => this.show());
+                }
+            },
+            show() {
+                if (this.$refs.dialog.open) {
+                    return;
+                }
+
+                this.$refs.dialog.showModal();
+                document.body.classList.add('overflow-hidden');
+
+                this.$nextTick(() => this.$refs.dialog.querySelector('[data-autofocus]')?.focus());
+            },
+            close() {
+                this.$refs.dialog.close();
+            },
+            onClose() {
+                document.body.classList.remove('overflow-hidden');
+            },
+            onBackdropClick(event) {
+                if (event.target === this.$refs.dialog) {
+                    this.close();
+                }
+            },
+        }"
+        x-on:open-rejection-modal.window="show()"
+    >
+        <dialog
+            id="rejection-modal"
+            x-ref="dialog"
+            x-on:close="onClose()"
+            x-on:click="onBackdropClick($event)"
+            class="m-auto max-h-[calc(100dvh-1.5rem)] w-[calc(100%-1.5rem)] max-w-lg overflow-hidden rounded-2xl bg-white p-0 text-gray-900 shadow-2xl dark:bg-[#1c1c1b] dark:text-gray-100"
+            aria-labelledby="rejection-modal-title"
+        >
+            <div class="flex max-h-[calc(100dvh-1.5rem)] flex-col">
+                <header class="flex shrink-0 items-start justify-between gap-3 border-b border-gray-100 px-4 py-3.5 sm:px-6 sm:py-4 dark:border-white/10">
+                    <div class="flex min-w-0 items-start gap-3">
+                        <span class="mt-0.5 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-red-50 text-red-600 dark:bg-red-500/10 dark:text-red-400">
+                            <x-icon name="x-circle" class="h-5 w-5" />
+                        </span>
+
+                        <div class="min-w-0">
+                            <h2 id="rejection-modal-title" class="truncate text-base font-semibold sm:text-lg">Rejeição</h2>
+                            <p class="mt-0.5 hidden text-xs text-gray-500 sm:block dark:text-gray-400">
+                                Informe o motivo da rejeição e o prazo de retorno.
+                            </p>
+                        </div>
+                    </div>
+
+                    <button
+                        type="button"
+                        x-on:click="close()"
+                        class="rounded-full p-1.5 text-gray-400 transition hover:bg-gray-100 hover:text-gray-700 dark:text-gray-500 dark:hover:bg-white/10"
+                        aria-label="Fechar"
+                    >
+                        <x-icon name="x-mark" class="h-5 w-5" />
+                    </button>
+                </header>
+
+                <form method="POST" action="{{ route('admin.nokia.sites.rejection.update', $site) }}" class="flex min-h-0 flex-1 flex-col">
+                    @csrf
+                    @method('PUT')
+
+                    <div class="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain px-4 py-4 sm:px-6 sm:py-5">
+                        @if ($errors->hasAny(['rejection_reason', 'rejection_return_days']))
+                            <div class="rounded-xl border border-red-200 bg-red-50 p-3 dark:border-red-900/60 dark:bg-red-950/40">
+                                <p class="flex items-center gap-2 text-sm font-semibold text-red-700 dark:text-red-300">
+                                    <x-icon name="exclamation-triangle" class="h-4 w-4 shrink-0" />
+                                    Não foi possível registrar a rejeição
+                                </p>
+                            </div>
+                        @endif
+
+                        <div>
+                            <label for="rejection-reason" class="block text-sm font-medium text-gray-700 dark:text-gray-200">Motivo da rejeição</label>
+                            <textarea
+                                id="rejection-reason"
+                                name="rejection_reason"
+                                rows="3"
+                                required
+                                data-autofocus
+                                placeholder="Descreva o motivo da rejeição"
+                                @error('rejection_reason') aria-invalid="true" @enderror
+                                class="mt-1.5 w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 transition focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
+                            >{{ old('rejection_reason', $site->rejection_reason) }}</textarea>
+                            @error('rejection_reason')
+                                <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
+                            @enderror
+                        </div>
+
+                        <div>
+                            <label for="rejection-return-days" class="block text-sm font-medium text-gray-700 dark:text-gray-200">Prazo de retorno</label>
+                            <select
+                                id="rejection-return-days"
+                                name="rejection_return_days"
+                                required
+                                @error('rejection_return_days') aria-invalid="true" @enderror
+                                class="mt-1.5 h-10 w-full rounded-xl border border-gray-300 bg-white px-3 text-sm text-gray-900 transition focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
+                            >
+                                <option value="">Selecione o prazo</option>
+                                @foreach ([7, 14, 21, 28] as $days)
+                                    <option value="{{ $days }}" @selected((int) old('rejection_return_days', $site->rejection_return_days) === $days)>{{ $days }} dias</option>
+                                @endforeach
+                            </select>
+                            @error('rejection_return_days')
+                                <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
+                            @enderror
+                        </div>
+                    </div>
+
+                    <footer class="flex shrink-0 flex-wrap items-center justify-end gap-2 border-t border-gray-100 px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:px-6 sm:py-4 dark:border-white/10">
+                        <x-ui.action type="button" variant="secondary" x-on:click="close()">Cancelar</x-ui.action>
+                        <x-ui.action type="submit" icon="x-circle">Registrar rejeição</x-ui.action>
+                    </footer>
+                </form>
+            </div>
+        </dialog>
+    </div>
+
+    <div
+        x-data="{
+            open: @js($errors->hasAny(\Plugins\Nokia\Models\NokiaSite::DATE_FIELDS)),
+            init() {
+                if (this.open) {
+                    this.$nextTick(() => this.show());
+                }
+            },
+            show() {
+                if (this.$refs.dialog.open) {
+                    return;
+                }
+
+                this.$refs.dialog.showModal();
+                document.body.classList.add('overflow-hidden');
+
+                this.$nextTick(() => this.$refs.dialog.querySelector('[data-autofocus]')?.focus());
+            },
+            close() {
+                this.$refs.dialog.close();
+            },
+            onClose() {
+                document.body.classList.remove('overflow-hidden');
+            },
+            onBackdropClick(event) {
+                if (event.target === this.$refs.dialog) {
+                    this.close();
+                }
+            },
+        }"
+        x-on:open-dates-modal.window="show()"
+    >
+        <dialog
+            id="dates-modal"
+            x-ref="dialog"
+            x-on:close="onClose()"
+            x-on:click="onBackdropClick($event)"
+            class="m-auto max-h-[calc(100dvh-1.5rem)] w-[calc(100%-1.5rem)] max-w-2xl overflow-hidden rounded-2xl bg-white p-0 text-gray-900 shadow-2xl dark:bg-[#1c1c1b] dark:text-gray-100"
+            aria-labelledby="dates-modal-title"
+        >
+            <div class="flex max-h-[calc(100dvh-1.5rem)] flex-col">
+                <header class="flex shrink-0 items-start justify-between gap-3 border-b border-gray-100 px-4 py-3.5 sm:px-6 sm:py-4 dark:border-white/10">
+                    <div class="flex min-w-0 items-start gap-3">
+                        <span class="mt-0.5 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-400">
+                            <x-icon name="calendar-days" class="h-5 w-5" />
+                        </span>
+
+                        <div class="min-w-0">
+                            <h2 id="dates-modal-title" class="truncate text-base font-semibold sm:text-lg">Datas</h2>
+                            <p class="mt-0.5 hidden text-xs text-gray-500 sm:block dark:text-gray-400">
+                                Preencha o cronograma planejado, realizado e as aprovações das FAMs.
+                            </p>
+                        </div>
+                    </div>
+
+                    <button
+                        type="button"
+                        x-on:click="close()"
+                        class="rounded-full p-1.5 text-gray-400 transition hover:bg-gray-100 hover:text-gray-700 dark:text-gray-500 dark:hover:bg-white/10"
+                        aria-label="Fechar"
+                    >
+                        <x-icon name="x-mark" class="h-5 w-5" />
+                    </button>
+                </header>
+
+                <form method="POST" action="{{ route('admin.nokia.sites.dates.update', $site) }}" class="flex min-h-0 flex-1 flex-col">
+                    @csrf
+                    @method('PUT')
+
+                    <div class="min-h-0 flex-1 space-y-5 overflow-y-auto overscroll-contain px-4 py-4 sm:px-6 sm:py-5">
+                        @if ($errors->hasAny(\Plugins\Nokia\Models\NokiaSite::DATE_FIELDS))
+                            <div class="rounded-xl border border-red-200 bg-red-50 p-3 dark:border-red-900/60 dark:bg-red-950/40">
+                                <p class="flex items-center gap-2 text-sm font-semibold text-red-700 dark:text-red-300">
+                                    <x-icon name="exclamation-triangle" class="h-4 w-4 shrink-0" />
+                                    Não foi possível salvar as datas
+                                </p>
+                            </div>
+                        @endif
+
+                        <fieldset>
+                            <legend class="text-sm font-semibold tracking-tight text-gray-900 dark:text-white">Cronograma</legend>
+
+                            <div class="mt-3 space-y-4">
+                                @foreach ($dateRows as $dateRow)
+                                    <div class="grid gap-3 sm:grid-cols-2">
+                                        <div>
+                                            <label for="dates-{{ $dateRow['plan'] }}" class="block text-sm font-medium text-gray-700 dark:text-gray-200">{{ $dateRow['label'] }} Plan</label>
+                                            <input
+                                                id="dates-{{ $dateRow['plan'] }}"
+                                                name="{{ $dateRow['plan'] }}"
+                                                type="text"
+                                                inputmode="numeric"
+                                                maxlength="10"
+                                                placeholder="dd/mm/aaaa"
+                                                value="{{ old($dateRow['plan'], $site->{$dateRow['plan']}?->format('d/m/Y')) }}"
+                                                @error($dateRow['plan']) aria-invalid="true" @enderror
+                                                class="mt-1.5 h-10 w-full rounded-xl border border-gray-300 bg-white px-3 text-sm text-gray-900 transition focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
+                                            >
+                                            @error($dateRow['plan'])
+                                                <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
+                                            @enderror
+                                        </div>
+
+                                        <div>
+                                            <label for="dates-{{ $dateRow['real'] }}" class="block text-sm font-medium text-gray-700 dark:text-gray-200">{{ $dateRow['label'] }} Real</label>
+                                            <input
+                                                id="dates-{{ $dateRow['real'] }}"
+                                                name="{{ $dateRow['real'] }}"
+                                                type="text"
+                                                inputmode="numeric"
+                                                maxlength="10"
+                                                placeholder="dd/mm/aaaa"
+                                                value="{{ old($dateRow['real'], $site->{$dateRow['real']}?->format('d/m/Y')) }}"
+                                                @error($dateRow['real']) aria-invalid="true" @enderror
+                                                class="mt-1.5 h-10 w-full rounded-xl border border-gray-300 bg-white px-3 text-sm text-gray-900 transition focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
+                                            >
+                                            @error($dateRow['real'])
+                                                <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
+                                            @enderror
+                                        </div>
+                                    </div>
+                                @endforeach
+                            </div>
+                        </fieldset>
+
+                        <fieldset>
+                            <legend class="text-sm font-semibold tracking-tight text-gray-900 dark:text-white">Aprovações FAM</legend>
+
+                            <div class="mt-3 grid gap-3 sm:grid-cols-2">
+                                @foreach ($approvalDates as $field => $label)
+                                    <div>
+                                        <label for="dates-{{ $field }}" class="block text-sm font-medium text-gray-700 dark:text-gray-200">{{ $label }}</label>
+                                        <input
+                                            id="dates-{{ $field }}"
+                                            name="{{ $field }}"
+                                            type="text"
+                                            inputmode="numeric"
+                                            maxlength="10"
+                                            placeholder="dd/mm/aaaa"
+                                            value="{{ old($field, $site->{$field}?->format('d/m/Y')) }}"
+                                            @error($field) aria-invalid="true" @enderror
+                                            class="mt-1.5 h-10 w-full rounded-xl border border-gray-300 bg-white px-3 text-sm text-gray-900 transition focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
+                                        >
+                                        @error($field)
+                                            <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
+                                        @enderror
+                                    </div>
+                                @endforeach
+                            </div>
+                        </fieldset>
+                    </div>
+
+                    <footer class="flex shrink-0 flex-wrap items-center justify-end gap-2 border-t border-gray-100 px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:px-6 sm:py-4 dark:border-white/10">
+                        <x-ui.action type="button" variant="secondary" x-on:click="close()">Cancelar</x-ui.action>
+                        <x-ui.action type="submit" icon="check">Salvar datas</x-ui.action>
+                    </footer>
+                </form>
+            </div>
+        </dialog>
     </div>
 
     <div

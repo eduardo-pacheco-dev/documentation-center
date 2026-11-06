@@ -6,9 +6,12 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
+use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 use Plugins\Nokia\Http\Requests\StoreNokiaSiteRequest;
+use Plugins\Nokia\Http\Requests\UpdateNokiaDatesRequest;
 use Plugins\Nokia\Http\Requests\UpdateNokiaInterruptionRequest;
+use Plugins\Nokia\Http\Requests\UpdateNokiaRejectionRequest;
 use Plugins\Nokia\Http\Requests\UpdateNokiaSiteRequest;
 use Plugins\Nokia\Models\NokiaRom;
 use Plugins\Nokia\Models\NokiaSite;
@@ -24,7 +27,11 @@ class NokiaSiteController extends Controller
     {
         $search = $request->string('search')->trim()->toString();
 
-        $query = NokiaSite::query()->with('rom');
+        $query = NokiaSite::query()
+            ->with('rom')
+            ->withCount([
+                'tasks as completed_tasks_count' => fn ($query) => $query->whereNotNull('nokia_site_task.completed_at'),
+            ]);
 
         if ($search !== '') {
             $query->matching($search);
@@ -48,6 +55,7 @@ class NokiaSiteController extends Controller
             'search' => $search,
             'editSite' => $editSite,
             'roms' => $this->roms(),
+            'tasksTotal' => NokiaTask::query()->count(),
             'createHasErrors' => old('modal') === 'create' && session('errors')?->any(),
             'editHasErrors' => old('modal') === 'edit' && session('errors')?->any(),
             'stats' => [
@@ -109,7 +117,9 @@ class NokiaSiteController extends Controller
      */
     public function store(StoreNokiaSiteRequest $request): RedirectResponse
     {
-        NokiaSite::query()->create($request->validated());
+        $site = NokiaSite::query()->create($request->validated());
+
+        $this->syncChecklistStatuses($site);
 
         return redirect()
             ->route('admin.nokia.sites.index')
@@ -132,7 +142,11 @@ class NokiaSiteController extends Controller
      */
     public function update(UpdateNokiaSiteRequest $request, NokiaSite $site): RedirectResponse
     {
+        $original = $site->only(array_keys(config('nokia.checklists', [])));
+
         $site->update($request->validated());
+
+        $this->syncChecklistStatuses($site, $original);
 
         return redirect()
             ->route('admin.nokia.sites.index')
@@ -189,6 +203,95 @@ class NokiaSiteController extends Controller
         ]);
 
         return back()->with('status', 'Interrupção de obra encerrada.');
+    }
+
+    /**
+     * Update the status of a checklist item for the given site.
+     */
+    public function updateChecklist(Request $request, NokiaSite $site, string $field): RedirectResponse
+    {
+        $checklists = config('nokia.checklists', []);
+
+        abort_unless(array_key_exists($field, $checklists), 404);
+
+        $validated = $request->validate([
+            'status' => ['required', 'string', Rule::in(array_keys(NokiaSite::CHECKLIST_STATUSES))],
+        ]);
+
+        $status = $validated['status'];
+
+        $site->update([
+            $field => $status === NokiaSite::STATUS_SENT,
+            $field.'_status' => $status,
+        ]);
+
+        return back()->with(
+            'status',
+            sprintf('%s atualizado para %s.', $checklists[$field], NokiaSite::CHECKLIST_STATUSES[$status]),
+        );
+    }
+
+    /**
+     * Keep the checklist status columns aligned with the legacy booleans.
+     *
+     * @param  array<string, mixed>  $original
+     */
+    private function syncChecklistStatuses(NokiaSite $site, array $original = []): void
+    {
+        $attributes = [];
+
+        foreach (array_keys(config('nokia.checklists', [])) as $field) {
+            $changed = ! array_key_exists($field, $original)
+                || (bool) $original[$field] !== (bool) $site->{$field};
+
+            if ($changed) {
+                $attributes[$field.'_status'] = $site->{$field}
+                    ? NokiaSite::STATUS_SENT
+                    : NokiaSite::STATUS_PENDING;
+            }
+        }
+
+        if ($attributes !== []) {
+            $site->update($attributes);
+        }
+    }
+
+    /**
+     * Register a rejection for the given site.
+     */
+    public function updateRejection(UpdateNokiaRejectionRequest $request, NokiaSite $site): RedirectResponse
+    {
+        $site->update([
+            'rejection_reason' => $request->validated('rejection_reason'),
+            'rejection_return_days' => (int) $request->validated('rejection_return_days'),
+            'rejection_started_at' => now(),
+        ]);
+
+        return back()->with('status', 'Rejeição registrada.');
+    }
+
+    /**
+     * Clear the rejection of the given site.
+     */
+    public function clearRejection(NokiaSite $site): RedirectResponse
+    {
+        $site->update([
+            'rejection_reason' => null,
+            'rejection_return_days' => null,
+            'rejection_started_at' => null,
+        ]);
+
+        return back()->with('status', 'Rejeição encerrada.');
+    }
+
+    /**
+     * Update the milestone dates of the given site.
+     */
+    public function updateDates(UpdateNokiaDatesRequest $request, NokiaSite $site): RedirectResponse
+    {
+        $site->update($request->validated());
+
+        return back()->with('status', 'Datas atualizadas com sucesso.');
     }
 
     /**

@@ -14,7 +14,7 @@
     @endphp
 
     <nav class="flex flex-wrap items-center gap-1.5 text-xs text-gray-400 dark:text-gray-500" aria-label="Trilha de navegação">
-        <a href="{{ route('admin.nokia.sites.index') }}" class="font-medium text-gray-500 transition hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">Sites Nokia</a>
+        <a href="{{ route('admin.nokia.sites.index') }}" class="font-medium text-gray-500 transition hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">Projetos Nokia</a>
         <x-icon name="chevron-right" class="h-3 w-3" />
         <span class="truncate text-gray-400 dark:text-gray-500">Importar sites</span>
     </nav>

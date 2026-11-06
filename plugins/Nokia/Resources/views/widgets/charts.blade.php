@@ -24,7 +24,7 @@
             </span>
 
             <div class="min-w-0">
-                <h2 class="text-base font-semibold text-gray-900 dark:text-white">Sites Nokia</h2>
+                <h2 class="text-base font-semibold text-gray-900 dark:text-white">Projetos Nokia</h2>
                 <p class="mt-0.5 text-xs text-gray-500 dark:text-gray-400">Checklist, anexos e evolução dos sites.</p>
             </div>
         </div>

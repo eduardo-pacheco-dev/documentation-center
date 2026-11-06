@@ -101,7 +101,45 @@ test('sites can be listed', function () {
         ->assertSee('SPBETA2')
         ->assertSee('END-00001')
         ->assertSee('OC-1001')
-        ->assertSee('FAM Panorâmica');
+        ->assertSee('Progresso');
+});
+
+test('the site list progress includes the checklist and configured tasks', function () {
+    $site = NokiaSite::factory()->create([
+        'site_id' => 'SPPROGRESS1',
+        'checklist_fam_entrega' => false,
+        'checklist_fam_instalacao' => false,
+        'checklist_fam_panoramica' => false,
+    ]);
+
+    $doneTask = NokiaTask::query()->create(['name' => 'Tarefa concluída', 'position' => 1]);
+    NokiaTask::query()->create(['name' => 'Tarefa pendente', 'position' => 2]);
+
+    $site->tasks()->attach($doneTask->getKey(), ['completed_at' => now()]);
+
+    $this->actingAs(User::factory()->create())
+        ->get('/admin/nokia/sites')
+        ->assertOk()
+        ->assertSee('1/5');
+});
+
+test('the site details header progress includes configured tasks', function () {
+    $site = NokiaSite::factory()->create([
+        'site_id' => 'SPPROGRESS2',
+        'checklist_fam_entrega' => false,
+        'checklist_fam_instalacao' => false,
+        'checklist_fam_panoramica' => false,
+    ]);
+
+    $doneTask = NokiaTask::query()->create(['name' => 'Tarefa concluída', 'position' => 1]);
+    NokiaTask::query()->create(['name' => 'Tarefa pendente', 'position' => 2]);
+
+    $site->tasks()->attach($doneTask->getKey(), ['completed_at' => now()]);
+
+    $this->actingAs(User::factory()->create())
+        ->get(route('admin.nokia.sites.show', $site))
+        ->assertOk()
+        ->assertSee('Progresso 1/5');
 });
 
 test('the site list links to the site details page', function () {
@@ -139,7 +177,7 @@ test('a site details page shows the information, checklist and attachments', fun
         ->assertSee('OS-E-111')
         ->assertSee('OS-I-222')
         ->assertSee('Checklist de atividades')
-        ->assertSee('Concluído')
+        ->assertSee('Enviado')
         ->assertSee('TSSR')
         ->assertSee('DOC-D')
         ->assertSee('DWG')
@@ -180,7 +218,7 @@ test('the nokia charts widget appears on the dashboard', function () {
     $this->actingAs(User::factory()->create())
         ->get('/admin')
         ->assertOk()
-        ->assertSee('Sites Nokia')
+        ->assertSee('Projetos Nokia')
         ->assertSee('Conclusão do checklist')
         ->assertSee('Atividades concluídas')
         ->assertSee('Últimos 6 meses')
@@ -264,6 +302,50 @@ test('a site can be created with the checklist', function () {
         ->checklist_fam_entrega->toBeTrue()
         ->checklist_fam_instalacao->toBeFalse()
         ->checklist_fam_panoramica->toBeFalse();
+});
+
+test('checklist items can be moved through their statuses', function (string $status, bool $approved) {
+    $site = NokiaSite::factory()->create([
+        'site_id' => 'SPSTATUS1',
+        'checklist_fam_entrega' => false,
+    ]);
+
+    $this->actingAs(User::factory()->create())
+        ->put(route('admin.nokia.sites.checklist.update', [$site, 'checklist_fam_entrega']), [
+            'status' => $status,
+        ])
+        ->assertRedirect()
+        ->assertSessionHas('status');
+
+    $site->refresh();
+
+    expect($site->checklist_fam_entrega)->toBe($approved)
+        ->and($site->checklistStatus('checklist_fam_entrega'))->toBe($status);
+})->with([
+    ['pending', false],
+    ['analysis', false],
+    ['rejected', false],
+    ['sent', true],
+]);
+
+test('checklist status rejects unknown values', function () {
+    $site = NokiaSite::factory()->create();
+
+    $this->actingAs(User::factory()->create())
+        ->put(route('admin.nokia.sites.checklist.update', [$site, 'checklist_fam_entrega']), [
+            'status' => 'done',
+        ])
+        ->assertSessionHasErrors('status');
+});
+
+test('checklist status rejects unknown checklist items', function () {
+    $site = NokiaSite::factory()->create();
+
+    $this->actingAs(User::factory()->create())
+        ->put(route('admin.nokia.sites.checklist.update', [$site, 'checklist_unknown']), [
+            'status' => 'sent',
+        ])
+        ->assertNotFound();
 });
 
 test('the site id is required to create a site', function () {
@@ -462,6 +544,157 @@ test('the interruption modal reopens when validation fails', function () {
         ->get(route('admin.nokia.sites.show', $site))
         ->assertOk()
         ->assertSee('interruption-modal', false);
+});
+
+test('the milestone dates can be updated and are shown on the site page', function () {
+    $site = NokiaSite::factory()->create(['site_id' => 'SPDATES1']);
+
+    $this->actingAs(User::factory()->create())
+        ->put(route('admin.nokia.sites.dates.update', $site), [
+            'mos_plan_at' => '2026-01-10',
+            'mos_real_at' => '2026-01-12',
+            'fam_entrega_approved_at' => '2026-02-01',
+        ])
+        ->assertRedirect()
+        ->assertSessionHas('status');
+
+    $site->refresh();
+
+    expect($site->mos_plan_at->toDateString())->toBe('2026-01-10')
+        ->and($site->mos_real_at->toDateString())->toBe('2026-01-12')
+        ->and($site->fam_entrega_approved_at->toDateString())->toBe('2026-02-01');
+
+    $this->actingAs(User::factory()->create())
+        ->get(route('admin.nokia.sites.show', $site))
+        ->assertOk()
+        ->assertSee('Datas')
+        ->assertSee('10/01/2026')
+        ->assertSee('12/01/2026')
+        ->assertSee('01/02/2026');
+});
+
+test('the site page shows an empty dates state when nothing is filled', function () {
+    $site = NokiaSite::factory()->create();
+
+    $this->actingAs(User::factory()->create())
+        ->get(route('admin.nokia.sites.show', $site))
+        ->assertOk()
+        ->assertSee('Nenhuma data informada');
+});
+
+test('milestone dates accept typed brazilian dates', function () {
+    $site = NokiaSite::factory()->create();
+
+    $this->actingAs(User::factory()->create())
+        ->put(route('admin.nokia.sites.dates.update', $site), [
+            'mos_plan_at' => '10/01/2026',
+            'mos_real_at' => '12-01-2026',
+            'fam_instalacao_approved_at' => '01/02/2026',
+        ])
+        ->assertRedirect()
+        ->assertSessionHasNoErrors();
+
+    $site->refresh();
+
+    expect($site->mos_plan_at->toDateString())->toBe('2026-01-10')
+        ->and($site->mos_real_at->toDateString())->toBe('2026-01-12')
+        ->and($site->fam_instalacao_approved_at->toDateString())->toBe('2026-02-01');
+});
+
+test('the milestone dates reject invalid values', function () {
+    $site = NokiaSite::factory()->create();
+
+    $this->actingAs(User::factory()->create())
+        ->put(route('admin.nokia.sites.dates.update', $site), [
+            'mos_plan_at' => 'not-a-date',
+        ])
+        ->assertSessionHasErrors('mos_plan_at');
+});
+
+test('a rejection can be registered and cleared on the site page', function () {
+    $site = NokiaSite::factory()->create(['site_id' => 'SPREJECT1']);
+    $user = User::factory()->create();
+
+    $this->actingAs($user)
+        ->get(route('admin.nokia.sites.show', $site))
+        ->assertOk()
+        ->assertSee('Rejeitar')
+        ->assertSee('rejection-modal', false)
+        ->assertSee('Registrar rejeição');
+
+    $this->actingAs($user)
+        ->put(route('admin.nokia.sites.rejection.update', $site), [
+            'rejection_reason' => 'Documentação incompleta',
+            'rejection_return_days' => 21,
+        ])
+        ->assertRedirect()
+        ->assertSessionHas('status');
+
+    $site->refresh();
+
+    expect($site->rejection_reason)->toBe('Documentação incompleta')
+        ->and($site->rejection_return_days)->toBe(21)
+        ->and($site->isRejected())->toBeTrue()
+        ->and($site->rejectionReturnAt()->toDateString())->toBe(now()->addDays(21)->toDateString());
+
+    $this->actingAs($user)
+        ->get(route('admin.nokia.sites.show', $site))
+        ->assertOk()
+        ->assertSee('Obra rejeitada')
+        ->assertSee('Editar rejeição')
+        ->assertSee('Documentação incompleta')
+        ->assertSee('21 dias')
+        ->assertSee('Encerrar rejeição');
+
+    $this->actingAs($user)
+        ->delete(route('admin.nokia.sites.rejection.destroy', $site))
+        ->assertRedirect()
+        ->assertSessionHas('status');
+
+    expect($site->refresh()->isRejected())->toBeFalse();
+});
+
+test('rejections accept the available return periods', function (int $days) {
+    $site = NokiaSite::factory()->create();
+
+    $this->actingAs(User::factory()->create())
+        ->put(route('admin.nokia.sites.rejection.update', $site), [
+            'rejection_reason' => 'Pendência de documentos',
+            'rejection_return_days' => $days,
+        ])
+        ->assertRedirect()
+        ->assertSessionHasNoErrors();
+
+    expect($site->refresh()->rejection_return_days)->toBe($days);
+})->with([7, 14, 21, 28]);
+
+test('the rejection requires a reason and a valid return period', function () {
+    $site = NokiaSite::factory()->create();
+
+    $this->actingAs(User::factory()->create())
+        ->put(route('admin.nokia.sites.rejection.update', $site), [
+            'rejection_reason' => '',
+            'rejection_return_days' => 10,
+        ])
+        ->assertSessionHasErrors(['rejection_reason', 'rejection_return_days']);
+});
+
+test('the rejection modal reopens when validation fails', function () {
+    $site = NokiaSite::factory()->create();
+
+    $this->actingAs(User::factory()->create())
+        ->from(route('admin.nokia.sites.show', $site))
+        ->put(route('admin.nokia.sites.rejection.update', $site), [
+            'rejection_reason' => '',
+            'rejection_return_days' => 10,
+        ])
+        ->assertRedirect(route('admin.nokia.sites.show', $site))
+        ->assertSessionHasErrors(['rejection_reason', 'rejection_return_days']);
+
+    $this->actingAs(User::factory()->create())
+        ->get(route('admin.nokia.sites.show', $site))
+        ->assertOk()
+        ->assertSee('rejection-modal', false);
 });
 
 test('tasks can be marked as completed on the site page', function () {
