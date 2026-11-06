@@ -383,6 +383,93 @@ test('the task modal reopens when validation fails', function () {
         ->assertSee('create-task-modal', false);
 });
 
+test('a work interruption can be registered and cleared on the site page', function () {
+    $site = NokiaSite::factory()->create(['site_id' => 'SPSTOP1']);
+    $user = User::factory()->create();
+
+    $this->actingAs($user)
+        ->get(route('admin.nokia.sites.show', $site))
+        ->assertOk()
+        ->assertSee('Interrupção de obra')
+        ->assertSee('Interromper obra')
+        ->assertSee('open-interruption-modal', false)
+        ->assertSee('Registrar interrupção');
+
+    $this->actingAs($user)
+        ->put(route('admin.nokia.sites.interruption.update', $site), [
+            'reason' => 'Aguardando liberação da prefeitura',
+            'return_days' => 14,
+        ])
+        ->assertRedirect()
+        ->assertSessionHas('status');
+
+    $site->refresh();
+
+    expect($site->interruption_reason)->toBe('Aguardando liberação da prefeitura')
+        ->and($site->interruption_return_days)->toBe(14)
+        ->and($site->isInterrupted())->toBeTrue()
+        ->and($site->interruptionReturnAt()->toDateString())->toBe(now()->addDays(14)->toDateString());
+
+    $this->actingAs($user)
+        ->get(route('admin.nokia.sites.show', $site))
+        ->assertOk()
+        ->assertSee('Obra interrompida')
+        ->assertSee('Editar interrupção')
+        ->assertSee('Aguardando liberação da prefeitura')
+        ->assertSee('14 dias')
+        ->assertSee('Encerrar interrupção');
+
+    $this->actingAs($user)
+        ->delete(route('admin.nokia.sites.interruption.destroy', $site))
+        ->assertRedirect()
+        ->assertSessionHas('status');
+
+    expect($site->refresh()->isInterrupted())->toBeFalse();
+});
+
+test('work interruptions accept the available return periods', function (int $days) {
+    $site = NokiaSite::factory()->create();
+
+    $this->actingAs(User::factory()->create())
+        ->put(route('admin.nokia.sites.interruption.update', $site), [
+            'reason' => 'Parada programada',
+            'return_days' => $days,
+        ])
+        ->assertRedirect()
+        ->assertSessionHasNoErrors();
+
+    expect($site->refresh()->interruption_return_days)->toBe($days);
+})->with([7, 14, 21, 28]);
+
+test('the work interruption requires a reason and a valid return period', function () {
+    $site = NokiaSite::factory()->create();
+
+    $this->actingAs(User::factory()->create())
+        ->put(route('admin.nokia.sites.interruption.update', $site), [
+            'reason' => '',
+            'return_days' => 10,
+        ])
+        ->assertSessionHasErrors(['reason', 'return_days']);
+});
+
+test('the interruption modal reopens when validation fails', function () {
+    $site = NokiaSite::factory()->create();
+
+    $this->actingAs(User::factory()->create())
+        ->from(route('admin.nokia.sites.show', $site))
+        ->put(route('admin.nokia.sites.interruption.update', $site), [
+            'reason' => '',
+            'return_days' => 10,
+        ])
+        ->assertRedirect(route('admin.nokia.sites.show', $site))
+        ->assertSessionHasErrors(['reason', 'return_days']);
+
+    $this->actingAs(User::factory()->create())
+        ->get(route('admin.nokia.sites.show', $site))
+        ->assertOk()
+        ->assertSee('interruption-modal', false);
+});
+
 test('tasks can be marked as completed on the site page', function () {
     $site = NokiaSite::factory()->create(['site_id' => 'SPTASK1']);
     $task = NokiaTask::query()->create(['name' => 'Validar documentação', 'position' => 1]);

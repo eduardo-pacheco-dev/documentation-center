@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Carbon;
 use Plugins\Nokia\Database\Factories\NokiaSiteFactory;
 
 #[Fillable([
@@ -18,6 +19,9 @@ use Plugins\Nokia\Database\Factories\NokiaSiteFactory;
     'oc',
     'os_fam_entrega',
     'os_fam_instalacao',
+    'interruption_reason',
+    'interruption_return_days',
+    'interruption_started_at',
     'checklist_tarefas_enviadas',
     'checklist_fam_entrega',
     'checklist_fam_instalacao',
@@ -53,7 +57,31 @@ class NokiaSite extends Model
             'checklist_fam_entrega' => 'boolean',
             'checklist_fam_instalacao' => 'boolean',
             'checklist_fam_panoramica' => 'boolean',
+            'interruption_return_days' => 'integer',
+            'interruption_started_at' => 'datetime',
         ];
+    }
+
+    /**
+     * Whether the site has an active work interruption.
+     */
+    public function isInterrupted(): bool
+    {
+        return $this->interruption_reason !== null
+            && $this->interruption_return_days !== null
+            && $this->interruption_started_at !== null;
+    }
+
+    /**
+     * The expected return date for the current interruption.
+     */
+    public function interruptionReturnAt(): ?Carbon
+    {
+        if (! $this->isInterrupted()) {
+            return null;
+        }
+
+        return $this->interruption_started_at->copy()->addDays($this->interruption_return_days);
     }
 
     /**

@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\View\View;
 use Plugins\Nokia\Http\Requests\StoreNokiaSiteRequest;
+use Plugins\Nokia\Http\Requests\UpdateNokiaInterruptionRequest;
 use Plugins\Nokia\Http\Requests\UpdateNokiaSiteRequest;
 use Plugins\Nokia\Models\NokiaRom;
 use Plugins\Nokia\Models\NokiaSite;
@@ -160,6 +161,34 @@ class NokiaSiteController extends Controller
                 $completed ? 'reaberta' : 'concluída',
             ),
         );
+    }
+
+    /**
+     * Register a work interruption for the given site.
+     */
+    public function updateInterruption(UpdateNokiaInterruptionRequest $request, NokiaSite $site): RedirectResponse
+    {
+        $site->update([
+            'interruption_reason' => $request->validated('reason'),
+            'interruption_return_days' => (int) $request->validated('return_days'),
+            'interruption_started_at' => now(),
+        ]);
+
+        return back()->with('status', 'Interrupção de obra registrada.');
+    }
+
+    /**
+     * Clear the work interruption of the given site.
+     */
+    public function clearInterruption(NokiaSite $site): RedirectResponse
+    {
+        $site->update([
+            'interruption_reason' => null,
+            'interruption_return_days' => null,
+            'interruption_started_at' => null,
+        ]);
+
+        return back()->with('status', 'Interrupção de obra encerrada.');
     }
 
     /**
