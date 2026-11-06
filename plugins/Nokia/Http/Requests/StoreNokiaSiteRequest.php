@@ -57,6 +57,7 @@ class StoreNokiaSiteRequest extends FormRequest
     {
         return [
             'site_id' => ['required', 'string', 'max:100'],
+            'nokia_rom_id' => ['nullable', 'integer', 'exists:nokia_roms,id'],
             'end_id' => ['nullable', 'string', 'max:100'],
             'oc' => ['nullable', 'string', 'max:100'],
             'os_fam_entrega' => ['nullable', 'string', 'max:100'],

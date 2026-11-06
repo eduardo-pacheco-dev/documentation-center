@@ -13,6 +13,7 @@
     <div class="mt-6 rounded-3xl border border-gray-200/80 bg-white p-5 sm:p-6 dark:border-white/10 dark:bg-[#171716]">
         <x-nokia::partials.form
             :action="route('admin.nokia.sites.store')"
+            :roms="$roms"
             submit-label="Cadastrar site"
         />
     </div>

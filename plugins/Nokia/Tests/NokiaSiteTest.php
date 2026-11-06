@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use Plugins\Nokia\Database\Seeders\NokiaSiteSeeder;
+use Plugins\Nokia\Models\NokiaRom;
 use Plugins\Nokia\Models\NokiaSite;
 use Plugins\Nokia\Models\NokiaSiteAttachment;
 use Plugins\Nokia\Providers\NokiaServiceProvider;
@@ -48,7 +49,34 @@ test('the nokia plugin appears in the navigation', function () {
     $this->actingAs(User::factory()->create())
         ->get('/admin')
         ->assertOk()
-        ->assertSee(route('admin.nokia.sites.index'));
+        ->assertSee(route('admin.nokia.sites.index'))
+        ->assertDontSee(route('admin.nokia.settings.index'));
+});
+
+test('administrators see the settings button on the sites page', function () {
+    $this->actingAs(User::factory()->admin()->create())
+        ->get('/admin/nokia/sites')
+        ->assertOk()
+        ->assertSee('Configurações')
+        ->assertSee(route('admin.nokia.settings.index'));
+});
+
+test('the site list groups the secondary actions in a dropdown', function () {
+    $this->actingAs(User::factory()->admin()->create())
+        ->get('/admin/nokia/sites')
+        ->assertOk()
+        ->assertSee('Ações')
+        ->assertSee('aria-haspopup="menu"', false)
+        ->assertSee(route('admin.nokia.settings.index'))
+        ->assertSee(route('admin.nokia.sites.export'))
+        ->assertSee(route('admin.nokia.sites.import'));
+});
+
+test('regular users do not see the settings button on the sites page', function () {
+    $this->actingAs(User::factory()->create())
+        ->get('/admin/nokia/sites')
+        ->assertOk()
+        ->assertDontSee(route('admin.nokia.settings.index'));
 });
 
 test('sites can be listed', function () {
@@ -499,4 +527,159 @@ test('the import template can be downloaded as an excel file', function () {
 
     $spreadsheet->disconnectWorksheets();
     @unlink($path);
+});
+
+test('the nokia settings page manages roms', function () {
+    $admin = User::factory()->admin()->create();
+
+    $this->actingAs($admin)
+        ->get('/admin/nokia/settings')
+        ->assertOk()
+        ->assertSee('Configurações')
+        ->assertSee('Novo ROM')
+        ->assertSee('Nenhum ROM cadastrado');
+
+    $this->actingAs($admin)
+        ->post('/admin/nokia/settings/roms', [
+            'first_name' => 'Maria',
+            'last_name' => 'Souza',
+            'email' => 'maria.souza@example.com',
+            'phone' => '(11) 99999-1234',
+        ])
+        ->assertRedirect(route('admin.nokia.settings.index'))
+        ->assertSessionHas('status');
+
+    $rom = NokiaRom::query()->sole();
+
+    expect($rom)
+        ->first_name->toBe('Maria')
+        ->last_name->toBe('Souza')
+        ->email->toBe('maria.souza@example.com')
+        ->phone->toBe('(11) 99999-1234')
+        ->and($rom->fullName())->toBe('Maria Souza');
+
+    $this->actingAs($admin)
+        ->get('/admin/nokia/settings')
+        ->assertOk()
+        ->assertSee('Maria Souza')
+        ->assertSee('maria.souza@example.com')
+        ->assertSee('(11) 99999-1234');
+});
+
+test('non administrators cannot access the nokia settings page', function () {
+    $this->actingAs(User::factory()->create())
+        ->get('/admin/nokia/settings')
+        ->assertForbidden();
+});
+
+test('a rom cannot be registered with a duplicated email', function () {
+    $admin = User::factory()->admin()->create();
+
+    NokiaRom::factory()->create(['email' => 'rom@example.com']);
+
+    $this->actingAs($admin)
+        ->post('/admin/nokia/settings/roms', [
+            'first_name' => 'Outro',
+            'last_name' => 'ROM',
+            'email' => 'rom@example.com',
+            'phone' => '(11) 98888-0000',
+        ])
+        ->assertSessionHasErrors('email');
+
+    expect(NokiaRom::query()->count())->toBe(1);
+});
+
+test('a rom can be updated and deleted', function () {
+    $admin = User::factory()->admin()->create();
+    $rom = NokiaRom::factory()->create([
+        'first_name' => 'Carlos',
+        'last_name' => 'Lima',
+        'email' => 'carlos@example.com',
+        'phone' => '(11) 97777-0000',
+    ]);
+
+    $this->actingAs($admin)
+        ->put(route('admin.nokia.settings.roms.update', $rom), [
+            'first_name' => 'Carlos',
+            'last_name' => 'Lima',
+            'email' => 'carlos.lima@example.com',
+            'phone' => '(11) 96666-0000',
+        ])
+        ->assertRedirect(route('admin.nokia.settings.index'));
+
+    expect($rom->fresh())
+        ->email->toBe('carlos.lima@example.com')
+        ->phone->toBe('(11) 96666-0000');
+
+    $this->actingAs($admin)
+        ->delete(route('admin.nokia.settings.roms.destroy', $rom))
+        ->assertRedirect(route('admin.nokia.settings.index'));
+
+    expect(NokiaRom::query()->find($rom->getKey()))->toBeNull();
+});
+
+test('a site can be linked to a rom on creation and listing', function () {
+    $rom = NokiaRom::factory()->create([
+        'first_name' => 'Ana',
+        'last_name' => 'Souza',
+    ]);
+
+    $this->actingAs(User::factory()->create())
+        ->get('/admin/nokia/sites/create')
+        ->assertOk()
+        ->assertSee('ROM')
+        ->assertSee('Ana Souza');
+
+    $this->actingAs(User::factory()->create())
+        ->post('/admin/nokia/sites', [
+            'site_id' => 'SPROM001',
+            'nokia_rom_id' => $rom->getKey(),
+        ])
+        ->assertRedirect(route('admin.nokia.sites.index'));
+
+    $site = NokiaSite::query()->where('site_id', 'SPROM001')->sole();
+
+    expect($site->nokia_rom_id)->toBe($rom->getKey());
+
+    $this->actingAs(User::factory()->create())
+        ->get('/admin/nokia/sites')
+        ->assertOk()
+        ->assertSee('Ana Souza');
+
+    $this->actingAs(User::factory()->create())
+        ->get(route('admin.nokia.sites.show', $site))
+        ->assertOk()
+        ->assertSee('Ana Souza');
+});
+
+test('a site can be updated to change its rom', function () {
+    $rom = NokiaRom::factory()->create(['first_name' => 'Bruno', 'last_name' => 'Alves']);
+    $site = NokiaSite::factory()->create(['site_id' => 'SPROM002']);
+
+    $this->actingAs(User::factory()->create())
+        ->put(route('admin.nokia.sites.update', $site), [
+            'site_id' => 'SPROM002',
+            'nokia_rom_id' => $rom->getKey(),
+        ])
+        ->assertRedirect(route('admin.nokia.sites.index'));
+
+    expect($site->fresh()->nokia_rom_id)->toBe($rom->getKey());
+
+    $this->actingAs(User::factory()->create())
+        ->put(route('admin.nokia.sites.update', $site), [
+            'site_id' => 'SPROM002',
+            'nokia_rom_id' => '',
+        ])
+        ->assertRedirect(route('admin.nokia.sites.index'));
+
+    expect($site->fresh()->nokia_rom_id)->toBeNull();
+});
+
+test('deleting a rom keeps the sites without a rom', function () {
+    $rom = NokiaRom::factory()->create();
+    $site = NokiaSite::factory()->create(['nokia_rom_id' => $rom->getKey()]);
+
+    $rom->delete();
+
+    expect($site->fresh()->nokia_rom_id)->toBeNull();
 });

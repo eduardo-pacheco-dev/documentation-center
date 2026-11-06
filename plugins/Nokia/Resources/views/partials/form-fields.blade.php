@@ -1,6 +1,7 @@
 @props([
     'prefix' => '',
     'site' => null,
+    'roms' => [],
 ])
 
 @php
@@ -9,6 +10,7 @@
 
     $fields = config('nokia.fields', []);
     $checklists = config('nokia.checklists', []);
+    $roms = collect($roms);
 @endphp
 
 <fieldset>
@@ -37,6 +39,32 @@
                 @enderror
             </div>
         @endforeach
+
+        <div class="sm:col-span-2">
+            <label for="{{ $prefix }}nokia_rom_id" class="{{ $labelClass }}">ROM</label>
+            <select
+                id="{{ $prefix }}nokia_rom_id"
+                name="nokia_rom_id"
+                @error('nokia_rom_id') aria-invalid="true" @enderror
+                class="{{ $inputClass }}"
+            >
+                <option value="">Sem ROM</option>
+
+                @foreach ($roms as $rom)
+                    <option
+                        value="{{ $rom->getKey() }}"
+                        @selected((string) old('nokia_rom_id', $site?->nokia_rom_id) === (string) $rom->getKey())
+                    >
+                        {{ $rom->fullName() }}
+                    </option>
+                @endforeach
+            </select>
+            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Selecione o ROM responsável pelo site. Cadastre novos ROMs em Configurações Nokia.</p>
+
+            @error('nokia_rom_id')
+                <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
+            @enderror
+        </div>
     </div>
 </fieldset>
 

@@ -6,11 +6,13 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Plugins\Nokia\Database\Factories\NokiaSiteFactory;
 
 #[Fillable([
     'site_id',
+    'nokia_rom_id',
     'end_id',
     'oc',
     'os_fam_entrega',
@@ -69,6 +71,14 @@ class NokiaSite extends Model
     public function attachments(): HasMany
     {
         return $this->hasMany(NokiaSiteAttachment::class, 'nokia_site_id')->latest('id');
+    }
+
+    /**
+     * The ROM responsible for the site.
+     */
+    public function rom(): BelongsTo
+    {
+        return $this->belongsTo(NokiaRom::class, 'nokia_rom_id');
     }
 
     /**

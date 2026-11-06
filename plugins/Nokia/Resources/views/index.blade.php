@@ -12,24 +12,60 @@
         icon="signal"
     >
         <x-ui.action
-            :href="route('admin.nokia.sites.export', array_filter(['search' => $search]))"
-            icon="arrow-down-tray"
-            variant="secondary"
-        >
-            Exportar
-        </x-ui.action>
-
-        <x-ui.action :href="route('admin.nokia.sites.import')" icon="arrow-up-tray" variant="secondary">
-            Importar
-        </x-ui.action>
-
-        <x-ui.action
             :href="route('admin.nokia.sites.create')"
             icon="plus"
             x-on:click.prevent="$dispatch('open-site-modal')"
         >
             Novo site
         </x-ui.action>
+
+        <div class="relative" x-data="{ actionsOpen: false }" x-on:keydown.escape.window="actionsOpen = false">
+            <x-ui.icon-button
+                icon="ellipsis-vertical"
+                label="Ações dos sites Nokia"
+                x-on:click="actionsOpen = ! actionsOpen"
+                x-bind:aria-expanded="actionsOpen ? 'true' : 'false'"
+                aria-haspopup="menu"
+            />
+
+            <x-ui.dropdown
+                show="actionsOpen"
+                close="actionsOpen = false"
+                origin="top.right"
+                class="right-0 top-full mt-2 w-52 p-1"
+                role="menu"
+                aria-label="Ações dos sites Nokia"
+            >
+                @if (auth()->user()?->is_admin)
+                    <a
+                        href="{{ route('admin.nokia.settings.index') }}"
+                        role="menuitem"
+                        class="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-sm text-gray-700 transition hover:bg-gray-50 dark:text-gray-200 dark:hover:bg-white/5"
+                    >
+                        <x-icon name="cog-6-tooth" class="h-4 w-4 text-gray-400 dark:text-gray-500" />
+                        Configurações
+                    </a>
+                @endif
+
+                <a
+                    href="{{ route('admin.nokia.sites.export', array_filter(['search' => $search])) }}"
+                    role="menuitem"
+                    class="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-sm text-gray-700 transition hover:bg-gray-50 dark:text-gray-200 dark:hover:bg-white/5"
+                >
+                    <x-icon name="arrow-down-tray" class="h-4 w-4 text-gray-400 dark:text-gray-500" />
+                    Exportar
+                </a>
+
+                <a
+                    href="{{ route('admin.nokia.sites.import') }}"
+                    role="menuitem"
+                    class="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-sm text-gray-700 transition hover:bg-gray-50 dark:text-gray-200 dark:hover:bg-white/5"
+                >
+                    <x-icon name="arrow-up-tray" class="h-4 w-4 text-gray-400 dark:text-gray-500" />
+                    Importar
+                </a>
+            </x-ui.dropdown>
+        </div>
     </x-ui.page-header>
 
     <div class="mt-6 flex flex-wrap items-center gap-x-5 gap-y-2 rounded-2xl border border-gray-200/80 bg-white px-4 py-2.5 text-xs text-gray-500 dark:border-white/10 dark:bg-[#171716] dark:text-gray-400">
@@ -110,6 +146,7 @@
                             <th class="px-5 py-3.5">Site</th>
                             <th class="px-5 py-3.5">End ID</th>
                             <th class="px-5 py-3.5">OC</th>
+                            <th class="px-5 py-3.5">ROM</th>
                             <th class="px-5 py-3.5">OS FAM Entrega</th>
                             <th class="px-5 py-3.5">OS FAM Instalação</th>
                             <th class="px-5 py-3.5">Checklist</th>
@@ -137,6 +174,10 @@
 
                                 <td class="px-5 py-4 font-mono text-xs text-gray-600 dark:text-gray-300">
                                     {{ $site->oc ?: '—' }}
+                                </td>
+
+                                <td class="px-5 py-4 text-xs text-gray-600 dark:text-gray-300">
+                                    {{ $site->rom?->fullName() ?: '—' }}
                                 </td>
 
                                 <td class="px-5 py-4 font-mono text-xs text-gray-600 dark:text-gray-300">
@@ -174,12 +215,14 @@
 
     <x-nokia::partials.site-modal
         mode="create"
+        :roms="$roms"
         :has-errors="$createHasErrors"
     />
 
     <x-nokia::partials.site-modal
         mode="edit"
         :site="$editSite ?? null"
+        :roms="$roms"
         :has-errors="$editHasErrors"
     />
 </x-layouts.admin>

@@ -15,6 +15,7 @@
             :action="route('admin.nokia.sites.update', $site)"
             method="PUT"
             :site="$site"
+            :roms="$roms"
             submit-label="Salvar alterações"
         />
     </div>

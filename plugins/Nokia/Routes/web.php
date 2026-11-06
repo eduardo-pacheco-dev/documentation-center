@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use Plugins\Nokia\Http\Controllers\NokiaRomController;
 use Plugins\Nokia\Http\Controllers\NokiaSiteAttachmentController;
 use Plugins\Nokia\Http\Controllers\NokiaSiteController;
 use Plugins\Nokia\Http\Controllers\NokiaSiteExportController;
@@ -27,4 +28,15 @@ Route::middleware('auth')
             Route::get('{site}/attachments/{attachment}', [NokiaSiteAttachmentController::class, 'download'])->name('attachments.download');
             Route::delete('{site}/attachments/{attachment}', [NokiaSiteAttachmentController::class, 'destroy'])->name('attachments.destroy');
         });
+    });
+
+Route::middleware(['auth', 'admin'])
+    ->prefix('admin/nokia/settings')
+    ->name('admin.nokia.settings.')
+    ->group(function (): void {
+        Route::get('/', [NokiaRomController::class, 'index'])->name('index');
+        Route::post('roms', [NokiaRomController::class, 'store'])->name('roms.store');
+        Route::get('roms/{rom}/edit', [NokiaRomController::class, 'edit'])->name('roms.edit');
+        Route::put('roms/{rom}', [NokiaRomController::class, 'update'])->name('roms.update');
+        Route::delete('roms/{rom}', [NokiaRomController::class, 'destroy'])->name('roms.destroy');
     });

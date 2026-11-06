@@ -2,6 +2,7 @@
     'action',
     'method' => 'POST',
     'site' => null,
+    'roms' => [],
     'submitLabel' => 'Salvar',
     'prefix' => '',
 ])
@@ -13,7 +14,7 @@
         @method($method)
     @endif
 
-    <x-nokia::partials.form-fields :prefix="$prefix" :site="$site" />
+    <x-nokia::partials.form-fields :prefix="$prefix" :site="$site" :roms="$roms" />
 
     <div class="flex flex-wrap items-center gap-2 border-t border-gray-100 pt-5 dark:border-white/10">
         <x-ui.action type="submit" icon="check">{{ $submitLabel }}</x-ui.action>

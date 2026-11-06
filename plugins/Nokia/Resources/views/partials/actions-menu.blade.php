@@ -5,7 +5,8 @@
 
     $fieldNames = collect(config('nokia.fields', []))
         ->pluck('name')
-        ->merge(array_keys(config('nokia.checklists', [])));
+        ->merge(array_keys(config('nokia.checklists', [])))
+        ->push('nokia_rom_id');
 
     $editPayload = [
         'id' => $site->getKey(),

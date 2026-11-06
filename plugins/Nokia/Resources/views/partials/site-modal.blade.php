@@ -1,6 +1,7 @@
 @props([
     'mode' => 'create',
     'site' => null,
+    'roms' => [],
     'hasErrors' => false,
 ])
 
@@ -197,7 +198,7 @@
                         </div>
                     @endif
 
-                    <x-nokia::partials.form-fields :prefix="$fieldPrefix" :site="$site" />
+                    <x-nokia::partials.form-fields :prefix="$fieldPrefix" :site="$site" :roms="$roms" />
                 </div>
 
                 <footer class="flex shrink-0 flex-wrap items-center justify-end gap-2 border-t border-gray-100 px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:px-6 sm:py-4 dark:border-white/10">

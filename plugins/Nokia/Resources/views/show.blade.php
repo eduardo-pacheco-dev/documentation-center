@@ -20,6 +20,7 @@
             'fields' => collect(config('nokia.fields', []))
                 ->pluck('name')
                 ->merge(array_keys($checklists))
+                ->push('nokia_rom_id')
                 ->mapWithKeys(fn (string $name): array => [$name => $site->{$name}])
                 ->all(),
         ];
@@ -336,6 +337,11 @@
                         </div>
 
                         <div class="flex items-center justify-between gap-3 py-2.5">
+                            <dt class="text-gray-500 dark:text-gray-400">ROM</dt>
+                            <dd class="truncate font-medium text-gray-900 dark:text-white">{{ $site->rom?->fullName() ?: '—' }}</dd>
+                        </div>
+
+                        <div class="flex items-center justify-between gap-3 py-2.5">
                             <dt class="text-gray-500 dark:text-gray-400">OS FAM Entrega</dt>
                             <dd class="truncate font-mono font-medium text-gray-900 dark:text-white">{{ $site->os_fam_entrega ?: '—' }}</dd>
                         </div>
@@ -372,5 +378,6 @@
     <x-nokia::partials.site-modal
         mode="edit"
         :site="$site"
+        :roms="$roms"
     />
 </x-layouts.admin>

@@ -5,9 +5,11 @@ namespace Plugins\Nokia\Http\Controllers;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\View\View;
 use Plugins\Nokia\Http\Requests\StoreNokiaSiteRequest;
 use Plugins\Nokia\Http\Requests\UpdateNokiaSiteRequest;
+use Plugins\Nokia\Models\NokiaRom;
 use Plugins\Nokia\Models\NokiaSite;
 use Plugins\Nokia\Models\NokiaSiteAttachment;
 
@@ -20,7 +22,7 @@ class NokiaSiteController extends Controller
     {
         $search = $request->string('search')->trim()->toString();
 
-        $query = NokiaSite::query();
+        $query = NokiaSite::query()->with('rom');
 
         if ($search !== '') {
             $query->matching($search);
@@ -43,6 +45,7 @@ class NokiaSiteController extends Controller
             'sites' => $sites,
             'search' => $search,
             'editSite' => $editSite,
+            'roms' => $this->roms(),
             'createHasErrors' => old('modal') === 'create' && session('errors')?->any(),
             'editHasErrors' => old('modal') === 'edit' && session('errors')?->any(),
             'stats' => [
@@ -58,7 +61,9 @@ class NokiaSiteController extends Controller
      */
     public function create(): View
     {
-        return view('nokia::create');
+        return view('nokia::create', [
+            'roms' => $this->roms(),
+        ]);
     }
 
     /**
@@ -66,7 +71,7 @@ class NokiaSiteController extends Controller
      */
     public function show(NokiaSite $site): View
     {
-        $site->load('attachments');
+        $site->load(['attachments', 'rom']);
 
         $attachments = collect(NokiaSiteAttachment::categories())
             ->map(fn (string $label, string $category): array => [
@@ -81,6 +86,7 @@ class NokiaSiteController extends Controller
         return view('nokia::show', [
             'site' => $site,
             'attachments' => $attachments,
+            'roms' => $this->roms(),
         ]);
     }
 
@@ -103,6 +109,7 @@ class NokiaSiteController extends Controller
     {
         return view('nokia::edit', [
             'site' => $site,
+            'roms' => $this->roms(),
         ]);
     }
 
@@ -128,5 +135,16 @@ class NokiaSiteController extends Controller
         return redirect()
             ->route('admin.nokia.sites.index')
             ->with('status', 'Site excluído com sucesso.');
+    }
+
+    /**
+     * The ROMs available for selection.
+     */
+    private function roms(): Collection
+    {
+        return NokiaRom::query()
+            ->orderBy('first_name')
+            ->orderBy('last_name')
+            ->get();
     }
 }
