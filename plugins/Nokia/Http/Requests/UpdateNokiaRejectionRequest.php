@@ -32,6 +32,7 @@ class UpdateNokiaRejectionRequest extends FormRequest
         return [
             'rejection_reason' => ['required', 'string', 'max:255'],
             'rejection_return_days' => ['required', 'integer', Rule::in(self::RETURN_PERIODS)],
+            'rejection_requires_field_return' => ['boolean'],
         ];
     }
 

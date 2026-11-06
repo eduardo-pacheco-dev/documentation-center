@@ -630,6 +630,7 @@ test('a rejection can be registered and cleared on the site page', function () {
         ->put(route('admin.nokia.sites.rejection.update', $site), [
             'rejection_reason' => 'Documentação incompleta',
             'rejection_return_days' => 21,
+            'rejection_requires_field_return' => '1',
         ])
         ->assertRedirect()
         ->assertSessionHas('status');
@@ -638,6 +639,7 @@ test('a rejection can be registered and cleared on the site page', function () {
 
     expect($site->rejection_reason)->toBe('Documentação incompleta')
         ->and($site->rejection_return_days)->toBe(21)
+        ->and($site->rejection_requires_field_return)->toBeTrue()
         ->and($site->isRejected())->toBeTrue()
         ->and($site->rejectionReturnAt()->toDateString())->toBe(now()->addDays(21)->toDateString());
 
@@ -648,6 +650,8 @@ test('a rejection can be registered and cleared on the site page', function () {
         ->assertSee('Editar rejeição')
         ->assertSee('Documentação incompleta')
         ->assertSee('21 dias')
+        ->assertSee('Retorno a campo')
+        ->assertSee('Sim')
         ->assertSee('Encerrar rejeição');
 
     $this->actingAs($user)
@@ -854,6 +858,7 @@ test('all sites can be exported to excel', function () {
         ->toContain('Tarefa - Validar documentação')
         ->toContain('Interrupção - Motivo')
         ->toContain('Rejeição - Motivo')
+        ->toContain('Rejeição - Retorno a campo')
         ->toContain('MOS Plan')
         ->toContain('FAM Panorâmica Aprovado');
 

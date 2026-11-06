@@ -95,6 +95,7 @@ class NokiaSiteSeeder extends Seeder
                 'rejection_reason' => 'Documentação incompleta',
                 'rejection_return_days' => 7,
                 'rejection_started_at' => now()->subDays(2),
+                'rejection_requires_field_return' => true,
             ]),
         ];
 

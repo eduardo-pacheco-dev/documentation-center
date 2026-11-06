@@ -209,6 +209,13 @@ final class NokiaSiteExport
                 'width' => 20,
                 'value' => fn (NokiaSite $site): ?string => $site->rejectionReturnAt()?->format('d/m/Y'),
             ],
+            [
+                'label' => 'Rejeição - Retorno a campo',
+                'width' => 20,
+                'value' => fn (NokiaSite $site): ?string => $site->isRejected()
+                    ? ($site->rejection_requires_field_return ? 'Sim' : 'Não')
+                    : null,
+            ],
         ];
 
         foreach (self::DATE_COLUMNS as $label => $field) {
