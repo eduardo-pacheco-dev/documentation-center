@@ -16,12 +16,16 @@
         $taskDone = $tasks->filter(fn ($task): bool => in_array($task->getKey(), $completedTaskIds, true))->count();
         $taskPercent = $taskTotal > 0 ? (int) round(($taskDone / $taskTotal) * 100) : 0;
 
+        $progressTotal = $checklistTotal + $taskTotal;
+        $progressDone = $checklistDone + $taskDone;
+        $progressPercent = $progressTotal > 0 ? (int) round(($progressDone / $progressTotal) * 100) : 0;
+
         $isInterrupted = $site->isInterrupted();
         $interruptionReturnAt = $site->interruptionReturnAt();
 
         $ringRadius = 9;
         $ringCircumference = 2 * M_PI * $ringRadius;
-        $ringOffset = $ringCircumference * (1 - ($checklistPercent / 100));
+        $ringOffset = $ringCircumference * (1 - ($progressPercent / 100));
 
         $editPayload = [
             'id' => $site->getKey(),
@@ -70,8 +74,8 @@
                         <div class="flex flex-wrap items-center gap-2">
                             <p class="text-[11px] font-semibold uppercase tracking-[0.18em] text-indigo-600 dark:text-indigo-400">Site Nokia</p>
 
-                            <x-ui.badge :tone="$checklistPercent === 100 ? 'green' : 'amber'">
-                                {{ $checklistPercent === 100 ? 'Checklist concluído' : 'Checklist pendente' }}
+                            <x-ui.badge :tone="$progressPercent === 100 ? 'green' : 'amber'">
+                                {{ $progressPercent === 100 ? 'Progresso concluído' : 'Progresso pendente' }}
                             </x-ui.badge>
                         </div>
 
@@ -111,14 +115,14 @@
                                             stroke-dasharray="{{ round($ringCircumference, 2) }}"
                                             stroke-dashoffset="{{ round($ringOffset, 2) }}"
                                             @class([
-                                                'stroke-emerald-500' => $checklistPercent === 100,
-                                                'stroke-indigo-600 dark:stroke-indigo-500' => $checklistPercent !== 100,
+                                                'stroke-emerald-500' => $progressPercent === 100,
+                                                'stroke-indigo-600 dark:stroke-indigo-500' => $progressPercent !== 100,
                                             ])
                                         />
                                     </svg>
                                 </span>
 
-                                Checklist {{ $checklistDone }}/{{ $checklistTotal }}
+                                Progresso {{ $progressDone }}/{{ $progressTotal }}
                             </span>
                         </div>
                     </div>

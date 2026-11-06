@@ -25,7 +25,11 @@ class NokiaSiteController extends Controller
     {
         $search = $request->string('search')->trim()->toString();
 
-        $query = NokiaSite::query()->with('rom');
+        $query = NokiaSite::query()
+            ->with('rom')
+            ->withCount([
+                'tasks as completed_tasks_count' => fn ($query) => $query->whereNotNull('nokia_site_task.completed_at'),
+            ]);
 
         if ($search !== '') {
             $query->matching($search);
@@ -49,6 +53,7 @@ class NokiaSiteController extends Controller
             'search' => $search,
             'editSite' => $editSite,
             'roms' => $this->roms(),
+            'tasksTotal' => NokiaTask::query()->count(),
             'createHasErrors' => old('modal') === 'create' && session('errors')?->any(),
             'editHasErrors' => old('modal') === 'edit' && session('errors')?->any(),
             'stats' => [

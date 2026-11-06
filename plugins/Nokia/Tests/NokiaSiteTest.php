@@ -101,7 +101,45 @@ test('sites can be listed', function () {
         ->assertSee('SPBETA2')
         ->assertSee('END-00001')
         ->assertSee('OC-1001')
-        ->assertSee('FAM Panorâmica');
+        ->assertSee('Progresso');
+});
+
+test('the site list progress includes the checklist and configured tasks', function () {
+    $site = NokiaSite::factory()->create([
+        'site_id' => 'SPPROGRESS1',
+        'checklist_fam_entrega' => false,
+        'checklist_fam_instalacao' => false,
+        'checklist_fam_panoramica' => false,
+    ]);
+
+    $doneTask = NokiaTask::query()->create(['name' => 'Tarefa concluída', 'position' => 1]);
+    NokiaTask::query()->create(['name' => 'Tarefa pendente', 'position' => 2]);
+
+    $site->tasks()->attach($doneTask->getKey(), ['completed_at' => now()]);
+
+    $this->actingAs(User::factory()->create())
+        ->get('/admin/nokia/sites')
+        ->assertOk()
+        ->assertSee('1/5');
+});
+
+test('the site details header progress includes configured tasks', function () {
+    $site = NokiaSite::factory()->create([
+        'site_id' => 'SPPROGRESS2',
+        'checklist_fam_entrega' => false,
+        'checklist_fam_instalacao' => false,
+        'checklist_fam_panoramica' => false,
+    ]);
+
+    $doneTask = NokiaTask::query()->create(['name' => 'Tarefa concluída', 'position' => 1]);
+    NokiaTask::query()->create(['name' => 'Tarefa pendente', 'position' => 2]);
+
+    $site->tasks()->attach($doneTask->getKey(), ['completed_at' => now()]);
+
+    $this->actingAs(User::factory()->create())
+        ->get(route('admin.nokia.sites.show', $site))
+        ->assertOk()
+        ->assertSee('Progresso 1/5');
 });
 
 test('the site list links to the site details page', function () {
