@@ -8,10 +8,12 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\View\View;
 use Plugins\Nokia\Http\Requests\StoreNokiaSiteRequest;
+use Plugins\Nokia\Http\Requests\UpdateNokiaInterruptionRequest;
 use Plugins\Nokia\Http\Requests\UpdateNokiaSiteRequest;
 use Plugins\Nokia\Models\NokiaRom;
 use Plugins\Nokia\Models\NokiaSite;
 use Plugins\Nokia\Models\NokiaSiteAttachment;
+use Plugins\Nokia\Models\NokiaTask;
 
 class NokiaSiteController extends Controller
 {
@@ -73,6 +75,16 @@ class NokiaSiteController extends Controller
     {
         $site->load(['attachments', 'rom']);
 
+        $tasks = NokiaTask::query()
+            ->orderBy('position')
+            ->orderBy('name')
+            ->get();
+
+        $completedTaskIds = $site->tasks()
+            ->wherePivotNotNull('completed_at')
+            ->pluck('nokia_tasks.id')
+            ->all();
+
         $attachments = collect(NokiaSiteAttachment::categories())
             ->map(fn (string $label, string $category): array => [
                 'category' => $category,
@@ -87,6 +99,8 @@ class NokiaSiteController extends Controller
             'site' => $site,
             'attachments' => $attachments,
             'roms' => $this->roms(),
+            'tasks' => $tasks,
+            'completedTaskIds' => $completedTaskIds,
         ]);
     }
 
@@ -123,6 +137,58 @@ class NokiaSiteController extends Controller
         return redirect()
             ->route('admin.nokia.sites.index')
             ->with('status', 'Site atualizado com sucesso.');
+    }
+
+    /**
+     * Toggle the completion of a task for the given site.
+     */
+    public function toggleTask(NokiaSite $site, NokiaTask $task): RedirectResponse
+    {
+        $completed = $site->tasks()
+            ->whereKey($task->getKey())
+            ->wherePivotNotNull('completed_at')
+            ->exists();
+
+        $site->tasks()->syncWithoutDetaching([
+            $task->getKey() => ['completed_at' => $completed ? null : now()],
+        ]);
+
+        return back()->with(
+            'status',
+            sprintf(
+                'Tarefa %s %s.',
+                $task->name,
+                $completed ? 'reaberta' : 'concluída',
+            ),
+        );
+    }
+
+    /**
+     * Register a work interruption for the given site.
+     */
+    public function updateInterruption(UpdateNokiaInterruptionRequest $request, NokiaSite $site): RedirectResponse
+    {
+        $site->update([
+            'interruption_reason' => $request->validated('reason'),
+            'interruption_return_days' => (int) $request->validated('return_days'),
+            'interruption_started_at' => now(),
+        ]);
+
+        return back()->with('status', 'Interrupção de obra registrada.');
+    }
+
+    /**
+     * Clear the work interruption of the given site.
+     */
+    public function clearInterruption(NokiaSite $site): RedirectResponse
+    {
+        $site->update([
+            'interruption_reason' => null,
+            'interruption_return_days' => null,
+            'interruption_started_at' => null,
+        ]);
+
+        return back()->with('status', 'Interrupção de obra encerrada.');
     }
 
     /**

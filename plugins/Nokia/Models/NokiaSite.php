@@ -7,7 +7,9 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Carbon;
 use Plugins\Nokia\Database\Factories\NokiaSiteFactory;
 
 #[Fillable([
@@ -17,7 +19,9 @@ use Plugins\Nokia\Database\Factories\NokiaSiteFactory;
     'oc',
     'os_fam_entrega',
     'os_fam_instalacao',
-    'checklist_tarefas_enviadas',
+    'interruption_reason',
+    'interruption_return_days',
+    'interruption_started_at',
     'checklist_fam_entrega',
     'checklist_fam_instalacao',
     'checklist_fam_panoramica',
@@ -48,11 +52,34 @@ class NokiaSite extends Model
     protected function casts(): array
     {
         return [
-            'checklist_tarefas_enviadas' => 'boolean',
             'checklist_fam_entrega' => 'boolean',
             'checklist_fam_instalacao' => 'boolean',
             'checklist_fam_panoramica' => 'boolean',
+            'interruption_return_days' => 'integer',
+            'interruption_started_at' => 'datetime',
         ];
+    }
+
+    /**
+     * Whether the site has an active work interruption.
+     */
+    public function isInterrupted(): bool
+    {
+        return $this->interruption_reason !== null
+            && $this->interruption_return_days !== null
+            && $this->interruption_started_at !== null;
+    }
+
+    /**
+     * The expected return date for the current interruption.
+     */
+    public function interruptionReturnAt(): ?Carbon
+    {
+        if (! $this->isInterrupted()) {
+            return null;
+        }
+
+        return $this->interruption_started_at->copy()->addDays($this->interruption_return_days);
     }
 
     /**
@@ -71,6 +98,18 @@ class NokiaSite extends Model
     public function attachments(): HasMany
     {
         return $this->hasMany(NokiaSiteAttachment::class, 'nokia_site_id')->latest('id');
+    }
+
+    /**
+     * The configurable tasks tracked for the site.
+     */
+    public function tasks(): BelongsToMany
+    {
+        return $this->belongsToMany(NokiaTask::class, 'nokia_site_task', 'nokia_site_id', 'nokia_task_id')
+            ->withPivot('completed_at')
+            ->withTimestamps()
+            ->orderBy('position')
+            ->orderBy('name');
     }
 
     /**

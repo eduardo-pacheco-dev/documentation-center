@@ -16,6 +16,7 @@ use Plugins\Nokia\Database\Seeders\NokiaSiteSeeder;
 use Plugins\Nokia\Models\NokiaRom;
 use Plugins\Nokia\Models\NokiaSite;
 use Plugins\Nokia\Models\NokiaSiteAttachment;
+use Plugins\Nokia\Models\NokiaTask;
 use Plugins\Nokia\Providers\NokiaServiceProvider;
 use Plugins\Nokia\Support\NokiaSiteExport;
 
@@ -100,7 +101,6 @@ test('sites can be listed', function () {
         ->assertSee('SPBETA2')
         ->assertSee('END-00001')
         ->assertSee('OC-1001')
-        ->assertSee('Tarefas enviadas')
         ->assertSee('FAM Panorâmica');
 });
 
@@ -233,7 +233,7 @@ test('the create page renders the site form', function () {
         ->assertSee('End ID')
         ->assertSee('OS FAM Entrega')
         ->assertSee('OS FAM Instalação')
-        ->assertSee('name="checklist_tarefas_enviadas"', false)
+        ->assertSee('name="checklist_fam_entrega"', false)
         ->assertSee('FAM Panorâmica');
 });
 
@@ -245,7 +245,6 @@ test('a site can be created with the checklist', function () {
             'oc' => 'OC-9876',
             'os_fam_entrega' => 'OS-E-12345',
             'os_fam_instalacao' => 'OS-I-54321',
-            'checklist_tarefas_enviadas' => '1',
             'checklist_fam_entrega' => '1',
             'checklist_fam_instalacao' => '0',
             'checklist_fam_panoramica' => '0',
@@ -262,7 +261,6 @@ test('a site can be created with the checklist', function () {
         ->oc->toBe('OC-9876')
         ->os_fam_entrega->toBe('OS-E-12345')
         ->os_fam_instalacao->toBe('OS-I-54321')
-        ->checklist_tarefas_enviadas->toBeTrue()
         ->checklist_fam_entrega->toBeTrue()
         ->checklist_fam_instalacao->toBeFalse()
         ->checklist_fam_panoramica->toBeFalse();
@@ -279,7 +277,6 @@ test('the site id is required to create a site', function () {
 test('a site can be updated including the checklist', function () {
     $site = NokiaSite::factory()->create([
         'site_id' => 'SPOLD001',
-        'checklist_tarefas_enviadas' => true,
         'checklist_fam_entrega' => true,
         'checklist_fam_instalacao' => false,
         'checklist_fam_panoramica' => false,
@@ -289,7 +286,6 @@ test('a site can be updated including the checklist', function () {
         ->put(route('admin.nokia.sites.update', $site), [
             'site_id' => 'SPUPDATED',
             'os_fam_instalacao' => 'OS-I-99999',
-            'checklist_tarefas_enviadas' => '0',
             'checklist_fam_entrega' => '1',
             'checklist_fam_instalacao' => '1',
             'checklist_fam_panoramica' => '1',
@@ -300,7 +296,6 @@ test('a site can be updated including the checklist', function () {
     expect($site->fresh())
         ->site_id->toBe('SPUPDATED')
         ->os_fam_instalacao->toBe('OS-I-99999')
-        ->checklist_tarefas_enviadas->toBeFalse()
         ->checklist_fam_entrega->toBeTrue()
         ->checklist_fam_instalacao->toBeTrue()
         ->checklist_fam_panoramica->toBeTrue();
@@ -327,6 +322,185 @@ test('a site can be deleted', function () {
         ->assertRedirect(route('admin.nokia.sites.index'));
 
     expect(NokiaSite::query()->find($site->getKey()))->toBeNull();
+});
+
+test('administrators can manage tasks from the settings page', function () {
+    $admin = User::factory()->admin()->create();
+
+    $this->actingAs($admin)
+        ->get(route('admin.nokia.settings.index'))
+        ->assertOk()
+        ->assertSee('Tarefas')
+        ->assertSee('Nova tarefa')
+        ->assertSee('create-task-modal', false)
+        ->assertSee('Nenhuma tarefa cadastrada');
+
+    $this->actingAs($admin)
+        ->post(route('admin.nokia.settings.tasks.store'), ['name' => 'Validar documentação'])
+        ->assertRedirect(route('admin.nokia.settings.index'))
+        ->assertSessionHas('status');
+
+    $task = NokiaTask::query()->sole();
+
+    expect($task->name)->toBe('Validar documentação')
+        ->and($task->position)->toBe(1);
+
+    $this->actingAs($admin)
+        ->put(route('admin.nokia.settings.tasks.update', $task), ['name' => 'Validar documentação final'])
+        ->assertRedirect(route('admin.nokia.settings.index'));
+
+    expect($task->refresh()->name)->toBe('Validar documentação final');
+
+    $this->actingAs($admin)
+        ->delete(route('admin.nokia.settings.tasks.destroy', $task))
+        ->assertRedirect(route('admin.nokia.settings.index'));
+
+    expect(NokiaTask::query()->count())->toBe(0);
+});
+
+test('regular users cannot manage tasks', function () {
+    $this->actingAs(User::factory()->create())
+        ->post(route('admin.nokia.settings.tasks.store'), ['name' => 'Nova tarefa'])
+        ->assertForbidden();
+});
+
+test('the task modal reopens when validation fails', function () {
+    $this->actingAs(User::factory()->admin()->create())
+        ->from(route('admin.nokia.settings.index'))
+        ->post(route('admin.nokia.settings.tasks.store'), ['name' => ''])
+        ->assertRedirect(route('admin.nokia.settings.index'))
+        ->assertSessionHasErrors('name');
+
+    $this->actingAs(User::factory()->admin()->create())
+        ->get(route('admin.nokia.settings.index'))
+        ->assertOk()
+        ->assertSee('create-task-modal', false);
+});
+
+test('a work interruption can be registered and cleared on the site page', function () {
+    $site = NokiaSite::factory()->create(['site_id' => 'SPSTOP1']);
+    $user = User::factory()->create();
+
+    $this->actingAs($user)
+        ->get(route('admin.nokia.sites.show', $site))
+        ->assertOk()
+        ->assertSee('Interrupção de obra')
+        ->assertSee('Interromper obra')
+        ->assertSee('open-interruption-modal', false)
+        ->assertSee('Registrar interrupção');
+
+    $this->actingAs($user)
+        ->put(route('admin.nokia.sites.interruption.update', $site), [
+            'reason' => 'Aguardando liberação da prefeitura',
+            'return_days' => 14,
+        ])
+        ->assertRedirect()
+        ->assertSessionHas('status');
+
+    $site->refresh();
+
+    expect($site->interruption_reason)->toBe('Aguardando liberação da prefeitura')
+        ->and($site->interruption_return_days)->toBe(14)
+        ->and($site->isInterrupted())->toBeTrue()
+        ->and($site->interruptionReturnAt()->toDateString())->toBe(now()->addDays(14)->toDateString());
+
+    $this->actingAs($user)
+        ->get(route('admin.nokia.sites.show', $site))
+        ->assertOk()
+        ->assertSee('Obra interrompida')
+        ->assertSee('Editar interrupção')
+        ->assertSee('Aguardando liberação da prefeitura')
+        ->assertSee('14 dias')
+        ->assertSee('Encerrar interrupção');
+
+    $this->actingAs($user)
+        ->delete(route('admin.nokia.sites.interruption.destroy', $site))
+        ->assertRedirect()
+        ->assertSessionHas('status');
+
+    expect($site->refresh()->isInterrupted())->toBeFalse();
+});
+
+test('work interruptions accept the available return periods', function (int $days) {
+    $site = NokiaSite::factory()->create();
+
+    $this->actingAs(User::factory()->create())
+        ->put(route('admin.nokia.sites.interruption.update', $site), [
+            'reason' => 'Parada programada',
+            'return_days' => $days,
+        ])
+        ->assertRedirect()
+        ->assertSessionHasNoErrors();
+
+    expect($site->refresh()->interruption_return_days)->toBe($days);
+})->with([7, 14, 21, 28]);
+
+test('the work interruption requires a reason and a valid return period', function () {
+    $site = NokiaSite::factory()->create();
+
+    $this->actingAs(User::factory()->create())
+        ->put(route('admin.nokia.sites.interruption.update', $site), [
+            'reason' => '',
+            'return_days' => 10,
+        ])
+        ->assertSessionHasErrors(['reason', 'return_days']);
+});
+
+test('the interruption modal reopens when validation fails', function () {
+    $site = NokiaSite::factory()->create();
+
+    $this->actingAs(User::factory()->create())
+        ->from(route('admin.nokia.sites.show', $site))
+        ->put(route('admin.nokia.sites.interruption.update', $site), [
+            'reason' => '',
+            'return_days' => 10,
+        ])
+        ->assertRedirect(route('admin.nokia.sites.show', $site))
+        ->assertSessionHasErrors(['reason', 'return_days']);
+
+    $this->actingAs(User::factory()->create())
+        ->get(route('admin.nokia.sites.show', $site))
+        ->assertOk()
+        ->assertSee('interruption-modal', false);
+});
+
+test('tasks can be marked as completed on the site page', function () {
+    $site = NokiaSite::factory()->create(['site_id' => 'SPTASK1']);
+    $task = NokiaTask::query()->create(['name' => 'Validar documentação', 'position' => 1]);
+
+    $this->actingAs(User::factory()->create())
+        ->get(route('admin.nokia.sites.show', $site))
+        ->assertOk()
+        ->assertSee('Tarefas cadastradas nas configurações')
+        ->assertSee('Validar documentação')
+        ->assertSee('Pendente');
+
+    $this->actingAs(User::factory()->create())
+        ->post(route('admin.nokia.sites.tasks.toggle', [$site, $task]))
+        ->assertRedirect()
+        ->assertSessionHas('status');
+
+    expect($site->tasks()->whereKey($task->getKey())->wherePivotNotNull('completed_at')->exists())->toBeTrue();
+
+    $this->actingAs(User::factory()->create())
+        ->get(route('admin.nokia.sites.show', $site))
+        ->assertOk()
+        ->assertSee('Concluída');
+
+    $this->actingAs(User::factory()->create())
+        ->post(route('admin.nokia.sites.tasks.toggle', [$site, $task]))
+        ->assertRedirect();
+
+    expect($site->tasks()->whereKey($task->getKey())->wherePivotNotNull('completed_at')->exists())->toBeFalse();
+});
+
+test('the site page prompts to configure tasks when none exist', function () {
+    $site = NokiaSite::factory()->create();
+
+    $this->actingAs(User::factory()->create())
+        ->get(route('admin.nokia.sites.show', $site))
+        ->assertOk()
+        ->assertSee('Nenhuma tarefa cadastrada');
 });
 
 test('attachments can be uploaded, downloaded and removed', function () {
@@ -430,7 +604,7 @@ test('all sites can be exported to excel', function () {
 
     expect($sheet->getTitle())->toBe('Sites')
         ->and($sheet->getCell('A1')->getValue())->toBe('Site ID')
-        ->and($sheet->getCell('F1')->getValue())->toBe('Tarefas enviadas')
+        ->and($sheet->getCell('F1')->getValue())->toBe('FAM Entrega')
         ->and($text)
         ->toContain('SPEXPORT1')
         ->toContain('END-11111')
@@ -477,9 +651,9 @@ test('the import page renders the instructions and file field', function () {
 
 test('sites can be imported from a csv file', function () {
     $csv = implode("\n", [
-        'Site ID;End ID;OC;OS FAM Entrega;OS FAM Instalação;Tarefas enviadas;FAM Entrega;FAM Instalação;FAM Panorâmica',
-        'SPIMP001;END-1;OC-1;OS-E-1;OS-I-1;Sim;Sim;Não;Não',
-        'SPIMP002;END-2;OC-2;OS-E-2;OS-I-2;Não;Não;Não;Não',
+        'Site ID;End ID;OC;OS FAM Entrega;OS FAM Instalação;FAM Entrega;FAM Instalação;FAM Panorâmica',
+        'SPIMP001;END-1;OC-1;OS-E-1;OS-I-1;Sim;Não;Não',
+        'SPIMP002;END-2;OC-2;OS-E-2;OS-I-2;Não;Não;Não',
     ]);
 
     $this->actingAs(User::factory()->create())
@@ -496,7 +670,6 @@ test('sites can be imported from a csv file', function () {
         ->oc->toBe('OC-1')
         ->os_fam_entrega->toBe('OS-E-1')
         ->os_fam_instalacao->toBe('OS-I-1')
-        ->checklist_tarefas_enviadas->toBeTrue()
         ->checklist_fam_entrega->toBeTrue()
         ->checklist_fam_instalacao->toBeFalse()
         ->checklist_fam_panoramica->toBeFalse();
@@ -532,8 +705,8 @@ test('the import template can be downloaded as an excel file', function () {
     expect($spreadsheet->getSheetNames())
         ->toBe(['Sites', 'Instruções'])
         ->and($spreadsheet->getSheet(0)->getCell('A1')->getValue())->toBe('Site ID *')
-        ->and($spreadsheet->getSheet(0)->getCell('F1')->getValue())->toBe('Tarefas enviadas')
-        ->and($spreadsheet->getSheet(0)->getCell('I1')->getValue())->toBe('FAM Panorâmica');
+        ->and($spreadsheet->getSheet(0)->getCell('F1')->getValue())->toBe('FAM Entrega')
+        ->and($spreadsheet->getSheet(0)->getCell('H1')->getValue())->toBe('FAM Panorâmica');
 
     $spreadsheet->disconnectWorksheets();
     @unlink($path);

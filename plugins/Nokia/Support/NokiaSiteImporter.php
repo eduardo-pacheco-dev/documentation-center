@@ -315,7 +315,6 @@ final class NokiaSiteImporter
             'os_instalacao' => 'os_fam_instalacao',
             'os_de_instalacao' => 'os_fam_instalacao',
             'ordem_servico_instalacao' => 'os_fam_instalacao',
-            'tarefas_enviadas' => 'checklist_tarefas_enviadas',
             'fam_entrega' => 'checklist_fam_entrega',
             'fam_instalacao' => 'checklist_fam_instalacao',
             'fam_panoramica' => 'checklist_fam_panoramica',
