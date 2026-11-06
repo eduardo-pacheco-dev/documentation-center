@@ -537,6 +537,7 @@ test('the nokia settings page manages roms', function () {
         ->assertOk()
         ->assertSee('Configurações')
         ->assertSee('Novo ROM')
+        ->assertSee('create-rom-modal', false)
         ->assertSee('Nenhum ROM cadastrado');
 
     $this->actingAs($admin)
@@ -570,6 +571,31 @@ test('non administrators cannot access the nokia settings page', function () {
     $this->actingAs(User::factory()->create())
         ->get('/admin/nokia/settings')
         ->assertForbidden();
+});
+
+test('the create rom form is rendered as a modal and validates the fields', function () {
+    $admin = User::factory()->admin()->create();
+
+    $this->actingAs($admin)
+        ->get('/admin/nokia/settings')
+        ->assertOk()
+        ->assertSee('create-rom-modal', false)
+        ->assertSee('Cadastrar ROM')
+        ->assertSee('name="first_name"', false)
+        ->assertSee('name="last_name"', false)
+        ->assertSee('name="email"', false)
+        ->assertSee('name="phone"', false);
+
+    $this->actingAs($admin)
+        ->from('/admin/nokia/settings')
+        ->post('/admin/nokia/settings/roms', [
+            'first_name' => '',
+            'last_name' => 'Souza',
+            'email' => 'invalido',
+            'phone' => '',
+        ])
+        ->assertRedirect('/admin/nokia/settings')
+        ->assertSessionHasErrors(['first_name', 'email', 'phone']);
 });
 
 test('a rom cannot be registered with a duplicated email', function () {
