@@ -254,6 +254,11 @@
                                     <dt class="text-red-700/80 dark:text-red-300/80">Prazo de retorno</dt>
                                     <dd class="font-medium text-red-900 dark:text-red-100">{{ $site->rejection_return_days }} dias · {{ $rejectionReturnAt?->format('d/m/Y') ?? '—' }}</dd>
                                 </div>
+
+                                <div class="flex items-center justify-between gap-4">
+                                    <dt class="text-red-700/80 dark:text-red-300/80">Retorno a campo</dt>
+                                    <dd class="font-medium text-red-900 dark:text-red-100">{{ $site->rejection_requires_field_return ? 'Sim' : 'Não' }}</dd>
+                                </div>
                             </dl>
 
                             <form
@@ -796,6 +801,25 @@
                             @error('rejection_return_days')
                                 <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
                             @enderror
+                        </div>
+
+                        <div>
+                            <input type="hidden" name="rejection_requires_field_return" value="0">
+
+                            <label
+                                for="rejection-requires-field-return"
+                                class="flex cursor-pointer items-center gap-3 rounded-2xl border border-gray-200/80 bg-gray-50/60 px-4 py-3 text-sm font-medium text-gray-700 transition hover:border-indigo-200 dark:border-white/10 dark:bg-white/[0.03] dark:text-gray-200 dark:hover:border-indigo-500/40"
+                            >
+                                <input
+                                    id="rejection-requires-field-return"
+                                    name="rejection_requires_field_return"
+                                    type="checkbox"
+                                    value="1"
+                                    @checked((bool) old('rejection_requires_field_return', $site->rejection_requires_field_return))
+                                    class="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500/30 dark:border-white/20 dark:bg-white/[0.03]"
+                                >
+                                Necessário retorno a campo
+                            </label>
                         </div>
                     </div>
 

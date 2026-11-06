@@ -265,6 +265,7 @@ class NokiaSiteController extends Controller
             'rejection_reason' => $request->validated('rejection_reason'),
             'rejection_return_days' => (int) $request->validated('rejection_return_days'),
             'rejection_started_at' => now(),
+            'rejection_requires_field_return' => $request->boolean('rejection_requires_field_return'),
         ]);
 
         return back()->with('status', 'Rejeição registrada.');
@@ -279,6 +280,7 @@ class NokiaSiteController extends Controller
             'rejection_reason' => null,
             'rejection_return_days' => null,
             'rejection_started_at' => null,
+            'rejection_requires_field_return' => false,
         ]);
 
         return back()->with('status', 'Rejeição encerrada.');

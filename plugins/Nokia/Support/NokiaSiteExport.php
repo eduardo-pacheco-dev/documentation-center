@@ -11,15 +11,37 @@ use PhpOffice\PhpSpreadsheet\Style\Border;
 use PhpOffice\PhpSpreadsheet\Style\Fill;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 use Plugins\Nokia\Models\NokiaSite;
+use Plugins\Nokia\Models\NokiaTask;
 
 final class NokiaSiteExport
 {
     /**
-     * Build a workbook with every registered site and its checklist.
+     * The milestone dates exported in display order.
+     *
+     * @var array<string, string>
+     */
+    private const DATE_COLUMNS = [
+        'MOS Plan' => 'mos_plan_at',
+        'MOS Real' => 'mos_real_at',
+        'Instalação Plan' => 'instalacao_plan_at',
+        'Instalação Real' => 'instalacao_real_at',
+        'Integração Plan' => 'integracao_plan_at',
+        'Integração Real' => 'integracao_real_at',
+        'RFA Plan' => 'rfa_plan_at',
+        'RFA Real' => 'rfa_real_at',
+        'FAM Entrega Aprovado' => 'fam_entrega_approved_at',
+        'FAM Instalação Aprovado' => 'fam_instalacao_approved_at',
+        'FAM Panorâmica Aprovado' => 'fam_panoramica_approved_at',
+    ];
+
+    /**
+     * Build a workbook with every registered site and all its data.
      */
     public function spreadsheet(?string $search = null): Spreadsheet
     {
-        $query = NokiaSite::query()->orderBy('site_id');
+        $query = NokiaSite::query()
+            ->with(['rom', 'tasks'])
+            ->orderBy('site_id');
 
         $search = trim((string) $search);
 
@@ -29,13 +51,18 @@ final class NokiaSiteExport
 
         $sites = $query->get();
 
+        $tasks = NokiaTask::query()
+            ->orderBy('position')
+            ->orderBy('name')
+            ->get();
+
         $spreadsheet = new Spreadsheet;
         $spreadsheet->getProperties()
             ->setCreator(config('app.name'))
             ->setTitle('Projetos Nokia')
-            ->setDescription('Exportação dos sites Nokia cadastrados.');
+            ->setDescription('Exportação dos projetos Nokia cadastrados.');
 
-        $this->sitesSheet($spreadsheet, $sites);
+        $this->sitesSheet($spreadsheet, $sites, $tasks);
 
         $spreadsheet->setActiveSheetIndex(0);
 
@@ -52,14 +79,15 @@ final class NokiaSiteExport
 
     /**
      * @param  Collection<int, NokiaSite>  $sites
+     * @param  Collection<int, NokiaTask>  $tasks
      */
-    private function sitesSheet(Spreadsheet $spreadsheet, Collection $sites): void
+    private function sitesSheet(Spreadsheet $spreadsheet, Collection $sites, Collection $tasks): void
     {
         $sheet = $spreadsheet->getActiveSheet();
         $sheet->setTitle('Sites');
         $sheet->getTabColor()->setRGB('4F46E5');
 
-        $columns = $this->columns();
+        $columns = $this->columns($tasks);
         $columnIndex = 1;
 
         foreach ($columns as $column) {
@@ -103,9 +131,10 @@ final class NokiaSiteExport
     /**
      * All exported columns in display order.
      *
+     * @param  Collection<int, NokiaTask>  $tasks
      * @return list<array{label: string, width: int, value: callable(NokiaSite): mixed}>
      */
-    private function columns(): array
+    private function columns(Collection $tasks): array
     {
         $checklists = config('nokia.checklists', []);
 
@@ -113,15 +142,87 @@ final class NokiaSiteExport
             ['label' => 'Site ID', 'width' => 18, 'value' => fn (NokiaSite $site): ?string => $site->site_id],
             ['label' => 'End ID', 'width' => 18, 'value' => fn (NokiaSite $site): ?string => $site->end_id],
             ['label' => 'OC', 'width' => 16, 'value' => fn (NokiaSite $site): ?string => $site->oc],
+            ['label' => 'ROM', 'width' => 24, 'value' => fn (NokiaSite $site): ?string => $site->rom?->fullName()],
             ['label' => 'OS FAM Entrega', 'width' => 20, 'value' => fn (NokiaSite $site): ?string => $site->os_fam_entrega],
             ['label' => 'OS FAM Instalação', 'width' => 20, 'value' => fn (NokiaSite $site): ?string => $site->os_fam_instalacao],
         ];
 
         foreach ($checklists as $field => $label) {
             $columns[] = [
+                'label' => 'Checklist - '.$label,
+                'width' => 22,
+                'value' => fn (NokiaSite $site): string => $site->checklistStatusLabel($field),
+            ];
+        }
+
+        foreach ($tasks as $task) {
+            $columns[] = [
+                'label' => 'Tarefa - '.$task->name,
+                'width' => 22,
+                'value' => function (NokiaSite $site) use ($task): string {
+                    $assigned = $site->tasks->firstWhere('id', $task->getKey());
+
+                    return $assigned?->pivot?->completed_at !== null ? 'Concluída' : 'Pendente';
+                },
+            ];
+        }
+
+        $columns = [
+            ...$columns,
+            [
+                'label' => 'Interrupção - Motivo',
+                'width' => 28,
+                'value' => fn (NokiaSite $site): ?string => $site->isInterrupted() ? $site->interruption_reason : null,
+            ],
+            [
+                'label' => 'Interrupção - Início',
+                'width' => 20,
+                'value' => fn (NokiaSite $site): ?string => $site->isInterrupted() ? $site->interruption_started_at?->format('d/m/Y H:i') : null,
+            ],
+            [
+                'label' => 'Interrupção - Prazo (dias)',
+                'width' => 20,
+                'value' => fn (NokiaSite $site): ?string => $site->isInterrupted() ? (string) $site->interruption_return_days : null,
+            ],
+            [
+                'label' => 'Interrupção - Retorno previsto',
+                'width' => 20,
+                'value' => fn (NokiaSite $site): ?string => $site->interruptionReturnAt()?->format('d/m/Y'),
+            ],
+            [
+                'label' => 'Rejeição - Motivo',
+                'width' => 28,
+                'value' => fn (NokiaSite $site): ?string => $site->isRejected() ? $site->rejection_reason : null,
+            ],
+            [
+                'label' => 'Rejeição - Início',
+                'width' => 20,
+                'value' => fn (NokiaSite $site): ?string => $site->isRejected() ? $site->rejection_started_at?->format('d/m/Y H:i') : null,
+            ],
+            [
+                'label' => 'Rejeição - Prazo (dias)',
+                'width' => 20,
+                'value' => fn (NokiaSite $site): ?string => $site->isRejected() ? (string) $site->rejection_return_days : null,
+            ],
+            [
+                'label' => 'Rejeição - Retorno previsto',
+                'width' => 20,
+                'value' => fn (NokiaSite $site): ?string => $site->rejectionReturnAt()?->format('d/m/Y'),
+            ],
+            [
+                'label' => 'Rejeição - Retorno a campo',
+                'width' => 20,
+                'value' => fn (NokiaSite $site): ?string => $site->isRejected()
+                    ? ($site->rejection_requires_field_return ? 'Sim' : 'Não')
+                    : null,
+            ],
+        ];
+
+        foreach (self::DATE_COLUMNS as $label => $field) {
+            $columns[] = [
                 'label' => $label,
                 'width' => 20,
-                'value' => fn (NokiaSite $site): string => $site->{$field} ? 'Sim' : 'Não',
+                'value' => fn (NokiaSite $site): ?string => $site->{$field}?->format('d/m/Y'),
             ];
         }
 
