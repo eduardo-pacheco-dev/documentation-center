@@ -1,0 +1,20 @@
+{
+    "name": "documentation-center/plugin-nokia",
+    "description": "The Nokia plugin.",
+    "type": "library",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Documentation Center",
+            "email": "contato@example.com"
+        }
+    ],
+    "autoload": {
+        "psr-4": {
+            "Plugins\Nokia\\": ""
+        }
+    },
+    "config": {
+        "sort-packages": true
+    }
+}

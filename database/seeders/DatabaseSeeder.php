@@ -7,6 +7,8 @@ use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Schema;
 use Plugins\FollowUp\Database\Seeders\FollowUpSeeder;
+use Plugins\Nokia\Database\Seeders\NokiaRomSeeder;
+use Plugins\Nokia\Database\Seeders\NokiaSiteSeeder;
 
 class DatabaseSeeder extends Seeder
 {
@@ -31,6 +33,14 @@ class DatabaseSeeder extends Seeder
 
         if (Schema::hasTable('follow_ups')) {
             $this->call(FollowUpSeeder::class);
+        }
+
+        if (Schema::hasTable('nokia_sites')) {
+            $this->call(NokiaSiteSeeder::class);
+        }
+
+        if (Schema::hasTable('nokia_roms')) {
+            $this->call(NokiaRomSeeder::class);
         }
     }
 }
