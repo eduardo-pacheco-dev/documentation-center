@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use PhpOffice\PhpSpreadsheet\IOFactory;
+use Plugins\Nokia\Database\Seeders\NokiaRomSeeder;
 use Plugins\Nokia\Database\Seeders\NokiaSiteSeeder;
 use Plugins\Nokia\Models\NokiaRom;
 use Plugins\Nokia\Models\NokiaSite;
@@ -194,6 +195,15 @@ test('the seeder creates the sample sites once', function () {
         ->and(NokiaSite::query()->completed()->count())->toBe(4)
         ->and(NokiaSite::query()->where('site_id', 'SPJAB051M')->exists())->toBeTrue()
         ->and(NokiaSite::query()->where('site_id', 'SPFORA01J')->exists())->toBeTrue();
+});
+
+test('the rom seeder creates the sample roms once', function () {
+    $this->seed(NokiaRomSeeder::class);
+    $this->seed(NokiaRomSeeder::class);
+
+    expect(NokiaRom::query()->count())->toBe(5)
+        ->and(NokiaRom::query()->where('email', 'rafael.almeida@example.com')->exists())->toBeTrue()
+        ->and(NokiaRom::query()->where('email', 'diego.martins@example.com')->exists())->toBeTrue();
 });
 
 test('sites can be searched by site or orders', function () {
