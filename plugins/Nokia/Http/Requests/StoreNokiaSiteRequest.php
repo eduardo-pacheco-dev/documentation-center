@@ -62,7 +62,6 @@ class StoreNokiaSiteRequest extends FormRequest
             'oc' => ['nullable', 'string', 'max:100'],
             'os_fam_entrega' => ['nullable', 'string', 'max:100'],
             'os_fam_instalacao' => ['nullable', 'string', 'max:100'],
-            'checklist_tarefas_enviadas' => ['boolean'],
             'checklist_fam_entrega' => ['boolean'],
             'checklist_fam_instalacao' => ['boolean'],
             'checklist_fam_panoramica' => ['boolean'],

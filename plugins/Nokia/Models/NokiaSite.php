@@ -22,7 +22,6 @@ use Plugins\Nokia\Database\Factories\NokiaSiteFactory;
     'interruption_reason',
     'interruption_return_days',
     'interruption_started_at',
-    'checklist_tarefas_enviadas',
     'checklist_fam_entrega',
     'checklist_fam_instalacao',
     'checklist_fam_panoramica',
@@ -53,7 +52,6 @@ class NokiaSite extends Model
     protected function casts(): array
     {
         return [
-            'checklist_tarefas_enviadas' => 'boolean',
             'checklist_fam_entrega' => 'boolean',
             'checklist_fam_instalacao' => 'boolean',
             'checklist_fam_panoramica' => 'boolean',

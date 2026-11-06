@@ -70,7 +70,6 @@ class NokiaSiteImportController extends Controller
             'OC',
             'OS FAM Entrega',
             'OS FAM Instalação',
-            'Tarefas enviadas',
             'FAM Entrega',
             'FAM Instalação',
             'FAM Panorâmica',

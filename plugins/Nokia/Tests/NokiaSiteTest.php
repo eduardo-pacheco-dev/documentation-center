@@ -101,7 +101,6 @@ test('sites can be listed', function () {
         ->assertSee('SPBETA2')
         ->assertSee('END-00001')
         ->assertSee('OC-1001')
-        ->assertSee('Tarefas enviadas')
         ->assertSee('FAM Panorâmica');
 });
 
@@ -234,7 +233,7 @@ test('the create page renders the site form', function () {
         ->assertSee('End ID')
         ->assertSee('OS FAM Entrega')
         ->assertSee('OS FAM Instalação')
-        ->assertSee('name="checklist_tarefas_enviadas"', false)
+        ->assertSee('name="checklist_fam_entrega"', false)
         ->assertSee('FAM Panorâmica');
 });
 
@@ -246,7 +245,6 @@ test('a site can be created with the checklist', function () {
             'oc' => 'OC-9876',
             'os_fam_entrega' => 'OS-E-12345',
             'os_fam_instalacao' => 'OS-I-54321',
-            'checklist_tarefas_enviadas' => '1',
             'checklist_fam_entrega' => '1',
             'checklist_fam_instalacao' => '0',
             'checklist_fam_panoramica' => '0',
@@ -263,7 +261,6 @@ test('a site can be created with the checklist', function () {
         ->oc->toBe('OC-9876')
         ->os_fam_entrega->toBe('OS-E-12345')
         ->os_fam_instalacao->toBe('OS-I-54321')
-        ->checklist_tarefas_enviadas->toBeTrue()
         ->checklist_fam_entrega->toBeTrue()
         ->checklist_fam_instalacao->toBeFalse()
         ->checklist_fam_panoramica->toBeFalse();
@@ -280,7 +277,6 @@ test('the site id is required to create a site', function () {
 test('a site can be updated including the checklist', function () {
     $site = NokiaSite::factory()->create([
         'site_id' => 'SPOLD001',
-        'checklist_tarefas_enviadas' => true,
         'checklist_fam_entrega' => true,
         'checklist_fam_instalacao' => false,
         'checklist_fam_panoramica' => false,
@@ -290,7 +286,6 @@ test('a site can be updated including the checklist', function () {
         ->put(route('admin.nokia.sites.update', $site), [
             'site_id' => 'SPUPDATED',
             'os_fam_instalacao' => 'OS-I-99999',
-            'checklist_tarefas_enviadas' => '0',
             'checklist_fam_entrega' => '1',
             'checklist_fam_instalacao' => '1',
             'checklist_fam_panoramica' => '1',
@@ -301,7 +296,6 @@ test('a site can be updated including the checklist', function () {
     expect($site->fresh())
         ->site_id->toBe('SPUPDATED')
         ->os_fam_instalacao->toBe('OS-I-99999')
-        ->checklist_tarefas_enviadas->toBeFalse()
         ->checklist_fam_entrega->toBeTrue()
         ->checklist_fam_instalacao->toBeTrue()
         ->checklist_fam_panoramica->toBeTrue();
@@ -610,7 +604,7 @@ test('all sites can be exported to excel', function () {
 
     expect($sheet->getTitle())->toBe('Sites')
         ->and($sheet->getCell('A1')->getValue())->toBe('Site ID')
-        ->and($sheet->getCell('F1')->getValue())->toBe('Tarefas enviadas')
+        ->and($sheet->getCell('F1')->getValue())->toBe('FAM Entrega')
         ->and($text)
         ->toContain('SPEXPORT1')
         ->toContain('END-11111')
@@ -657,9 +651,9 @@ test('the import page renders the instructions and file field', function () {
 
 test('sites can be imported from a csv file', function () {
     $csv = implode("\n", [
-        'Site ID;End ID;OC;OS FAM Entrega;OS FAM Instalação;Tarefas enviadas;FAM Entrega;FAM Instalação;FAM Panorâmica',
-        'SPIMP001;END-1;OC-1;OS-E-1;OS-I-1;Sim;Sim;Não;Não',
-        'SPIMP002;END-2;OC-2;OS-E-2;OS-I-2;Não;Não;Não;Não',
+        'Site ID;End ID;OC;OS FAM Entrega;OS FAM Instalação;FAM Entrega;FAM Instalação;FAM Panorâmica',
+        'SPIMP001;END-1;OC-1;OS-E-1;OS-I-1;Sim;Não;Não',
+        'SPIMP002;END-2;OC-2;OS-E-2;OS-I-2;Não;Não;Não',
     ]);
 
     $this->actingAs(User::factory()->create())
@@ -676,7 +670,6 @@ test('sites can be imported from a csv file', function () {
         ->oc->toBe('OC-1')
         ->os_fam_entrega->toBe('OS-E-1')
         ->os_fam_instalacao->toBe('OS-I-1')
-        ->checklist_tarefas_enviadas->toBeTrue()
         ->checklist_fam_entrega->toBeTrue()
         ->checklist_fam_instalacao->toBeFalse()
         ->checklist_fam_panoramica->toBeFalse();
@@ -712,8 +705,8 @@ test('the import template can be downloaded as an excel file', function () {
     expect($spreadsheet->getSheetNames())
         ->toBe(['Sites', 'Instruções'])
         ->and($spreadsheet->getSheet(0)->getCell('A1')->getValue())->toBe('Site ID *')
-        ->and($spreadsheet->getSheet(0)->getCell('F1')->getValue())->toBe('Tarefas enviadas')
-        ->and($spreadsheet->getSheet(0)->getCell('I1')->getValue())->toBe('FAM Panorâmica');
+        ->and($spreadsheet->getSheet(0)->getCell('F1')->getValue())->toBe('FAM Entrega')
+        ->and($spreadsheet->getSheet(0)->getCell('H1')->getValue())->toBe('FAM Panorâmica');
 
     $spreadsheet->disconnectWorksheets();
     @unlink($path);
