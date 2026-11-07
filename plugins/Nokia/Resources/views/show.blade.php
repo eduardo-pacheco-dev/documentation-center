@@ -595,7 +595,7 @@
                                 action="{{ route('admin.nokia.sites.attachments.store', $site) }}"
                                 enctype="multipart/form-data"
                                 class="mt-3"
-                                x-data="attachmentDropzone({ maxFiles: 5, maxSize: 10485760, accept: ['.pdf', '.doc', '.docx', '.dwg', '.dxf', '.xls', '.xlsx', '.csv', '.txt', '.png', '.jpg', '.jpeg', '.zip'] })"
+                                x-data="attachmentDropzone({ maxFiles: 5, maxSize: 20971520, accept: ['.pdf', '.doc', '.docx', '.dwg', '.dxf', '.xls', '.xlsx', '.csv', '.txt', '.png', '.jpg', '.jpeg', '.zip'] })"
                                 x-on:submit="uploading = true"
                             >
                                 @csrf
@@ -623,7 +623,7 @@
                                             <span x-show="! dragging">Arraste e solte ou selecione arquivos</span>
                                             <span x-show="dragging" x-cloak>Solte os arquivos para enviar</span>
                                         </span>
-                                        <span class="text-[11px] text-gray-400 dark:text-gray-500" x-show="! dragging">PDF, DOC, DWG, XLS, imagens ou ZIP · até 10 MB cada</span>
+                                        <span class="text-[11px] text-gray-400 dark:text-gray-500" x-show="! dragging">PDF, DOC, DWG, XLS, imagens ou ZIP · até 20 MB cada</span>
 
                                         <input
                                             id="attachments-{{ $group['category'] }}"
@@ -1223,7 +1223,7 @@
     @push('scripts')
         <script>
             document.addEventListener('alpine:init', () => {
-                Alpine.data('attachmentDropzone', ({ maxFiles = 5, maxSize = 10485760, accept = [] } = {}) => ({
+                Alpine.data('attachmentDropzone', ({ maxFiles = 5, maxSize = 20971520, accept = [] } = {}) => ({
                     files: [],
                     dragging: false,
                     uploading: false,
@@ -1262,7 +1262,7 @@
                         const oversized = files.find((file) => file.size > maxSize);
 
                         if (oversized) {
-                            this.reset(`"${oversized.name}" excede o limite de 10 MB.`);
+                            this.reset(`"${oversized.name}" excede o limite de 20 MB.`);
 
                             return;
                         }

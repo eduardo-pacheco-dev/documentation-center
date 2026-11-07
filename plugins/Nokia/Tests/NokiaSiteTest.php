@@ -817,6 +817,35 @@ test('attachment uploads reject unsupported files', function () {
     expect(NokiaSiteAttachment::query()->count())->toBe(0);
 });
 
+test('attachment uploads accept files up to 20 MB', function () {
+    Storage::fake(plugin_storage('nokia')->diskName());
+
+    $site = NokiaSite::factory()->create();
+    $user = User::factory()->create();
+
+    $this->actingAs($user)
+        ->post(route('admin.nokia.sites.attachments.store', $site), [
+            'category' => NokiaSiteAttachment::CATEGORY_TSSR,
+            'files' => [
+                UploadedFile::fake()->create('tssr.pdf', 20480, 'application/pdf'),
+            ],
+        ])
+        ->assertSessionHasNoErrors();
+
+    expect(NokiaSiteAttachment::query()->count())->toBe(1);
+
+    $this->actingAs($user)
+        ->post(route('admin.nokia.sites.attachments.store', $site), [
+            'category' => NokiaSiteAttachment::CATEGORY_TSSR,
+            'files' => [
+                UploadedFile::fake()->create('grande.pdf', 20481, 'application/pdf'),
+            ],
+        ])
+        ->assertSessionHasErrors('files.0');
+
+    expect(NokiaSiteAttachment::query()->count())->toBe(1);
+});
+
 test('deleting a site removes its stored attachments', function () {
     Storage::fake(plugin_storage('nokia')->diskName());
 
