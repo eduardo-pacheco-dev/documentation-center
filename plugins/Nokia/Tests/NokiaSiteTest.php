@@ -232,13 +232,14 @@ test('the seeder creates the sample sites once', function () {
     $this->seed(NokiaSiteSeeder::class);
     $this->seed(NokiaSiteSeeder::class);
 
-    expect(NokiaSite::query()->count())->toBe(12)
-        ->and(NokiaSite::query()->completed()->count())->toBe(4)
+    expect(NokiaSite::query()->count())->toBe(40)
+        ->and(NokiaSite::query()->completed()->count())->toBe(8)
         ->and(NokiaTask::query()->count())->toBe(4)
-        ->and(NokiaSite::query()->whereNotNull('interruption_reason')->count())->toBe(1)
-        ->and(NokiaSite::query()->whereHas('rejections')->count())->toBe(1)
-        ->and(NokiaSiteRejection::query()->count())->toBe(2)
-        ->and(NokiaSite::query()->whereHas('tasks')->count())->toBeGreaterThan(0)
+        ->and(NokiaSite::query()->whereNotNull('interruption_reason')->count())->toBe(5)
+        ->and(NokiaSite::query()->whereHas('rejections')->count())->toBe(6)
+        ->and(NokiaSiteRejection::query()->count())->toBe(9)
+        ->and(NokiaSiteAttachment::query()->count())->toBe(27)
+        ->and(NokiaSite::query()->whereHas('tasks')->count())->toBe(32)
         ->and(NokiaSite::query()->where('site_id', 'SPJAB051M')->exists())->toBeTrue()
         ->and(NokiaSite::query()->where('site_id', 'SPFORA01J')->exists())->toBeTrue();
 });
