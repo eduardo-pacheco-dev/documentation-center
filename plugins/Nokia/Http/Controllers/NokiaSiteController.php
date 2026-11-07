@@ -8,14 +8,15 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
+use Plugins\Nokia\Http\Requests\StoreNokiaRejectionRequest;
 use Plugins\Nokia\Http\Requests\StoreNokiaSiteRequest;
 use Plugins\Nokia\Http\Requests\UpdateNokiaDatesRequest;
 use Plugins\Nokia\Http\Requests\UpdateNokiaInterruptionRequest;
-use Plugins\Nokia\Http\Requests\UpdateNokiaRejectionRequest;
 use Plugins\Nokia\Http\Requests\UpdateNokiaSiteRequest;
 use Plugins\Nokia\Models\NokiaRom;
 use Plugins\Nokia\Models\NokiaSite;
 use Plugins\Nokia\Models\NokiaSiteAttachment;
+use Plugins\Nokia\Models\NokiaSiteRejection;
 use Plugins\Nokia\Models\NokiaTask;
 
 class NokiaSiteController extends Controller
@@ -81,7 +82,7 @@ class NokiaSiteController extends Controller
      */
     public function show(NokiaSite $site): View
     {
-        $site->load(['attachments', 'rom']);
+        $site->load(['attachments', 'rom', 'rejections']);
 
         $tasks = NokiaTask::query()
             ->orderBy('position')
@@ -257,31 +258,31 @@ class NokiaSiteController extends Controller
     }
 
     /**
-     * Register a rejection for the given site.
+     * Register one rejection for each selected FAM.
      */
-    public function updateRejection(UpdateNokiaRejectionRequest $request, NokiaSite $site): RedirectResponse
+    public function storeRejection(StoreNokiaRejectionRequest $request, NokiaSite $site): RedirectResponse
     {
-        $site->update([
-            'rejection_reason' => $request->validated('rejection_reason'),
-            'rejection_return_days' => (int) $request->validated('rejection_return_days'),
-            'rejection_started_at' => now(),
-            'rejection_requires_field_return' => $request->boolean('rejection_requires_field_return'),
-        ]);
+        foreach ($request->validated('fam') as $field) {
+            $site->rejections()->create([
+                'checklist_field' => $field,
+                'reason' => $request->validated('rejection_reason'),
+                'return_days' => (int) $request->validated('rejection_return_days'),
+                'requires_field_return' => $request->boolean('rejection_requires_field_return'),
+                'started_at' => now(),
+            ]);
+        }
 
         return back()->with('status', 'Rejeição registrada.');
     }
 
     /**
-     * Clear the rejection of the given site.
+     * Resolve the given rejection, keeping it in the history.
      */
-    public function clearRejection(NokiaSite $site): RedirectResponse
+    public function resolveRejection(NokiaSite $site, NokiaSiteRejection $rejection): RedirectResponse
     {
-        $site->update([
-            'rejection_reason' => null,
-            'rejection_return_days' => null,
-            'rejection_started_at' => null,
-            'rejection_requires_field_return' => false,
-        ]);
+        abort_unless($rejection->nokia_site_id === $site->getKey(), 404);
+
+        $rejection->update(['resolved_at' => now()]);
 
         return back()->with('status', 'Rejeição encerrada.');
     }

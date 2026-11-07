@@ -26,7 +26,7 @@ class StoreNokiaSiteAttachmentRequest extends FormRequest
         return [
             'category' => ['required', Rule::in(array_keys(NokiaSiteAttachment::categories()))],
             'files' => ['required', 'array', 'max:5'],
-            'files.*' => ['file', 'max:10240', 'extensions:pdf,doc,docx,dwg,dxf,xls,xlsx,csv,txt,png,jpg,jpeg,zip'],
+            'files.*' => ['file', 'max:20480', 'extensions:pdf,doc,docx,dwg,dxf,xls,xlsx,csv,txt,png,jpg,jpeg,zip'],
         ];
     }
 
@@ -43,7 +43,7 @@ class StoreNokiaSiteAttachmentRequest extends FormRequest
             'files.required' => 'Selecione pelo menos um arquivo.',
             'files.max' => 'Envie no máximo 5 arquivos por vez.',
             'files.*.extensions' => 'Formato não suportado. Use PDF, DOC, DOCX, DWG, DXF, XLS, XLSX, CSV, TXT, PNG, JPG, JPEG ou ZIP.',
-            'files.*.max' => 'Cada arquivo deve ter no máximo 10 MB.',
+            'files.*.max' => 'Cada arquivo deve ter no máximo 20 MB.',
         ];
     }
 }

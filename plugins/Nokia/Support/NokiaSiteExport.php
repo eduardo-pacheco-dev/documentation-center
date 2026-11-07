@@ -11,6 +11,7 @@ use PhpOffice\PhpSpreadsheet\Style\Border;
 use PhpOffice\PhpSpreadsheet\Style\Fill;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 use Plugins\Nokia\Models\NokiaSite;
+use Plugins\Nokia\Models\NokiaSiteRejection;
 use Plugins\Nokia\Models\NokiaTask;
 
 final class NokiaSiteExport
@@ -40,7 +41,7 @@ final class NokiaSiteExport
     public function spreadsheet(?string $search = null): Spreadsheet
     {
         $query = NokiaSite::query()
-            ->with(['rom', 'tasks'])
+            ->with(['rom', 'tasks', 'rejections'])
             ->orderBy('site_id');
 
         $search = trim((string) $search);
@@ -189,34 +190,35 @@ final class NokiaSiteExport
                 'width' => 20,
                 'value' => fn (NokiaSite $site): ?string => $site->interruptionReturnAt()?->format('d/m/Y'),
             ],
-            [
-                'label' => 'Rejeição - Motivo',
-                'width' => 28,
-                'value' => fn (NokiaSite $site): ?string => $site->isRejected() ? $site->rejection_reason : null,
-            ],
-            [
-                'label' => 'Rejeição - Início',
-                'width' => 20,
-                'value' => fn (NokiaSite $site): ?string => $site->isRejected() ? $site->rejection_started_at?->format('d/m/Y H:i') : null,
-            ],
-            [
-                'label' => 'Rejeição - Prazo (dias)',
-                'width' => 20,
-                'value' => fn (NokiaSite $site): ?string => $site->isRejected() ? (string) $site->rejection_return_days : null,
-            ],
-            [
-                'label' => 'Rejeição - Retorno previsto',
-                'width' => 20,
-                'value' => fn (NokiaSite $site): ?string => $site->rejectionReturnAt()?->format('d/m/Y'),
-            ],
-            [
-                'label' => 'Rejeição - Retorno a campo',
-                'width' => 20,
-                'value' => fn (NokiaSite $site): ?string => $site->isRejected()
-                    ? ($site->rejection_requires_field_return ? 'Sim' : 'Não')
-                    : null,
-            ],
         ];
+
+        foreach (config('nokia.checklists', []) as $field => $label) {
+            $columns[] = [
+                'label' => 'Rejeição - '.$label,
+                'width' => 32,
+                'value' => function (NokiaSite $site) use ($field): ?string {
+                    $rejections = $site->rejections->where('checklist_field', $field);
+
+                    if ($rejections->isEmpty()) {
+                        return null;
+                    }
+
+                    return $rejections
+                        ->sortBy('started_at')
+                        ->values()
+                        ->map(fn (NokiaSiteRejection $rejection, int $index): string => sprintf(
+                            '#%d %s · %d dias · %s · retorno a campo: %s · %s',
+                            $index + 1,
+                            $rejection->reason,
+                            $rejection->return_days,
+                            $rejection->returnAt()->format('d/m/Y'),
+                            $rejection->requires_field_return ? 'Sim' : 'Não',
+                            $rejection->isActive() ? 'Ativa' : 'Encerrada',
+                        ))
+                        ->implode('; ');
+                },
+            ];
+        }
 
         foreach (self::DATE_COLUMNS as $label => $field) {
             $columns[] = [

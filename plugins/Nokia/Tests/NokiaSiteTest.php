@@ -16,6 +16,7 @@ use Plugins\Nokia\Database\Seeders\NokiaSiteSeeder;
 use Plugins\Nokia\Models\NokiaRom;
 use Plugins\Nokia\Models\NokiaSite;
 use Plugins\Nokia\Models\NokiaSiteAttachment;
+use Plugins\Nokia\Models\NokiaSiteRejection;
 use Plugins\Nokia\Models\NokiaTask;
 use Plugins\Nokia\Providers\NokiaServiceProvider;
 use Plugins\Nokia\Support\NokiaSiteExport;
@@ -182,6 +183,8 @@ test('a site details page shows the information, checklist and attachments', fun
         ->assertSee('DOC-D')
         ->assertSee('DWG')
         ->assertSee('name="files[]"', false)
+        ->assertSee('attachmentDropzone', false)
+        ->assertSee('x-on:drop.prevent', false)
         ->assertSee('open-edit-site-modal', false)
         ->assertDontSee('@js(', false);
 });
@@ -229,12 +232,14 @@ test('the seeder creates the sample sites once', function () {
     $this->seed(NokiaSiteSeeder::class);
     $this->seed(NokiaSiteSeeder::class);
 
-    expect(NokiaSite::query()->count())->toBe(12)
-        ->and(NokiaSite::query()->completed()->count())->toBe(4)
+    expect(NokiaSite::query()->count())->toBe(40)
+        ->and(NokiaSite::query()->completed()->count())->toBe(8)
         ->and(NokiaTask::query()->count())->toBe(4)
-        ->and(NokiaSite::query()->whereNotNull('interruption_reason')->count())->toBe(1)
-        ->and(NokiaSite::query()->whereNotNull('rejection_reason')->count())->toBe(1)
-        ->and(NokiaSite::query()->whereHas('tasks')->count())->toBeGreaterThan(0)
+        ->and(NokiaSite::query()->whereNotNull('interruption_reason')->count())->toBe(5)
+        ->and(NokiaSite::query()->whereHas('rejections')->count())->toBe(6)
+        ->and(NokiaSiteRejection::query()->count())->toBe(9)
+        ->and(NokiaSiteAttachment::query()->count())->toBe(27)
+        ->and(NokiaSite::query()->whereHas('tasks')->count())->toBe(32)
         ->and(NokiaSite::query()->where('site_id', 'SPJAB051M')->exists())->toBeTrue()
         ->and(NokiaSite::query()->where('site_id', 'SPFORA01J')->exists())->toBeTrue();
 });
@@ -615,7 +620,7 @@ test('the milestone dates reject invalid values', function () {
         ->assertSessionHasErrors('mos_plan_at');
 });
 
-test('a rejection can be registered and cleared on the site page', function () {
+test('a rejection can be registered for multiple FAMs and cleared', function () {
     $site = NokiaSite::factory()->create(['site_id' => 'SPREJECT1']);
     $user = User::factory()->create();
 
@@ -627,7 +632,8 @@ test('a rejection can be registered and cleared on the site page', function () {
         ->assertSee('Registrar rejeição');
 
     $this->actingAs($user)
-        ->put(route('admin.nokia.sites.rejection.update', $site), [
+        ->post(route('admin.nokia.sites.rejections.store', $site), [
+            'fam' => ['checklist_fam_entrega', 'checklist_fam_instalacao'],
             'rejection_reason' => 'Documentação incompleta',
             'rejection_return_days' => 21,
             'rejection_requires_field_return' => '1',
@@ -635,56 +641,67 @@ test('a rejection can be registered and cleared on the site page', function () {
         ->assertRedirect()
         ->assertSessionHas('status');
 
-    $site->refresh();
+    expect($site->rejections()->count())->toBe(2);
 
-    expect($site->rejection_reason)->toBe('Documentação incompleta')
-        ->and($site->rejection_return_days)->toBe(21)
-        ->and($site->rejection_requires_field_return)->toBeTrue()
-        ->and($site->isRejected())->toBeTrue()
-        ->and($site->rejectionReturnAt()->toDateString())->toBe(now()->addDays(21)->toDateString());
+    $rejection = $site->rejections()->where('checklist_field', 'checklist_fam_entrega')->sole();
+
+    expect($rejection->reason)->toBe('Documentação incompleta')
+        ->and($rejection->return_days)->toBe(21)
+        ->and($rejection->requires_field_return)->toBeTrue()
+        ->and($rejection->returnAt()->toDateString())->toBe(now()->addDays(21)->toDateString());
 
     $this->actingAs($user)
         ->get(route('admin.nokia.sites.show', $site))
         ->assertOk()
-        ->assertSee('Obra rejeitada')
-        ->assertSee('Editar rejeição')
+        ->assertSee('Rejeições')
+        ->assertSee('Nova rejeição')
         ->assertSee('Documentação incompleta')
+        ->assertSee('FAM Entrega')
+        ->assertSee('FAM Instalação')
         ->assertSee('21 dias')
         ->assertSee('Retorno a campo')
         ->assertSee('Sim')
         ->assertSee('Encerrar rejeição');
 
     $this->actingAs($user)
-        ->delete(route('admin.nokia.sites.rejection.destroy', $site))
+        ->patch(route('admin.nokia.sites.rejections.resolve', [$site, $rejection]))
         ->assertRedirect()
         ->assertSessionHas('status');
 
-    expect($site->refresh()->isRejected())->toBeFalse();
+    expect($rejection->refresh()->resolved_at)->not->toBeNull()
+        ->and($site->rejections()->count())->toBe(2);
+
+    $this->actingAs($user)
+        ->get(route('admin.nokia.sites.show', $site))
+        ->assertOk()
+        ->assertSee('Encerrada');
 });
 
 test('rejections accept the available return periods', function (int $days) {
     $site = NokiaSite::factory()->create();
 
     $this->actingAs(User::factory()->create())
-        ->put(route('admin.nokia.sites.rejection.update', $site), [
+        ->post(route('admin.nokia.sites.rejections.store', $site), [
+            'fam' => ['checklist_fam_entrega'],
             'rejection_reason' => 'Pendência de documentos',
             'rejection_return_days' => $days,
         ])
         ->assertRedirect()
         ->assertSessionHasNoErrors();
 
-    expect($site->refresh()->rejection_return_days)->toBe($days);
+    expect($site->rejections()->sole()->return_days)->toBe($days);
 })->with([7, 14, 21, 28]);
 
-test('the rejection requires a reason and a valid return period', function () {
+test('the rejection requires a reason, a FAM and a valid return period', function () {
     $site = NokiaSite::factory()->create();
 
     $this->actingAs(User::factory()->create())
-        ->put(route('admin.nokia.sites.rejection.update', $site), [
+        ->post(route('admin.nokia.sites.rejections.store', $site), [
+            'fam' => [],
             'rejection_reason' => '',
             'rejection_return_days' => 10,
         ])
-        ->assertSessionHasErrors(['rejection_reason', 'rejection_return_days']);
+        ->assertSessionHasErrors(['fam', 'rejection_reason', 'rejection_return_days']);
 });
 
 test('the rejection modal reopens when validation fails', function () {
@@ -692,12 +709,13 @@ test('the rejection modal reopens when validation fails', function () {
 
     $this->actingAs(User::factory()->create())
         ->from(route('admin.nokia.sites.show', $site))
-        ->put(route('admin.nokia.sites.rejection.update', $site), [
+        ->post(route('admin.nokia.sites.rejections.store', $site), [
+            'fam' => [],
             'rejection_reason' => '',
             'rejection_return_days' => 10,
         ])
         ->assertRedirect(route('admin.nokia.sites.show', $site))
-        ->assertSessionHasErrors(['rejection_reason', 'rejection_return_days']);
+        ->assertSessionHasErrors(['fam', 'rejection_reason', 'rejection_return_days']);
 
     $this->actingAs(User::factory()->create())
         ->get(route('admin.nokia.sites.show', $site))
@@ -799,6 +817,35 @@ test('attachment uploads reject unsupported files', function () {
     expect(NokiaSiteAttachment::query()->count())->toBe(0);
 });
 
+test('attachment uploads accept files up to 20 MB', function () {
+    Storage::fake(plugin_storage('nokia')->diskName());
+
+    $site = NokiaSite::factory()->create();
+    $user = User::factory()->create();
+
+    $this->actingAs($user)
+        ->post(route('admin.nokia.sites.attachments.store', $site), [
+            'category' => NokiaSiteAttachment::CATEGORY_TSSR,
+            'files' => [
+                UploadedFile::fake()->create('tssr.pdf', 20480, 'application/pdf'),
+            ],
+        ])
+        ->assertSessionHasNoErrors();
+
+    expect(NokiaSiteAttachment::query()->count())->toBe(1);
+
+    $this->actingAs($user)
+        ->post(route('admin.nokia.sites.attachments.store', $site), [
+            'category' => NokiaSiteAttachment::CATEGORY_TSSR,
+            'files' => [
+                UploadedFile::fake()->create('grande.pdf', 20481, 'application/pdf'),
+            ],
+        ])
+        ->assertSessionHasErrors('files.0');
+
+    expect(NokiaSiteAttachment::query()->count())->toBe(1);
+});
+
 test('deleting a site removes its stored attachments', function () {
     Storage::fake(plugin_storage('nokia')->diskName());
 
@@ -857,8 +904,7 @@ test('all sites can be exported to excel', function () {
         ->toContain('OS-I-44444')
         ->toContain('Tarefa - Validar documentação')
         ->toContain('Interrupção - Motivo')
-        ->toContain('Rejeição - Motivo')
-        ->toContain('Rejeição - Retorno a campo')
+        ->toContain('Rejeição - FAM Entrega')
         ->toContain('MOS Plan')
         ->toContain('FAM Panorâmica Aprovado');
 

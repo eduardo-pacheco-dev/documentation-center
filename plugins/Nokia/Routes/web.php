@@ -30,8 +30,8 @@ Route::middleware('auth')
         Route::put('{site}/dates', [NokiaSiteController::class, 'updateDates'])->name('dates.update');
         Route::put('{site}/interruption', [NokiaSiteController::class, 'updateInterruption'])->name('interruption.update');
         Route::delete('{site}/interruption', [NokiaSiteController::class, 'clearInterruption'])->name('interruption.destroy');
-        Route::put('{site}/rejection', [NokiaSiteController::class, 'updateRejection'])->name('rejection.update');
-        Route::delete('{site}/rejection', [NokiaSiteController::class, 'clearRejection'])->name('rejection.destroy');
+        Route::post('{site}/rejections', [NokiaSiteController::class, 'storeRejection'])->name('rejections.store');
+        Route::patch('{site}/rejections/{rejection}', [NokiaSiteController::class, 'resolveRejection'])->name('rejections.resolve');
 
         Route::scopeBindings()->group(function (): void {
             Route::post('{site}/attachments', [NokiaSiteAttachmentController::class, 'store'])->name('attachments.store');

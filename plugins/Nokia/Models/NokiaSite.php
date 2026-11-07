@@ -22,10 +22,6 @@ use Plugins\Nokia\Database\Factories\NokiaSiteFactory;
     'interruption_reason',
     'interruption_return_days',
     'interruption_started_at',
-    'rejection_reason',
-    'rejection_return_days',
-    'rejection_started_at',
-    'rejection_requires_field_return',
     'checklist_fam_entrega',
     'checklist_fam_instalacao',
     'checklist_fam_panoramica',
@@ -114,9 +110,6 @@ class NokiaSite extends Model
             'checklist_fam_panoramica' => 'boolean',
             'interruption_return_days' => 'integer',
             'interruption_started_at' => 'datetime',
-            'rejection_return_days' => 'integer',
-            'rejection_started_at' => 'datetime',
-            'rejection_requires_field_return' => 'boolean',
             'mos_plan_at' => 'date',
             'mos_real_at' => 'date',
             'instalacao_plan_at' => 'date',
@@ -188,25 +181,11 @@ class NokiaSite extends Model
     }
 
     /**
-     * Whether the site has an active rejection.
+     * The rejections registered for the site.
      */
-    public function isRejected(): bool
+    public function rejections(): HasMany
     {
-        return $this->rejection_reason !== null
-            && $this->rejection_return_days !== null
-            && $this->rejection_started_at !== null;
-    }
-
-    /**
-     * The expected return date for the current rejection.
-     */
-    public function rejectionReturnAt(): ?Carbon
-    {
-        if (! $this->isRejected()) {
-            return null;
-        }
-
-        return $this->rejection_started_at->copy()->addDays($this->rejection_return_days);
+        return $this->hasMany(NokiaSiteRejection::class, 'nokia_site_id')->latest('started_at')->latest('id');
     }
 
     /**

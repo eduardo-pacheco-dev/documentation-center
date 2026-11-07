@@ -5,7 +5,7 @@ namespace Plugins\Nokia\Http\Requests;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
-class UpdateNokiaRejectionRequest extends FormRequest
+class StoreNokiaRejectionRequest extends FormRequest
 {
     /**
      * The return periods (in days) accepted for a rejection.
@@ -30,6 +30,8 @@ class UpdateNokiaRejectionRequest extends FormRequest
     public function rules(): array
     {
         return [
+            'fam' => ['required', 'array', 'min:1'],
+            'fam.*' => ['string', Rule::in(array_keys(config('nokia.checklists', [])))],
             'rejection_reason' => ['required', 'string', 'max:255'],
             'rejection_return_days' => ['required', 'integer', Rule::in(self::RETURN_PERIODS)],
             'rejection_requires_field_return' => ['boolean'],
@@ -44,6 +46,9 @@ class UpdateNokiaRejectionRequest extends FormRequest
     public function messages(): array
     {
         return [
+            'fam.required' => 'Selecione ao menos uma FAM rejeitada.',
+            'fam.min' => 'Selecione ao menos uma FAM rejeitada.',
+            'fam.*.in' => 'Selecione apenas FAMs válidas.',
             'rejection_reason.required' => 'Informe o motivo da rejeição.',
             'rejection_reason.max' => 'O motivo da rejeição deve ter no máximo 255 caracteres.',
             'rejection_return_days.required' => 'Informe o prazo de retorno.',

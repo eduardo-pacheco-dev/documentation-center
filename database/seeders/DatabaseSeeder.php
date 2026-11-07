@@ -35,12 +35,12 @@ class DatabaseSeeder extends Seeder
             $this->call(FollowUpSeeder::class);
         }
 
-        if (Schema::hasTable('nokia_sites')) {
-            $this->call(NokiaSiteSeeder::class);
-        }
-
         if (Schema::hasTable('nokia_roms')) {
             $this->call(NokiaRomSeeder::class);
+        }
+
+        if (Schema::hasTable('nokia_sites')) {
+            $this->call(NokiaSiteSeeder::class);
         }
     }
 }
