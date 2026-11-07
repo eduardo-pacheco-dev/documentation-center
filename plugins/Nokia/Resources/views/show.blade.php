@@ -595,32 +595,75 @@
                                 action="{{ route('admin.nokia.sites.attachments.store', $site) }}"
                                 enctype="multipart/form-data"
                                 class="mt-3"
-                                x-data="{ files: [] }"
+                                x-data="attachmentDropzone({ maxFiles: 5, maxSize: 10485760, accept: ['.pdf', '.doc', '.docx', '.dwg', '.dxf', '.xls', '.xlsx', '.csv', '.txt', '.png', '.jpg', '.jpeg', '.zip'] })"
+                                x-on:submit="uploading = true"
                             >
                                 @csrf
                                 <input type="hidden" name="category" value="{{ $group['category'] }}">
 
-                                <label
-                                    for="attachments-{{ $group['category'] }}"
-                                    class="flex cursor-pointer flex-col items-center justify-center gap-1 rounded-2xl border border-dashed border-gray-300 px-4 py-5 text-center transition hover:border-indigo-300 hover:bg-indigo-50/40 dark:border-white/15 dark:hover:border-indigo-500/40 dark:hover:bg-indigo-500/[0.06]"
+                                <div
+                                    class="rounded-2xl border border-dashed px-4 py-5 text-center transition"
+                                    x-bind:class="dragging
+                                        ? 'border-indigo-400 bg-indigo-50/60 dark:border-indigo-500/60 dark:bg-indigo-500/[0.12]'
+                                        : 'border-gray-300 hover:border-indigo-300 hover:bg-indigo-50/40 dark:border-white/15 dark:hover:border-indigo-500/40 dark:hover:bg-indigo-500/[0.06]'"
+                                    x-on:dragenter.prevent="dragging = true"
+                                    x-on:dragover.prevent="dragging = true"
+                                    x-on:dragleave.prevent="dragLeave($event)"
+                                    x-on:drop.prevent="drop($event)"
                                 >
-                                    <span class="inline-flex h-9 w-9 items-center justify-center rounded-full bg-indigo-50 text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-300">
-                                        <x-icon name="arrow-up-tray" class="h-4 w-4" />
-                                    </span>
-
-                                    <span class="text-xs font-semibold text-gray-700 dark:text-gray-200">Selecionar arquivos</span>
-                                    <span class="text-[11px] text-gray-400 dark:text-gray-500">PDF, DOC, DWG, XLS, imagens ou ZIP · até 10 MB cada</span>
-
-                                    <input
-                                        id="attachments-{{ $group['category'] }}"
-                                        type="file"
-                                        name="files[]"
-                                        multiple
-                                        accept=".pdf,.doc,.docx,.dwg,.dxf,.xls,.xlsx,.csv,.txt,.png,.jpg,.jpeg,.zip"
-                                        class="sr-only"
-                                        x-on:change="files = Array.from($event.target.files)"
+                                    <label
+                                        for="attachments-{{ $group['category'] }}"
+                                        class="flex cursor-pointer flex-col items-center justify-center gap-1"
                                     >
-                                </label>
+                                        <span class="inline-flex h-9 w-9 items-center justify-center rounded-full bg-indigo-50 text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-300">
+                                            <x-icon name="arrow-up-tray" class="h-4 w-4" />
+                                        </span>
+
+                                        <span class="text-xs font-semibold text-gray-700 dark:text-gray-200">
+                                            <span x-show="! dragging">Arraste e solte ou selecione arquivos</span>
+                                            <span x-show="dragging" x-cloak>Solte os arquivos para enviar</span>
+                                        </span>
+                                        <span class="text-[11px] text-gray-400 dark:text-gray-500" x-show="! dragging">PDF, DOC, DWG, XLS, imagens ou ZIP · até 10 MB cada</span>
+
+                                        <input
+                                            id="attachments-{{ $group['category'] }}"
+                                            x-ref="input"
+                                            type="file"
+                                            name="files[]"
+                                            multiple
+                                            accept=".pdf,.doc,.docx,.dwg,.dxf,.xls,.xlsx,.csv,.txt,.png,.jpg,.jpeg,.zip"
+                                            class="sr-only"
+                                            x-on:change="pick($event)"
+                                        >
+                                    </label>
+                                </div>
+
+                                <p
+                                    class="mt-2 text-[11px] font-medium text-red-600 dark:text-red-400"
+                                    x-show="error"
+                                    x-cloak
+                                    x-text="error"
+                                ></p>
+
+                                <ul class="mt-2 space-y-1" x-show="files.length > 0" x-cloak>
+                                    <template x-for="(file, index) in files" :key="`${file.name}-${file.size}-${index}`">
+                                        <li class="flex items-center gap-2 rounded-xl bg-gray-50 px-2.5 py-1.5 text-[11px] text-gray-600 dark:bg-white/[0.04] dark:text-gray-300">
+                                            <x-icon name="paper-clip" class="h-3 w-3 shrink-0 text-gray-400 dark:text-gray-500" />
+
+                                            <span class="truncate" x-text="file.name"></span>
+                                            <span class="ml-auto shrink-0 text-gray-400 dark:text-gray-500" x-text="formatSize(file.size)"></span>
+
+                                            <button
+                                                type="button"
+                                                class="shrink-0 rounded p-1 text-gray-400 transition hover:bg-gray-200 hover:text-gray-700 dark:hover:bg-white/10 dark:hover:text-gray-200"
+                                                x-on:click="remove(index)"
+                                                x-bind:aria-label="`Remover ${file.name}`"
+                                            >
+                                                <x-icon name="x-mark" class="h-3 w-3" />
+                                            </button>
+                                        </li>
+                                    </template>
+                                </ul>
 
                                 <div class="mt-2 flex flex-wrap items-center justify-between gap-2">
                                     <p class="truncate text-[11px] text-gray-500 dark:text-gray-400" x-show="files.length > 0" x-cloak>
@@ -632,9 +675,10 @@
                                         size="sm"
                                         icon="arrow-up-tray"
                                         class="ml-auto disabled:cursor-not-allowed disabled:opacity-50"
-                                        x-bind:disabled="files.length === 0"
+                                        x-bind:disabled="files.length === 0 || uploading"
                                     >
-                                        Enviar
+                                        <span x-show="! uploading">Enviar</span>
+                                        <span x-show="uploading" x-cloak>Enviando...</span>
                                     </x-ui.action>
                                 </div>
                             </form>
@@ -1175,4 +1219,104 @@
         :site="$site"
         :roms="$roms"
     />
+
+    @push('scripts')
+        <script>
+            document.addEventListener('alpine:init', () => {
+                Alpine.data('attachmentDropzone', ({ maxFiles = 5, maxSize = 10485760, accept = [] } = {}) => ({
+                    files: [],
+                    dragging: false,
+                    uploading: false,
+                    error: '',
+
+                    dragLeave(event) {
+                        if (! event.currentTarget.contains(event.relatedTarget)) {
+                            this.dragging = false;
+                        }
+                    },
+
+                    drop(event) {
+                        this.dragging = false;
+                        this.acceptFiles(Array.from(event.dataTransfer?.files ?? []));
+
+                        if (this.error === '' && this.files.length > 0) {
+                            this.$root.requestSubmit();
+                        }
+                    },
+
+                    pick(event) {
+                        this.acceptFiles(Array.from(event.target.files ?? []));
+                    },
+
+                    acceptFiles(files) {
+                        this.error = '';
+
+                        const unsupported = files.find((file) => ! this.accepts(file));
+
+                        if (unsupported) {
+                            this.reset(`"${unsupported.name}" não é um formato suportado.`);
+
+                            return;
+                        }
+
+                        const oversized = files.find((file) => file.size > maxSize);
+
+                        if (oversized) {
+                            this.reset(`"${oversized.name}" excede o limite de 10 MB.`);
+
+                            return;
+                        }
+
+                        if (files.length > maxFiles) {
+                            this.reset(`Envie no máximo ${maxFiles} arquivos por vez.`);
+
+                            return;
+                        }
+
+                        this.files = files;
+                        this.syncInput();
+                    },
+
+                    accepts(file) {
+                        if (accept.length === 0) {
+                            return true;
+                        }
+
+                        return accept.includes(`.${file.name.split('.').pop()?.toLowerCase()}`);
+                    },
+
+                    syncInput() {
+                        const transfer = new DataTransfer();
+
+                        this.files.forEach((file) => transfer.items.add(file));
+
+                        this.$refs.input.files = transfer.files;
+                    },
+
+                    remove(index) {
+                        this.files.splice(index, 1);
+                        this.syncInput();
+                    },
+
+                    reset(error = '') {
+                        this.files = [];
+                        this.error = error;
+                        this.$refs.input.value = '';
+                    },
+
+                    formatSize(bytes) {
+                        if (bytes >= 1048576) {
+                            return `${(bytes / 1048576).toFixed(1)} MB`;
+                        }
+
+                        if (bytes >= 1024) {
+                            return `${Math.round(bytes / 1024)} KB`;
+                        }
+
+                        return `${bytes} B`;
+                    },
+                }));
+            });
+        </script>
+    @endpush
 </x-layouts.admin>

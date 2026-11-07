@@ -183,6 +183,8 @@ test('a site details page shows the information, checklist and attachments', fun
         ->assertSee('DOC-D')
         ->assertSee('DWG')
         ->assertSee('name="files[]"', false)
+        ->assertSee('attachmentDropzone', false)
+        ->assertSee('x-on:drop.prevent', false)
         ->assertSee('open-edit-site-modal', false)
         ->assertDontSee('@js(', false);
 });
