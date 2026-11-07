@@ -92,18 +92,32 @@ class NokiaSiteSeeder extends Seeder
                 NokiaSite::STATUS_PENDING,
                 NokiaSite::STATUS_PENDING,
             ], [0], [
-                'rejection_reason' => 'Documentação incompleta',
-                'rejection_return_days' => 7,
-                'rejection_started_at' => now()->subDays(2),
-                'rejection_requires_field_return' => true,
+                'rejections' => [
+                    [
+                        'checklist_field' => 'checklist_fam_entrega',
+                        'reason' => 'Documentação incompleta',
+                        'return_days' => 7,
+                        'requires_field_return' => true,
+                        'started_at' => now()->subDays(2),
+                    ],
+                    [
+                        'checklist_field' => 'checklist_fam_entrega',
+                        'reason' => 'TSSR desatualizado',
+                        'return_days' => 14,
+                        'requires_field_return' => false,
+                        'started_at' => now()->subDays(20),
+                        'resolved_at' => now()->subDays(10),
+                    ],
+                ],
             ]),
         ];
 
         foreach ($rows as $row) {
             $createdAt = $row['created_at'];
             $tasksDone = $row['tasks_done'];
+            $rejections = $row['rejections'] ?? [];
 
-            unset($row['created_at'], $row['tasks_done']);
+            unset($row['created_at'], $row['tasks_done'], $row['rejections']);
 
             $site = NokiaSite::query()->create($row);
 
@@ -118,6 +132,10 @@ class NokiaSiteSeeder extends Seeder
                         'completed_at' => $createdAt,
                     ]);
                 }
+            }
+
+            foreach ($rejections as $rejection) {
+                $site->rejections()->create($rejection);
             }
         }
     }

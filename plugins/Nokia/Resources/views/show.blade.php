@@ -23,9 +23,6 @@
         $isInterrupted = $site->isInterrupted();
         $interruptionReturnAt = $site->interruptionReturnAt();
 
-        $isRejected = $site->isRejected();
-        $rejectionReturnAt = $site->rejectionReturnAt();
-
         $dateRows = [
             ['label' => 'MOS', 'plan' => 'mos_plan_at', 'real' => 'mos_real_at'],
             ['label' => 'Instalação', 'plan' => 'instalacao_plan_at', 'real' => 'instalacao_real_at'],
@@ -166,7 +163,7 @@
                         icon="x-circle"
                         x-on:click="$dispatch('open-rejection-modal')"
                     >
-                        {{ $isRejected ? 'Editar rejeição' : 'Rejeitar' }}
+                        {{ $site->rejections->isNotEmpty() ? 'Nova rejeição' : 'Rejeitar' }}
                     </x-ui.action>
 
                     <x-ui.action
@@ -227,53 +224,73 @@
                     </section>
                 @endif
 
-                @if ($isRejected)
+                @if ($site->rejections->isNotEmpty())
                     <section class="rounded-3xl border border-gray-200/80 bg-white p-5 sm:p-6 dark:border-white/10 dark:bg-[#171716]">
                         <div class="flex flex-wrap items-start justify-between gap-3">
                             <div>
                                 <h2 class="text-sm font-semibold tracking-tight text-gray-900 dark:text-white">Rejeições</h2>
-                                <p class="mt-0.5 text-xs text-gray-500 dark:text-gray-400">Motivo da rejeição, início e prazo de retorno.</p>
+                                <p class="mt-0.5 text-xs text-gray-500 dark:text-gray-400">Histórico de rejeições por FAM, com prazo e retorno a campo.</p>
                             </div>
 
-                            <x-ui.badge tone="red">Obra rejeitada</x-ui.badge>
+                            <div class="flex items-center gap-2">
+                                <x-ui.badge tone="red">{{ $site->rejections->whereNull('resolved_at')->count() }} ativa(s)</x-ui.badge>
+                                <x-ui.badge tone="gray">{{ $site->rejections->count() }} total</x-ui.badge>
+                            </div>
                         </div>
 
-                        <div class="mt-4 rounded-2xl border border-red-200 bg-red-50/70 p-4 dark:border-red-500/30 dark:bg-red-500/10">
-                            <dl class="space-y-2.5 text-sm">
-                                <div class="flex flex-col gap-0.5 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
-                                    <dt class="text-red-700/80 dark:text-red-300/80">Motivo da rejeição</dt>
-                                    <dd class="font-medium text-red-900 dark:text-red-100 sm:text-right">{{ $site->rejection_reason }}</dd>
-                                </div>
+                        <div class="mt-4 overflow-x-auto rounded-2xl border border-gray-200/80 dark:border-white/10">
+                            <table class="min-w-full divide-y divide-gray-100 text-sm dark:divide-white/10">
+                                <thead class="bg-gray-50/80 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:bg-white/[0.03] dark:text-gray-400">
+                                    <tr>
+                                        <th class="px-4 py-2.5">FAM</th>
+                                        <th class="px-4 py-2.5">Nº</th>
+                                        <th class="px-4 py-2.5">Motivo</th>
+                                        <th class="px-4 py-2.5">Início</th>
+                                        <th class="px-4 py-2.5">Retorno previsto</th>
+                                        <th class="px-4 py-2.5">Retorno a campo</th>
+                                        <th class="px-4 py-2.5">Status</th>
+                                        <th class="px-4 py-2.5 text-right">Ações</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-gray-100 dark:divide-white/10">
+                                    @foreach ($checklists as $field => $label)
+                                        @foreach ($site->rejections->where('checklist_field', $field)->sortBy('started_at') as $rejection)
+                                            <tr class="align-top">
+                                                <td class="whitespace-nowrap px-4 py-3 font-medium text-gray-700 dark:text-gray-200">{{ $label }}</td>
+                                                <td class="px-4 py-3 text-gray-500 dark:text-gray-400">#{{ $loop->iteration }}</td>
+                                                <td class="px-4 py-3 text-gray-600 dark:text-gray-300">{{ $rejection->reason }}</td>
+                                                <td class="whitespace-nowrap px-4 py-3 text-gray-600 dark:text-gray-300">{{ $rejection->started_at?->format('d/m/Y H:i') ?? '—' }}</td>
+                                                <td class="whitespace-nowrap px-4 py-3 text-gray-600 dark:text-gray-300">{{ $rejection->return_days }} dias · {{ $rejection->returnAt()->format('d/m/Y') }}</td>
+                                                <td class="px-4 py-3 text-gray-600 dark:text-gray-300">{{ $rejection->requires_field_return ? 'Sim' : 'Não' }}</td>
+                                                <td class="px-4 py-3">
+                                                    <x-ui.badge :tone="$rejection->isActive() ? 'red' : 'gray'">
+                                                        {{ $rejection->isActive() ? 'Ativa' : 'Encerrada' }}
+                                                    </x-ui.badge>
+                                                </td>
+                                                <td class="px-4 py-3 text-right">
+                                                    @if ($rejection->isActive())
+                                                        <form
+                                                            method="POST"
+                                                            action="{{ route('admin.nokia.sites.rejections.resolve', [$site, $rejection]) }}"
+                                                            data-confirm="Encerrar a rejeição {{ $loop->iteration }} de {{ $label }}?"
+                                                            data-confirm-title="Encerrar rejeição"
+                                                            data-confirm-label="Encerrar"
+                                                            class="inline-block"
+                                                        >
+                                                            @csrf
+                                                            @method('PATCH')
 
-                                <div class="flex items-center justify-between gap-4">
-                                    <dt class="text-red-700/80 dark:text-red-300/80">Início</dt>
-                                    <dd class="font-medium text-red-900 dark:text-red-100">{{ $site->rejection_started_at?->format('d/m/Y H:i') ?? '—' }}</dd>
-                                </div>
-
-                                <div class="flex items-center justify-between gap-4">
-                                    <dt class="text-red-700/80 dark:text-red-300/80">Prazo de retorno</dt>
-                                    <dd class="font-medium text-red-900 dark:text-red-100">{{ $site->rejection_return_days }} dias · {{ $rejectionReturnAt?->format('d/m/Y') ?? '—' }}</dd>
-                                </div>
-
-                                <div class="flex items-center justify-between gap-4">
-                                    <dt class="text-red-700/80 dark:text-red-300/80">Retorno a campo</dt>
-                                    <dd class="font-medium text-red-900 dark:text-red-100">{{ $site->rejection_requires_field_return ? 'Sim' : 'Não' }}</dd>
-                                </div>
-                            </dl>
-
-                            <form
-                                method="POST"
-                                action="{{ route('admin.nokia.sites.rejection.destroy', $site) }}"
-                                data-confirm="Encerrar a rejeição deste site?"
-                                data-confirm-title="Encerrar rejeição"
-                                data-confirm-label="Encerrar"
-                                class="mt-4"
-                            >
-                                @csrf
-                                @method('DELETE')
-
-                                <x-ui.action type="submit" size="sm" variant="secondary" icon="play">Encerrar rejeição</x-ui.action>
-                            </form>
+                                                            <x-ui.action type="submit" size="sm" variant="secondary" icon="play">Encerrar</x-ui.action>
+                                                        </form>
+                                                    @else
+                                                        <span class="text-xs text-gray-400 dark:text-gray-500">—</span>
+                                                    @endif
+                                                </td>
+                                            </tr>
+                                        @endforeach
+                                    @endforeach
+                                </tbody>
+                            </table>
                         </div>
                     </section>
                 @endif
@@ -690,7 +707,10 @@
 
     <div
         x-data="{
-            open: @js($errors->hasAny(['rejection_reason', 'rejection_return_days'])),
+            open: @js(
+                $errors->hasAny(['rejection_reason', 'rejection_return_days', 'rejection_requires_field_return'])
+                    || collect($errors->keys())->contains(fn (string $key): bool => str_starts_with($key, 'fam'))
+            ),
             init() {
                 if (this.open) {
                     this.$nextTick(() => this.show());
@@ -753,12 +773,11 @@
                     </button>
                 </header>
 
-                <form method="POST" action="{{ route('admin.nokia.sites.rejection.update', $site) }}" class="flex min-h-0 flex-1 flex-col">
+                <form method="POST" action="{{ route('admin.nokia.sites.rejections.store', $site) }}" class="flex min-h-0 flex-1 flex-col">
                     @csrf
-                    @method('PUT')
 
                     <div class="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain px-4 py-4 sm:px-6 sm:py-5">
-                        @if ($errors->hasAny(['rejection_reason', 'rejection_return_days']))
+                        @if ($errors->hasAny(['rejection_reason', 'rejection_return_days', 'rejection_requires_field_return']) || collect($errors->keys())->contains(fn (string $key): bool => str_starts_with($key, 'fam')))
                             <div class="rounded-xl border border-red-200 bg-red-50 p-3 dark:border-red-900/60 dark:bg-red-950/40">
                                 <p class="flex items-center gap-2 text-sm font-semibold text-red-700 dark:text-red-300">
                                     <x-icon name="exclamation-triangle" class="h-4 w-4 shrink-0" />
@@ -766,6 +785,39 @@
                                 </p>
                             </div>
                         @endif
+
+                        <div>
+                            <span class="block text-sm font-medium text-gray-700 dark:text-gray-200">FAMs rejeitadas</span>
+
+                            <div class="mt-1.5 grid gap-2 sm:grid-cols-2">
+                                @foreach ($checklists as $field => $label)
+                                    <label
+                                        for="rejection-fam-{{ $field }}"
+                                        class="flex cursor-pointer items-center gap-3 rounded-2xl border border-gray-200/80 bg-gray-50/60 px-4 py-3 text-sm font-medium text-gray-700 transition hover:border-indigo-200 dark:border-white/10 dark:bg-white/[0.03] dark:text-gray-200 dark:hover:border-indigo-500/40"
+                                    >
+                                        <input
+                                            id="rejection-fam-{{ $field }}"
+                                            name="fam[]"
+                                            type="checkbox"
+                                            value="{{ $field }}"
+                                            @checked(in_array($field, old('fam', []), true))
+                                            class="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500/30 dark:border-white/20 dark:bg-white/[0.03]"
+                                        >
+                                        {{ $label }}
+                                    </label>
+                                @endforeach
+                            </div>
+
+                            @if ($errors->has('fam'))
+                                <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $errors->first('fam') }}</p>
+                            @endif
+
+                            @foreach ($errors->get('fam.*') as $messages)
+                                @foreach ($messages as $message)
+                                    <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
+                                @endforeach
+                            @endforeach
+                        </div>
 
                         <div>
                             <label for="rejection-reason" class="block text-sm font-medium text-gray-700 dark:text-gray-200">Motivo da rejeição</label>
@@ -778,7 +830,7 @@
                                 placeholder="Descreva o motivo da rejeição"
                                 @error('rejection_reason') aria-invalid="true" @enderror
                                 class="mt-1.5 w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 transition focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
-                            >{{ old('rejection_reason', $site->rejection_reason) }}</textarea>
+                            >{{ old('rejection_reason') }}</textarea>
                             @error('rejection_reason')
                                 <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
                             @enderror
@@ -795,7 +847,7 @@
                             >
                                 <option value="">Selecione o prazo</option>
                                 @foreach ([7, 14, 21, 28] as $days)
-                                    <option value="{{ $days }}" @selected((int) old('rejection_return_days', $site->rejection_return_days) === $days)>{{ $days }} dias</option>
+                                    <option value="{{ $days }}" @selected((int) old('rejection_return_days') === $days)>{{ $days }} dias</option>
                                 @endforeach
                             </select>
                             @error('rejection_return_days')
@@ -815,7 +867,7 @@
                                     name="rejection_requires_field_return"
                                     type="checkbox"
                                     value="1"
-                                    @checked((bool) old('rejection_requires_field_return', $site->rejection_requires_field_return))
+                                    @checked((bool) old('rejection_requires_field_return'))
                                     class="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500/30 dark:border-white/20 dark:bg-white/[0.03]"
                                 >
                                 Necessário retorno a campo
