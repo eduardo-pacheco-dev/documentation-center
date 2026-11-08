@@ -59,7 +59,7 @@ class NokiaSite extends Model
         self::STATUS_PENDING => 'Pendente',
         self::STATUS_ANALYSIS => 'Análise TIM',
         self::STATUS_REJECTED => 'Rejeitado',
-        self::STATUS_SENT => 'Enviado',
+        self::STATUS_SENT => 'Aprovado',
     ];
 
     /**
@@ -142,7 +142,7 @@ class NokiaSite extends Model
      * The status of the given checklist item.
      *
      * New or legacy records fall back to the boolean value so previously
-     * completed items keep showing as sent.
+     * completed items keep showing as approved.
      */
     public function checklistStatus(string $field): string
     {

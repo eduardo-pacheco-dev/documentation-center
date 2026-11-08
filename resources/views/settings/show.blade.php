@@ -25,12 +25,6 @@
         $navIdle = 'text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-white/[0.04]';
         $navActive = 'bg-indigo-600 text-white';
 
-        $moduleMeta = collect($orderModules)->mapWithKeys(fn ($module): array => [
-            $module->value => [
-                'label' => $module->label(),
-                'group' => \App\Enums\AdminModule::sectionFor($user, $module),
-            ],
-        ])->all();
     @endphp
 
     <x-ui.page-header
@@ -450,20 +444,20 @@
                     </div>
 
                     <div class="grid gap-2 sm:grid-cols-2">
-                        @foreach ($modules as $module)
+                        @foreach ($modules as $entry)
                             <label class="flex cursor-pointer items-start gap-3 rounded-xl border border-gray-200/80 p-3 transition hover:border-indigo-200 dark:border-white/10 dark:hover:border-indigo-500/40">
                                 <input
                                     type="checkbox"
                                     name="modules[]"
-                                    value="{{ $module->value }}"
-                                    @checked(in_array($module->value, $enabledModules, true))
+                                    value="{{ $entry->key() }}"
+                                    @checked(in_array($entry->key(), $enabledModules, true))
                                     class="mt-0.5 h-4 w-4 shrink-0 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500/30 dark:border-white/20 dark:bg-white/[0.03] dark:text-indigo-400"
                                 >
 
                                 <span class="min-w-0">
                                     <span class="flex items-center gap-2 text-sm font-medium text-gray-800 dark:text-gray-100">
-                                        <x-icon :name="$module->icon()" class="h-4 w-4 text-gray-400 dark:text-gray-500" />
-                                        {{ $module->label() }}
+                                        <x-icon :name="$entry->icon()" class="h-4 w-4 text-gray-400 dark:text-gray-500" />
+                                        {{ $entry->label() }}
                                     </span>
                                     <span class="mt-0.5 block text-xs text-gray-500 dark:text-gray-400">Exibir na navegação</span>
                                 </span>

@@ -3,6 +3,8 @@
 namespace App\Http\Requests;
 
 use App\Enums\AdminModule;
+use App\Navigation\NavigationCatalog;
+use App\Navigation\NavigationEntry;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -23,15 +25,16 @@ class UpdateModulesRequest extends FormRequest
      */
     public function rules(): array
     {
-        $allowed = array_map(
-            fn (AdminModule $module): string => $module->value,
-            AdminModule::toggleableFor($this->user()),
-        );
+        $entries = app(NavigationCatalog::class)->entries($this->user(), $this);
 
-        $available = array_map(
-            fn (AdminModule $module): string => $module->value,
-            AdminModule::availableFor($this->user()),
-        );
+        $available = $entries
+            ->map(fn (NavigationEntry $entry): string => $entry->key())
+            ->all();
+
+        $allowed = $entries
+            ->filter(fn (NavigationEntry $entry): bool => $entry->isToggleable())
+            ->map(fn (NavigationEntry $entry): string => $entry->key())
+            ->all();
 
         return [
             'modules' => ['nullable', 'array'],

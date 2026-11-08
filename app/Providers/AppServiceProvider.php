@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Navigation\NavigationRegistry;
 use App\Settings\SettingsSectionRegistry;
 use App\Settings\SystemSettings;
 use Illuminate\Cache\RateLimiting\Limit;
@@ -18,6 +19,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
+        $this->app->singleton(NavigationRegistry::class);
         $this->app->singleton(SettingsSectionRegistry::class);
     }
 

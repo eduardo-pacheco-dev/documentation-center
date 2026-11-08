@@ -3,6 +3,8 @@
 namespace Plugins\Example\Providers;
 
 use App\Dashboard\WidgetRegistry;
+use App\Navigation\NavigationItem;
+use App\Navigation\NavigationRegistry;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
 use Plugins\Example\Widgets\ExampleWidget;
@@ -28,6 +30,13 @@ class ExampleServiceProvider extends ServiceProvider
         $this->loadTranslationsFrom(__DIR__.'/../Resources/lang', 'example');
 
         $this->app->make(WidgetRegistry::class)->register(new ExampleWidget);
+
+        $this->app->make(NavigationRegistry::class)->register(
+            NavigationItem::make('example.index', 'Exemplo de navegação', 'plugins.example.index')
+                ->icon('cube')
+                ->inModules()
+                ->order(100),
+        );
     }
 
     /**

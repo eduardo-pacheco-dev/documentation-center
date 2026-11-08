@@ -9,7 +9,9 @@ use Illuminate\Support\Str;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use Plugins\Nokia\Events\NokiaSiteImported;
 use Plugins\Nokia\Http\Requests\StoreNokiaSiteRequest;
+use Plugins\Nokia\Http\Requests\UpdateNokiaDatesRequest;
 use Plugins\Nokia\Models\NokiaSite;
+use Plugins\Nokia\Models\NokiaTask;
 
 final class NokiaSiteImporter
 {
@@ -32,15 +34,24 @@ final class NokiaSiteImporter
             ]);
         }
 
+        $taskColumns = $this->taskColumns();
+
         $prepared = [];
         $errors = [];
+        $seenOc = [];
 
         foreach ($rows as $index => $row) {
+            $tasks = $this->extractTaskValues($row, $taskColumns);
+
             $normalized = StoreNokiaSiteRequest::normalizeChecklistValues($row);
+            $normalized = $this->normalizeDates($normalized);
 
             $validator = Validator::make(
                 $normalized,
-                StoreNokiaSiteRequest::fieldRules(),
+                array_merge(
+                    StoreNokiaSiteRequest::fieldRules(requireOc: true, requireUniqueOc: false),
+                    $this->dateRules(),
+                ),
             );
 
             if ($validator->fails()) {
@@ -51,7 +62,24 @@ final class NokiaSiteImporter
                 continue;
             }
 
-            $prepared[] = $validator->validated();
+            $data = $validator->validated();
+            $oc = isset($data['oc']) ? trim((string) $data['oc']) : '';
+            $data['oc'] = $oc !== '' ? $oc : null;
+
+            if ($data['oc'] !== null) {
+                if (array_key_exists($data['oc'], $seenOc)) {
+                    $errors[] = 'Linha '.($index + 2).': O OC '.$data['oc'].' já foi usado na linha '.$seenOc[$data['oc']].'.';
+
+                    continue;
+                }
+
+                $seenOc[$data['oc']] = $index + 2;
+            }
+
+            $prepared[] = [
+                'data' => $data,
+                'tasks' => $tasks,
+            ];
         }
 
         if ($errors !== []) {
@@ -73,6 +101,94 @@ final class NokiaSiteImporter
         }
 
         return count($prepared);
+    }
+
+    /**
+     * Map the normalized header of every configurable activity to its task.
+     *
+     * Both "Tarefa - Nome" and "Atividade - Nome" headers are accepted.
+     *
+     * @return array<string, int>
+     */
+    private function taskColumns(): array
+    {
+        $columns = [];
+
+        foreach (NokiaTask::query()->orderBy('position')->orderBy('name')->get() as $task) {
+            foreach (['Tarefa', 'Atividade'] as $prefix) {
+                $columns[$this->normalizeHeader($prefix.' '.$task->name)] = $task->getKey();
+            }
+        }
+
+        return $columns;
+    }
+
+    /**
+     * Pull the configurable activity values out of the row.
+     *
+     * @param  array<string, mixed>  $row
+     * @param  array<string, int>  $columns
+     * @return array<int, bool>
+     */
+    private function extractTaskValues(array &$row, array $columns): array
+    {
+        $values = [];
+
+        foreach ($row as $key => $value) {
+            if (! isset($columns[$key])) {
+                continue;
+            }
+
+            $values[$columns[$key]] = StoreNokiaSiteRequest::parseBoolean($value);
+            unset($row[$key]);
+        }
+
+        return $values;
+    }
+
+    /**
+     * The validation rules of the date columns accepted by the import.
+     *
+     * @return array<string, array<int, string>>
+     */
+    private function dateRules(): array
+    {
+        $rules = [];
+
+        foreach (NokiaSite::DATE_FIELDS as $field) {
+            $rules[$field] = ['nullable', 'date'];
+        }
+
+        return $rules;
+    }
+
+    /**
+     * Normalize the date columns present in the row.
+     *
+     * Columns absent from the file are left untouched so updating a site by OC
+     * does not clear dates that were already filled in.
+     *
+     * @param  array<string, mixed>  $row
+     * @return array<string, mixed>
+     */
+    private function normalizeDates(array $row): array
+    {
+        foreach (NokiaSite::DATE_FIELDS as $field) {
+            if (! array_key_exists($field, $row)) {
+                continue;
+            }
+
+            $value = $row[$field];
+
+            if (! is_string($value)) {
+                continue;
+            }
+
+            $value = trim($value);
+            $row[$field] = $value === '' ? null : UpdateNokiaDatesRequest::normalizeDate($value);
+        }
+
+        return $row;
     }
 
     /**
@@ -140,6 +256,12 @@ final class NokiaSiteImporter
                 ]);
             }
 
+            if (! in_array('oc', $header, true)) {
+                throw new NokiaSiteImportException([
+                    'O arquivo precisa conter a coluna oc (ou "OC").',
+                ]);
+            }
+
             $rows = [];
 
             while (($values = fgetcsv($stream, 0, $delimiter, '"', '')) !== false) {
@@ -201,6 +323,12 @@ final class NokiaSiteImporter
             if (! in_array('site_id', $header, true)) {
                 throw new NokiaSiteImportException([
                     'A planilha precisa conter a coluna Site ID (ou site_id).',
+                ]);
+            }
+
+            if (! in_array('oc', $header, true)) {
+                throw new NokiaSiteImportException([
+                    'A planilha precisa conter a coluna OC (ou oc).',
                 ]);
             }
 
@@ -327,6 +455,20 @@ final class NokiaSiteImporter
             'fam_entrega' => 'checklist_fam_entrega',
             'fam_instalacao' => 'checklist_fam_instalacao',
             'fam_panoramica' => 'checklist_fam_panoramica',
+            'mos_plan' => 'mos_plan_at',
+            'mos_real' => 'mos_real_at',
+            'instalacao_plan' => 'instalacao_plan_at',
+            'instalacao_real' => 'instalacao_real_at',
+            'integracao_plan' => 'integracao_plan_at',
+            'integracao_real' => 'integracao_real_at',
+            'rfa_plan' => 'rfa_plan_at',
+            'rfa_real' => 'rfa_real_at',
+            'fam_entrega_aprovado' => 'fam_entrega_approved_at',
+            'fam_entrega_aprovada' => 'fam_entrega_approved_at',
+            'fam_instalacao_aprovado' => 'fam_instalacao_approved_at',
+            'fam_instalacao_aprovada' => 'fam_instalacao_approved_at',
+            'fam_panoramica_aprovado' => 'fam_panoramica_approved_at',
+            'fam_panoramica_aprovada' => 'fam_panoramica_approved_at',
         ];
 
         foreach (array_keys(config('nokia.checklists', [])) as $field) {

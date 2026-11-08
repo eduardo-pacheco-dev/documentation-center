@@ -4,6 +4,8 @@ namespace Plugins\Nokia\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
+use Plugins\Nokia\Models\NokiaSite;
 
 class StoreNokiaSiteRequest extends FormRequest
 {
@@ -53,13 +55,26 @@ class StoreNokiaSiteRequest extends FormRequest
      *
      * @return array<string, mixed>
      */
-    public static function fieldRules(): array
-    {
+    public static function fieldRules(
+        ?NokiaSite $ignore = null,
+        bool $requireOc = false,
+        bool $requireUniqueOc = true,
+    ): array {
+        $ocRules = [
+            $requireOc ? 'required' : 'nullable',
+            'string',
+            'max:100',
+        ];
+
+        if ($requireUniqueOc) {
+            $ocRules[] = Rule::unique('nokia_sites', 'oc')->ignore($ignore?->getKey());
+        }
+
         return [
             'site_id' => ['required', 'string', 'max:100'],
             'nokia_rom_id' => ['nullable', 'integer', 'exists:nokia_roms,id'],
             'end_id' => ['nullable', 'string', 'max:100'],
-            'oc' => ['nullable', 'string', 'max:100'],
+            'oc' => $ocRules,
             'os_fam_entrega' => ['nullable', 'string', 'max:100'],
             'os_fam_instalacao' => ['nullable', 'string', 'max:100'],
             'checklist_fam_entrega' => ['boolean'],
@@ -71,7 +86,7 @@ class StoreNokiaSiteRequest extends FormRequest
     /**
      * Interpret the common spreadsheet values as a boolean.
      */
-    private static function parseBoolean(mixed $value): bool
+    public static function parseBoolean(mixed $value): bool
     {
         if (is_bool($value)) {
             return $value;
@@ -83,6 +98,6 @@ class StoreNokiaSiteRequest extends FormRequest
 
         $normalized = Str::of((string) $value)->ascii()->lower()->trim()->toString();
 
-        return in_array($normalized, ['1', 'sim', 's', 'x', 'yes', 'y', 'true', 'on', 'concluido', 'concluida', 'ok'], true);
+        return in_array($normalized, ['1', 'sim', 's', 'x', 'yes', 'y', 'true', 'on', 'concluido', 'concluida', 'aprovado', 'aprovada', 'ok'], true);
     }
 }

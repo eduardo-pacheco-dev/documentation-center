@@ -1,48 +1,25 @@
 @php
-    use App\Enums\AdminModule;
-    use App\Plugins\PluginRepository;
-    use Illuminate\Support\Facades\Route;
+    use App\Navigation\NavigationCatalog;
+    use App\Navigation\NavigationEntry;
+    use App\Navigation\NavigationItem;
     use Illuminate\Support\Str;
 
-    $pluginModules = app(PluginRepository::class)->modules();
+    $catalog = app(NavigationCatalog::class);
+    $navigation = $catalog->enabled(auth()->user(), request());
 
-    $user = auth()->user();
-
-    $enabledModules = array_filter(
-        AdminModule::enabledFor($user),
-        fn (AdminModule $module): bool => ! in_array($module->value, $pluginModules, true),
-    );
-    $primaryNav = array_filter(
-        $enabledModules,
-        fn (AdminModule $module): bool => AdminModule::sectionFor($user, $module) === AdminModule::SECTION_SIDEBAR,
-    );
-    $moduleNav = array_filter(
-        $enabledModules,
-        fn (AdminModule $module): bool => AdminModule::sectionFor($user, $module) === AdminModule::SECTION_MODULES,
+    $primaryNav = $navigation->filter(
+        fn (NavigationEntry $entry): bool => $catalog->sectionFor(auth()->user(), $entry) === NavigationItem::SECTION_SIDEBAR,
     );
 
-    $pluginNav = collect(app(PluginRepository::class)->navigation())
-        ->filter(fn (array $item): bool => Route::has($item['route']))
-        ->filter(fn (array $item): bool => $item['module'] === null || auth()->user()->hasModule($item['module']));
-
-    $pluginPrimaryNav = $pluginNav->where('primary', true);
-    $pluginModuleNav = $pluginNav->where('primary', false);
-
-    $moduleItems = collect($moduleNav)
-        ->map(fn (AdminModule $module): array => [
-            'label' => $module->label(),
-            'icon' => $module->icon(),
-            'url' => route($module->routeName()),
-            'slug' => Str::slug($module->label()),
-            'active' => request()->routeIs($module->activePattern()),
+    $moduleItems = $navigation
+        ->filter(fn (NavigationEntry $entry): bool => $catalog->sectionFor(auth()->user(), $entry) === NavigationItem::SECTION_MODULES)
+        ->map(fn (NavigationEntry $entry): array => [
+            'label' => $entry->label(),
+            'icon' => $entry->icon(),
+            'url' => route($entry->route()),
+            'slug' => Str::slug($entry->label()),
+            'active' => request()->routeIs($entry->activePattern()),
         ])
-        ->merge($pluginModuleNav->map(fn (array $item): array => [
-            'label' => $item['label'],
-            'icon' => $item['icon'],
-            'url' => route($item['route']),
-            'slug' => Str::slug($item['label']),
-            'active' => request()->routeIs($item['active']),
-        ]))
         ->values();
 @endphp
 
@@ -56,23 +33,13 @@
     <x-dashboard.sidebar-toggle />
 
     <nav class="flex w-full flex-1 flex-col gap-1 overflow-y-auto pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-        @foreach ($primaryNav as $module)
+        @foreach ($primaryNav as $entry)
             <x-dashboard.sidebar-item
-                :href="route($module->routeName())"
-                :icon="$module->icon()"
-                :label="$module->label()"
-                :module="$module->label()"
-                :active="request()->routeIs($module->activePattern())"
-            />
-        @endforeach
-
-        @foreach ($pluginPrimaryNav as $item)
-            <x-dashboard.sidebar-item
-                :href="route($item['route'])"
-                :icon="$item['icon']"
-                :label="$item['label']"
-                :module="$item['label']"
-                :active="request()->routeIs($item['active'])"
+                :href="route($entry->route())"
+                :icon="$entry->icon()"
+                :label="$entry->label()"
+                :module="$entry->label()"
+                :active="request()->routeIs($entry->activePattern())"
             />
         @endforeach
     </nav>
