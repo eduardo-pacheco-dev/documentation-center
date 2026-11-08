@@ -1,0 +1,47 @@
+<?php
+
+use App\Models\User;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Plugins\Agenda\Database\Seeders\AgendaSeeder;
+use Plugins\Agenda\Models\AgendaCalendar;
+use Plugins\Agenda\Models\AgendaEvent;
+use Plugins\Agenda\Models\AgendaEventAttendee;
+
+uses(RefreshDatabase::class);
+
+it('seeds the agenda module for every user', function () {
+    User::factory()->count(3)->create();
+
+    $this->seed(AgendaSeeder::class);
+
+    foreach (User::all() as $user) {
+        expect(AgendaCalendar::query()->ownedBy($user)->count())->toBe(4)
+            ->and(AgendaCalendar::query()->ownedBy($user)->where('is_default', true)->count())->toBe(1)
+            ->and(AgendaEvent::query()->ownedBy($user)->count())->toBeGreaterThan(0);
+    }
+
+    expect(AgendaEvent::query()->whereNotNull('recurrence')->exists())->toBeTrue()
+        ->and(AgendaEvent::query()->where('is_all_day', true)->exists())->toBeTrue()
+        ->and(AgendaEvent::query()->whereHas('reminders')->exists())->toBeTrue()
+        ->and(AgendaEvent::query()->whereHas('exceptions')->exists())->toBeTrue()
+        ->and(AgendaEventAttendee::query()->where('is_organizer', true)->exists())->toBeTrue()
+        ->and(AgendaCalendar::query()->whereHas('shares')->exists())->toBeTrue();
+});
+
+it('does not duplicate the seeded records when run twice', function () {
+    User::factory()->count(3)->create();
+
+    $this->seed(AgendaSeeder::class);
+
+    $counts = [
+        'calendars' => AgendaCalendar::query()->count(),
+        'events' => AgendaEvent::query()->count(),
+        'attendees' => AgendaEventAttendee::query()->count(),
+    ];
+
+    $this->seed(AgendaSeeder::class);
+
+    expect(AgendaCalendar::query()->count())->toBe($counts['calendars'])
+        ->and(AgendaEvent::query()->count())->toBe($counts['events'])
+        ->and(AgendaEventAttendee::query()->count())->toBe($counts['attendees']);
+});

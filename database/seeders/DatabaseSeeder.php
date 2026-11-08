@@ -6,6 +6,7 @@ use App\Models\User;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Schema;
+use Plugins\Agenda\Database\Seeders\AgendaSeeder;
 use Plugins\FollowUp\Database\Seeders\FollowUpSeeder;
 use Plugins\Nokia\Database\Seeders\NokiaRomSeeder;
 use Plugins\Nokia\Database\Seeders\NokiaSiteSeeder;
@@ -46,6 +47,10 @@ class DatabaseSeeder extends Seeder
 
         if (Schema::hasTable('todo_lists')) {
             $this->call(TodoSeeder::class);
+        }
+
+        if (Schema::hasTable('agenda_events')) {
+            $this->call(AgendaSeeder::class);
         }
     }
 }
