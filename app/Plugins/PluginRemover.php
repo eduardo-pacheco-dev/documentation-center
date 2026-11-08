@@ -15,6 +15,7 @@ class PluginRemover
         private readonly Application $app,
         private readonly Filesystem $files,
         private readonly PluginRepository $plugins,
+        private readonly PluginDependencies $dependencies,
     ) {}
 
     /**
@@ -25,6 +26,8 @@ class PluginRemover
     public function remove(string $alias): void
     {
         $plugin = $this->plugins->findOrFail($alias);
+
+        $this->dependencies->assertCanRemove($plugin);
 
         $path = realpath($plugin->getPath());
         $root = realpath(rtrim((string) config('plugins.paths.plugins'), '/'));

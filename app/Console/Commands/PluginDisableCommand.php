@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Plugins\Exceptions\PluginDependencyException;
 use App\Plugins\Exceptions\PluginNotFoundException;
 use App\Plugins\PluginRepository;
 use Illuminate\Console\Command;
@@ -41,7 +42,13 @@ class PluginDisableCommand extends Command
             return self::SUCCESS;
         }
 
-        $plugin->disable();
+        try {
+            $plugin->disable();
+        } catch (PluginDependencyException $exception) {
+            $this->error($exception->getMessage());
+
+            return self::FAILURE;
+        }
 
         $plugins->clear();
         $this->callSilently('route:clear');

@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Plugins\Exceptions\PluginDependencyException;
 use App\Plugins\Exceptions\PluginNotFoundException;
 use App\Plugins\Exceptions\PluginRemovalException;
 use App\Plugins\PluginRemover;
@@ -47,7 +48,7 @@ class PluginRemoveCommand extends Command
 
         try {
             $remover->remove($plugin->getAlias());
-        } catch (PluginRemovalException $exception) {
+        } catch (PluginRemovalException|PluginDependencyException $exception) {
             $this->error($exception->getMessage());
 
             return self::FAILURE;

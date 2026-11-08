@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\UploadPluginRequest;
+use App\Plugins\Exceptions\PluginDependencyException;
 use App\Plugins\Exceptions\PluginInstallException;
 use App\Plugins\Exceptions\PluginRemovalException;
 use App\Plugins\PluginInstaller;
@@ -53,25 +54,29 @@ class PluginController extends Controller
 
         $plugin = $this->plugins->findOrFail($alias);
 
-        if ($validated['enabled']) {
-            if ($plugin->disabled()) {
-                $plugin->enable();
+        try {
+            if ($validated['enabled']) {
+                if ($plugin->disabled()) {
+                    $plugin->enable();
 
-                try {
-                    $this->migrator->migrate($plugin);
-                    $plugin->install();
-                } catch (\Throwable $exception) {
-                    $plugin->disable();
-                    $this->plugins->clear();
-                    $this->clearRouteCache();
+                    try {
+                        $this->migrator->migrate($plugin);
+                        $plugin->install();
+                    } catch (\Throwable $exception) {
+                        $plugin->disable();
+                        $this->plugins->clear();
+                        $this->clearRouteCache();
 
-                    return back()->withErrors([
-                        'plugin' => sprintf('Não foi possível habilitar %s: %s', $plugin->getName(), $exception->getMessage()),
-                    ]);
+                        return back()->withErrors([
+                            'plugin' => sprintf('Não foi possível habilitar %s: %s', $plugin->getName(), $exception->getMessage()),
+                        ]);
+                    }
                 }
+            } else {
+                $plugin->disable();
             }
-        } else {
-            $plugin->disable();
+        } catch (PluginDependencyException $exception) {
+            return back()->withErrors(['plugin' => $exception->getMessage()]);
         }
 
         $this->plugins->clear();
@@ -96,7 +101,7 @@ class PluginController extends Controller
 
         try {
             $this->remover->remove($plugin->getAlias());
-        } catch (PluginRemovalException $exception) {
+        } catch (PluginRemovalException|PluginDependencyException $exception) {
             return back()->withErrors(['plugin' => $exception->getMessage()]);
         }
 

@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\User;
+use App\Plugins\Exceptions\PluginDependencyException;
 use App\Plugins\Exceptions\PluginInstallException;
 use App\Plugins\Exceptions\PluginNotFoundException;
 use App\Plugins\Plugin;
@@ -789,6 +790,112 @@ it('disables the plugin when the lifecycle class does not exist', function () {
 
     File::deleteDirectory($path);
 });
+
+it('does not enable a plugin whose dependency is missing', function () {
+    $path = storage_path('framework/testing/plugins_'.Str::random(8));
+
+    config(['plugins.paths.plugins' => $path]);
+    app()->forgetInstance(PluginRepository::class);
+
+    pluginWithRequires($path, 'dependent-plugin', ['missing-plugin']);
+
+    $this->artisan('plugin:enable', ['alias' => 'dependent-plugin'])
+        ->expectsOutputToContain('requer os plugins habilitados: missing-plugin')
+        ->assertFailed();
+
+    expect(app(PluginRepository::class)->findOrFail('dependent-plugin')->disabled())->toBeTrue();
+
+    File::deleteDirectory($path);
+});
+
+it('enables a plugin once its dependency is enabled', function () {
+    $path = storage_path('framework/testing/plugins_'.Str::random(8));
+
+    config(['plugins.paths.plugins' => $path]);
+    app()->forgetInstance(PluginRepository::class);
+
+    $plugins = app(PluginRepository::class);
+
+    pluginWithRequires($path, 'base-plugin', []);
+    pluginWithRequires($path, 'dependent-plugin', ['base-plugin']);
+
+    $plugins->findOrFail('base-plugin')->enable();
+    $plugins->findOrFail('dependent-plugin')->enable();
+
+    expect($plugins->findOrFail('dependent-plugin')->enabled())->toBeTrue();
+
+    File::deleteDirectory($path);
+});
+
+it('does not disable or remove a plugin required by an enabled plugin', function () {
+    $path = storage_path('framework/testing/plugins_'.Str::random(8));
+
+    config(['plugins.paths.plugins' => $path]);
+    app()->forgetInstance(PluginRepository::class);
+
+    $plugins = app(PluginRepository::class);
+
+    $basePath = pluginWithRequires($path, 'base-plugin', []);
+    pluginWithRequires($path, 'dependent-plugin', ['base-plugin']);
+
+    $base = $plugins->findOrFail('base-plugin');
+    $dependent = $plugins->findOrFail('dependent-plugin');
+
+    $base->enable();
+    $dependent->enable();
+
+    expect(fn () => $base->disable())
+        ->toThrow(PluginDependencyException::class, 'dependent-plugin')
+        ->and($base->enabled())->toBeTrue();
+
+    $this->artisan('plugin:remove', ['alias' => 'base-plugin', '--force' => true])
+        ->expectsOutputToContain('não pode ser removido')
+        ->assertFailed();
+
+    expect($basePath)->toBeDirectory();
+
+    $dependent->disable();
+    $base->disable();
+
+    expect($base->disabled())->toBeTrue();
+
+    File::deleteDirectory($path);
+});
+
+it('reports the dependency error when toggling a plugin from the settings page', function () {
+    $path = storage_path('framework/testing/plugins_'.Str::random(8));
+
+    config(['plugins.paths.plugins' => $path]);
+    app()->forgetInstance(PluginRepository::class);
+
+    pluginWithRequires($path, 'web-dependent', ['missing-plugin']);
+
+    $this->actingAs(User::factory()->admin()->create())
+        ->patch('/settings/plugins/web-dependent', ['enabled' => 1])
+        ->assertRedirect()
+        ->assertSessionHasErrors('plugin');
+
+    expect(app(PluginRepository::class)->findOrFail('web-dependent')->disabled())->toBeTrue();
+
+    File::deleteDirectory($path);
+});
+
+/**
+ * Create a plugin whose manifest declares the given dependencies.
+ *
+ * @param  list<string>  $requires
+ */
+function pluginWithRequires(string $pluginsPath, string $alias, array $requires): string
+{
+    $directory = rtrim($pluginsPath, '/').'/'.Str::studly($alias);
+
+    File::ensureDirectoryExists($directory);
+    File::put($directory.'/plugin.json', pluginManifestJson($alias, [
+        'requires' => $requires,
+    ]));
+
+    return $directory;
+}
 
 /**
  * Create a plugin whose manifest declares the given lifecycle class.

@@ -8,6 +8,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
+use Plugins\Nokia\Events\NokiaChecklistStatusChanged;
+use Plugins\Nokia\Events\NokiaSiteRejected;
 use Plugins\Nokia\Http\Requests\StoreNokiaRejectionRequest;
 use Plugins\Nokia\Http\Requests\StoreNokiaSiteRequest;
 use Plugins\Nokia\Http\Requests\UpdateNokiaDatesRequest;
@@ -220,11 +222,14 @@ class NokiaSiteController extends Controller
         ]);
 
         $status = $validated['status'];
+        $previousStatus = (string) $site->{$field.'_status'};
 
         $site->update([
             $field => $status === NokiaSite::STATUS_SENT,
             $field.'_status' => $status,
         ]);
+
+        NokiaChecklistStatusChanged::dispatch($site, $field, $previousStatus, $status);
 
         return back()->with(
             'status',
@@ -263,13 +268,15 @@ class NokiaSiteController extends Controller
     public function storeRejection(StoreNokiaRejectionRequest $request, NokiaSite $site): RedirectResponse
     {
         foreach ($request->validated('fam') as $field) {
-            $site->rejections()->create([
+            $rejection = $site->rejections()->create([
                 'checklist_field' => $field,
                 'reason' => $request->validated('rejection_reason'),
                 'return_days' => (int) $request->validated('rejection_return_days'),
                 'requires_field_return' => $request->boolean('rejection_requires_field_return'),
                 'started_at' => now(),
             ]);
+
+            NokiaSiteRejected::dispatch($site, $rejection);
         }
 
         return back()->with('status', 'Rejeição registrada.');
