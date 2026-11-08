@@ -46,8 +46,8 @@ class NokiaSiteImportController extends Controller
         return redirect()
             ->route('admin.nokia.sites.index')
             ->with('status', $count === 1
-                ? '1 site importado com sucesso.'
-                : "{$count} sites importados com sucesso.");
+                ? '1 site importado ou atualizado com sucesso.'
+                : "{$count} sites importados ou atualizados com sucesso.");
     }
 
     /**
@@ -67,12 +67,23 @@ class NokiaSiteImportController extends Controller
         $headings = [
             'Site ID *',
             'End ID',
-            'OC',
+            'OC *',
             'OS FAM Entrega',
             'OS FAM Instalação',
             'FAM Entrega',
             'FAM Instalação',
             'FAM Panorâmica',
+            'MOS Plan',
+            'MOS Real',
+            'Instalação Plan',
+            'Instalação Real',
+            'Integração Plan',
+            'Integração Real',
+            'RFA Plan',
+            'RFA Real',
+            'FAM Entrega Aprovado',
+            'FAM Instalação Aprovado',
+            'FAM Panorâmica Aprovado',
         ];
 
         foreach ($headings as $index => $heading) {
@@ -101,9 +112,11 @@ class NokiaSiteImportController extends Controller
 
         $lines = [
             'Preencha a aba "Sites" a partir da linha 2. A linha 1 contém os nomes das colunas.',
-            'A coluna "Site ID" é obrigatória.',
+            'As colunas "Site ID" e "OC" são obrigatórias.',
             'No checklist, use Sim ou Não (também aceito: 1/0, x, vazio).',
-            'A importação é tudo ou nada: se alguma linha for inválida, nenhum site é importado.',
+            'Nas colunas de data, use dd/mm/aaaa (também aceito: aaaa-mm-dd). Deixe vazio para limpar a data.',
+            'Sites com um OC já cadastrado são atualizados com os dados da planilha.',
+            'A importação é tudo ou nada: se alguma linha for inválida, nenhum site é importado ou atualizado.',
             'Limite de '.NokiaSiteImporter::MAX_SITES.' sites por arquivo.',
             'Também é possível importar um arquivo CSV com as mesmas colunas.',
         ];

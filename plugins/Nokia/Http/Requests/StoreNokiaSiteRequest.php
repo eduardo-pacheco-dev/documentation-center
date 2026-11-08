@@ -55,18 +55,26 @@ class StoreNokiaSiteRequest extends FormRequest
      *
      * @return array<string, mixed>
      */
-    public static function fieldRules(?NokiaSite $ignore = null): array
-    {
+    public static function fieldRules(
+        ?NokiaSite $ignore = null,
+        bool $requireOc = false,
+        bool $requireUniqueOc = true,
+    ): array {
+        $ocRules = [
+            $requireOc ? 'required' : 'nullable',
+            'string',
+            'max:100',
+        ];
+
+        if ($requireUniqueOc) {
+            $ocRules[] = Rule::unique('nokia_sites', 'oc')->ignore($ignore?->getKey());
+        }
+
         return [
             'site_id' => ['required', 'string', 'max:100'],
             'nokia_rom_id' => ['nullable', 'integer', 'exists:nokia_roms,id'],
             'end_id' => ['nullable', 'string', 'max:100'],
-            'oc' => [
-                'nullable',
-                'string',
-                'max:100',
-                Rule::unique('nokia_sites', 'oc')->ignore($ignore?->getKey()),
-            ],
+            'oc' => $ocRules,
             'os_fam_entrega' => ['nullable', 'string', 'max:100'],
             'os_fam_instalacao' => ['nullable', 'string', 'max:100'],
             'checklist_fam_entrega' => ['boolean'],

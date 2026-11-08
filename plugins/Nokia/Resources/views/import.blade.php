@@ -3,12 +3,28 @@
         $fields = [
             ['label' => 'Site ID', 'name' => 'site_id', 'required' => true],
             ['label' => 'End ID', 'name' => 'end_id', 'required' => false],
-            ['label' => 'OC', 'name' => 'oc', 'required' => false],
+            ['label' => 'OC', 'name' => 'oc', 'required' => true],
             ['label' => 'OS FAM Entrega', 'name' => 'os_fam_entrega', 'required' => false],
             ['label' => 'OS FAM Instalação', 'name' => 'os_fam_instalacao', 'required' => false],
         ];
 
         foreach (config('nokia.checklists', []) as $name => $label) {
+            $fields[] = ['label' => $label, 'name' => $name, 'required' => false];
+        }
+
+        foreach ([
+            'mos_plan_at' => 'MOS Plan',
+            'mos_real_at' => 'MOS Real',
+            'instalacao_plan_at' => 'Instalação Plan',
+            'instalacao_real_at' => 'Instalação Real',
+            'integracao_plan_at' => 'Integração Plan',
+            'integracao_real_at' => 'Integração Real',
+            'rfa_plan_at' => 'RFA Plan',
+            'rfa_real_at' => 'RFA Real',
+            'fam_entrega_approved_at' => 'FAM Entrega Aprovado',
+            'fam_instalacao_approved_at' => 'FAM Instalação Aprovado',
+            'fam_panoramica_approved_at' => 'FAM Panorâmica Aprovado',
+        ] as $name => $label) {
             $fields[] = ['label' => $label, 'name' => $name, 'required' => false];
         }
     @endphp
@@ -22,7 +38,7 @@
     <x-ui.page-header
         category="Nokia"
         title="Importar sites"
-        description="Envie uma planilha Excel ou CSV para cadastrar vários sites de uma só vez."
+        description="Envie uma planilha Excel ou CSV para cadastrar ou atualizar vários sites de uma só vez."
         icon="arrow-up-tray"
         class="mt-4"
     >
@@ -44,7 +60,8 @@
 
                 <div>
                     <h2 class="text-sm font-semibold tracking-tight text-gray-900 dark:text-white">Enviar arquivo</h2>
-                    <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">O processamento é feito de uma vez: se alguma linha estiver inválida, nenhum site é importado.</p>
+                    <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">O processamento é feito de uma vez: se alguma linha estiver inválida, nenhum site é importado ou atualizado.</p>
+                    <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Sites com um OC já cadastrado são atualizados com os dados da planilha.</p>
                 </div>
             </div>
 

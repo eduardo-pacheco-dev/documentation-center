@@ -415,21 +415,53 @@ test('the import rejects an oc repeated inside the file', function () {
     expect(NokiaSite::query()->count())->toBe(0);
 });
 
-test('the import rejects an oc that already exists', function () {
-    NokiaSite::factory()->create(['oc' => 'OC-EXISTENTE']);
+test('the import updates a site whose oc already exists', function () {
+    $site = NokiaSite::factory()->create([
+        'site_id' => 'SPOLD003',
+        'end_id' => 'END-ANTIGO',
+        'oc' => 'OC-EXISTENTE',
+    ]);
 
     $csv = implode("\n", [
-        'Site ID;OC',
-        'SPDUP003;OC-EXISTENTE',
+        'Site ID;End ID;OC;OS FAM Entrega',
+        'SPDUP003;END-NOVO;OC-EXISTENTE;OS-E-NOVO',
     ]);
 
     $this->actingAs(User::factory()->create())
         ->post(route('admin.nokia.sites.import.store'), [
             'file' => UploadedFile::fake()->createWithContent('sites.csv', $csv),
         ])
-        ->assertSessionHasErrors('file');
+        ->assertRedirect(route('admin.nokia.sites.index'))
+        ->assertSessionHas('status');
 
-    expect(NokiaSite::query()->where('site_id', 'SPDUP003')->exists())->toBeFalse();
+    expect(NokiaSite::query()->count())->toBe(1);
+
+    expect($site->fresh())
+        ->site_id->toBe('SPDUP003')
+        ->end_id->toBe('END-NOVO')
+        ->oc->toBe('OC-EXISTENTE')
+        ->os_fam_entrega->toBe('OS-E-NOVO');
+});
+
+test('the import creates new sites and updates existing ones in the same file', function () {
+    NokiaSite::factory()->create(['oc' => 'OC-EXISTENTE']);
+
+    $csv = implode("\n", [
+        'Site ID;OC',
+        'SPATUALIZADO;OC-EXISTENTE',
+        'SPNOVO;OC-NOVO',
+    ]);
+
+    $this->actingAs(User::factory()->create())
+        ->post(route('admin.nokia.sites.import.store'), [
+            'file' => UploadedFile::fake()->createWithContent('sites.csv', $csv),
+        ])
+        ->assertRedirect(route('admin.nokia.sites.index'))
+        ->assertSessionHas('status');
+
+    expect(NokiaSite::query()->count())->toBe(2)
+        ->and(NokiaSite::query()->where('oc', 'OC-EXISTENTE')->sole()->site_id)->toBe('SPATUALIZADO')
+        ->and(NokiaSite::query()->where('oc', 'OC-NOVO')->sole()->site_id)->toBe('SPNOVO');
 });
 
 test('a site can be updated including the checklist', function () {
@@ -1038,11 +1070,102 @@ test('sites can be imported from a csv file', function () {
         ->checklist_fam_panoramica->toBeFalse();
 });
 
+test('sites can be imported with dates in different formats', function () {
+    $csv = implode("\n", [
+        'Site ID;OC;MOS Plan;MOS Real;Instalação Plan;RFA Real;FAM Entrega Aprovado',
+        'SPDATE1;OC-DATE1;02/03/2026;2026-03-05;07-03-2026;10/03/2026;15/03/2026',
+    ]);
+
+    $this->actingAs(User::factory()->create())
+        ->post(route('admin.nokia.sites.import.store'), [
+            'file' => UploadedFile::fake()->createWithContent('sites.csv', $csv),
+        ])
+        ->assertRedirect(route('admin.nokia.sites.index'))
+        ->assertSessionHas('status');
+
+    $site = NokiaSite::query()->where('oc', 'OC-DATE1')->sole();
+
+    expect($site->mos_plan_at?->toDateString())->toBe('2026-03-02')
+        ->and($site->mos_real_at?->toDateString())->toBe('2026-03-05')
+        ->and($site->instalacao_plan_at?->toDateString())->toBe('2026-03-07')
+        ->and($site->rfa_real_at?->toDateString())->toBe('2026-03-10')
+        ->and($site->fam_entrega_approved_at?->toDateString())->toBe('2026-03-15');
+});
+
+test('the import rejects an invalid date', function () {
+    $csv = implode("\n", [
+        'Site ID;OC;MOS Plan',
+        'SPDATE2;OC-DATE2;31/02/2026',
+    ]);
+
+    $this->actingAs(User::factory()->create())
+        ->post(route('admin.nokia.sites.import.store'), [
+            'file' => UploadedFile::fake()->createWithContent('sites.csv', $csv),
+        ])
+        ->assertSessionHasErrors('file');
+
+    expect(NokiaSite::query()->count())->toBe(0);
+});
+
+test('the import does not clear dates when their columns are absent', function () {
+    $site = NokiaSite::factory()->create([
+        'oc' => 'OC-KEEPDATE',
+        'mos_plan_at' => '2026-01-10',
+        'rfa_real_at' => '2026-01-20',
+    ]);
+
+    $csv = implode("\n", [
+        'Site ID;OC',
+        'SPKEEPDATE;OC-KEEPDATE',
+    ]);
+
+    $this->actingAs(User::factory()->create())
+        ->post(route('admin.nokia.sites.import.store'), [
+            'file' => UploadedFile::fake()->createWithContent('sites.csv', $csv),
+        ])
+        ->assertRedirect(route('admin.nokia.sites.index'));
+
+    expect($site->fresh())
+        ->site_id->toBe('SPKEEPDATE')
+        ->mos_plan_at->toDateString()->toBe('2026-01-10')
+        ->rfa_real_at->toDateString()->toBe('2026-01-20');
+});
+
 test('an invalid row prevents the whole import', function () {
     $csv = implode("\n", [
+        'Site ID;End ID;OC',
+        'SPVALID1;END-1;OC-VALID1',
+        ';END-2;OC-VALID2',
+    ]);
+
+    $this->actingAs(User::factory()->create())
+        ->post(route('admin.nokia.sites.import.store'), [
+            'file' => UploadedFile::fake()->createWithContent('sites.csv', $csv),
+        ])
+        ->assertSessionHasErrors('file');
+
+    expect(NokiaSite::query()->count())->toBe(0);
+});
+
+test('the import requires the oc column', function () {
+    $csv = implode("\n", [
         'Site ID;End ID',
-        'SPVALID1;END-1',
-        ';END-2',
+        'SPNOOC1;END-1',
+    ]);
+
+    $this->actingAs(User::factory()->create())
+        ->post(route('admin.nokia.sites.import.store'), [
+            'file' => UploadedFile::fake()->createWithContent('sites.csv', $csv),
+        ])
+        ->assertSessionHasErrors('file');
+
+    expect(NokiaSite::query()->count())->toBe(0);
+});
+
+test('the import requires an oc value on every row', function () {
+    $csv = implode("\n", [
+        'Site ID;OC',
+        'SPNOOC2;',
     ]);
 
     $this->actingAs(User::factory()->create())
@@ -1068,8 +1191,11 @@ test('the import template can be downloaded as an excel file', function () {
     expect($spreadsheet->getSheetNames())
         ->toBe(['Sites', 'Instruções'])
         ->and($spreadsheet->getSheet(0)->getCell('A1')->getValue())->toBe('Site ID *')
+        ->and($spreadsheet->getSheet(0)->getCell('C1')->getValue())->toBe('OC *')
         ->and($spreadsheet->getSheet(0)->getCell('F1')->getValue())->toBe('FAM Entrega')
-        ->and($spreadsheet->getSheet(0)->getCell('H1')->getValue())->toBe('FAM Panorâmica');
+        ->and($spreadsheet->getSheet(0)->getCell('H1')->getValue())->toBe('FAM Panorâmica')
+        ->and($spreadsheet->getSheet(0)->getCell('I1')->getValue())->toBe('MOS Plan')
+        ->and($spreadsheet->getSheet(0)->getCell('S1')->getValue())->toBe('FAM Panorâmica Aprovado');
 
     $spreadsheet->disconnectWorksheets();
     @unlink($path);
