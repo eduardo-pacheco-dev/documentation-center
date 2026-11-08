@@ -33,6 +33,7 @@ final class NokiaSiteImporter
 
         $prepared = [];
         $errors = [];
+        $seenOc = [];
 
         foreach ($rows as $index => $row) {
             $normalized = StoreNokiaSiteRequest::normalizeChecklistValues($row);
@@ -50,7 +51,21 @@ final class NokiaSiteImporter
                 continue;
             }
 
-            $prepared[] = $validator->validated();
+            $data = $validator->validated();
+            $oc = isset($data['oc']) ? trim((string) $data['oc']) : '';
+            $data['oc'] = $oc !== '' ? $oc : null;
+
+            if ($data['oc'] !== null) {
+                if (array_key_exists($data['oc'], $seenOc)) {
+                    $errors[] = 'Linha '.($index + 2).': O OC '.$data['oc'].' já foi usado na linha '.$seenOc[$data['oc']].'.';
+
+                    continue;
+                }
+
+                $seenOc[$data['oc']] = $index + 2;
+            }
+
+            $prepared[] = $data;
         }
 
         if ($errors !== []) {

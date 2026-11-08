@@ -25,7 +25,7 @@ class NokiaSiteFactory extends Factory
         return [
             'site_id' => 'SP'.fake()->bothify('???###?'),
             'end_id' => 'END-'.fake()->numerify('#####'),
-            'oc' => 'OC-'.fake()->numerify('####'),
+            'oc' => 'OC-'.fake()->unique()->numerify('#####'),
             'os_fam_entrega' => 'OS-E-'.fake()->numerify('#####'),
             'os_fam_instalacao' => 'OS-I-'.fake()->numerify('#####'),
             'checklist_fam_entrega' => fake()->boolean(),

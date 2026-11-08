@@ -365,6 +365,73 @@ test('the site id is required to create a site', function () {
     expect(NokiaSite::query()->count())->toBe(0);
 });
 
+test('the oc number must be unique when creating a site', function () {
+    NokiaSite::factory()->create(['oc' => 'OC-DUPLICADO']);
+
+    $this->actingAs(User::factory()->create())
+        ->post('/admin/nokia/sites', [
+            'site_id' => 'SPDUPLICADO',
+            'oc' => 'OC-DUPLICADO',
+        ])
+        ->assertSessionHasErrors('oc');
+
+    expect(NokiaSite::query()->where('site_id', 'SPDUPLICADO')->exists())->toBeFalse();
+});
+
+test('a site keeps its own oc and cannot take the oc of another site', function () {
+    $site = NokiaSite::factory()->create(['oc' => 'OC-PROPRIO']);
+    NokiaSite::factory()->create(['oc' => 'OC-DE-OUTRO']);
+
+    $user = User::factory()->create();
+
+    $this->actingAs($user)
+        ->put(route('admin.nokia.sites.update', $site), [
+            'site_id' => $site->site_id,
+            'oc' => 'OC-PROPRIO',
+        ])
+        ->assertSessionHasNoErrors();
+
+    $this->actingAs($user)
+        ->put(route('admin.nokia.sites.update', $site), [
+            'site_id' => $site->site_id,
+            'oc' => 'OC-DE-OUTRO',
+        ])
+        ->assertSessionHasErrors('oc');
+});
+
+test('the import rejects an oc repeated inside the file', function () {
+    $csv = implode("\n", [
+        'Site ID;OC',
+        'SPDUP001;OC-REPETIDO',
+        'SPDUP002;OC-REPETIDO',
+    ]);
+
+    $this->actingAs(User::factory()->create())
+        ->post(route('admin.nokia.sites.import.store'), [
+            'file' => UploadedFile::fake()->createWithContent('sites.csv', $csv),
+        ])
+        ->assertSessionHasErrors('file');
+
+    expect(NokiaSite::query()->count())->toBe(0);
+});
+
+test('the import rejects an oc that already exists', function () {
+    NokiaSite::factory()->create(['oc' => 'OC-EXISTENTE']);
+
+    $csv = implode("\n", [
+        'Site ID;OC',
+        'SPDUP003;OC-EXISTENTE',
+    ]);
+
+    $this->actingAs(User::factory()->create())
+        ->post(route('admin.nokia.sites.import.store'), [
+            'file' => UploadedFile::fake()->createWithContent('sites.csv', $csv),
+        ])
+        ->assertSessionHasErrors('file');
+
+    expect(NokiaSite::query()->where('site_id', 'SPDUP003')->exists())->toBeFalse();
+});
+
 test('a site can be updated including the checklist', function () {
     $site = NokiaSite::factory()->create([
         'site_id' => 'SPOLD001',
