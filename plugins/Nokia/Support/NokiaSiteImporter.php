@@ -10,6 +10,7 @@ use PhpOffice\PhpSpreadsheet\IOFactory;
 use Plugins\Nokia\Http\Requests\StoreNokiaSiteRequest;
 use Plugins\Nokia\Http\Requests\UpdateNokiaDatesRequest;
 use Plugins\Nokia\Models\NokiaSite;
+use Plugins\Nokia\Models\NokiaTask;
 
 final class NokiaSiteImporter
 {
@@ -32,11 +33,15 @@ final class NokiaSiteImporter
             ]);
         }
 
+        $taskColumns = $this->taskColumns();
+
         $prepared = [];
         $errors = [];
         $seenOc = [];
 
         foreach ($rows as $index => $row) {
+            $tasks = $this->extractTaskValues($row, $taskColumns);
+
             $normalized = StoreNokiaSiteRequest::normalizeChecklistValues($row);
             $normalized = $this->normalizeDates($normalized);
 
@@ -70,7 +75,10 @@ final class NokiaSiteImporter
                 $seenOc[$data['oc']] = $index + 2;
             }
 
-            $prepared[] = $data;
+            $prepared[] = [
+                'data' => $data,
+                'tasks' => $tasks,
+            ];
         }
 
         if ($errors !== []) {
@@ -78,15 +86,64 @@ final class NokiaSiteImporter
         }
 
         DB::transaction(function () use ($prepared): void {
-            foreach ($prepared as $data) {
-                NokiaSite::query()->updateOrCreate(
-                    ['oc' => $data['oc']],
-                    $data,
+            foreach ($prepared as $item) {
+                $site = NokiaSite::query()->updateOrCreate(
+                    ['oc' => $item['data']['oc']],
+                    $item['data'],
                 );
+
+                foreach ($item['tasks'] as $taskId => $completed) {
+                    $site->tasks()->syncWithoutDetaching([
+                        $taskId => ['completed_at' => $completed ? now() : null],
+                    ]);
+                }
             }
         });
 
         return count($prepared);
+    }
+
+    /**
+     * Map the normalized header of every configurable activity to its task.
+     *
+     * Both "Tarefa - Nome" and "Atividade - Nome" headers are accepted.
+     *
+     * @return array<string, int>
+     */
+    private function taskColumns(): array
+    {
+        $columns = [];
+
+        foreach (NokiaTask::query()->orderBy('position')->orderBy('name')->get() as $task) {
+            foreach (['Tarefa', 'Atividade'] as $prefix) {
+                $columns[$this->normalizeHeader($prefix.' '.$task->name)] = $task->getKey();
+            }
+        }
+
+        return $columns;
+    }
+
+    /**
+     * Pull the configurable activity values out of the row.
+     *
+     * @param  array<string, mixed>  $row
+     * @param  array<string, int>  $columns
+     * @return array<int, bool>
+     */
+    private function extractTaskValues(array &$row, array $columns): array
+    {
+        $values = [];
+
+        foreach ($row as $key => $value) {
+            if (! isset($columns[$key])) {
+                continue;
+            }
+
+            $values[$columns[$key]] = StoreNokiaSiteRequest::parseBoolean($value);
+            unset($row[$key]);
+        }
+
+        return $values;
     }
 
     /**

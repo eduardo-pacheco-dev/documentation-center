@@ -27,6 +27,14 @@
         ] as $name => $label) {
             $fields[] = ['label' => $label, 'name' => $name, 'required' => false];
         }
+
+        foreach ($tasks ?? [] as $task) {
+            $fields[] = [
+                'label' => 'Tarefa - '.$task->name,
+                'name' => 'Tarefa - '.$task->name,
+                'required' => false,
+            ];
+        }
     @endphp
 
     <nav class="flex flex-wrap items-center gap-1.5 text-xs text-gray-400 dark:text-gray-500" aria-label="Trilha de navegação">
@@ -126,11 +134,11 @@
                     </li>
                     <li class="flex gap-2">
                         <x-icon name="check" class="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" />
-                        <span>A coluna <code class="rounded bg-gray-100 px-1 py-0.5 text-[11px] dark:bg-white/10">Site ID</code> é obrigatória.</span>
+                        <span>As colunas <code class="rounded bg-gray-100 px-1 py-0.5 text-[11px] dark:bg-white/10">Site ID</code> e <code class="rounded bg-gray-100 px-1 py-0.5 text-[11px] dark:bg-white/10">OC</code> são obrigatórias.</span>
                     </li>
                     <li class="flex gap-2">
                         <x-icon name="check" class="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" />
-                        <span>No checklist, use <strong class="font-semibold text-gray-900 dark:text-white">Sim</strong> ou <strong class="font-semibold text-gray-900 dark:text-white">Não</strong>.</span>
+                        <span>No checklist e nas colunas de tarefa, use <strong class="font-semibold text-gray-900 dark:text-white">Sim</strong> ou <strong class="font-semibold text-gray-900 dark:text-white">Não</strong>.</span>
                     </li>
                     <li class="flex gap-2">
                         <x-icon name="check" class="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" />

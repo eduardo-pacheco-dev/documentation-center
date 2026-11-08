@@ -1131,6 +1131,61 @@ test('the import does not clear dates when their columns are absent', function (
         ->rfa_real_at->toDateString()->toBe('2026-01-20');
 });
 
+test('sites can be imported with the configured activities', function () {
+    $validar = NokiaTask::query()->create(['name' => 'Validar documentação', 'position' => 1]);
+    $fotos = NokiaTask::query()->create(['name' => 'Enviar fotos', 'position' => 2]);
+
+    $csv = implode("\n", [
+        'Site ID;OC;Tarefa - Validar documentação;Atividade - Enviar fotos',
+        'SPTASK1;OC-TASK1;Sim;Não',
+    ]);
+
+    $this->actingAs(User::factory()->create())
+        ->post(route('admin.nokia.sites.import.store'), [
+            'file' => UploadedFile::fake()->createWithContent('sites.csv', $csv),
+        ])
+        ->assertRedirect(route('admin.nokia.sites.index'))
+        ->assertSessionHas('status');
+
+    $site = NokiaSite::query()->where('oc', 'OC-TASK1')->sole();
+
+    expect($site->tasks()->whereKey($validar->getKey())->wherePivotNotNull('completed_at')->exists())->toBeTrue()
+        ->and($site->tasks()->whereKey($fotos->getKey())->wherePivotNull('completed_at')->exists())->toBeTrue();
+});
+
+test('the import reopens and preserves configured activities', function () {
+    $task = NokiaTask::query()->create(['name' => 'Validar documentação', 'position' => 1]);
+    $site = NokiaSite::factory()->create(['oc' => 'OC-TASK2']);
+
+    $site->tasks()->attach($task->getKey(), ['completed_at' => now()]);
+
+    $csv = implode("\n", [
+        'Site ID;OC',
+        'SPTASK2;OC-TASK2',
+    ]);
+
+    $this->actingAs(User::factory()->create())
+        ->post(route('admin.nokia.sites.import.store'), [
+            'file' => UploadedFile::fake()->createWithContent('sites.csv', $csv),
+        ])
+        ->assertRedirect(route('admin.nokia.sites.index'));
+
+    expect($site->fresh()->tasks()->whereKey($task->getKey())->wherePivotNotNull('completed_at')->exists())->toBeTrue();
+
+    $csv = implode("\n", [
+        'Site ID;OC;Tarefa - Validar documentação',
+        'SPTASK2;OC-TASK2;Não',
+    ]);
+
+    $this->actingAs(User::factory()->create())
+        ->post(route('admin.nokia.sites.import.store'), [
+            'file' => UploadedFile::fake()->createWithContent('sites.csv', $csv),
+        ])
+        ->assertRedirect(route('admin.nokia.sites.index'));
+
+    expect($site->fresh()->tasks()->whereKey($task->getKey())->wherePivotNull('completed_at')->exists())->toBeTrue();
+});
+
 test('an invalid row prevents the whole import', function () {
     $csv = implode("\n", [
         'Site ID;End ID;OC',
@@ -1189,13 +1244,35 @@ test('the import template can be downloaded as an excel file', function () {
     $spreadsheet = IOFactory::load($path);
 
     expect($spreadsheet->getSheetNames())
-        ->toBe(['Sites', 'Instruções'])
+        ->toBe(['Sites', 'Exemplo', 'Instruções'])
         ->and($spreadsheet->getSheet(0)->getCell('A1')->getValue())->toBe('Site ID *')
         ->and($spreadsheet->getSheet(0)->getCell('C1')->getValue())->toBe('OC *')
         ->and($spreadsheet->getSheet(0)->getCell('F1')->getValue())->toBe('FAM Entrega')
         ->and($spreadsheet->getSheet(0)->getCell('H1')->getValue())->toBe('FAM Panorâmica')
         ->and($spreadsheet->getSheet(0)->getCell('I1')->getValue())->toBe('MOS Plan')
-        ->and($spreadsheet->getSheet(0)->getCell('S1')->getValue())->toBe('FAM Panorâmica Aprovado');
+        ->and($spreadsheet->getSheet(0)->getCell('S1')->getValue())->toBe('FAM Panorâmica Aprovado')
+        ->and($spreadsheet->getSheet(1)->getCell('A2')->getValue())->toBe('SPEXEMPLO01')
+        ->and($spreadsheet->getSheet(1)->getCell('C2')->getValue())->toBe('OC-0001')
+        ->and($spreadsheet->getSheet(1)->getCell('I2')->getValue())->toBe('10/01/2026');
+
+    $spreadsheet->disconnectWorksheets();
+    @unlink($path);
+});
+
+test('the import template includes the configured activity columns', function () {
+    NokiaTask::query()->create(['name' => 'Validar documentação', 'position' => 1]);
+
+    $response = $this->actingAs(User::factory()->create())
+        ->get(route('admin.nokia.sites.import.template'))
+        ->assertOk();
+
+    $path = sys_get_temp_dir().'/nokia-sites-template-'.Str::random(8).'.xlsx';
+    file_put_contents($path, $response->streamedContent());
+
+    $spreadsheet = IOFactory::load($path);
+
+    expect($spreadsheet->getSheet(0)->getCell('T1')->getValue())->toBe('Tarefa - Validar documentação')
+        ->and($spreadsheet->getSheet(1)->getCell('T2')->getValue())->toBe('Sim');
 
     $spreadsheet->disconnectWorksheets();
     @unlink($path);

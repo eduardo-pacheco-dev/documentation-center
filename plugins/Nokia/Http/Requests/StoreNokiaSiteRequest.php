@@ -86,7 +86,7 @@ class StoreNokiaSiteRequest extends FormRequest
     /**
      * Interpret the common spreadsheet values as a boolean.
      */
-    private static function parseBoolean(mixed $value): bool
+    public static function parseBoolean(mixed $value): bool
     {
         if (is_bool($value)) {
             return $value;
