@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use App\Enums\AdminModule;
 use App\Http\Requests\DeleteAccountRequest;
 use App\Http\Requests\UpdateModulesRequest;
 use App\Http\Requests\UpdateNotificationSettingsRequest;
@@ -11,6 +10,8 @@ use App\Http\Requests\UpdateStorageSettingsRequest;
 use App\Http\Requests\UpdateSystemTimezoneRequest;
 use App\Http\Requests\UpdateThemeRequest;
 use App\Models\StorageSetting;
+use App\Navigation\NavigationCatalog;
+use App\Navigation\NavigationEntry;
 use App\Plugins\Plugin;
 use App\Plugins\PluginRepository;
 use App\Settings\SettingsSectionRegistry;
@@ -25,21 +26,33 @@ class SettingsController extends Controller
     /**
      * Show the settings page for the authenticated user.
      */
-    public function show(Request $request, PluginRepository $plugins, SettingsSectionRegistry $settingsSections): View
-    {
+    public function show(
+        Request $request,
+        PluginRepository $plugins,
+        SettingsSectionRegistry $settingsSections,
+        NavigationCatalog $navigation,
+    ): View {
         $user = auth()->user();
 
         $installedPlugins = $user->is_admin ? $plugins->all() : collect();
         $storageSettings = $user->is_admin ? StorageSettings::current() : null;
 
+        $navigationEntries = $navigation->entries($user, $request);
+
         return view('settings.show', [
             'user' => $user,
-            'modules' => AdminModule::toggleableFor($user),
-            'orderModules' => AdminModule::sortForUser($user, AdminModule::availableFor($user)),
-            'enabledModules' => array_map(
-                fn (AdminModule $module): string => $module->value,
-                AdminModule::enabledFor($user),
-            ),
+            'modules' => $navigation->toggleable($user, $request),
+            'enabledModules' => $navigation->enabled($user, $request)
+                ->map(fn (NavigationEntry $entry): string => $entry->key())
+                ->all(),
+            'moduleMeta' => $navigationEntries->mapWithKeys(
+                fn (NavigationEntry $entry): array => [
+                    $entry->key() => [
+                        'label' => $entry->label(),
+                        'group' => $navigation->sectionFor($user, $entry),
+                    ],
+                ],
+            )->all(),
             'plugins' => $installedPlugins,
             'systemTimezone' => SystemSettings::timezone(),
             'timezoneGroups' => SystemSettings::groupedIdentifiers(),
@@ -65,28 +78,48 @@ class SettingsController extends Controller
      */
     public function updateModules(UpdateModulesRequest $request): RedirectResponse
     {
+        $user = $request->user();
+        $navigation = app(NavigationCatalog::class);
+        $toggleable = $navigation->toggleable($user, $request);
+        $submitted = collect($request->validated('modules') ?? []);
+
         $data = [
-            'enabled_modules' => array_values($request->validated('modules') ?? []),
+            'enabled_modules' => $toggleable
+                ->reject(fn (NavigationEntry $entry): bool => $entry->isPlugin())
+                ->filter(fn (NavigationEntry $entry): bool => $submitted->contains($entry->key()))
+                ->map(fn (NavigationEntry $entry): string => $entry->key())
+                ->values()
+                ->all(),
+            'disabled_modules' => $toggleable
+                ->filter(fn (NavigationEntry $entry): bool => $entry->isPlugin())
+                ->reject(fn (NavigationEntry $entry): bool => $submitted->contains($entry->key()))
+                ->map(fn (NavigationEntry $entry): string => $entry->key())
+                ->values()
+                ->all(),
         ];
 
-        $order = array_values($request->validated('order') ?? []);
+        $available = $navigation->entries($user, $request)
+            ->map(fn (NavigationEntry $entry): string => $entry->key())
+            ->all();
+
+        $order = collect($request->validated('order') ?? [])
+            ->intersect($available)
+            ->values()
+            ->all();
 
         if ($order !== []) {
             $data['module_order'] = $order;
         }
 
         $sections = collect($request->validated('sections') ?? [])
-            ->only(array_map(
-                fn (AdminModule $module): string => $module->value,
-                AdminModule::availableFor($request->user()),
-            ))
+            ->only($available)
             ->all();
 
         if ($sections !== []) {
             $data['module_sections'] = $sections;
         }
 
-        $request->user()->update($data);
+        $user->update($data);
 
         return back()->with('status', 'Módulos atualizados com sucesso.');
     }
