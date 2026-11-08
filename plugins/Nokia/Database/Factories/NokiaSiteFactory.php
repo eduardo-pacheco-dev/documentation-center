@@ -28,6 +28,8 @@ class NokiaSiteFactory extends Factory
             'oc' => 'OC-'.fake()->unique()->numerify('#####'),
             'os_fam_entrega' => 'OS-E-'.fake()->numerify('#####'),
             'os_fam_instalacao' => 'OS-I-'.fake()->numerify('#####'),
+            'regional' => fake()->randomElement(['TNO', 'TCO']),
+            'subcon' => fake()->randomElement(['AFL', 'TNO']),
             'checklist_fam_entrega' => fake()->boolean(),
             'checklist_fam_instalacao' => fake()->boolean(),
             'checklist_fam_panoramica' => fake()->boolean(),

@@ -87,13 +87,35 @@ final class NokiaSiteImporter
         }
 
         $sites = DB::transaction(function () use ($prepared): array {
-            $created = [];
+            $imported = [];
 
-            foreach ($prepared as $data) {
-                $created[] = NokiaSite::query()->create($data);
+            foreach ($prepared as $row) {
+                $data = $row['data'];
+
+                $site = $data['oc'] !== null
+                    ? NokiaSite::query()->where('oc', $data['oc'])->first()
+                    : null;
+
+                if ($site !== null) {
+                    $site->update($data);
+                } else {
+                    $site = NokiaSite::query()->create($data);
+                }
+
+                if ($row['tasks'] !== []) {
+                    $site->tasks()->syncWithoutDetaching(
+                        collect($row['tasks'])
+                            ->mapWithKeys(fn (bool $completed, int $taskId): array => [
+                                $taskId => ['completed_at' => $completed ? now() : null],
+                            ])
+                            ->all(),
+                    );
+                }
+
+                $imported[] = $site;
             }
 
-            return $created;
+            return $imported;
         });
 
         foreach ($sites as $site) {
@@ -452,6 +474,8 @@ final class NokiaSiteImporter
             'os_instalacao' => 'os_fam_instalacao',
             'os_de_instalacao' => 'os_fam_instalacao',
             'ordem_servico_instalacao' => 'os_fam_instalacao',
+            'regiao' => 'regional',
+            'subcontratada' => 'subcon',
             'fam_entrega' => 'checklist_fam_entrega',
             'fam_instalacao' => 'checklist_fam_instalacao',
             'fam_panoramica' => 'checklist_fam_panoramica',

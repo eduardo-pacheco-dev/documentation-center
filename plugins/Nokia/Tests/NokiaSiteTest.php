@@ -222,9 +222,10 @@ test('the nokia charts widget appears on the dashboard', function () {
         ->get('/admin')
         ->assertOk()
         ->assertSee('Projetos Nokia')
-        ->assertSee('Conclusão do checklist')
-        ->assertSee('Atividades concluídas')
-        ->assertSee('Últimos 6 meses')
+        ->assertSee('Status FAM')
+        ->assertSee('% Aceitação Atual')
+        ->assertSee('Aging Instalação')
+        ->assertSee('Subcon vs % Aceitação')
         ->assertSee('Ver sites');
 });
 
@@ -1001,7 +1002,9 @@ test('all sites can be exported to excel', function () {
     expect($sheet->getTitle())->toBe('Sites')
         ->and($sheet->getCell('A1')->getValue())->toBe('Site ID')
         ->and($sheet->getCell('F1')->getValue())->toBe('OS FAM Instalação')
-        ->and($sheet->getCell('G1')->getValue())->toBe('Checklist - FAM Entrega')
+        ->and($sheet->getCell('G1')->getValue())->toBe('Regional')
+        ->and($sheet->getCell('H1')->getValue())->toBe('Subcon')
+        ->and($sheet->getCell('I1')->getValue())->toBe('Checklist - FAM Entrega')
         ->and($text)
         ->toContain('SPEXPORT1')
         ->toContain('END-11111')
@@ -1254,13 +1257,14 @@ test('the import template can be downloaded as an excel file', function () {
         ->toBe(['Sites', 'Exemplo', 'Instruções'])
         ->and($spreadsheet->getSheet(0)->getCell('A1')->getValue())->toBe('Site ID *')
         ->and($spreadsheet->getSheet(0)->getCell('C1')->getValue())->toBe('OC *')
-        ->and($spreadsheet->getSheet(0)->getCell('F1')->getValue())->toBe('FAM Entrega')
-        ->and($spreadsheet->getSheet(0)->getCell('H1')->getValue())->toBe('FAM Panorâmica')
-        ->and($spreadsheet->getSheet(0)->getCell('I1')->getValue())->toBe('MOS Plan')
-        ->and($spreadsheet->getSheet(0)->getCell('S1')->getValue())->toBe('FAM Panorâmica Aprovado')
+        ->and($spreadsheet->getSheet(0)->getCell('F1')->getValue())->toBe('Regional')
+        ->and($spreadsheet->getSheet(0)->getCell('H1')->getValue())->toBe('FAM Entrega')
+        ->and($spreadsheet->getSheet(0)->getCell('J1')->getValue())->toBe('FAM Panorâmica')
+        ->and($spreadsheet->getSheet(0)->getCell('K1')->getValue())->toBe('MOS Plan')
+        ->and($spreadsheet->getSheet(0)->getCell('U1')->getValue())->toBe('FAM Panorâmica Aprovado')
         ->and($spreadsheet->getSheet(1)->getCell('A2')->getValue())->toBe('SPEXEMPLO01')
         ->and($spreadsheet->getSheet(1)->getCell('C2')->getValue())->toBe('OC-0001')
-        ->and($spreadsheet->getSheet(1)->getCell('I2')->getValue())->toBe('10/01/2026');
+        ->and($spreadsheet->getSheet(1)->getCell('K2')->getValue())->toBe('10/01/2026');
 
     $spreadsheet->disconnectWorksheets();
     @unlink($path);
@@ -1278,8 +1282,8 @@ test('the import template includes the configured activity columns', function ()
 
     $spreadsheet = IOFactory::load($path);
 
-    expect($spreadsheet->getSheet(0)->getCell('T1')->getValue())->toBe('Tarefa - Validar documentação')
-        ->and($spreadsheet->getSheet(1)->getCell('T2')->getValue())->toBe('Sim');
+    expect($spreadsheet->getSheet(0)->getCell('V1')->getValue())->toBe('Tarefa - Validar documentação')
+        ->and($spreadsheet->getSheet(1)->getCell('V2')->getValue())->toBe('Sim');
 
     $spreadsheet->disconnectWorksheets();
     @unlink($path);

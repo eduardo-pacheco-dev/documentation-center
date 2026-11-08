@@ -19,6 +19,8 @@ use Plugins\Nokia\Database\Factories\NokiaSiteFactory;
     'oc',
     'os_fam_entrega',
     'os_fam_instalacao',
+    'regional',
+    'subcon',
     'interruption_reason',
     'interruption_return_days',
     'interruption_started_at',
