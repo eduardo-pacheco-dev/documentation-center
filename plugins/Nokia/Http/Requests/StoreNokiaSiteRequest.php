@@ -98,6 +98,6 @@ class StoreNokiaSiteRequest extends FormRequest
 
         $normalized = Str::of((string) $value)->ascii()->lower()->trim()->toString();
 
-        return in_array($normalized, ['1', 'sim', 's', 'x', 'yes', 'y', 'true', 'on', 'concluido', 'concluida', 'ok'], true);
+        return in_array($normalized, ['1', 'sim', 's', 'x', 'yes', 'y', 'true', 'on', 'concluido', 'concluida', 'aprovado', 'aprovada', 'ok'], true);
     }
 }

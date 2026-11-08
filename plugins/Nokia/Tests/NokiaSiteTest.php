@@ -178,7 +178,7 @@ test('a site details page shows the information, checklist and attachments', fun
         ->assertSee('OS-E-111')
         ->assertSee('OS-I-222')
         ->assertSee('Checklist de atividades')
-        ->assertSee('Enviado')
+        ->assertSee('Aprovado')
         ->assertSee('TSSR')
         ->assertSee('DOC-D')
         ->assertSee('DWG')
@@ -336,6 +336,13 @@ test('checklist items can be moved through their statuses', function (string $st
     ['rejected', false],
     ['sent', true],
 ]);
+
+test('the approved checklist status is labelled as approved', function () {
+    expect(NokiaSite::CHECKLIST_STATUSES[NokiaSite::STATUS_SENT])->toBe('Aprovado')
+        ->and(NokiaSite::factory()->create([
+            'checklist_fam_entrega_status' => NokiaSite::STATUS_SENT,
+        ])->checklistStatusLabel('checklist_fam_entrega'))->toBe('Aprovado');
+});
 
 test('checklist status rejects unknown values', function () {
     $site = NokiaSite::factory()->create();
