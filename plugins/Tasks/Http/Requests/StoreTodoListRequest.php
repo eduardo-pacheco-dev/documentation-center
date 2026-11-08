@@ -1,0 +1,35 @@
+<?php
+
+namespace Plugins\Tasks\Http\Requests;
+
+use Illuminate\Contracts\Validation\ValidationRule;
+use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rules\Enum;
+use Plugins\Tasks\Enums\TodoColor;
+use Plugins\Tasks\Enums\TodoIcon;
+use Plugins\Tasks\Models\TodoList;
+
+class StoreTodoListRequest extends FormRequest
+{
+    /**
+     * Determine if the user is authorized to make this request.
+     */
+    public function authorize(): bool
+    {
+        return $this->user()?->can('create', TodoList::class) === true;
+    }
+
+    /**
+     * Get the validation rules that apply to the request.
+     *
+     * @return array<string, ValidationRule|array<mixed>|string>
+     */
+    public function rules(): array
+    {
+        return [
+            'name' => ['required', 'string', 'max:120'],
+            'color' => ['nullable', new Enum(TodoColor::class)],
+            'icon' => ['nullable', new Enum(TodoIcon::class)],
+        ];
+    }
+}
