@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 use PhpOffice\PhpSpreadsheet\IOFactory;
+use Plugins\Nokia\Events\NokiaSiteImported;
 use Plugins\Nokia\Http\Requests\StoreNokiaSiteRequest;
 use Plugins\Nokia\Http\Requests\UpdateNokiaDatesRequest;
 use Plugins\Nokia\Models\NokiaSite;
@@ -85,20 +86,19 @@ final class NokiaSiteImporter
             throw new NokiaSiteImportException($errors);
         }
 
-        DB::transaction(function () use ($prepared): void {
-            foreach ($prepared as $item) {
-                $site = NokiaSite::query()->updateOrCreate(
-                    ['oc' => $item['data']['oc']],
-                    $item['data'],
-                );
+        $sites = DB::transaction(function () use ($prepared): array {
+            $created = [];
 
-                foreach ($item['tasks'] as $taskId => $completed) {
-                    $site->tasks()->syncWithoutDetaching([
-                        $taskId => ['completed_at' => $completed ? now() : null],
-                    ]);
-                }
+            foreach ($prepared as $data) {
+                $created[] = NokiaSite::query()->create($data);
             }
+
+            return $created;
         });
+
+        foreach ($sites as $site) {
+            NokiaSiteImported::dispatch($site);
+        }
 
         return count($prepared);
     }

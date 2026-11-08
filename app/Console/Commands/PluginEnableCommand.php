@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Plugins\Exceptions\PluginDependencyException;
 use App\Plugins\Exceptions\PluginNotFoundException;
 use App\Plugins\PluginMigrator;
 use App\Plugins\PluginRepository;
@@ -42,7 +43,13 @@ class PluginEnableCommand extends Command
             return self::SUCCESS;
         }
 
-        $plugin->enable();
+        try {
+            $plugin->enable();
+        } catch (PluginDependencyException $exception) {
+            $this->error($exception->getMessage());
+
+            return self::FAILURE;
+        }
 
         $plugins->clear();
 

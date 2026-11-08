@@ -241,6 +241,8 @@ class Plugin
      */
     public function enable(): void
     {
+        $this->app->make(PluginDependencies::class)->assertCanEnable($this);
+
         $this->app['events']->dispatch($this->eventName('enabling'), [$this]);
 
         $this->app->make(PluginActivator::class)->enable($this);
@@ -253,6 +255,8 @@ class Plugin
      */
     public function disable(): void
     {
+        $this->app->make(PluginDependencies::class)->assertCanDisable($this);
+
         $this->app['events']->dispatch($this->eventName('disabling'), [$this]);
 
         $this->app->make(PluginActivator::class)->disable($this);
