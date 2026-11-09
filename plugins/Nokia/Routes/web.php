@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use Plugins\Nokia\Http\Controllers\NokiaPendingExportController;
 use Plugins\Nokia\Http\Controllers\NokiaRomController;
 use Plugins\Nokia\Http\Controllers\NokiaSiteAttachmentController;
 use Plugins\Nokia\Http\Controllers\NokiaSiteCommentController;
@@ -17,6 +18,7 @@ Route::middleware('auth')
         Route::get('create', [NokiaSiteController::class, 'create'])->name('create');
         Route::post('/', [NokiaSiteController::class, 'store'])->name('store');
         Route::get('export', [NokiaSiteExportController::class, 'export'])->name('export');
+        Route::get('export/pending', [NokiaPendingExportController::class, 'export'])->name('export.pending');
         Route::get('import', [NokiaSiteImportController::class, 'create'])->name('import');
         Route::post('import', [NokiaSiteImportController::class, 'store'])->name('import.store');
         Route::get('import/template', [NokiaSiteImportController::class, 'template'])->name('import.template');

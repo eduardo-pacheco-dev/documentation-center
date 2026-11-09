@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Str;
 use Plugins\Nokia\Models\NokiaRom;
 use Plugins\Nokia\Models\NokiaSite;
+use Plugins\Nokia\Models\NokiaTask;
 use Plugins\Nokia\Providers\NokiaServiceProvider;
 use Plugins\Nokia\Support\NokiaDashboardMetrics;
 
@@ -217,5 +218,66 @@ test('the dashboard widget renders the nokia overview', function () {
         ->assertSee('Insights Governança')
         ->assertSee('ROM vs % Aceitação')
         ->assertSee('Últimos sites atualizados')
+        ->assertSee('Atividades e tarefas pendentes')
+        ->assertSee('Todos os sites')
+        ->assertSee('Exportar Excel')
+        ->assertSee(route('admin.nokia.sites.export'))
+        ->assertSee(route('admin.nokia.sites.export.pending'))
         ->assertSee('SPWIDGET9');
+});
+
+test('the dashboard lists every registered site including non integrated ones', function () {
+    NokiaSite::factory()->create([
+        'site_id' => 'SPINTEG02',
+        'integracao_real_at' => '2026-11-02',
+    ]);
+
+    NokiaSite::factory()->create([
+        'site_id' => 'SPNOINT02',
+        'integracao_real_at' => null,
+    ]);
+
+    $metrics = app(NokiaDashboardMetrics::class)->build();
+    $allSites = collect($metrics['allSites'])->keyBy('site_id');
+
+    expect($allSites)->toHaveCount(2)
+        ->and($metrics['totals']['sites'])->toBe(1)
+        ->and($allSites->get('SPINTEG02')['integrated'])->toBeTrue()
+        ->and($allSites->get('SPNOINT02')['integrated'])->toBeFalse();
+});
+
+test('the dashboard lists pending activities and tasks per site', function () {
+    $pendingTask = NokiaTask::query()->create(['name' => 'Validar projeto', 'position' => 1]);
+    $doneTask = NokiaTask::query()->create(['name' => 'Enviar documentação', 'position' => 2]);
+
+    $site = NokiaSite::factory()->create([
+        'site_id' => 'SPPEND01',
+        'checklist_fam_entrega' => false,
+        'checklist_fam_entrega_status' => NokiaSite::STATUS_PENDING,
+        'checklist_fam_instalacao' => false,
+        'checklist_fam_instalacao_status' => NokiaSite::STATUS_SENT,
+        'checklist_fam_panoramica' => false,
+        'checklist_fam_panoramica_status' => NokiaSite::STATUS_ANALYSIS,
+        'integracao_real_at' => '2026-11-02',
+    ]);
+
+    $site->tasks()->attach($pendingTask, ['completed_at' => null]);
+    $site->tasks()->attach($doneTask, ['completed_at' => now()]);
+
+    NokiaSite::factory()->completed()->create([
+        'site_id' => 'SPDONE01',
+        'checklist_fam_entrega_status' => NokiaSite::STATUS_SENT,
+        'checklist_fam_instalacao_status' => NokiaSite::STATUS_SENT,
+        'checklist_fam_panoramica_status' => NokiaSite::STATUS_SENT,
+        'integracao_real_at' => '2026-11-02',
+    ]);
+
+    $pending = collect(app(NokiaDashboardMetrics::class)->build()['pending']);
+
+    expect($pending)->toHaveCount(3)
+        ->and($pending->pluck('site_id')->unique()->all())->toBe(['SPPEND01'])
+        ->and($pending->where('kind', 'activity'))->toHaveCount(2)
+        ->and($pending->where('kind', 'task'))->toHaveCount(1)
+        ->and($pending->where('kind', 'task')->first()['description'])->toBe('Validar projeto')
+        ->and($pending->pluck('description')->all())->not->toContain('Enviar documentação');
 });
