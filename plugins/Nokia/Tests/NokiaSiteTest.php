@@ -559,6 +559,46 @@ test('administrators can manage tasks from the settings page', function () {
     expect(NokiaTask::query()->count())->toBe(0);
 });
 
+test('administrators can reorder the tasks', function () {
+    $admin = User::factory()->admin()->create();
+
+    $first = NokiaTask::query()->create(['name' => 'Primeira', 'position' => 1]);
+    $second = NokiaTask::query()->create(['name' => 'Segunda', 'position' => 2]);
+    $third = NokiaTask::query()->create(['name' => 'Terceira', 'position' => 3]);
+
+    $this->actingAs($admin)
+        ->patch(route('admin.nokia.settings.tasks.move', $third), ['direction' => 'up'])
+        ->assertRedirect(route('admin.nokia.settings.index'))
+        ->assertSessionHas('status');
+
+    expect($first->fresh()->position)->toBe(1)
+        ->and($third->fresh()->position)->toBe(2)
+        ->and($second->fresh()->position)->toBe(3);
+
+    $this->actingAs($admin)
+        ->patch(route('admin.nokia.settings.tasks.move', $first), ['direction' => 'down'])
+        ->assertRedirect(route('admin.nokia.settings.index'));
+
+    expect($third->fresh()->position)->toBe(1)
+        ->and($first->fresh()->position)->toBe(2)
+        ->and($second->fresh()->position)->toBe(3);
+
+    $this->actingAs($admin)
+        ->patch(route('admin.nokia.settings.tasks.move', $third), ['direction' => 'up'])
+        ->assertRedirect(route('admin.nokia.settings.index'));
+
+    expect($third->fresh()->position)->toBe(1);
+});
+
+test('the task reorder validates the direction', function () {
+    $admin = User::factory()->admin()->create();
+    $task = NokiaTask::query()->create(['name' => 'Primeira', 'position' => 1]);
+
+    $this->actingAs($admin)
+        ->patch(route('admin.nokia.settings.tasks.move', $task), ['direction' => 'sideways'])
+        ->assertSessionHasErrors('direction');
+});
+
 test('regular users cannot manage tasks', function () {
     $this->actingAs(User::factory()->create())
         ->post(route('admin.nokia.settings.tasks.store'), ['name' => 'Nova tarefa'])
@@ -1634,7 +1674,7 @@ test('the approval date does not override a later checklist status change', func
 
 test('importing approval dates marks the checklists as approved', function () {
     $csv = implode("\n", [
-        'Site ID;OC;FAM Entrega Aprovado;FAM InstalaÁ„o Aprovado;FAM Panor‚mica Aprovado',
+        'Site ID;OC;FAM Entrega Aprovado;FAM Instala√ß√£o Aprovado;FAM Panor√¢mica Aprovado',
         'SPAPPROV1;OC-APPROV1;01/02/2026;02/02/2026;03/02/2026',
     ]);
 
