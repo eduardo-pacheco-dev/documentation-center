@@ -150,6 +150,35 @@
                     <ul class="divide-y divide-gray-100 overflow-hidden rounded-2xl border border-gray-200/80 dark:divide-white/10 dark:border-white/10">
                         @foreach ($tasks as $task)
                             <li class="flex flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center">
+                                <form method="POST" action="{{ route('admin.nokia.settings.tasks.move', $task) }}" class="flex shrink-0 items-center gap-1">
+                                    @csrf
+                                    @method('PATCH')
+
+                                    <button
+                                        type="submit"
+                                        name="direction"
+                                        value="up"
+                                        @disabled($loop->first)
+                                        class="inline-flex h-7 w-7 items-center justify-center rounded-md text-gray-500 transition hover:bg-gray-100 hover:text-gray-900 disabled:cursor-not-allowed disabled:opacity-30 dark:text-gray-400 dark:hover:bg-white/10 dark:hover:text-white"
+                                        aria-label="Mover {{ $task->name }} para cima"
+                                        title="Mover para cima"
+                                    >
+                                        <x-icon name="chevron-up" class="h-4 w-4" />
+                                    </button>
+
+                                    <button
+                                        type="submit"
+                                        name="direction"
+                                        value="down"
+                                        @disabled($loop->last)
+                                        class="inline-flex h-7 w-7 items-center justify-center rounded-md text-gray-500 transition hover:bg-gray-100 hover:text-gray-900 disabled:cursor-not-allowed disabled:opacity-30 dark:text-gray-400 dark:hover:bg-white/10 dark:hover:text-white"
+                                        aria-label="Mover {{ $task->name }} para baixo"
+                                        title="Mover para baixo"
+                                    >
+                                        <x-icon name="chevron-down" class="h-4 w-4" />
+                                    </button>
+                                </form>
+
                                 <form method="POST" action="{{ route('admin.nokia.settings.tasks.update', $task) }}" class="flex min-w-0 flex-1 items-center gap-2">
                                     @csrf
                                     @method('PUT')

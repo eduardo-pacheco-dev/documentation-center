@@ -52,5 +52,6 @@ Route::middleware(['auth', 'admin'])
 
         Route::post('tasks', [NokiaTaskController::class, 'store'])->name('tasks.store');
         Route::put('tasks/{task}', [NokiaTaskController::class, 'update'])->name('tasks.update');
+        Route::patch('tasks/{task}/move', [NokiaTaskController::class, 'move'])->name('tasks.move');
         Route::delete('tasks/{task}', [NokiaTaskController::class, 'destroy'])->name('tasks.destroy');
     });
