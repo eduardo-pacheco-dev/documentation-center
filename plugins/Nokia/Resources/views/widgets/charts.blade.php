@@ -345,6 +345,68 @@
                     </table>
                 </div>
             </div>
+
+            {{-- All sites --}}
+            <div class="overflow-hidden rounded-2xl border border-gray-200/80 dark:border-white/10">
+                <div class="flex flex-wrap items-center justify-between gap-2 border-b border-gray-100 px-4 py-3 dark:border-white/10">
+                    <div>
+                        <h3 class="text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">Todos os sites</h3>
+                        <p class="mt-0.5 text-[10px] text-gray-400 dark:text-gray-500">Todos os sites cadastrados, incluindo os que ainda não têm integração real.</p>
+                    </div>
+                    <span class="text-[10px] font-medium text-gray-400 dark:text-gray-500">{{ count($allSites) }} site(s)</span>
+                </div>
+
+                <div class="max-h-[28rem] overflow-auto">
+                    <table class="min-w-full text-xs">
+                        <thead class="sticky top-0 z-10 bg-gray-50/95 text-[10px] uppercase tracking-wider text-gray-400 backdrop-blur dark:bg-[#1c1c1b]/95 dark:text-gray-500">
+                            <tr>
+                                <th class="whitespace-nowrap px-3 py-2 text-left font-semibold">Site ID</th>
+                                <th class="whitespace-nowrap px-3 py-2 text-left font-semibold">OC</th>
+                                <th class="whitespace-nowrap px-3 py-2 text-left font-semibold">Regional</th>
+                                <th class="whitespace-nowrap px-3 py-2 text-left font-semibold">Subcon</th>
+                                <th class="whitespace-nowrap px-3 py-2 text-left font-semibold">ROM</th>
+                                <th class="whitespace-nowrap px-3 py-2 text-left font-semibold">Status</th>
+                                <th class="whitespace-nowrap px-3 py-2 text-right font-semibold">Aging</th>
+                                <th class="whitespace-nowrap px-3 py-2 text-left font-semibold">MOS</th>
+                                <th class="whitespace-nowrap px-3 py-2 text-left font-semibold">Instalação</th>
+                                <th class="whitespace-nowrap px-3 py-2 text-left font-semibold">Integração</th>
+                                <th class="whitespace-nowrap px-3 py-2 text-left font-semibold">RFA</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-100 dark:divide-white/5">
+                            @forelse ($allSites as $site)
+                                <tr class="text-gray-600 dark:text-gray-300">
+                                    <td class="whitespace-nowrap px-3 py-2 font-medium text-gray-800 dark:text-gray-100">{{ $site['site_id'] }}</td>
+                                    <td class="whitespace-nowrap px-3 py-2">{{ $site['oc'] ?? '—' }}</td>
+                                    <td class="whitespace-nowrap px-3 py-2">{{ $site['regional'] ?? '—' }}</td>
+                                    <td class="whitespace-nowrap px-3 py-2">{{ $site['subcon'] ?? '—' }}</td>
+                                    <td class="whitespace-nowrap px-3 py-2">{{ $site['rom'] ?? '—' }}</td>
+                                    <td class="whitespace-nowrap px-3 py-2">
+                                        <span class="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] font-semibold text-white" style="background-color: {{ $site['status_color'] }};">
+                                            {{ $site['status_label'] }}
+                                        </span>
+                                    </td>
+                                    <td class="whitespace-nowrap px-3 py-2 text-right tabular-nums">{{ $site['aging'] }}d</td>
+                                    <td class="whitespace-nowrap px-3 py-2 tabular-nums">{{ $site['mos_real_at']?->format('d/m/y') ?? '—' }}</td>
+                                    <td class="whitespace-nowrap px-3 py-2 tabular-nums">{{ $site['instalacao_real_at']?->format('d/m/y') ?? '—' }}</td>
+                                    <td class="whitespace-nowrap px-3 py-2 tabular-nums">
+                                        @if ($site['integrated'])
+                                            {{ $site['integracao_real_at']?->format('d/m/y') ?? '—' }}
+                                        @else
+                                            <span class="inline-flex items-center rounded-md bg-gray-100 px-1.5 py-0.5 text-[10px] font-semibold text-gray-500 dark:bg-white/10 dark:text-gray-400">Não integrado</span>
+                                        @endif
+                                    </td>
+                                    <td class="whitespace-nowrap px-3 py-2 tabular-nums">{{ $site['rfa_real_at']?->format('d/m/y') ?? '—' }}</td>
+                                </tr>
+                            @empty
+                                <tr>
+                                    <td colspan="11" class="px-3 py-6 text-center text-xs text-gray-400 dark:text-gray-500">Nenhum site cadastrado.</td>
+                                </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         </div>
     @endif
 </section>

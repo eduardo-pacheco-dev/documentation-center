@@ -27,13 +27,13 @@ final class NokiaDashboardMetrics
      *     subcons: list<array<string, mixed>>,
      *     roms: list<array<string, mixed>>,
      *     sites: list<array<string, mixed>>,
+     *     allSites: list<array<string, mixed>>,
      *     insights: list<array{tone: string, text: string}>
      * }
      */
     public function build(): array
     {
-        $sites = NokiaSite::query()
-            ->whereNotNull('integracao_real_at')
+        $allSites = NokiaSite::query()
             ->with('rom')
             ->get([
                 'id',
@@ -59,11 +59,15 @@ final class NokiaDashboardMetrics
                 'updated_at',
             ]);
 
+        $sites = $allSites
+            ->whereNotNull('integracao_real_at')
+            ->values();
+
         $definitions = $this->statusDefinitions();
         $total = $sites->count();
 
         /** @var Collection<int, string> $statusBySite */
-        $statusBySite = $sites->mapWithKeys(
+        $statusBySite = $allSites->mapWithKeys(
             fn (NokiaSite $site): array => [$site->getKey() => $this->statusFor($site)],
         );
 
@@ -104,6 +108,7 @@ final class NokiaDashboardMetrics
             'subcons' => $subcons,
             'roms' => $this->roms($sites, $statusBySite),
             'sites' => $this->recentSites($sites, $statusBySite, $definitions),
+            'allSites' => $this->allSites($allSites, $statusBySite, $definitions),
             'insights' => $this->insights($sites, $statusBySite, $regional, $total),
         ];
     }
@@ -335,6 +340,42 @@ final class NokiaDashboardMetrics
                     'status' => $status,
                     'status_label' => $definitions[$status]['label'],
                     'status_color' => $definitions[$status]['color'],
+                ];
+            })
+            ->values()
+            ->all();
+    }
+
+    /**
+     * Every registered site, including the ones without a real integration date.
+     *
+     * @param  Collection<int, NokiaSite>  $sites
+     * @param  Collection<int, string>  $statusBySite
+     * @param  array<string, array{label: string, color: string, tone: string}>  $definitions
+     * @return list<array<string, mixed>>
+     */
+    private function allSites(Collection $sites, Collection $statusBySite, array $definitions): array
+    {
+        return $sites
+            ->sortBy(fn (NokiaSite $site): string => mb_strtoupper((string) $site->site_id))
+            ->map(function (NokiaSite $site) use ($statusBySite, $definitions): array {
+                $status = (string) $statusBySite->get($site->getKey());
+
+                return [
+                    'site_id' => $site->site_id,
+                    'oc' => $site->oc,
+                    'regional' => $site->regional,
+                    'subcon' => $site->subcon,
+                    'rom' => $site->rom?->fullName(),
+                    'status' => $status,
+                    'status_label' => $definitions[$status]['label'],
+                    'status_color' => $definitions[$status]['color'],
+                    'aging' => $this->daysSince($site),
+                    'integrated' => $site->integracao_real_at !== null,
+                    'mos_real_at' => $site->mos_real_at,
+                    'instalacao_real_at' => $site->instalacao_real_at,
+                    'integracao_real_at' => $site->integracao_real_at,
+                    'rfa_real_at' => $site->rfa_real_at,
                 ];
             })
             ->values()

@@ -217,5 +217,26 @@ test('the dashboard widget renders the nokia overview', function () {
         ->assertSee('Insights Governança')
         ->assertSee('ROM vs % Aceitação')
         ->assertSee('Últimos sites atualizados')
+        ->assertSee('Todos os sites')
         ->assertSee('SPWIDGET9');
+});
+
+test('the dashboard lists every registered site including non integrated ones', function () {
+    NokiaSite::factory()->create([
+        'site_id' => 'SPINTEG02',
+        'integracao_real_at' => '2026-11-02',
+    ]);
+
+    NokiaSite::factory()->create([
+        'site_id' => 'SPNOINT02',
+        'integracao_real_at' => null,
+    ]);
+
+    $metrics = app(NokiaDashboardMetrics::class)->build();
+    $allSites = collect($metrics['allSites'])->keyBy('site_id');
+
+    expect($allSites)->toHaveCount(2)
+        ->and($metrics['totals']['sites'])->toBe(1)
+        ->and($allSites->get('SPINTEG02')['integrated'])->toBeTrue()
+        ->and($allSites->get('SPNOINT02')['integrated'])->toBeFalse();
 });
