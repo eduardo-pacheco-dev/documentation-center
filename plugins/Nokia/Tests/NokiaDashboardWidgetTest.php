@@ -74,13 +74,13 @@ test('the dashboard metrics split the sites into acceptance buckets', function (
     NokiaSite::factory()->create([
         ...$base,
         'site_id' => 'SPNOOSM01',
-        'os_fam_instalacao' => null,
+        'os_fam_entrega' => null,
     ]);
 
     NokiaSite::factory()->create([
         ...$base,
         'site_id' => 'SPPENDIN1',
-        'os_fam_instalacao' => 'OS-I-00001',
+        'os_fam_entrega' => 'OS-E-00001',
     ]);
 
     $metrics = app(NokiaDashboardMetrics::class)->build();

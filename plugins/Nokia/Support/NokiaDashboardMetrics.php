@@ -127,7 +127,8 @@ final class NokiaDashboardMetrics
      * The mutually exclusive bucket of the site, based on the FAM Instalação.
      *
      * "Primeiro Envio" are the sites whose FAM Instalação was not sent to the
-     * TIM analysis yet (status pending) and that already have an installation OS.
+     * TIM analysis yet (status pending) and that already have a FAM Entrega OS.
+     * Sites without that OS are grouped as "Sem OS MOS".
      */
     private function statusFor(NokiaSite $site): string
     {
@@ -145,7 +146,7 @@ final class NokiaDashboardMetrics
             return 'analysis';
         }
 
-        return blank($site->os_fam_instalacao) ? 'no_os' : 'first_send';
+        return blank($site->os_fam_entrega) ? 'no_os' : 'first_send';
     }
 
     /**
@@ -394,7 +395,7 @@ final class NokiaDashboardMetrics
         if ($noOs > 0) {
             $insights[] = [
                 'tone' => 'warning',
-                'text' => sprintf('%d site(s) sem OS de instalação (MOS) cadastrada.', $noOs),
+                'text' => sprintf('%d site(s) sem OS de FAM de Entrega (MOS) cadastrada.', $noOs),
             ];
         }
 
