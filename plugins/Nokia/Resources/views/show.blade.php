@@ -12,6 +12,7 @@
 
         $tasks = $tasks ?? collect();
         $completedTaskIds = $completedTaskIds ?? [];
+        $comments = $comments ?? collect();
         $taskTotal = $tasks->count();
         $taskDone = $tasks->filter(fn ($task): bool => in_array($task->getKey(), $completedTaskIds, true))->count();
         $taskPercent = $taskTotal > 0 ? (int) round(($taskDone / $taskTotal) * 100) : 0;
@@ -684,6 +685,114 @@
                             </form>
                         </div>
                     @endforeach
+                </section>
+
+                <section id="comentarios" class="scroll-mt-24 rounded-3xl border border-gray-200/80 bg-white p-5 sm:p-6 dark:border-white/10 dark:bg-[#171716]">
+                    <div class="flex flex-wrap items-start justify-between gap-3">
+                        <div class="flex items-start gap-3">
+                            <span class="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-400">
+                                <x-icon name="chat-bubble-oval-left-ellipsis" class="h-5 w-5" />
+                            </span>
+
+                            <div>
+                                <h2 class="text-sm font-semibold tracking-tight text-gray-900 dark:text-white">Comentários</h2>
+                                <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Observações e alinhamentos da equipe sobre este site.</p>
+                            </div>
+                        </div>
+
+                        <x-ui.badge :tone="$comments->isNotEmpty() ? 'indigo' : 'gray'">
+                            {{ $comments->count() }} {{ $comments->count() === 1 ? 'comentário' : 'comentários' }}
+                        </x-ui.badge>
+                    </div>
+
+                    <form
+                        method="POST"
+                        action="{{ route('admin.nokia.sites.comments.store', $site) }}"
+                        class="mt-5"
+                        x-data="{ count: {{ mb_strlen((string) old('body', '')) }} }"
+                    >
+                        @csrf
+
+                        <div class="flex gap-3">
+                            <x-ui.avatar :name="auth()->user()->full_name" class="mt-0.5" />
+
+                            <div class="min-w-0 flex-1">
+                                <label for="comment-body" class="sr-only">Comentário</label>
+
+                                <textarea
+                                    id="comment-body"
+                                    name="body"
+                                    rows="3"
+                                    maxlength="2000"
+                                    required
+                                    placeholder="Escreva um comentário sobre o site..."
+                                    x-on:input="count = $event.target.value.length"
+                                    class="block w-full rounded-xl border border-gray-300 bg-gray-50 px-3 py-2.5 text-sm text-gray-900 transition placeholder:text-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100 dark:placeholder:text-gray-500"
+                                >{{ old('body') }}</textarea>
+
+                                @error('body')
+                                    <x-ui.field-error class="mt-2">{{ $message }}</x-ui.field-error>
+                                @enderror
+
+                                <div class="mt-2 flex flex-wrap items-center justify-between gap-2">
+                                    <p class="text-[11px] text-gray-400 dark:text-gray-500">
+                                        <span x-text="count"></span>/2000 caracteres
+                                    </p>
+
+                                    <x-ui.action type="submit" icon="paper-airplane" size="sm">
+                                        Comentar
+                                    </x-ui.action>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+
+                    <div class="mt-6 border-t border-gray-100 pt-2 dark:border-white/10">
+                        @forelse ($comments as $comment)
+                            <article class="flex gap-3 border-b border-gray-100 py-4 last:border-b-0 dark:border-white/10">
+                                <x-ui.avatar :name="$comment->user?->full_name ?? 'Usuário removido'" />
+
+                                <div class="min-w-0 flex-1">
+                                    <div class="flex flex-wrap items-center gap-x-2 gap-y-1">
+                                        <p class="text-sm font-semibold text-gray-900 dark:text-white">{{ $comment->user?->full_name ?? 'Usuário removido' }}</p>
+
+                                        @if ($comment->user_id === auth()->id())
+                                            <x-ui.badge tone="indigo">Você</x-ui.badge>
+                                        @endif
+
+                                        <span class="text-xs text-gray-400 dark:text-gray-500" aria-hidden="true">·</span>
+                                        <x-relative-time :value="$comment->created_at" class="text-xs text-gray-400 dark:text-gray-500" />
+                                    </div>
+
+                                    <p class="mt-1.5 whitespace-pre-line break-words text-sm text-gray-700 dark:text-gray-200">{{ $comment->body }}</p>
+
+                                    @if (auth()->user()?->is_admin || $comment->user_id === auth()->id())
+                                        <form
+                                            method="POST"
+                                            action="{{ route('admin.nokia.sites.comments.destroy', [$site, $comment]) }}"
+                                            data-confirm-delete="Remover este comentário? Essa ação não pode ser desfeita."
+                                            class="mt-2"
+                                        >
+                                            @csrf
+                                            @method('DELETE')
+
+                                            <button type="submit" class="inline-flex items-center gap-1 text-xs font-semibold text-red-500 transition hover:text-red-600 dark:text-red-400 dark:hover:text-red-300">
+                                                <x-icon name="trash" class="h-3.5 w-3.5" />
+                                                Remover
+                                            </button>
+                                        </form>
+                                    @endif
+                                </div>
+                            </article>
+                        @empty
+                            <x-ui.empty-state
+                                icon="chat-bubble-oval-left-ellipsis"
+                                title="Nenhum comentário ainda"
+                                description="Use o campo acima para registrar a primeira observação sobre este site."
+                                tone="indigo"
+                            />
+                        @endforelse
+                    </div>
                 </section>
             </div>
 

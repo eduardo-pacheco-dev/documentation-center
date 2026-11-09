@@ -84,7 +84,7 @@ class NokiaSiteController extends Controller
      */
     public function show(NokiaSite $site): View
     {
-        $site->load(['attachments', 'rom', 'rejections']);
+        $site->load(['attachments', 'rom', 'rejections', 'comments.user']);
 
         $tasks = NokiaTask::query()
             ->orderBy('position')
@@ -112,6 +112,7 @@ class NokiaSiteController extends Controller
             'roms' => $this->roms(),
             'tasks' => $tasks,
             'completedTaskIds' => $completedTaskIds,
+            'comments' => $site->comments,
         ]);
     }
 
