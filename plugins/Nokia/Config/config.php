@@ -33,6 +33,8 @@ return [
         ['name' => 'oc', 'label' => 'OC', 'required' => false, 'placeholder' => 'OC-1234'],
         ['name' => 'os_fam_entrega', 'label' => 'OS FAM Entrega', 'required' => false, 'placeholder' => 'OS-E-12345'],
         ['name' => 'os_fam_instalacao', 'label' => 'OS FAM Instalação', 'required' => false, 'placeholder' => 'OS-I-12345'],
+        ['name' => 'regional', 'label' => 'Regional', 'required' => false, 'placeholder' => 'TNO'],
+        ['name' => 'subcon', 'label' => 'Subcon', 'required' => false, 'placeholder' => 'AFL'],
     ],
 
 ];

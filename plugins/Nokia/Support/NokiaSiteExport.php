@@ -146,6 +146,8 @@ final class NokiaSiteExport
             ['label' => 'ROM', 'width' => 24, 'value' => fn (NokiaSite $site): ?string => $site->rom?->fullName()],
             ['label' => 'OS FAM Entrega', 'width' => 20, 'value' => fn (NokiaSite $site): ?string => $site->os_fam_entrega],
             ['label' => 'OS FAM Instalação', 'width' => 20, 'value' => fn (NokiaSite $site): ?string => $site->os_fam_instalacao],
+            ['label' => 'Regional', 'width' => 16, 'value' => fn (NokiaSite $site): ?string => $site->regional],
+            ['label' => 'Subcon', 'width' => 16, 'value' => fn (NokiaSite $site): ?string => $site->subcon],
         ];
 
         foreach ($checklists as $field => $label) {

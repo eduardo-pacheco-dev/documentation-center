@@ -50,6 +50,9 @@ class NokiaSiteSeeder extends Seeder
                 $row['nokia_rom_id'] = $romIds[$index % count($romIds)];
             }
 
+            $row['regional'] = ['TNO', 'TCO'][$index % 2];
+            $row['subcon'] = ['AFL', 'TNO'][$index % 2];
+
             $site = NokiaSite::query()->updateOrCreate(
                 ['site_id' => $row['site_id']],
                 $row,
