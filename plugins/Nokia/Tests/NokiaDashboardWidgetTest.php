@@ -218,6 +218,8 @@ test('the dashboard widget renders the nokia overview', function () {
         ->assertSee('ROM vs % Aceitação')
         ->assertSee('Últimos sites atualizados')
         ->assertSee('Todos os sites')
+        ->assertSee('Exportar Excel')
+        ->assertSee(route('admin.nokia.sites.export'))
         ->assertSee('SPWIDGET9');
 });
 

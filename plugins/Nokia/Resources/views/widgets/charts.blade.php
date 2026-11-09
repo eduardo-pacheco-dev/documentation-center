@@ -353,7 +353,16 @@
                         <h3 class="text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">Todos os sites</h3>
                         <p class="mt-0.5 text-[10px] text-gray-400 dark:text-gray-500">Todos os sites cadastrados, incluindo os que ainda não têm integração real.</p>
                     </div>
-                    <span class="text-[10px] font-medium text-gray-400 dark:text-gray-500">{{ count($allSites) }} site(s)</span>
+                    <div class="flex items-center gap-3">
+                        <span class="text-[10px] font-medium text-gray-400 dark:text-gray-500">{{ count($allSites) }} site(s)</span>
+                        <a
+                            href="{{ route('admin.nokia.sites.export') }}"
+                            class="inline-flex items-center gap-1.5 rounded-lg bg-indigo-600 px-2.5 py-1.5 text-[11px] font-semibold text-white transition hover:bg-indigo-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#171716]"
+                        >
+                            <x-icon name="arrow-down-tray" class="h-3.5 w-3.5" />
+                            Exportar Excel
+                        </a>
+                    </div>
                 </div>
 
                 <div class="max-h-[28rem] overflow-auto">
