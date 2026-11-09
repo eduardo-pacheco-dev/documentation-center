@@ -42,6 +42,11 @@
 
     $maxAging = max(1, collect($aging)->max('count'));
 
+    $pendingItems = collect($pending ?? []);
+    $pendingSites = $pendingItems->pluck('site_id')->unique();
+    $pendingActivities = $pendingItems->where('kind', 'activity')->count();
+    $pendingTasks = $pendingItems->where('kind', 'task')->count();
+
     $gaugeLength = 125.6;
     $acceptanceOffset = $gaugeLength * (1 - min(100, $totals['acceptance']) / 100);
     $projectedOffset = $gaugeLength * (1 - min(100, $totals['projected']) / 100);
@@ -66,7 +71,7 @@
         </a>
     </div>
 
-    @if ($totals['sites'] === 0)
+    @if (count($allSites) === 0)
         <div class="flex flex-1 items-center justify-center px-5 py-10 text-center">
             <div>
                 <span class="mx-auto inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-gray-50 text-gray-400 dark:bg-white/5 dark:text-gray-500">
@@ -341,6 +346,80 @@
                                     </td>
                                 </tr>
                             @endforeach
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            {{-- Pending activities and tasks --}}
+            <div class="overflow-hidden rounded-2xl border border-gray-200/80 dark:border-white/10">
+                <div class="flex flex-wrap items-center justify-between gap-2 border-b border-gray-100 px-4 py-3 dark:border-white/10">
+                    <div>
+                        <h3 class="text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">Atividades e tarefas pendentes</h3>
+                        <p class="mt-0.5 text-[10px] text-gray-400 dark:text-gray-500">Uma linha por atividade de checklist ou tarefa operacional ainda não concluída, ordenadas pelo aging.</p>
+                    </div>
+                    <div class="flex flex-wrap items-center gap-3">
+                        <div class="flex flex-wrap items-center gap-2 text-[10px] font-medium text-gray-400 dark:text-gray-500">
+                            <span>{{ $pendingSites->count() }} site(s)</span>
+                            <span>·</span>
+                            <span>{{ $pendingActivities }} atividade(s)</span>
+                            <span>·</span>
+                            <span>{{ $pendingTasks }} tarefa(s)</span>
+                        </div>
+
+                        <a
+                            href="{{ route('admin.nokia.sites.export.pending') }}"
+                            class="inline-flex items-center gap-1.5 rounded-lg bg-indigo-600 px-2.5 py-1.5 text-[11px] font-semibold text-white transition hover:bg-indigo-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#171716]"
+                        >
+                            <x-icon name="arrow-down-tray" class="h-3.5 w-3.5" />
+                            Exportar Excel
+                        </a>
+                    </div>
+                </div>
+
+                <div class="max-h-[26rem] overflow-auto">
+                    <table class="min-w-full text-xs">
+                        <thead class="sticky top-0 z-10 bg-gray-50/95 text-[10px] uppercase tracking-wider text-gray-400 backdrop-blur dark:bg-[#1c1c1b]/95 dark:text-gray-500">
+                            <tr>
+                                <th class="whitespace-nowrap px-3 py-2 text-left font-semibold">Site ID</th>
+                                <th class="whitespace-nowrap px-3 py-2 text-left font-semibold">OC</th>
+                                <th class="whitespace-nowrap px-3 py-2 text-left font-semibold">Regional</th>
+                                <th class="whitespace-nowrap px-3 py-2 text-left font-semibold">Subcon</th>
+                                <th class="whitespace-nowrap px-3 py-2 text-left font-semibold">Status</th>
+                                <th class="whitespace-nowrap px-3 py-2 text-left font-semibold">Tipo</th>
+                                <th class="whitespace-nowrap px-3 py-2 text-left font-semibold">Pendência</th>
+                                <th class="whitespace-nowrap px-3 py-2 text-left font-semibold">Situação</th>
+                                <th class="whitespace-nowrap px-3 py-2 text-right font-semibold">Aging</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-100 dark:divide-white/5">
+                            @forelse ($pendingItems as $item)
+                                <tr class="text-gray-600 dark:text-gray-300">
+                                    <td class="whitespace-nowrap px-3 py-2 font-medium text-gray-800 dark:text-gray-100">{{ $item['site_id'] }}</td>
+                                    <td class="whitespace-nowrap px-3 py-2">{{ $item['oc'] ?? '—' }}</td>
+                                    <td class="whitespace-nowrap px-3 py-2">{{ $item['regional'] ?? '—' }}</td>
+                                    <td class="whitespace-nowrap px-3 py-2">{{ $item['subcon'] ?? '—' }}</td>
+                                    <td class="whitespace-nowrap px-3 py-2">
+                                        <span class="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] font-semibold text-white" style="background-color: {{ $item['status_color'] }};">
+                                            {{ $item['status_label'] }}
+                                        </span>
+                                    </td>
+                                    <td class="whitespace-nowrap px-3 py-2">
+                                        <span @class([
+                                            'inline-flex items-center rounded-md px-1.5 py-0.5 text-[10px] font-semibold',
+                                            'bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:text-amber-300' => $item['kind'] === 'activity',
+                                            'bg-indigo-50 text-indigo-700 dark:bg-indigo-500/10 dark:text-indigo-300' => $item['kind'] === 'task',
+                                        ])>{{ $item['kind_label'] }}</span>
+                                    </td>
+                                    <td class="px-3 py-2 font-medium text-gray-700 dark:text-gray-200">{{ $item['description'] }}</td>
+                                    <td class="whitespace-nowrap px-3 py-2">{{ $item['detail'] ?? '—' }}</td>
+                                    <td class="whitespace-nowrap px-3 py-2 text-right tabular-nums">{{ $item['aging'] }}d</td>
+                                </tr>
+                            @empty
+                                <tr>
+                                    <td colspan="9" class="px-3 py-6 text-center text-xs text-gray-400 dark:text-gray-500">Nenhuma atividade ou tarefa pendente.</td>
+                                </tr>
+                            @endforelse
                         </tbody>
                     </table>
                 </div>

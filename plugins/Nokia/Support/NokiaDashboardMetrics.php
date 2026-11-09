@@ -28,13 +28,14 @@ final class NokiaDashboardMetrics
      *     roms: list<array<string, mixed>>,
      *     sites: list<array<string, mixed>>,
      *     allSites: list<array<string, mixed>>,
+     *     pending: list<array<string, mixed>>,
      *     insights: list<array{tone: string, text: string}>
      * }
      */
     public function build(): array
     {
         $allSites = NokiaSite::query()
-            ->with('rom')
+            ->with(['rom', 'tasks'])
             ->get([
                 'id',
                 'site_id',
@@ -109,6 +110,7 @@ final class NokiaDashboardMetrics
             'roms' => $this->roms($sites, $statusBySite),
             'sites' => $this->recentSites($sites, $statusBySite, $definitions),
             'allSites' => $this->allSites($allSites, $statusBySite, $definitions),
+            'pending' => $this->pending($allSites, $statusBySite, $definitions),
             'insights' => $this->insights($sites, $statusBySite, $regional, $total),
         ];
     }
@@ -378,6 +380,78 @@ final class NokiaDashboardMetrics
                     'rfa_real_at' => $site->rfa_real_at,
                 ];
             })
+            ->values()
+            ->all();
+    }
+
+    /**
+     * The pending checklist activities and tasks, one entry per pending item.
+     *
+     * Each entry carries the site it belongs to, so the widget can render one
+     * row per pending activity or task. Entries are ordered from the oldest
+     * site to the newest one.
+     *
+     * @param  Collection<int, NokiaSite>  $sites
+     * @param  Collection<int, string>  $statusBySite
+     * @param  array<string, array{label: string, color: string, tone: string}>  $definitions
+     * @return list<array<string, mixed>>
+     */
+    private function pending(Collection $sites, Collection $statusBySite, array $definitions): array
+    {
+        $checklists = config('nokia.checklists', []);
+        $entries = [];
+
+        foreach ($sites as $site) {
+            $status = (string) $statusBySite->get($site->getKey());
+
+            $base = [
+                'site_id' => $site->site_id,
+                'oc' => $site->oc,
+                'regional' => $site->regional,
+                'subcon' => $site->subcon,
+                'rom' => $site->rom?->fullName(),
+                'status' => $status,
+                'status_label' => $definitions[$status]['label'],
+                'status_color' => $definitions[$status]['color'],
+                'aging' => $this->daysSince($site),
+            ];
+
+            foreach ($checklists as $field => $label) {
+                if ($site->checklistStatus($field) === NokiaSite::STATUS_SENT) {
+                    continue;
+                }
+
+                $entries[] = [
+                    ...$base,
+                    'kind' => 'activity',
+                    'kind_label' => 'Atividade',
+                    'description' => $label,
+                    'detail' => $site->checklistStatusLabel($field),
+                ];
+            }
+
+            foreach ($site->tasks as $task) {
+                if ($task->pivot?->completed_at !== null) {
+                    continue;
+                }
+
+                $entries[] = [
+                    ...$base,
+                    'kind' => 'task',
+                    'kind_label' => 'Tarefa',
+                    'description' => $task->name,
+                    'detail' => null,
+                ];
+            }
+        }
+
+        return collect($entries)
+            ->sortBy([
+                fn (array $left, array $right): int => $right['aging'] <=> $left['aging'],
+                fn (array $left, array $right): int => $left['site_id'] <=> $right['site_id'],
+                fn (array $left, array $right): int => $left['kind'] === $right['kind'] ? 0 : ($left['kind'] === 'activity' ? -1 : 1),
+                fn (array $left, array $right): int => $left['description'] <=> $right['description'],
+            ])
             ->values()
             ->all();
     }

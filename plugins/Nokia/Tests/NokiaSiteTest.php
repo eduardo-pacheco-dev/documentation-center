@@ -23,6 +23,7 @@ use Plugins\Nokia\Models\NokiaSiteComment;
 use Plugins\Nokia\Models\NokiaSiteRejection;
 use Plugins\Nokia\Models\NokiaTask;
 use Plugins\Nokia\Providers\NokiaServiceProvider;
+use Plugins\Nokia\Support\NokiaPendingExport;
 use Plugins\Nokia\Support\NokiaSiteExport;
 
 uses(RefreshDatabase::class);
@@ -1088,6 +1089,51 @@ test('the excel export respects the search filter', function () {
     expect($text)
         ->toContain('SPALPHA1')
         ->not->toContain('SPBETA2');
+
+    $spreadsheet->disconnectWorksheets();
+    @unlink($path);
+});
+
+test('pending activities and tasks can be exported to excel', function () {
+    $task = NokiaTask::query()->create(['name' => 'Validar documentação', 'position' => 1]);
+
+    $site = NokiaSite::factory()->create([
+        'site_id' => 'SPPENDEX1',
+        'oc' => 'OC-9999',
+        'checklist_fam_entrega' => false,
+        'checklist_fam_entrega_status' => NokiaSite::STATUS_PENDING,
+        'checklist_fam_instalacao' => false,
+        'checklist_fam_instalacao_status' => NokiaSite::STATUS_SENT,
+        'checklist_fam_panoramica' => false,
+        'checklist_fam_panoramica_status' => NokiaSite::STATUS_SENT,
+    ]);
+
+    $site->tasks()->attach($task, ['completed_at' => null]);
+
+    $fileName = app(NokiaPendingExport::class)->fileName();
+
+    $response = $this->actingAs(User::factory()->create())
+        ->get(route('admin.nokia.sites.export.pending'))
+        ->assertOk()
+        ->assertDownload($fileName);
+
+    $path = sys_get_temp_dir().'/nokia-pending-export-'.Str::random(8).'.xlsx';
+    file_put_contents($path, $response->streamedContent());
+
+    $spreadsheet = IOFactory::load($path);
+    $sheet = $spreadsheet->getSheet(0);
+    $text = collect($sheet->toArray())->flatten()->filter()->implode(' | ');
+
+    expect($sheet->getTitle())->toBe('Pendências')
+        ->and($sheet->getCell('A1')->getValue())->toBe('Site ID')
+        ->and($sheet->getCell('G1')->getValue())->toBe('Tipo')
+        ->and($text)
+        ->toContain('SPPENDEX1')
+        ->toContain('OC-9999')
+        ->toContain('Atividade')
+        ->toContain('FAM Entrega')
+        ->toContain('Tarefa')
+        ->toContain('Validar documentação');
 
     $spreadsheet->disconnectWorksheets();
     @unlink($path);
