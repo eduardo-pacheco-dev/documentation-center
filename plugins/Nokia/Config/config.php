@@ -27,6 +27,12 @@ return [
     |
     */
 
+    'import' => [
+        'memory_limit' => '512M',
+        'max_rows' => 1000,
+        'max_columns' => 100,
+    ],
+
     'fields' => [
         ['name' => 'site_id', 'label' => 'Site ID', 'required' => true, 'placeholder' => 'SPABC123'],
         ['name' => 'end_id', 'label' => 'End ID', 'required' => false, 'placeholder' => 'END-12345'],

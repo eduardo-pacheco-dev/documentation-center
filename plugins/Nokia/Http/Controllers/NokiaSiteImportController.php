@@ -13,6 +13,7 @@ use PhpOffice\PhpSpreadsheet\Style\Fill;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use Plugins\Nokia\Http\Requests\StoreNokiaSiteImportRequest;
+use Plugins\Nokia\Models\NokiaRom;
 use Plugins\Nokia\Models\NokiaTask;
 use Plugins\Nokia\Support\NokiaSiteImporter;
 use Plugins\Nokia\Support\NokiaSiteImportException;
@@ -73,6 +74,7 @@ class NokiaSiteImportController extends Controller
             'Site ID *',
             'End ID',
             'OC *',
+            'ROM',
             'OS FAM Entrega',
             'OS FAM Instalação',
             'Regional',
@@ -124,6 +126,7 @@ class NokiaSiteImportController extends Controller
             'Site ID *' => 'SPEXEMPLO01',
             'End ID' => 'END-00001',
             'OC *' => 'OC-0001',
+            'ROM' => NokiaRom::query()->orderBy('first_name')->orderBy('last_name')->first()?->fullName() ?? 'Nome do ROM',
             'OS FAM Entrega' => 'OS-E-00001',
             'OS FAM Instalação' => 'OS-I-00001',
             'Regional' => 'TNO',
@@ -158,6 +161,7 @@ class NokiaSiteImportController extends Controller
             'Preencha a aba "Sites" a partir da linha 2. A linha 1 contém os nomes das colunas.',
             'A aba "Exemplo" mostra uma linha preenchida apenas como referência; ela não é importada.',
             'As colunas "Site ID" e "OC" são obrigatórias.',
+            'A coluna "ROM" deve conter o nome completo de um ROM já cadastrado em Configurações Nokia.',
             'No checklist e nas colunas "Tarefa - ...", use Sim ou Não (também aceito: 1/0, x).',
             'Nas colunas de data, use dd/mm/aaaa (também aceito: aaaa-mm-dd). Deixe vazio para limpar a data.',
             'Sites com um OC já cadastrado são atualizados com os dados da planilha.',
