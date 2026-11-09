@@ -314,10 +314,10 @@
                                 <th class="px-3 py-2 text-left font-semibold">OS MOS</th>
                                 <th class="px-3 py-2 text-left font-semibold">OS INST</th>
                                 <th class="px-3 py-2 text-left font-semibold">Site ID</th>
-                                <th class="px-3 py-2 text-left font-semibold">Sub TI</th>
                                 <th class="px-3 py-2 text-left font-semibold">ROM</th>
                                 <th class="px-3 py-2 text-left font-semibold">MOS</th>
                                 <th class="px-3 py-2 text-left font-semibold">Inst.</th>
+                                <th class="px-3 py-2 text-left font-semibold">Integração</th>
                                 <th class="px-3 py-2 text-left font-semibold">RFA</th>
                                 <th class="px-3 py-2 text-left font-semibold">Status</th>
                             </tr>
@@ -329,10 +329,10 @@
                                     <td class="whitespace-nowrap px-3 py-2">{{ $site['os_entrega'] ?? '—' }}</td>
                                     <td class="whitespace-nowrap px-3 py-2">{{ $site['os_instalacao'] ?? '—' }}</td>
                                     <td class="whitespace-nowrap px-3 py-2">{{ $site['site_id'] }}</td>
-                                    <td class="whitespace-nowrap px-3 py-2">{{ $site['subcon'] ?? '—' }}</td>
                                     <td class="whitespace-nowrap px-3 py-2">{{ $site['rom'] ?? '—' }}</td>
                                     <td class="whitespace-nowrap px-3 py-2 tabular-nums">{{ $site['mos_real_at']?->format('d/m/y') ?? '—' }}</td>
                                     <td class="whitespace-nowrap px-3 py-2 tabular-nums">{{ $site['instalacao_real_at']?->format('d/m/y') ?? '—' }}</td>
+                                    <td class="whitespace-nowrap px-3 py-2 tabular-nums">{{ $site['integracao_real_at']?->format('d/m/y') ?? '—' }}</td>
                                     <td class="whitespace-nowrap px-3 py-2 tabular-nums">{{ $site['rfa_real_at']?->format('d/m/y') ?? '—' }}</td>
                                     <td class="whitespace-nowrap px-3 py-2">
                                         <span class="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] font-semibold text-white" style="background-color: {{ $site['status_color'] }};">
