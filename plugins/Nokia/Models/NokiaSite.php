@@ -65,6 +65,17 @@ class NokiaSite extends Model
     ];
 
     /**
+     * The approval date of each checklist item.
+     *
+     * @var array<string, string>
+     */
+    public const APPROVAL_CHECKLISTS = [
+        'fam_entrega_approved_at' => 'checklist_fam_entrega',
+        'fam_instalacao_approved_at' => 'checklist_fam_instalacao',
+        'fam_panoramica_approved_at' => 'checklist_fam_panoramica',
+    ];
+
+    /**
      * The date fields tracked for a site.
      *
      * @var list<string>
@@ -217,6 +228,17 @@ class NokiaSite extends Model
      */
     protected static function booted(): void
     {
+        static::saving(function (NokiaSite $site): void {
+            foreach (self::APPROVAL_CHECKLISTS as $dateField => $checklistField) {
+                if (! $site->isDirty($dateField) || $site->{$dateField} === null) {
+                    continue;
+                }
+
+                $site->{$checklistField} = true;
+                $site->{$checklistField.'_status'} = self::STATUS_SENT;
+            }
+        });
+
         static::deleting(function (NokiaSite $site): void {
             $site->attachments()->get()->each->delete();
         });
