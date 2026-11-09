@@ -44,6 +44,7 @@ test('the dashboard metrics split the sites into acceptance buckets', function (
         'checklist_fam_entrega_status' => NokiaSite::STATUS_PENDING,
         'checklist_fam_instalacao_status' => NokiaSite::STATUS_PENDING,
         'checklist_fam_panoramica_status' => NokiaSite::STATUS_PENDING,
+        'integracao_real_at' => '2026-11-02',
     ];
 
     NokiaSite::factory()->create([
@@ -107,6 +108,7 @@ test('a FAM instalação only counts as accepted after approval', function () {
         'checklist_fam_instalacao_status' => NokiaSite::STATUS_SENT,
         'checklist_fam_panoramica_status' => NokiaSite::STATUS_PENDING,
         'os_fam_entrega' => 'OS-E-00001',
+        'integracao_real_at' => '2026-11-02',
     ];
 
     NokiaSite::factory()->create([
@@ -127,6 +129,22 @@ test('a FAM instalação only counts as accepted after approval', function () {
         ->and($metrics['totals']['first_send'])->toBe(1);
 });
 
+test('the dashboard metrics ignore sites without a real integration date', function () {
+    NokiaSite::factory()->create([
+        'site_id' => 'SPINTEG01',
+        'integracao_real_at' => '2026-11-02',
+    ]);
+
+    NokiaSite::factory()->create([
+        'site_id' => 'SPNOINT01',
+        'integracao_real_at' => null,
+    ]);
+
+    $metrics = app(NokiaDashboardMetrics::class)->build();
+
+    expect($metrics['totals']['sites'])->toBe(1);
+});
+
 test('the dashboard metrics group the acceptance by regional, subcon and ROM', function () {
     $rom = NokiaRom::factory()->create([
         'first_name' => 'Ana',
@@ -140,6 +158,7 @@ test('the dashboard metrics group the acceptance by regional, subcon and ROM', f
         'checklist_fam_instalacao' => true,
         'checklist_fam_instalacao_status' => NokiaSite::STATUS_SENT,
         'fam_instalacao_approved_at' => '2026-11-01',
+        'integracao_real_at' => '2026-11-02',
     ]);
 
     NokiaSite::factory()->create([
@@ -148,12 +167,14 @@ test('the dashboard metrics group the acceptance by regional, subcon and ROM', f
         'nokia_rom_id' => $rom->getKey(),
         'checklist_fam_instalacao' => false,
         'checklist_fam_instalacao_status' => NokiaSite::STATUS_PENDING,
+        'integracao_real_at' => '2026-11-02',
     ]);
 
     NokiaSite::factory()->create([
         'regional' => 'TCO',
         'subcon' => 'TNO',
         'nokia_rom_id' => null,
+        'integracao_real_at' => '2026-11-02',
     ]);
 
     $metrics = app(NokiaDashboardMetrics::class)->build();
@@ -183,6 +204,7 @@ test('the dashboard widget renders the nokia overview', function () {
         'site_id' => 'SPWIDGET9',
         'regional' => 'TNO',
         'subcon' => 'AFL',
+        'integracao_real_at' => '2026-11-02',
     ]);
 
     $this->actingAs(User::factory()->create())

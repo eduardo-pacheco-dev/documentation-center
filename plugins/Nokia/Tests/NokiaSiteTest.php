@@ -218,8 +218,14 @@ test('the create modal reopens when validation fails', function () {
 });
 
 test('the nokia charts widget appears on the dashboard', function () {
-    NokiaSite::factory()->completed()->create(['site_id' => 'SPWIDGET1']);
-    NokiaSite::factory()->create(['site_id' => 'SPWIDGET2']);
+    NokiaSite::factory()->completed()->create([
+        'site_id' => 'SPWIDGET1',
+        'integracao_real_at' => '2026-11-02',
+    ]);
+    NokiaSite::factory()->create([
+        'site_id' => 'SPWIDGET2',
+        'integracao_real_at' => '2026-11-02',
+    ]);
 
     $this->actingAs(User::factory()->create())
         ->get('/admin')

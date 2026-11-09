@@ -9,8 +9,8 @@ use Plugins\Nokia\Models\NokiaSite;
 /**
  * Builds the aggregates shown by the Nokia dashboard widget.
  *
- * The site acceptance bucket is derived from the checklist statuses and the
- * OS fields, because the plugin does not store a separate approval column.
+ * Only sites with a real integration date are counted, so the indicators
+ * reflect the sites that were effectively integrated.
  */
 final class NokiaDashboardMetrics
 {
@@ -33,6 +33,7 @@ final class NokiaDashboardMetrics
     public function build(): array
     {
         $sites = NokiaSite::query()
+            ->whereNotNull('integracao_real_at')
             ->with('rom')
             ->get([
                 'id',
