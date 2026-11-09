@@ -93,7 +93,6 @@ final class NokiaDashboardMetrics
                 'first_send' => (int) $counts->get('first_send', 0),
                 'rejected' => (int) $counts->get('rejected', 0),
                 'no_os' => (int) $counts->get('no_os', 0),
-                'pending' => (int) $counts->get('pending', 0),
                 'acceptance' => $this->percent($accepted, $total),
                 'projected' => $this->percent($accepted + $inProgress, $total),
                 'target' => self::TARGET_ACCEPTANCE,
@@ -121,50 +120,32 @@ final class NokiaDashboardMetrics
             'first_send' => ['label' => 'Primeiro Envio', 'color' => '#f97316', 'tone' => 'orange'],
             'rejected' => ['label' => 'Rejeitado', 'color' => '#ef4444', 'tone' => 'red'],
             'no_os' => ['label' => 'Sem OS MOS', 'color' => '#6b7280', 'tone' => 'gray'],
-            'pending' => ['label' => 'Pendentes', 'color' => '#d1d5db', 'tone' => 'gray'],
         ];
     }
 
     /**
-     * The mutually exclusive acceptance bucket of the site.
+     * The mutually exclusive bucket of the site, based on the FAM Instalação.
+     *
+     * "Primeiro Envio" are the sites whose FAM Instalação was not sent to the
+     * TIM analysis yet (status pending) and that already have an installation OS.
      */
     private function statusFor(NokiaSite $site): string
     {
-        if ($site->checklistStatus('checklist_fam_instalacao') === NokiaSite::STATUS_SENT) {
+        $status = $site->checklistStatus('checklist_fam_instalacao');
+
+        if ($status === NokiaSite::STATUS_SENT) {
             return 'accepted';
         }
 
-        if ($this->hasChecklistStatus($site, NokiaSite::STATUS_REJECTED)) {
+        if ($status === NokiaSite::STATUS_REJECTED) {
             return 'rejected';
         }
 
-        if ($this->hasChecklistStatus($site, NokiaSite::STATUS_ANALYSIS)) {
+        if ($status === NokiaSite::STATUS_ANALYSIS) {
             return 'analysis';
         }
 
-        if ($site->checklistStatus('checklist_fam_entrega') === NokiaSite::STATUS_SENT) {
-            return 'first_send';
-        }
-
-        if (blank($site->os_fam_instalacao)) {
-            return 'no_os';
-        }
-
-        return 'pending';
-    }
-
-    /**
-     * Whether any checklist of the site is in the given status.
-     */
-    private function hasChecklistStatus(NokiaSite $site, string $status): bool
-    {
-        foreach (array_keys(config('nokia.checklists', [])) as $field) {
-            if ($site->checklistStatus($field) === $status) {
-                return true;
-            }
-        }
-
-        return false;
+        return blank($site->os_fam_instalacao) ? 'no_os' : 'first_send';
     }
 
     /**

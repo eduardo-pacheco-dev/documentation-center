@@ -56,20 +56,19 @@ test('the dashboard metrics split the sites into acceptance buckets', function (
     NokiaSite::factory()->create([
         ...$base,
         'site_id' => 'SPREJECT1',
-        'checklist_fam_entrega_status' => NokiaSite::STATUS_REJECTED,
+        'checklist_fam_instalacao_status' => NokiaSite::STATUS_REJECTED,
     ]);
 
     NokiaSite::factory()->create([
         ...$base,
         'site_id' => 'SPANALYS1',
-        'checklist_fam_panoramica_status' => NokiaSite::STATUS_ANALYSIS,
+        'checklist_fam_instalacao_status' => NokiaSite::STATUS_ANALYSIS,
     ]);
 
     NokiaSite::factory()->create([
         ...$base,
         'site_id' => 'SPFIRST01',
-        'checklist_fam_entrega' => true,
-        'checklist_fam_entrega_status' => NokiaSite::STATUS_SENT,
+        'os_fam_instalacao' => 'OS-I-00001',
     ]);
 
     NokiaSite::factory()->create([
@@ -91,11 +90,10 @@ test('the dashboard metrics split the sites into acceptance buckets', function (
         'accepted' => 1,
         'rejected' => 1,
         'analysis' => 1,
-        'first_send' => 1,
+        'first_send' => 2,
         'no_os' => 1,
-        'pending' => 1,
         'acceptance' => 16.7,
-        'projected' => 50.0,
+        'projected' => 66.7,
     ]);
 });
 
