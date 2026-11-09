@@ -1595,3 +1595,58 @@ test('deleting a rom keeps the sites without a rom', function () {
 
     expect($site->fresh()->nokia_rom_id)->toBeNull();
 });
+
+test('an approval date marks the matching checklist as approved', function () {
+    $site = NokiaSite::factory()->create([
+        'checklist_fam_entrega' => false,
+        'checklist_fam_entrega_status' => NokiaSite::STATUS_PENDING,
+        'fam_entrega_approved_at' => '2026-02-01',
+    ]);
+
+    expect($site->checklist_fam_entrega)->toBeTrue()
+        ->and($site->checklist_fam_entrega_status)->toBe(NokiaSite::STATUS_SENT);
+});
+
+test('a later approval date also marks the checklist as approved', function () {
+    $site = NokiaSite::factory()->create([
+        'checklist_fam_instalacao' => false,
+        'checklist_fam_instalacao_status' => NokiaSite::STATUS_PENDING,
+    ]);
+
+    $site->update(['fam_instalacao_approved_at' => '2026-03-10']);
+
+    expect($site->fresh()->checklist_fam_instalacao)->toBeTrue()
+        ->and($site->fresh()->checklist_fam_instalacao_status)->toBe(NokiaSite::STATUS_SENT);
+});
+
+test('the approval date does not override a later checklist status change', function () {
+    $site = NokiaSite::factory()->create([
+        'fam_instalacao_approved_at' => '2026-03-10',
+    ]);
+
+    $site->update([
+        'checklist_fam_instalacao' => false,
+        'checklist_fam_instalacao_status' => NokiaSite::STATUS_REJECTED,
+    ]);
+
+    expect($site->fresh()->checklist_fam_instalacao_status)->toBe(NokiaSite::STATUS_REJECTED);
+});
+
+test('importing approval dates marks the checklists as approved', function () {
+    $csv = implode("\n", [
+        'Site ID;OC;FAM Entrega Aprovado;FAM Instalação Aprovado;FAM Panorâmica Aprovado',
+        'SPAPPROV1;OC-APPROV1;01/02/2026;02/02/2026;03/02/2026',
+    ]);
+
+    $this->actingAs(User::factory()->create())
+        ->post(route('admin.nokia.sites.import.store'), [
+            'file' => UploadedFile::fake()->createWithContent('sites.csv', $csv),
+        ])
+        ->assertRedirect(route('admin.nokia.sites.index'));
+
+    $site = NokiaSite::query()->where('oc', 'OC-APPROV1')->sole();
+
+    expect($site->checklist_fam_entrega_status)->toBe(NokiaSite::STATUS_SENT)
+        ->and($site->checklist_fam_instalacao_status)->toBe(NokiaSite::STATUS_SENT)
+        ->and($site->checklist_fam_panoramica_status)->toBe(NokiaSite::STATUS_SENT);
+});
