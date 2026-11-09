@@ -138,6 +138,10 @@
                     </li>
                     <li class="flex gap-2">
                         <x-icon name="check" class="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" />
+                        <span>A coluna <code class="rounded bg-gray-100 px-1 py-0.5 text-[11px] dark:bg-white/10">ROM</code> aceita o nome completo de um ROM já cadastrado em Configurações Nokia; deixe vazio para remover o ROM do site.</span>
+                    </li>
+                    <li class="flex gap-2">
+                        <x-icon name="check" class="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" />
                         <span>No checklist e nas colunas de tarefa, use <strong class="font-semibold text-gray-900 dark:text-white">Sim</strong> ou <strong class="font-semibold text-gray-900 dark:text-white">Não</strong>.</span>
                     </li>
                     <li class="flex gap-2">

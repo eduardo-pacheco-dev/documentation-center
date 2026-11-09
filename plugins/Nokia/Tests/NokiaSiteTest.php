@@ -11,6 +11,9 @@ use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use PhpOffice\PhpSpreadsheet\IOFactory;
+use PhpOffice\PhpSpreadsheet\Shared\Date as ExcelDate;
+use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use Plugins\Nokia\Database\Seeders\NokiaRomSeeder;
 use Plugins\Nokia\Database\Seeders\NokiaSiteSeeder;
 use Plugins\Nokia\Models\NokiaRom;
@@ -1242,6 +1245,94 @@ test('the import requires an oc value on every row', function () {
     expect(NokiaSite::query()->count())->toBe(0);
 });
 
+test('sites can be imported with a ROM name', function () {
+    $rom = NokiaRom::factory()->create(['first_name' => 'Ana', 'last_name' => 'Souza']);
+
+    $csv = implode("\n", [
+        'Site ID;OC;ROM',
+        'SPROM001;OC-ROM1;Ana Souza',
+    ]);
+
+    $this->actingAs(User::factory()->create())
+        ->post(route('admin.nokia.sites.import.store'), [
+            'file' => UploadedFile::fake()->createWithContent('sites.csv', $csv),
+        ])
+        ->assertRedirect(route('admin.nokia.sites.index'))
+        ->assertSessionHas('status');
+
+    expect(NokiaSite::query()->where('oc', 'OC-ROM1')->sole()->nokia_rom_id)->toBe($rom->getKey());
+});
+
+test('the import rejects an unknown ROM', function () {
+    $csv = implode("\n", [
+        'Site ID;OC;ROM',
+        'SPROM002;OC-ROM2;ROM inexistente',
+    ]);
+
+    $this->actingAs(User::factory()->create())
+        ->post(route('admin.nokia.sites.import.store'), [
+            'file' => UploadedFile::fake()->createWithContent('sites.csv', $csv),
+        ])
+        ->assertSessionHasErrors('file');
+
+    expect(NokiaSite::query()->count())->toBe(0);
+});
+
+test('the import preserves the ROM when the column is absent and clears it when empty', function () {
+    $rom = NokiaRom::factory()->create(['first_name' => 'Ana', 'last_name' => 'Souza']);
+    $site = NokiaSite::factory()->create(['oc' => 'OC-ROM3', 'nokia_rom_id' => $rom->getKey()]);
+
+    $this->actingAs(User::factory()->create())
+        ->post(route('admin.nokia.sites.import.store'), [
+            'file' => UploadedFile::fake()->createWithContent('sites.csv', "Site ID;OC\nSPROM003;OC-ROM3"),
+        ])
+        ->assertRedirect(route('admin.nokia.sites.index'));
+
+    expect($site->fresh()->nokia_rom_id)->toBe($rom->getKey());
+
+    $this->actingAs(User::factory()->create())
+        ->post(route('admin.nokia.sites.import.store'), [
+            'file' => UploadedFile::fake()->createWithContent('sites.csv', "Site ID;OC;ROM\nSPROM003;OC-ROM3;"),
+        ])
+        ->assertRedirect(route('admin.nokia.sites.index'));
+
+    expect($site->fresh()->nokia_rom_id)->toBeNull();
+});
+
+test('sites can be imported from an excel file', function () {
+    $rom = NokiaRom::factory()->create(['first_name' => 'Ana', 'last_name' => 'Souza']);
+
+    $spreadsheet = new Spreadsheet;
+    $sheet = $spreadsheet->getActiveSheet();
+    $sheet->fromArray([
+        ['Site ID', 'OC', 'OS FAM Instalação', 'ROM', 'MOS Real'],
+        ['SPXLSX01', 123456, 654321, 'Ana Souza'],
+    ]);
+    $sheet->setCellValue('E2', ExcelDate::PHPToExcel(new DateTimeImmutable('2026-03-05')));
+    $sheet->getStyle('E2')->getNumberFormat()->setFormatCode('dd/mm/yyyy');
+
+    $path = sys_get_temp_dir().'/nokia-import-'.Str::random(8).'.xlsx';
+    (new Xlsx($spreadsheet))->save($path);
+
+    try {
+        $this->actingAs(User::factory()->create())
+            ->post(route('admin.nokia.sites.import.store'), [
+                'file' => new UploadedFile($path, 'sites.xlsx', null, null, true),
+            ])
+            ->assertRedirect(route('admin.nokia.sites.index'))
+            ->assertSessionHas('status');
+    } finally {
+        @unlink($path);
+    }
+
+    $site = NokiaSite::query()->where('oc', '123456')->sole();
+
+    expect($site->oc)->toBe('123456')
+        ->and($site->os_fam_instalacao)->toBe('654321')
+        ->and($site->nokia_rom_id)->toBe($rom->getKey())
+        ->and($site->mos_real_at?->toDateString())->toBe('2026-03-05');
+});
+
 test('the import template can be downloaded as an excel file', function () {
     $response = $this->actingAs(User::factory()->create())
         ->get(route('admin.nokia.sites.import.template'))
@@ -1257,14 +1348,15 @@ test('the import template can be downloaded as an excel file', function () {
         ->toBe(['Sites', 'Exemplo', 'Instruções'])
         ->and($spreadsheet->getSheet(0)->getCell('A1')->getValue())->toBe('Site ID *')
         ->and($spreadsheet->getSheet(0)->getCell('C1')->getValue())->toBe('OC *')
-        ->and($spreadsheet->getSheet(0)->getCell('F1')->getValue())->toBe('Regional')
-        ->and($spreadsheet->getSheet(0)->getCell('H1')->getValue())->toBe('FAM Entrega')
-        ->and($spreadsheet->getSheet(0)->getCell('J1')->getValue())->toBe('FAM Panorâmica')
-        ->and($spreadsheet->getSheet(0)->getCell('K1')->getValue())->toBe('MOS Plan')
-        ->and($spreadsheet->getSheet(0)->getCell('U1')->getValue())->toBe('FAM Panorâmica Aprovado')
+        ->and($spreadsheet->getSheet(0)->getCell('G1')->getValue())->toBe('Regional')
+        ->and($spreadsheet->getSheet(0)->getCell('H1')->getValue())->toBe('Subcon')
+        ->and($spreadsheet->getSheet(0)->getCell('I1')->getValue())->toBe('FAM Entrega')
+        ->and($spreadsheet->getSheet(0)->getCell('K1')->getValue())->toBe('FAM Panorâmica')
+        ->and($spreadsheet->getSheet(0)->getCell('L1')->getValue())->toBe('MOS Plan')
+        ->and($spreadsheet->getSheet(0)->getCell('V1')->getValue())->toBe('FAM Panorâmica Aprovado')
         ->and($spreadsheet->getSheet(1)->getCell('A2')->getValue())->toBe('SPEXEMPLO01')
         ->and($spreadsheet->getSheet(1)->getCell('C2')->getValue())->toBe('OC-0001')
-        ->and($spreadsheet->getSheet(1)->getCell('K2')->getValue())->toBe('10/01/2026');
+        ->and($spreadsheet->getSheet(1)->getCell('L2')->getValue())->toBe('10/01/2026');
 
     $spreadsheet->disconnectWorksheets();
     @unlink($path);
@@ -1282,8 +1374,8 @@ test('the import template includes the configured activity columns', function ()
 
     $spreadsheet = IOFactory::load($path);
 
-    expect($spreadsheet->getSheet(0)->getCell('V1')->getValue())->toBe('Tarefa - Validar documentação')
-        ->and($spreadsheet->getSheet(1)->getCell('V2')->getValue())->toBe('Sim');
+    expect($spreadsheet->getSheet(0)->getCell('W1')->getValue())->toBe('Tarefa - Validar documentação')
+        ->and($spreadsheet->getSheet(1)->getCell('W2')->getValue())->toBe('Sim');
 
     $spreadsheet->disconnectWorksheets();
     @unlink($path);

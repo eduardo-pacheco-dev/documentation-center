@@ -7,9 +7,12 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 use PhpOffice\PhpSpreadsheet\IOFactory;
+use PhpOffice\PhpSpreadsheet\Shared\Date as ExcelDate;
+use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use Plugins\Nokia\Events\NokiaSiteImported;
 use Plugins\Nokia\Http\Requests\StoreNokiaSiteRequest;
 use Plugins\Nokia\Http\Requests\UpdateNokiaDatesRequest;
+use Plugins\Nokia\Models\NokiaRom;
 use Plugins\Nokia\Models\NokiaSite;
 use Plugins\Nokia\Models\NokiaTask;
 
@@ -26,6 +29,24 @@ final class NokiaSiteImporter
      */
     public function import(UploadedFile $file): int
     {
+        $previousMemoryLimit = $this->raiseMemoryLimit();
+
+        try {
+            return $this->importFile($file);
+        } finally {
+            if ($previousMemoryLimit !== null) {
+                ini_set('memory_limit', $previousMemoryLimit);
+            }
+        }
+    }
+
+    /**
+     * Import the sites using the memory limit raised by import().
+     *
+     * @throws NokiaSiteImportException
+     */
+    private function importFile(UploadedFile $file): int
+    {
         $rows = $this->rows($file);
 
         if (count($rows) > self::MAX_SITES) {
@@ -35,6 +56,7 @@ final class NokiaSiteImporter
         }
 
         $taskColumns = $this->taskColumns();
+        $roms = $this->romLookup();
 
         $prepared = [];
         $errors = [];
@@ -45,6 +67,13 @@ final class NokiaSiteImporter
 
             $normalized = StoreNokiaSiteRequest::normalizeChecklistValues($row);
             $normalized = $this->normalizeDates($normalized);
+            [$normalized, $romError] = $this->applyRom($normalized, $roms);
+
+            if ($romError !== null) {
+                $errors[] = 'Linha '.($index + 2).': '.$romError;
+
+                continue;
+            }
 
             $validator = Validator::make(
                 $normalized,
@@ -146,6 +175,58 @@ final class NokiaSiteImporter
     }
 
     /**
+     * Map the normalized full name of every ROM to its identifier.
+     *
+     * @return array<string, int>
+     */
+    private function romLookup(): array
+    {
+        return NokiaRom::query()
+            ->get()
+            ->mapWithKeys(fn (NokiaRom $rom): array => [
+                $this->normalizeHeader($rom->fullName()) => $rom->getKey(),
+            ])
+            ->all();
+    }
+
+    /**
+     * Resolve the ROM column to the "nokia_rom_id" attribute.
+     *
+     * The column is optional: when it is absent the current ROM is preserved,
+     * and when it is empty the ROM is cleared.
+     *
+     * @param  array<string, mixed>  $row
+     * @param  array<string, int>  $roms
+     * @return array{0: array<string, mixed>, 1: ?string}
+     */
+    private function applyRom(array $row, array $roms): array
+    {
+        if (! array_key_exists('rom', $row)) {
+            return [$row, null];
+        }
+
+        $name = trim((string) $row['rom']);
+
+        unset($row['rom']);
+
+        if ($name === '') {
+            $row['nokia_rom_id'] = null;
+
+            return [$row, null];
+        }
+
+        $id = $roms[$this->normalizeHeader($name)] ?? null;
+
+        if ($id === null) {
+            return [$row, sprintf('ROM [%s] não encontrado. Cadastre-o em Configurações Nokia.', $name)];
+        }
+
+        $row['nokia_rom_id'] = $id;
+
+        return [$row, null];
+    }
+
+    /**
      * Pull the configurable activity values out of the row.
      *
      * @param  array<string, mixed>  $row
@@ -202,6 +283,13 @@ final class NokiaSiteImporter
 
             $value = $row[$field];
 
+            // With setReadDataOnly() the XLSX cells arrive as Excel serials.
+            if (is_int($value) || is_float($value)) {
+                $row[$field] = $this->excelSerialToDate($value);
+
+                continue;
+            }
+
             if (! is_string($value)) {
                 continue;
             }
@@ -214,9 +302,25 @@ final class NokiaSiteImporter
     }
 
     /**
+     * Convert an Excel date serial to a Y-m-d value.
+     */
+    private function excelSerialToDate(int|float $serial): ?string
+    {
+        if ($serial <= 0) {
+            return null;
+        }
+
+        try {
+            return ExcelDate::excelToDateTimeObject($serial)->format('Y-m-d');
+        } catch (\Throwable) {
+            return null;
+        }
+    }
+
+    /**
      * Parse the uploaded file into associative rows.
      *
-     * @return list<array<string, string>>
+     * @return list<array<string, mixed>>
      *
      * @throws NokiaSiteImportException
      */
@@ -302,6 +406,12 @@ final class NokiaSiteImporter
                 }
 
                 $rows[] = $row;
+
+                if (count($rows) > self::MAX_SITES) {
+                    throw new NokiaSiteImportException([
+                        'A importação aceita no máximo '.self::MAX_SITES.' sites por arquivo.',
+                    ]);
+                }
             }
         } finally {
             fclose($stream);
@@ -317,17 +427,13 @@ final class NokiaSiteImporter
     /**
      * Parse the first sheet of an Excel file into associative rows.
      *
-     * @return list<array<string, string>>
+     * @return list<array<string, mixed>>
      *
      * @throws NokiaSiteImportException
      */
     private function rowsFromSpreadsheet(UploadedFile $file): array
     {
-        try {
-            $spreadsheet = IOFactory::load($file->getRealPath());
-        } catch (\Throwable) {
-            throw new NokiaSiteImportException(['Não foi possível ler a planilha enviada.']);
-        }
+        $spreadsheet = $this->loadSpreadsheet($file);
 
         try {
             $sheet = $spreadsheet->getSheet(0);
@@ -376,10 +482,22 @@ final class NokiaSiteImporter
                         continue;
                     }
 
-                    $row[$key] = trim((string) ($values[$index] ?? ''));
+                    $value = $values[$index] ?? '';
+
+                    // Keep numeric cells only for date columns, where the value
+                    // is an Excel serial that normalizeDates() converts later.
+                    $row[$key] = in_array($key, NokiaSite::DATE_FIELDS, true) && (is_int($value) || is_float($value))
+                        ? $value
+                        : trim((string) $value);
                 }
 
                 $rows[] = $row;
+
+                if (count($rows) > self::MAX_SITES) {
+                    throw new NokiaSiteImportException([
+                        'A importação aceita no máximo '.self::MAX_SITES.' sites por arquivo.',
+                    ]);
+                }
             }
         } finally {
             $spreadsheet->disconnectWorksheets();
@@ -390,6 +508,84 @@ final class NokiaSiteImporter
         }
 
         return $rows;
+    }
+
+    /**
+     * Load only the first sheet, without styles and beyond the import limits.
+     *
+     * @throws NokiaSiteImportException
+     */
+    private function loadSpreadsheet(UploadedFile $file): Spreadsheet
+    {
+        $path = (string) $file->getRealPath();
+
+        try {
+            $reader = IOFactory::createReaderForFile($path);
+
+            if (method_exists($reader, 'setReadDataOnly')) {
+                $reader->setReadDataOnly(true);
+            }
+
+            if (method_exists($reader, 'setReadEmptyCells')) {
+                $reader->setReadEmptyCells(false);
+            }
+
+            if (method_exists($reader, 'setLoadSheetsOnly')) {
+                $sheets = $reader->listWorksheetNames($path);
+
+                if ($sheets !== []) {
+                    $reader->setLoadSheetsOnly([$sheets[0]]);
+                }
+            }
+
+            $reader->setReadFilter(new NokiaImportReadFilter(
+                (int) config('nokia.import.max_rows', 1000),
+                (int) config('nokia.import.max_columns', 100),
+            ));
+
+            return $reader->load($path);
+        } catch (\Throwable) {
+            throw new NokiaSiteImportException(['Não foi possível ler a planilha enviada.']);
+        }
+    }
+
+    /**
+     * Raise the memory limit reserved for the import and return the previous one.
+     */
+    private function raiseMemoryLimit(): ?string
+    {
+        $previous = ini_get('memory_limit');
+
+        if ($previous === false || $previous === '-1') {
+            return null;
+        }
+
+        $limit = (string) config('nokia.import.memory_limit', '512M');
+
+        if ($this->memoryInBytes($previous) >= $this->memoryInBytes($limit)) {
+            return null;
+        }
+
+        ini_set('memory_limit', $limit);
+
+        return $previous;
+    }
+
+    /**
+     * Convert a PHP memory limit string to bytes.
+     */
+    private function memoryInBytes(string $value): int
+    {
+        $value = trim($value);
+        $unit = strtolower(substr($value, -1));
+        $number = (int) $value;
+
+        return match ($unit) {
+            'g' => $number * 1024 ** 3,
+            'm' => $number * 1024 ** 2,
+            'k' => $number * 1024,
+            default => $number,
+        };
     }
 
     /**
@@ -476,6 +672,10 @@ final class NokiaSiteImporter
             'ordem_servico_instalacao' => 'os_fam_instalacao',
             'regiao' => 'regional',
             'subcontratada' => 'subcon',
+            'rom_nome' => 'rom',
+            'nome_rom' => 'rom',
+            'responsavel' => 'rom',
+            'nome_do_rom' => 'rom',
             'fam_entrega' => 'checklist_fam_entrega',
             'fam_instalacao' => 'checklist_fam_instalacao',
             'fam_panoramica' => 'checklist_fam_panoramica',
