@@ -126,17 +126,18 @@ final class NokiaDashboardMetrics
     /**
      * The mutually exclusive bucket of the site, based on the FAM Instalação.
      *
+     * A site is accepted only when the FAM Instalação approval date is filled.
      * "Primeiro Envio" are the sites whose FAM Instalação was not sent to the
      * TIM analysis yet (status pending) and that already have a FAM Entrega OS.
      * Sites without that OS are grouped as "Sem OS MOS".
      */
     private function statusFor(NokiaSite $site): string
     {
-        $status = $site->checklistStatus('checklist_fam_instalacao');
-
-        if ($status === NokiaSite::STATUS_SENT) {
+        if ($site->fam_instalacao_approved_at !== null) {
             return 'accepted';
         }
+
+        $status = $site->checklistStatus('checklist_fam_instalacao');
 
         if ($status === NokiaSite::STATUS_REJECTED) {
             return 'rejected';

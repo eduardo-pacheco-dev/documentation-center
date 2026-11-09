@@ -51,6 +51,7 @@ test('the dashboard metrics split the sites into acceptance buckets', function (
         'site_id' => 'SPACCEPT1',
         'checklist_fam_instalacao' => true,
         'checklist_fam_instalacao_status' => NokiaSite::STATUS_SENT,
+        'fam_instalacao_approved_at' => '2026-11-01',
     ]);
 
     NokiaSite::factory()->create([
@@ -97,6 +98,35 @@ test('the dashboard metrics split the sites into acceptance buckets', function (
     ]);
 });
 
+test('a FAM instalação only counts as accepted after approval', function () {
+    $base = [
+        'checklist_fam_entrega' => false,
+        'checklist_fam_instalacao' => false,
+        'checklist_fam_panoramica' => false,
+        'checklist_fam_entrega_status' => NokiaSite::STATUS_PENDING,
+        'checklist_fam_instalacao_status' => NokiaSite::STATUS_SENT,
+        'checklist_fam_panoramica_status' => NokiaSite::STATUS_PENDING,
+        'os_fam_entrega' => 'OS-E-00001',
+    ];
+
+    NokiaSite::factory()->create([
+        ...$base,
+        'site_id' => 'SPAPPROV1',
+        'fam_instalacao_approved_at' => '2026-11-01',
+    ]);
+
+    NokiaSite::factory()->create([
+        ...$base,
+        'site_id' => 'SPSENT001',
+        'fam_instalacao_approved_at' => null,
+    ]);
+
+    $metrics = app(NokiaDashboardMetrics::class)->build();
+
+    expect($metrics['totals']['accepted'])->toBe(1)
+        ->and($metrics['totals']['first_send'])->toBe(1);
+});
+
 test('the dashboard metrics group the acceptance by regional, subcon and ROM', function () {
     $rom = NokiaRom::factory()->create([
         'first_name' => 'Ana',
@@ -109,6 +139,7 @@ test('the dashboard metrics group the acceptance by regional, subcon and ROM', f
         'nokia_rom_id' => $rom->getKey(),
         'checklist_fam_instalacao' => true,
         'checklist_fam_instalacao_status' => NokiaSite::STATUS_SENT,
+        'fam_instalacao_approved_at' => '2026-11-01',
     ]);
 
     NokiaSite::factory()->create([
