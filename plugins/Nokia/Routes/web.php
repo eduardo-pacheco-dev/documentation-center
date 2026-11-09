@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use Plugins\Nokia\Http\Controllers\NokiaRomController;
 use Plugins\Nokia\Http\Controllers\NokiaSiteAttachmentController;
+use Plugins\Nokia\Http\Controllers\NokiaSiteCommentController;
 use Plugins\Nokia\Http\Controllers\NokiaSiteController;
 use Plugins\Nokia\Http\Controllers\NokiaSiteExportController;
 use Plugins\Nokia\Http\Controllers\NokiaSiteImportController;
@@ -37,6 +38,8 @@ Route::middleware('auth')
             Route::post('{site}/attachments', [NokiaSiteAttachmentController::class, 'store'])->name('attachments.store');
             Route::get('{site}/attachments/{attachment}', [NokiaSiteAttachmentController::class, 'download'])->name('attachments.download');
             Route::delete('{site}/attachments/{attachment}', [NokiaSiteAttachmentController::class, 'destroy'])->name('attachments.destroy');
+            Route::post('{site}/comments', [NokiaSiteCommentController::class, 'store'])->name('comments.store');
+            Route::delete('{site}/comments/{comment}', [NokiaSiteCommentController::class, 'destroy'])->name('comments.destroy');
         });
     });
 

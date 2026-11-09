@@ -202,6 +202,14 @@ class NokiaSite extends Model
     }
 
     /**
+     * The comments written about the site.
+     */
+    public function comments(): HasMany
+    {
+        return $this->hasMany(NokiaSiteComment::class, 'nokia_site_id')->latest('created_at')->latest('id');
+    }
+
+    /**
      * Whether the site has an active work interruption.
      */
     public function isInterrupted(): bool

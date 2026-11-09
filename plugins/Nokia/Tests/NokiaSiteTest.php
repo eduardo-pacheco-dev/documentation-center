@@ -19,6 +19,7 @@ use Plugins\Nokia\Database\Seeders\NokiaSiteSeeder;
 use Plugins\Nokia\Models\NokiaRom;
 use Plugins\Nokia\Models\NokiaSite;
 use Plugins\Nokia\Models\NokiaSiteAttachment;
+use Plugins\Nokia\Models\NokiaSiteComment;
 use Plugins\Nokia\Models\NokiaSiteRejection;
 use Plugins\Nokia\Models\NokiaTask;
 use Plugins\Nokia\Providers\NokiaServiceProvider;
@@ -1695,4 +1696,47 @@ test('importing approval dates marks the checklists as approved', function () {
     expect($site->checklist_fam_entrega_status)->toBe(NokiaSite::STATUS_SENT)
         ->and($site->checklist_fam_instalacao_status)->toBe(NokiaSite::STATUS_SENT)
         ->and($site->checklist_fam_panoramica_status)->toBe(NokiaSite::STATUS_SENT);
+});
+
+test('comments can be posted and are visible on the site page', function () {
+    $user = User::factory()->create(['name' => 'Maria', 'surname' => 'Silva']);
+    $site = NokiaSite::factory()->create();
+
+    $this->actingAs($user)
+        ->post(route('admin.nokia.sites.comments.store', $site), [
+            'body' => 'A vistoria técnica foi concluída.',
+        ])
+        ->assertRedirect()
+        ->assertSessionHas('status');
+
+    $comment = NokiaSiteComment::query()->sole();
+
+    expect($comment)
+        ->nokia_site_id->toBe($site->getKey())
+        ->user_id->toBe($user->getKey())
+        ->body->toBe('A vistoria técnica foi concluída.');
+
+    $this->actingAs($user)
+        ->get(route('admin.nokia.sites.show', $site))
+        ->assertOk()
+        ->assertSee('A vistoria técnica foi concluída.')
+        ->assertSee('Maria Silva');
+});
+
+test('only the author or an administrator can remove a site comment', function () {
+    $author = User::factory()->create();
+    $intruder = User::factory()->create();
+    $site = NokiaSite::factory()->create();
+    $comment = NokiaSiteComment::factory()->for($site, 'site')->for($author)->create();
+
+    $this->actingAs($intruder)
+        ->delete(route('admin.nokia.sites.comments.destroy', [$site, $comment]))
+        ->assertForbidden();
+
+    $this->actingAs($author)
+        ->delete(route('admin.nokia.sites.comments.destroy', [$site, $comment]))
+        ->assertRedirect()
+        ->assertSessionHas('status');
+
+    expect(NokiaSiteComment::query()->find($comment->getKey()))->toBeNull();
 });
