@@ -1278,7 +1278,7 @@ test('the import rejects an unknown ROM', function () {
     expect(NokiaSite::query()->count())->toBe(0);
 });
 
-test('the import preserves the ROM when the column is absent and clears it when empty', function () {
+test('the import preserves the ROM when the column is absent or empty', function () {
     $rom = NokiaRom::factory()->create(['first_name' => 'Ana', 'last_name' => 'Souza']);
     $site = NokiaSite::factory()->create(['oc' => 'OC-ROM3', 'nokia_rom_id' => $rom->getKey()]);
 
@@ -1296,7 +1296,41 @@ test('the import preserves the ROM when the column is absent and clears it when 
         ])
         ->assertRedirect(route('admin.nokia.sites.index'));
 
-    expect($site->fresh()->nokia_rom_id)->toBeNull();
+    expect($site->fresh()->nokia_rom_id)->toBe($rom->getKey());
+});
+
+test('empty import cells do not overwrite the stored site', function () {
+    $site = NokiaSite::factory()->create([
+        'oc' => 'OC-KEEPALL',
+        'end_id' => 'END-KEEP',
+        'os_fam_entrega' => 'OS-E-KEEP',
+        'os_fam_instalacao' => 'OS-I-KEEP',
+        'regional' => 'TNO',
+        'subcon' => 'AFL',
+        'mos_real_at' => '2026-01-10',
+        'checklist_fam_entrega' => true,
+        'checklist_fam_entrega_status' => NokiaSite::STATUS_SENT,
+    ]);
+
+    $csv = implode("\n", [
+        'Site ID;OC;End ID;OS FAM Entrega;OS FAM Instalação;Regional;Subcon;FAM Entrega;MOS Real',
+        'SPKEEPALL;OC-KEEPALL;;;;;;;',
+    ]);
+
+    $this->actingAs(User::factory()->create())
+        ->post(route('admin.nokia.sites.import.store'), [
+            'file' => UploadedFile::fake()->createWithContent('sites.csv', $csv),
+        ])
+        ->assertRedirect(route('admin.nokia.sites.index'));
+
+    expect($site->fresh())
+        ->end_id->toBe('END-KEEP')
+        ->os_fam_entrega->toBe('OS-E-KEEP')
+        ->os_fam_instalacao->toBe('OS-I-KEEP')
+        ->regional->toBe('TNO')
+        ->subcon->toBe('AFL')
+        ->mos_real_at->toDateString()->toBe('2026-01-10')
+        ->checklist_fam_entrega->toBeTrue();
 });
 
 test('sites can be imported from an excel file', function () {

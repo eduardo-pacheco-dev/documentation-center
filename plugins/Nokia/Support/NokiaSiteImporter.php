@@ -65,7 +65,10 @@ final class NokiaSiteImporter
         foreach ($rows as $index => $row) {
             $tasks = $this->extractTaskValues($row, $taskColumns);
 
-            $normalized = StoreNokiaSiteRequest::normalizeChecklistValues($row);
+            $normalized = StoreNokiaSiteRequest::normalizeChecklistValues(
+                $this->removeEmptyValues($row),
+                fillMissing: false,
+            );
             $normalized = $this->normalizeDates($normalized);
             [$normalized, $romError] = $this->applyRom($normalized, $roms);
 
@@ -210,8 +213,6 @@ final class NokiaSiteImporter
         unset($row['rom']);
 
         if ($name === '') {
-            $row['nokia_rom_id'] = null;
-
             return [$row, null];
         }
 
@@ -242,11 +243,33 @@ final class NokiaSiteImporter
                 continue;
             }
 
+            // An empty import cell keeps the activity untouched.
+            if ($value === null || (is_string($value) && trim($value) === '')) {
+                unset($row[$key]);
+
+                continue;
+            }
+
             $values[$columns[$key]] = StoreNokiaSiteRequest::parseBoolean($value);
             unset($row[$key]);
         }
 
         return $values;
+    }
+
+    /**
+     * Drop empty cells so they do not overwrite the stored site.
+     *
+     * @param  array<string, mixed>  $row
+     * @return array<string, mixed>
+     */
+    private function removeEmptyValues(array $row): array
+    {
+        return array_filter(
+            $row,
+            fn (mixed $value): bool => $value !== null
+                && ! (is_string($value) && trim($value) === ''),
+        );
     }
 
     /**
@@ -483,6 +506,10 @@ final class NokiaSiteImporter
                     }
 
                     $value = $values[$index] ?? '';
+
+                    if (is_bool($value)) {
+                        $value = $value ? '1' : '0';
+                    }
 
                     // Keep numeric cells only for date columns, where the value
                     // is an Excel serial that normalizeDates() converts later.

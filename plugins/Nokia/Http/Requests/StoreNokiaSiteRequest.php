@@ -28,12 +28,19 @@ class StoreNokiaSiteRequest extends FormRequest
     /**
      * Normalize the checklist values from a request or import row.
      *
+     * When $fillMissing is false the absent items are left untouched, so an
+     * empty import cell does not reset the checklist of an existing site.
+     *
      * @param  array<string, mixed>  $values
      * @return array<string, mixed>
      */
-    public static function normalizeChecklistValues(array $values): array
+    public static function normalizeChecklistValues(array $values, bool $fillMissing = true): array
     {
         foreach (array_keys(config('nokia.checklists', [])) as $field) {
+            if (! $fillMissing && ! array_key_exists($field, $values)) {
+                continue;
+            }
+
             $values[$field] = self::parseBoolean($values[$field] ?? false);
         }
 
